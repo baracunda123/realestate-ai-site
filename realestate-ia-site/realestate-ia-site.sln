@@ -1,0 +1,33 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36301.6 d17.14
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{54A90642-561A-4BB1-A94E-469ADEE60C69}") = "realestate-ia-site.client", "realestate-ia-site.client\realestate-ia-site.client.esproj", "{F2CC0F58-19D7-400F-BE43-782E3F68E543}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "realestate-ia-site.Server", "realestate-ia-site.Server\realestate-ia-site.Server.csproj", "{3BBDB60A-A9CB-4322-AF74-A13895E9160B}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F2CC0F58-19D7-400F-BE43-782E3F68E543}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F2CC0F58-19D7-400F-BE43-782E3F68E543}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F2CC0F58-19D7-400F-BE43-782E3F68E543}.Debug|Any CPU.Deploy.0 = Debug|Any CPU
+		{F2CC0F58-19D7-400F-BE43-782E3F68E543}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F2CC0F58-19D7-400F-BE43-782E3F68E543}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F2CC0F58-19D7-400F-BE43-782E3F68E543}.Release|Any CPU.Deploy.0 = Release|Any CPU
+		{3BBDB60A-A9CB-4322-AF74-A13895E9160B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3BBDB60A-A9CB-4322-AF74-A13895E9160B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3BBDB60A-A9CB-4322-AF74-A13895E9160B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3BBDB60A-A9CB-4322-AF74-A13895E9160B}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0D8B37A6-DB04-43C4-832F-BD6F9CA2947F}
+	EndGlobalSection
+EndGlobal
