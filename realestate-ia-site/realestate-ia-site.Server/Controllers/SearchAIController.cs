@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using realestate_ia_site.Server.DTOs.SearchAI;
 using realestate_ia_site.Server.Services;
+using realestate_ia_site.Server.Services.PropertyServices;
 
 namespace realestate_ia_site.Server.Controllers
 {
@@ -10,10 +11,10 @@ namespace realestate_ia_site.Server.Controllers
     public class SearchAIController : ControllerBase
     {
         private readonly OpenAIService _openAI;
-        private readonly PropertyService _property;
+        private readonly PropertySearchService _property;
         private readonly ILogger<SearchAIController> _logger;
 
-        public SearchAIController(OpenAIService openAI, PropertyService property, ILogger<SearchAIController> logger)
+        public SearchAIController(OpenAIService openAI, PropertySearchService property, ILogger<SearchAIController> logger)
         {
             _openAI = openAI;
             _property = property;

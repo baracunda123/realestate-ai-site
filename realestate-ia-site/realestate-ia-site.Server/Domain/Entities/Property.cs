@@ -30,7 +30,10 @@ namespace realestate_ia_site.Server.Domain.Entities
         
         [Column("state")]
         public string? State { get; set; }
-        
+
+        [Column("county")]
+        public string? County { get; set; }
+
         [Column("zipCode")]
         public string? ZipCode { get; set; }
         

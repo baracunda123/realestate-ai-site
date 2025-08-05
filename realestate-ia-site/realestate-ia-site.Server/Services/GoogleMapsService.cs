@@ -23,7 +23,7 @@ namespace realestate_ia_site.Server.Services
         {
             if (string.IsNullOrWhiteSpace(locationText))
             {
-                return new ParsedLocation { City = string.Empty, State = string.Empty };
+                return new ParsedLocation { City = string.Empty, State = string.Empty, County = string.Empty };
             }
 
             var cacheKey = $"{locationText}_{countryCode}";
@@ -51,15 +51,15 @@ namespace realestate_ia_site.Server.Services
                 {
                     _logger.LogWarning("⚠️ Nenhum resultado encontrado para localização: {Location}. Status: {Status}",
                         locationText, geocodeResponse?.Status);
-                    var emptyResult = new ParsedLocation { City = string.Empty, State = string.Empty };
+                    var emptyResult = new ParsedLocation { City = string.Empty, State = string.Empty, County = string.Empty };
                     _cache.Set(cacheKey, emptyResult, TimeSpan.FromHours(24));
                     return emptyResult;
                 }
 
                 var result = geocodeResponse.Results.First();
-                var parsedLocation = ExtractCityAndState(result);
+                var parsedLocation = ExtractCityStateCounty(result);
 
-                _logger.LogDebug("✅ Localização processada: {City}, {State}", parsedLocation.City, parsedLocation.State);
+                _logger.LogDebug("✅ Localização processada: {City}, {State}, {County}", parsedLocation.City, parsedLocation.State, parsedLocation.County);
 
                 _cache.Set(cacheKey, parsedLocation, TimeSpan.FromHours(24));
                 return parsedLocation;
@@ -75,14 +75,15 @@ namespace realestate_ia_site.Server.Services
             }
         }
 
-        private ParsedLocation ExtractCityAndState(GeocodeResult result)
+        private ParsedLocation ExtractCityStateCounty(GeocodeResult result)
         {
             string city = string.Empty;
             string state = string.Empty;
+            string county = string.Empty;
 
             if (result.AddressComponents == null)
             {
-                return new ParsedLocation { City = city, State = state };
+                return new ParsedLocation { City = city, State = state, County = county };
             }
 
             foreach (var component in result.AddressComponents)
@@ -100,9 +101,19 @@ namespace realestate_ia_site.Server.Services
                 {
                     state = component.LongName ?? string.Empty;
                 }
+
+                // Procurar por concelho/county - usar string comparison
+                if (component.Types.Any(type => type == "administrative_area_level_2" || type == "sublocality"))
+                {
+                    // Se ainda não temos cidade, este pode ser o concelho
+                    if (string.IsNullOrEmpty(city) || component.Types.Any(type => type == "administrative_area_level_2"))
+                    {
+                        county = component.LongName ?? string.Empty;
+                    }
+                }
             }
 
-            return new ParsedLocation { City = city, State = state };
+            return new ParsedLocation { City = city, State = state, County = county };
         }
 
         private ParsedLocation ParseLocationFallback(string locationText)
@@ -112,14 +123,15 @@ namespace realestate_ia_site.Server.Services
                 var parts = locationText.Split(',', StringSplitOptions.RemoveEmptyEntries);
                 var city = parts.FirstOrDefault()?.Trim() ?? string.Empty;
                 var state = parts.Length > 1 ? parts[1].Trim() : "Portugal";
+                var county = parts.Length > 2 ? parts[2].Trim() : string.Empty;
 
-                _logger.LogDebug("📍 Usando fallback para localização: {City}, {State}", city, state);
-                return new ParsedLocation { City = city, State = state };
+                _logger.LogDebug("📍 Usando fallback para localização: {City}, {State}, {County}", city, state, county);
+                return new ParsedLocation { City = city, State = state, County = county };
             }
             catch
             {
                 _logger.LogWarning("⚠️ Erro no fallback de parsing para localização: {Location}", locationText);
-                return new ParsedLocation { City = string.Empty, State = "Portugal" };
+                return new ParsedLocation { City = string.Empty, State = "Portugal", County = string.Empty };
             }
         }
     }
@@ -159,5 +171,7 @@ namespace realestate_ia_site.Server.Services
     {
         public string City { get; set; } = string.Empty;
         public string State { get; set; } = string.Empty;
+        public string County { get; set; } = string.Empty;
+
     }
 }

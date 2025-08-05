@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using realestate_ia_site.Server.DTOs.Scraper;
-using realestate_ia_site.Server.Services;
+using realestate_ia_site.Server.Services.PropertyServices;
 
 namespace realestate_ia_site.Server.Controllers
 {

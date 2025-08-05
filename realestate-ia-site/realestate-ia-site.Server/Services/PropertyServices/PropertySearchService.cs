@@ -4,14 +4,14 @@ using realestate_ia_site.Server.Data;
 using realestate_ia_site.Server.DTOs;
 using System.Text.Json;
 
-namespace realestate_ia_site.Server.Services
+namespace realestate_ia_site.Server.Services.PropertyServices
 {
-    public class PropertyService
+    public class PropertySearchService
     {
         private readonly ApplicationDbContext _context;
-        private readonly ILogger<PropertyService> _logger;
+        private readonly ILogger<PropertySearchService> _logger;
 
-        public PropertyService(ApplicationDbContext context, ILogger<PropertyService> logger)
+        public PropertySearchService(ApplicationDbContext context, ILogger<PropertySearchService> logger)
         {
             _context = context;
             _logger = logger;

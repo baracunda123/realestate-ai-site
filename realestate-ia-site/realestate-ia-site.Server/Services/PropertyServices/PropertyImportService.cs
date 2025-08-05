@@ -4,7 +4,7 @@ using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.DTOs.Scraper;
 using realestate_ia_site.Server.Utils;
 
-namespace realestate_ia_site.Server.Services
+namespace realestate_ia_site.Server.Services.PropertyServices
 {
     public class PropertyImportService
     {
@@ -55,7 +55,7 @@ namespace realestate_ia_site.Server.Services
                 // Verificar se propriedade já existe (por link ou título + localização)
                 var existingProperty = await _context.Properties
                     .FirstOrDefaultAsync(p => p.Link == scrapperDto.url || 
-                                            (p.Title == scrapperDto.title && p.Address == scrapperDto.location));
+                                            p.Title == scrapperDto.title && p.Address == scrapperDto.location);
 
                 if (existingProperty != null)
                 {
