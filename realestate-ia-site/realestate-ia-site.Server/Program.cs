@@ -6,7 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddSingleton<OpenAIService>();
-builder.Services.AddScoped<PropertyService>();
+builder.Services.AddScoped<PropertySearchService>();
 
 // Add HttpClient for GoogleMapsService
 builder.Services.AddHttpClient<GoogleMapsService>();

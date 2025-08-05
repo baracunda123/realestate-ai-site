@@ -25,7 +25,7 @@ namespace realestate_ia_site.Server.Utils
             {
                 Id = Guid.NewGuid().ToString(),
                 Title = property.title?.Trim(),
-                Description = string.Join(" ", property.descricao ?? new List<string>()),
+                Description = string.Join(" ", property.descricao ?? ""),
                 Type = type,
                 Price = price,
                 Address = property.location?.Trim(),
@@ -60,7 +60,7 @@ namespace realestate_ia_site.Server.Utils
 
             var lower = caracteristicas.ToLower();
             
-            if (lower.Contains("apartamento") || lower.Contains("apt"))
+            if (lower.Contains("apartamento"))
                 return "Apartamento";
             if (lower.Contains("moradia") || lower.Contains("casa") || lower.Contains("vivenda"))
                 return "Moradia";
@@ -220,7 +220,7 @@ namespace realestate_ia_site.Server.Utils
             var text = dto.caracteristicas ?? string.Empty;
             
             existing.Title = dto.title?.Trim() ?? existing.Title;
-            existing.Description = string.Join(" ", dto.descricao ?? new List<string>()) ?? existing.Description;
+            existing.Description = string.Join(" ", dto.descricao ?? "") ?? existing.Description;
             existing.Price = ParsePrice(dto.preco) ?? existing.Price;
             existing.Link = dto.url?.Trim() ?? existing.Link;
             existing.UpdatedAt = DateTime.UtcNow;
