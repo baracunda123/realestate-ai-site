@@ -45,7 +45,7 @@ namespace realestate_ia_site.Server.Controllers
         }
 
 
-        [HttpPost("state/update-current-page")]
+        [HttpPut("state/update-current-page")]
         public async Task<IActionResult> UpdateCurrentPage([FromBody] ScraperStateDto request)
         {
             try

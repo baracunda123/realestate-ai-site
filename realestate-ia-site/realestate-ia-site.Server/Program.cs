@@ -2,22 +2,22 @@ using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Data;
 using realestate_ia_site.Server.Services;
 using realestate_ia_site.Server.Services.PropertyServices;
+using realestate_ia_site.Server.Services.ScraperServices;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddSingleton<OpenAIService>();
 builder.Services.AddScoped<PropertySearchService>();
+builder.Services.AddScoped<PropertyImportService>();
+builder.Services.AddScoped<ScraperStateService>();
 
-// Add HttpClient for GoogleMapsService
+// Add HttpClient/memory cache for GoogleMapsService
 builder.Services.AddHttpClient<GoogleMapsService>();
 builder.Services.AddScoped<GoogleMapsService>();
-
-// Add PropertyImportService
-builder.Services.AddScoped<PropertyImportService>();
-
-// Add memory cache for GoogleMapsService
 builder.Services.AddMemoryCache();
+
 
 // Add DbContext with PostgreSQL
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

@@ -22,7 +22,7 @@ namespace realestate_ia_site.Server.Services.ScraperServices
             var scrapingState = await _context.ScrapingStates
                 .FirstOrDefaultAsync(s => s.Site == site && s.Location == location);
 
-            var currentPage = scrapingState?.CurrentPage ?? 0;
+            var currentPage = scrapingState?.CurrentPage ?? 1;
 
             _logger.LogInformation("Current scraper state: Page {CurrentPage} - Site: {Site}, Location: {Location}"
                                   , currentPage, site, location);
@@ -41,10 +41,11 @@ namespace realestate_ia_site.Server.Services.ScraperServices
 
                 state = new Domain.Entities.ScrapingState
                 {
-                   // Id = Guid.NewGuid().ToString(),
+                    Id = Guid.NewGuid().ToString(),
                     Site = site,
                     Location = location,
-                    //CreatedAt = DateTime.UtcNow,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow,
                     CurrentPage = currentPage
                 };
                 _context.ScrapingStates.Add(state);
