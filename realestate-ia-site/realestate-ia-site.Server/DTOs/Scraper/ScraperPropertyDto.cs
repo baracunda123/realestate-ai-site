@@ -1,6 +1,6 @@
 ﻿namespace realestate_ia_site.Server.DTOs.Scraper
 {
-    public class ScrapperPropertyDto
+    public class ScraperPropertyDto
     {
         public string? preco { get; set; }
         public string? caracteristicas { get; set; }

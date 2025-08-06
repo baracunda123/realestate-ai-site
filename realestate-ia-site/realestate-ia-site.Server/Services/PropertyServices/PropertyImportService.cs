@@ -21,9 +21,9 @@ namespace realestate_ia_site.Server.Services.PropertyServices
             _googleMapsService = googleMapsService;
         }
 
-        public async Task<ImportResult> ImportScrapperPropertiesAsync(ScrapperPropertyDto[] scrapperProperties)
+        public async Task<ImportResult> ImportScrapperPropertiesAsync(ScraperPropertyDto[] scrapperProperties)
         {
-            _logger.LogInformation("🤖 Iniciando importação de {Count} propriedades do scrapper", scrapperProperties.Length);
+            _logger.LogInformation("Iniciando importação de {Count} propriedades do scrapper", scrapperProperties.Length);
             
             var result = new ImportResult();
             
@@ -36,19 +36,19 @@ namespace realestate_ia_site.Server.Services.PropertyServices
 
                 await _context.SaveChangesAsync();
                 
-                _logger.LogInformation("✅ Importação concluída. Criadas: {Created}, Atualizadas: {Updated}, Erros: {Errors}", 
+                _logger.LogInformation("Importação concluída. Criadas: {Created}, Atualizadas: {Updated}, Erros: {Errors}", 
                     result.Created, result.Updated, result.Errors);
                 
                 return result;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Erro durante importação em lote");
+                _logger.LogError(ex, "Erro durante importação em lote");
                 throw;
             }
         }
 
-        private async Task ProcessSinglePropertyAsync(ScrapperPropertyDto scrapperDto, ImportResult result)
+        private async Task ProcessSinglePropertyAsync(ScraperPropertyDto scrapperDto, ImportResult result)
         {
             try
             {
@@ -62,7 +62,7 @@ namespace realestate_ia_site.Server.Services.PropertyServices
                     // Atualizar propriedade existente usando o mapper
                     await PropertyMapper.UpdatePropertyFromScrapperAsync(existingProperty, scrapperDto);
                     result.Updated++;
-                    _logger.LogDebug("🔄 Propriedade atualizada: {Title}", scrapperDto.title);
+                    _logger.LogDebug("Propriedade atualizada: {Title}", scrapperDto.title);
                 }
                 else
                 {
@@ -70,13 +70,13 @@ namespace realestate_ia_site.Server.Services.PropertyServices
                     var newProperty = await PropertyMapper.MapToPropertyEntityAsync(scrapperDto,_googleMapsService);
                     _context.Properties.Add(newProperty);
                     result.Created++;
-                    _logger.LogDebug("➕ Nova propriedade criada: {Title}", scrapperDto.title);
+                    _logger.LogDebug("Nova propriedade criada: {Title}", scrapperDto.title);
                 }
             }
             catch (Exception ex)
             {
                 result.Errors++;
-                _logger.LogError(ex, "❌ Erro ao processar propriedade: {Title}", scrapperDto.title);
+                _logger.LogError(ex, "Erro ao processar propriedade: {Title}", scrapperDto.title);
             }
         }
     }

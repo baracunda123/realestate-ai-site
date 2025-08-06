@@ -8,7 +8,7 @@ namespace realestate_ia_site.Server.Utils
 {
     public static class PropertyMapper
     {
-        public static async Task<Property> MapToPropertyEntityAsync(ScrapperPropertyDto property, GoogleMapsService googleMapsService)
+        public static async Task<Property> MapToPropertyEntityAsync(ScraperPropertyDto property, GoogleMapsService googleMapsService)
         {
             var text = property.caracteristicas ?? string.Empty;
             
@@ -218,7 +218,7 @@ namespace realestate_ia_site.Server.Utils
         }
 
         // Método para atualizar propriedade existente
-        public static async Task UpdatePropertyFromScrapperAsync(Property existing, ScrapperPropertyDto dto)
+        public static async Task UpdatePropertyFromScrapperAsync(Property existing, ScraperPropertyDto dto)
         {
             var text = dto.caracteristicas ?? string.Empty;
             

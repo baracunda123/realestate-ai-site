@@ -29,13 +29,13 @@ namespace realestate_ia_site.Server.Services
             var cacheKey = $"{locationText}_{countryCode}";
             if (_cache.TryGetValue(cacheKey, out ParsedLocation? cachedResult) && cachedResult != null)
             {
-                _logger.LogDebug("📍 Localização encontrada no cache: {Location}", locationText);
+                _logger.LogDebug("Localização encontrada no cache: {Location}", locationText);
                 return cachedResult;
             }
 
             try
             {
-                _logger.LogDebug("🌍 Fazendo chamada para Google Maps Geocoding API: {Location}", locationText);
+                _logger.LogDebug("Fazendo chamada para Google Maps Geocoding API: {Location}", locationText);
 
                 // Construir URL da API
                 var encodedAddress = Uri.EscapeDataString(locationText);
@@ -49,7 +49,7 @@ namespace realestate_ia_site.Server.Services
 
                 if (geocodeResponse?.Status != "OK" || geocodeResponse.Results == null || !geocodeResponse.Results.Any())
                 {
-                    _logger.LogWarning("⚠️ Nenhum resultado encontrado para localização: {Location}. Status: {Status}",
+                    _logger.LogWarning("Nenhum resultado encontrado para localização: {Location}. Status: {Status}",
                         locationText, geocodeResponse?.Status);
                     var emptyResult = new ParsedLocation { City = string.Empty, State = string.Empty, County = string.Empty };
                     _cache.Set(cacheKey, emptyResult, TimeSpan.FromHours(24));
@@ -59,14 +59,14 @@ namespace realestate_ia_site.Server.Services
                 var result = geocodeResponse.Results.First();
                 var parsedLocation = ExtractCityStateCounty(result);
 
-                _logger.LogDebug("✅ Localização processada: {City}, {State}, {County}", parsedLocation.City, parsedLocation.State, parsedLocation.County);
+                _logger.LogDebug("Localização processada: {City}, {State}, {County}", parsedLocation.City, parsedLocation.State, parsedLocation.County);
 
                 _cache.Set(cacheKey, parsedLocation, TimeSpan.FromHours(24));
                 return parsedLocation;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Erro ao obter localização do Google Maps: {Location}", locationText);
+                _logger.LogError(ex, "Erro ao obter localização do Google Maps: {Location}", locationText);
 
                 // Fallback para parsing simples
                 var fallbackResult = ParseLocationFallback(locationText);
@@ -125,12 +125,12 @@ namespace realestate_ia_site.Server.Services
                 var state = parts.Length > 1 ? parts[1].Trim() : "Portugal";
                 var county = parts.Length > 2 ? parts[2].Trim() : string.Empty;
 
-                _logger.LogDebug("📍 Usando fallback para localização: {City}, {State}, {County}", city, state, county);
+                _logger.LogDebug("Usando fallback para localização: {City}, {State}, {County}", city, state, county);
                 return new ParsedLocation { City = city, State = state, County = county };
             }
             catch
             {
-                _logger.LogWarning("⚠️ Erro no fallback de parsing para localização: {Location}", locationText);
+                _logger.LogWarning("Erro no fallback de parsing para localização: {Location}", locationText);
                 return new ParsedLocation { City = string.Empty, State = "Portugal", County = string.Empty };
             }
         }
