@@ -55,14 +55,14 @@ namespace realestate_ia_site.Server.Services.PropertyServices
                 // Verificar se propriedade já existe (por link ou título + localização)
                 var existingProperty = await _context.Properties
                     .FirstOrDefaultAsync(p => p.Link == scrapperDto.url || 
-                                            p.Title == scrapperDto.title && p.Address == scrapperDto.location);
+                                            p.Title == scrapperDto.titleFromListing && p.Address == scrapperDto.location);
 
                 if (existingProperty != null)
                 {
                     // Atualizar propriedade existente usando o mapper
                     await PropertyMapper.UpdatePropertyFromScrapperAsync(existingProperty, scrapperDto);
                     result.Updated++;
-                    _logger.LogDebug("Propriedade atualizada: {Title}", scrapperDto.title);
+                    _logger.LogDebug("Propriedade atualizada: {Title}", scrapperDto.titleFromListing);
                 }
                 else
                 {
@@ -70,13 +70,13 @@ namespace realestate_ia_site.Server.Services.PropertyServices
                     var newProperty = await PropertyMapper.MapToPropertyEntityAsync(scrapperDto,_googleMapsService);
                     _context.Properties.Add(newProperty);
                     result.Created++;
-                    _logger.LogDebug("Nova propriedade criada: {Title}", scrapperDto.title);
+                    _logger.LogDebug("Nova propriedade criada: {Title}", scrapperDto.titleFromListing);
                 }
             }
             catch (Exception ex)
             {
                 result.Errors++;
-                _logger.LogError(ex, "Erro ao processar propriedade: {Title}", scrapperDto.title);
+                _logger.LogError(ex, "Erro ao processar propriedade: {Title}", scrapperDto.titleFromListing);
             }
         }
     }

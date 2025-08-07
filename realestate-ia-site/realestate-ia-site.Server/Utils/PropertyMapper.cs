@@ -12,7 +12,7 @@ namespace realestate_ia_site.Server.Utils
         {
             var text = property.caracteristicas ?? string.Empty;
             
-            var type = ExtractTypeFromTitle(property.title) ?? ExtractTypeFromCharacteristics(text);
+            var type = ExtractTypeFromTitle(property.titleFromListing) ?? ExtractTypeFromCharacteristics(text);
             var price = ParsePrice(property.preco);
             var area = ExtractAreaBruta(text);
             var usableArea = ExtractAreaUtil(text);
@@ -24,7 +24,7 @@ namespace realestate_ia_site.Server.Utils
             return new Property
             {
                 Id = Guid.NewGuid().ToString(),
-                Title = property.title?.Trim(),
+                Title = property.titleFromListing?.Trim(),
                 Description = string.Join(" ", property.descricao ?? ""),
                 Type = type,
                 Price = price,
@@ -222,14 +222,14 @@ namespace realestate_ia_site.Server.Utils
         {
             var text = dto.caracteristicas ?? string.Empty;
             
-            existing.Title = dto.title?.Trim() ?? existing.Title;
+            existing.Title = dto.titleFromListing?.Trim() ?? existing.Title;
             existing.Description = string.Join(" ", dto.descricao ?? "") ?? existing.Description;
             existing.Price = ParsePrice(dto.preco) ?? existing.Price;
             existing.Link = dto.url?.Trim() ?? existing.Link;
             existing.UpdatedAt = DateTime.UtcNow;
 
             // Atualizar outros campos se necessário
-            var newType = ExtractTypeFromTitle(dto.title) ?? ExtractTypeFromCharacteristics(text);
+            var newType = ExtractTypeFromTitle(dto.titleFromListing) ?? ExtractTypeFromCharacteristics(text);
             if (!string.IsNullOrEmpty(newType))
                 existing.Type = newType;
 
