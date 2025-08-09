@@ -13,9 +13,9 @@ interface PropertyCardProps {
 
 export function PropertyCard({ property, onClick }: PropertyCardProps) {
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('pt-BR', {
+    return new Intl.NumberFormat('pt-PT', {
       style: 'currency',
-      currency: 'BRL',
+      currency: 'EUR',
       maximumFractionDigits: 0,
     }).format(price * 5.5); // Conversão mock para Real
   };
@@ -25,18 +25,8 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
   };
 
   const getPropertyTypeColor = (type: string) => {
-    switch (type) {
-      case 'house':
-        return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      case 'apartment':
-        return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'condo':
-        return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'townhouse':
-        return 'bg-orange-100 text-orange-700 border-orange-200';
-      default:
-        return 'bg-gray-100 text-gray-700 border-gray-200';
-    }
+    // Todas as cores neutras usando tons de gray
+    return 'bg-gray-100 text-gray-700 border-gray-200';
   };
 
   const getPropertyTypeName = (type: string) => {
@@ -50,12 +40,12 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
   };
 
   return (
-    <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group border-2 border-transparent hover:border-primary/20 bg-white">
+    <Card className="overflow-hidden hover:shadow-lg transition-all duration-300 cursor-pointer group border border-gray-200 hover:border-gray-300 bg-white">
       <div className="relative">
         <ImageWithFallback
           src={property.images[0]}
           alt={property.title}
-          className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
+          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
@@ -68,19 +58,19 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
         <Button
           variant="ghost"
           size="sm"
-          className="absolute top-3 right-3 h-9 w-9 p-0 bg-white/90 hover:bg-white shadow-md backdrop-blur-sm hover:scale-110 transition-all duration-200"
+          className="absolute top-3 right-3 h-9 w-9 p-0 bg-white/90 hover:bg-white shadow-md backdrop-blur-sm hover:scale-105 transition-all duration-200"
           onClick={(e) => {
             e.stopPropagation();
             // Add to favorites logic here
           }}
         >
-          <Heart className="h-4 w-4 text-red-500 hover:fill-red-500 transition-all duration-200" />
+          <Heart className="h-4 w-4 text-gray-600 hover:text-gray-800 transition-all duration-200" />
         </Button>
 
         {/* Price overlay */}
         <div className="absolute bottom-3 right-3">
           <div className="bg-white/95 backdrop-blur-sm px-3 py-1 rounded-full shadow-lg border border-white/20">
-            <span className="text-sm font-semibold text-primary">
+            <span className="text-sm font-semibold text-gray-800">
               {formatPrice(property.price)}
             </span>
           </div>
@@ -91,16 +81,16 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
         <div className="space-y-4">
           <div>
             <h3 className="font-semibold line-clamp-1 text-lg text-gray-900">{property.title}</h3>
-            <div className="flex items-center text-sm text-muted-foreground mt-1">
-              <MapPin className="h-3 w-3 mr-1 text-primary" />
+            <div className="flex items-center text-sm text-gray-600 mt-1">
+              <MapPin className="h-3 w-3 mr-1 text-gray-500" />
               {property.location}
             </div>
           </div>
           
           <div className="grid grid-cols-3 gap-4 text-sm">
             <div className="flex items-center space-x-1 text-gray-600">
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Bed className="h-4 w-4 text-blue-600" />
+              <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                <Bed className="h-4 w-4 text-gray-600" />
               </div>
               <div>
                 <div className="font-medium text-gray-900">{property.bedrooms}</div>
@@ -109,8 +99,8 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
             </div>
             
             <div className="flex items-center space-x-1 text-gray-600">
-              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                <Bath className="h-4 w-4 text-green-600" />
+              <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                <Bath className="h-4 w-4 text-gray-600" />
               </div>
               <div>
                 <div className="font-medium text-gray-900">{property.bathrooms}</div>
@@ -119,8 +109,8 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
             </div>
             
             <div className="flex items-center space-x-1 text-gray-600">
-              <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Square className="h-4 w-4 text-purple-600" />
+              <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
+                <Square className="h-4 w-4 text-gray-600" />
               </div>
               <div>
                 <div className="font-medium text-gray-900">{formatSqft(property.sqft)}</div>
@@ -130,28 +120,21 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
           </div>
           
           <div className="flex items-center justify-between">
-            <div className="flex items-center text-xs text-muted-foreground">
+            <div className="flex items-center text-xs text-gray-500">
               <Calendar className="h-3 w-3 mr-1" />
               Construído em {property.yearBuilt}
             </div>
-            <div className="text-sm text-muted-foreground">
+            <div className="text-sm text-gray-600">
               {Math.round(property.price * 5.5 / property.sqft)}/m²
             </div>
           </div>
           
           <div className="flex flex-wrap gap-1">
-            {property.features.slice(0, 3).map((feature, index) => {
-              const colors = [
-                'bg-indigo-50 text-indigo-700 border-indigo-200',
-                'bg-emerald-50 text-emerald-700 border-emerald-200',
-                'bg-amber-50 text-amber-700 border-amber-200'
-              ];
-              return (
-                <Badge key={feature} className={`text-xs border ${colors[index % 3]}`}>
-                  {feature}
-                </Badge>
-              );
-            })}
+            {property.features.slice(0, 3).map((feature, index) => (
+              <Badge key={feature} className="text-xs border bg-gray-50 text-gray-700 border-gray-200">
+                {feature}
+              </Badge>
+            ))}
             {property.features.length > 3 && (
               <Badge variant="outline" className="text-xs bg-gray-50 text-gray-600 border-gray-200">
                 +{property.features.length - 3} mais

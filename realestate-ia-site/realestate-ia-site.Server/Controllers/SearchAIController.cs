@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using realestate_ia_site.Server.DTOs.SearchAI;
-using realestate_ia_site.Server.Services;
+using realestate_ia_site.Server.Services.AIServices;
 using realestate_ia_site.Server.Services.PropertyServices;
 
 namespace realestate_ia_site.Server.Controllers
@@ -13,12 +13,14 @@ namespace realestate_ia_site.Server.Controllers
         private readonly OpenAIService _openAI;
         private readonly PropertySearchService _property;
         private readonly ILogger<SearchAIController> _logger;
+        private readonly PropertyAISearchService _propertyAI;
 
-        public SearchAIController(OpenAIService openAI, PropertySearchService property, ILogger<SearchAIController> logger)
+        public SearchAIController(OpenAIService openAI, PropertySearchService property, ILogger<SearchAIController> logger,PropertyAISearchService propertyAI)
         {
             _openAI = openAI;
             _property = property;
             _logger = logger;
+            _propertyAI = propertyAI;
         }
 
         [HttpPost]
@@ -33,7 +35,8 @@ namespace realestate_ia_site.Server.Controllers
                 _logger.LogInformation("Interpretação concluída. Filtros extraídos: {@Filters}", filters);
 
                 _logger.LogDebug("Buscando propriedades com filtros...");
-                var properties = await _property.SearchPropertiesWithFiltersAsync(filters);
+                //var properties = await _property.SearchPropertiesWithFiltersAsync(filters);
+                var properties = await _propertyAI.SearchPropertiesWithFiltersAsync(filters);
                 _logger.LogInformation("Busca concluída. Encontradas {PropertyCount} propriedades", properties.Count);
 
                 _logger.LogDebug("Gerando resposta do chatbot...");

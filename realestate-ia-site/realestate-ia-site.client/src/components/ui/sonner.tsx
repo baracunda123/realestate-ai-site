@@ -1,28 +1,12 @@
 "use client";
 
-import { Toaster as Sonner } from "sonner";
-import type { ToasterProps } from "sonner";
-import { useState, useEffect } from "react";
+import * as React from "react";
+import { Toaster as Sonner, type ToasterProps } from "sonner";
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const [theme, setTheme] = useState<'light' | 'dark' | 'system'>('system');
-
-  useEffect(() => {
-    // Simple theme detection for Vite
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const updateTheme = () => {
-      setTheme(mediaQuery.matches ? 'dark' : 'light');
-    };
-
-    updateTheme();
-    mediaQuery.addEventListener('change', updateTheme);
-    
-    return () => mediaQuery.removeEventListener('change', updateTheme);
-  }, []);
-
   return (
     <Sonner
-      theme={theme as ToasterProps["theme"]}
+      theme="light"
       className="toaster group"
       style={
         {

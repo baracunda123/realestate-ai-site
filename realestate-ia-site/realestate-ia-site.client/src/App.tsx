@@ -1,3 +1,4 @@
+import * as React from "react";
 import { useState } from 'react';
 import { Header } from './components/Header';
 import { SearchFilters } from './components/SearchFilters';
@@ -54,7 +55,7 @@ interface User {
 export default function App() {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
-    priceRange: [0, 2000000],
+    priceRange: [0, 2000000], 
     bedrooms: null,
     bathrooms: null,
     propertyType: '',
@@ -138,7 +139,7 @@ export default function App() {
         `
       }}
     >
-      <Header 
+ <Header 
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         viewMode={viewMode}

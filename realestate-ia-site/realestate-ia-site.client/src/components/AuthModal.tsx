@@ -75,30 +75,30 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md border-2 border-primary/20 bg-gradient-to-br from-white to-primary/5">
+      <DialogContent className="sm:max-w-md border border-slate-200 bg-white shadow-lg">
         <DialogHeader className="text-center pb-2">
-          <div className="mx-auto w-12 h-12 bg-gradient-to-r from-primary to-purple-600 rounded-xl flex items-center justify-center mb-3">
+          <div className="mx-auto w-12 h-12 bg-slate-700 rounded-xl flex items-center justify-center mb-3">
             <Sparkles className="h-6 w-6 text-white" />
           </div>
-          <DialogTitle className="text-xl bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent">
+          <DialogTitle className="text-xl text-slate-800">
             Bem-vindo ao HomeFinder AI
           </DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">
+          <DialogDescription className="text-sm text-slate-600">
             Encontre seu lar ideal com tecnologia de ponta. Entre na sua conta ou crie uma nova conta para começar.
           </DialogDescription>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-secondary/50 rounded-xl p-1">
+          <TabsList className="grid w-full grid-cols-2 bg-slate-100 rounded-xl p-1">
             <TabsTrigger 
               value="signin" 
-              className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-purple-600 data-[state=active]:text-white"
+              className="rounded-lg data-[state=active]:bg-slate-700 data-[state=active]:text-white"
             >
               Entrar
             </TabsTrigger>
             <TabsTrigger 
               value="signup"
-              className="rounded-lg data-[state=active]:bg-gradient-to-r data-[state=active]:from-primary data-[state=active]:to-purple-600 data-[state=active]:text-white"
+              className="rounded-lg data-[state=active]:bg-slate-700 data-[state=active]:text-white"
             >
               Cadastrar
             </TabsTrigger>
@@ -109,14 +109,14 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
               <div className="space-y-2">
                 <Label htmlFor="signin-email">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input
                     id="signin-email"
                     type="email"
                     placeholder="seu.email@exemplo.com"
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="pl-10 border-2 border-gray-200 focus:border-primary/50"
+                    className="pl-10 border-slate-200 focus:border-slate-400"
                     required
                   />
                 </div>
@@ -125,14 +125,14 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
               <div className="space-y-2">
                 <Label htmlFor="signin-password">Senha</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input
                     id="signin-password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Sua senha"
                     value={formData.password}
                     onChange={(e) => handleInputChange('password', e.target.value)}
-                    className="pl-10 pr-10 border-2 border-gray-200 focus:border-primary/50"
+                    className="pl-10 pr-10 border-slate-200 focus:border-slate-400"
                     required
                   />
                   <Button
@@ -149,7 +149,7 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
 
               <Button 
                 type="submit" 
-                className="w-full bg-gradient-to-r from-primary to-purple-600 text-white border-0 hover:shadow-lg transition-all duration-200"
+                className="w-full bg-slate-700 hover:bg-slate-800 text-white border-0 shadow-sm"
               >
                 <Sparkles className="h-4 w-4 mr-2" />
                 Entrar
@@ -157,7 +157,7 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
             </form>
 
             <div className="text-center">
-              <Button variant="ghost" className="text-sm text-primary hover:bg-primary/10">
+              <Button variant="ghost" className="text-sm text-slate-600 hover:bg-slate-50">
                 Esqueceu sua senha?
               </Button>
             </div>
@@ -168,14 +168,14 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
               <div className="space-y-2">
                 <Label htmlFor="signup-name">Nome Completo</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input
                     id="signup-name"
                     type="text"
                     placeholder="João Silva"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
-                    className="pl-10 border-2 border-gray-200 focus:border-primary/50"
+                    className="pl-10 border-slate-200 focus:border-slate-400"
                     required
                   />
                 </div>
@@ -184,14 +184,14 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
               <div className="space-y-2">
                 <Label htmlFor="signup-email">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input
                     id="signup-email"
                     type="email"
                     placeholder="seu.email@exemplo.com"
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="pl-10 border-2 border-gray-200 focus:border-primary/50"
+                    className="pl-10 border-slate-200 focus:border-slate-400"
                     required
                   />
                 </div>
@@ -200,14 +200,14 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
               <div className="space-y-2">
                 <Label htmlFor="signup-phone">Telefone</Label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input
                     id="signup-phone"
                     type="tel"
                     placeholder="(11) 99999-9999"
                     value={formData.phone}
                     onChange={(e) => handleInputChange('phone', e.target.value)}
-                    className="pl-10 border-2 border-gray-200 focus:border-primary/50"
+                    className="pl-10 border-slate-200 focus:border-slate-400"
                     required
                   />
                 </div>
@@ -216,14 +216,14 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
               <div className="space-y-2">
                 <Label htmlFor="signup-password">Senha</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input
                     id="signup-password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Mínimo 8 caracteres"
                     value={formData.password}
                     onChange={(e) => handleInputChange('password', e.target.value)}
-                    className="pl-10 pr-10 border-2 border-gray-200 focus:border-primary/50"
+                    className="pl-10 pr-10 border-slate-200 focus:border-slate-400"
                     required
                     minLength={8}
                   />
@@ -242,14 +242,14 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
               <div className="space-y-2">
                 <Label htmlFor="signup-confirm-password">Confirmar Senha</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
                   <Input
                     id="signup-confirm-password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Confirme sua senha"
                     value={formData.confirmPassword}
                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                    className="pl-10 border-2 border-gray-200 focus:border-primary/50"
+                    className="pl-10 border-slate-200 focus:border-slate-400"
                     required
                   />
                 </div>
@@ -257,7 +257,7 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
 
               <Button 
                 type="submit" 
-                className="w-full bg-gradient-to-r from-primary to-purple-600 text-white border-0 hover:shadow-lg transition-all duration-200"
+                className="w-full bg-slate-700 hover:bg-slate-800 text-white border-0 shadow-sm"
               >
                 <Sparkles className="h-4 w-4 mr-2" />
                 Criar Conta
@@ -271,30 +271,30 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
             <Separator className="w-full" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">ou continue com</span>
+            <span className="bg-background px-2 text-slate-500">ou continue com</span>
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-3">
-          <Button variant="outline" className="border-2 border-gray-200 hover:border-primary/50 hover:bg-primary/5">
+          <Button variant="outline" className="border-slate-200 hover:border-slate-300 hover:bg-slate-50">
             <Chrome className="h-4 w-4" />
           </Button>
-          <Button variant="outline" className="border-2 border-gray-200 hover:border-primary/50 hover:bg-primary/5">
+          <Button variant="outline" className="border-slate-200 hover:border-slate-300 hover:bg-slate-50">
             <Facebook className="h-4 w-4" />
           </Button>
-          <Button variant="outline" className="border-2 border-gray-200 hover:border-primary/50 hover:bg-primary/5">
+          <Button variant="outline" className="border-slate-200 hover:border-slate-300 hover:bg-slate-50">
             <Apple className="h-4 w-4" />
           </Button>
         </div>
 
         <div className="text-center">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-slate-500">
             Ao continuar, você concorda com nossos{' '}
-            <Button variant="link" className="p-0 h-auto text-xs text-primary">
+            <Button variant="link" className="p-0 h-auto text-xs text-slate-600">
               Termos de Uso
             </Button>{' '}
             e{' '}
-            <Button variant="link" className="p-0 h-auto text-xs text-primary">
+            <Button variant="link" className="p-0 h-auto text-xs text-slate-600">
               Política de Privacidade
             </Button>
           </p>
