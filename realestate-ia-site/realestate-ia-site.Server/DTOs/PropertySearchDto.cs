@@ -7,7 +7,7 @@
         public string Location { get; set; }
         public decimal Price { get; set; }
         public int Bedrooms { get; set; }
-        public List<string> Tags { get; set; }
+       //public List<string> Tags { get; set; }
         public string ImageUrl { get; set; }
 
         public static PropertySearchDto FromDomain(Domain.Entities.Property property)

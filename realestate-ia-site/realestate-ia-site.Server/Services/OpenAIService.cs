@@ -18,7 +18,7 @@ namespace realestate_ia_site.Server.Services
             _modelo = config["OpenAI:Model"] ?? "gpt-3.5-turbo";
             _client = new OpenAIClient(apiKey);
             
-            _logger.LogInformation("🚀 OpenAIService inicializado com modelo: {Model}", _modelo);
+            _logger.LogInformation("OpenAIService inicializado com modelo: {Model}", _modelo);
         }
 
         /// <summary>
@@ -26,7 +26,7 @@ namespace realestate_ia_site.Server.Services
         /// </summary>
         public async Task<Dictionary<string, object>> InterpretTextAsync(string input)
         {
-            _logger.LogInformation("🧠 Iniciando interpretação de texto: {Input}", input);
+            _logger.LogInformation("Iniciando interpretação de texto: {Input}", input);
             
             var messages = new List<ChatMessage>
             {
@@ -54,7 +54,7 @@ namespace realestate_ia_site.Server.Services
                 Temperature = 0.3f
             };
 
-            _logger.LogDebug("📤 Enviando requisição para OpenAI. Modelo: {Model}, MaxTokens: {MaxTokens}, Temperature: {Temperature}", 
+            _logger.LogDebug("Enviando requisição para OpenAI. Modelo: {Model}, MaxTokens: {MaxTokens}, Temperature: {Temperature}", 
                 _modelo, chatCompletionOptions.MaxOutputTokenCount, chatCompletionOptions.Temperature);
 
             try
@@ -62,24 +62,24 @@ namespace realestate_ia_site.Server.Services
                 var response = await _client.GetChatClient(_modelo).CompleteChatAsync(messages, chatCompletionOptions);
                 var jsonResponse = response.Value.Content[0].Text;
                 
-                _logger.LogDebug("📥 Resposta recebida da OpenAI: {Response}", jsonResponse);
+                _logger.LogDebug("Resposta recebida da OpenAI: {Response}", jsonResponse);
 
                 var filtros = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonResponse);
                 var filterCount = filtros?.Count ?? 0;
                 
-                _logger.LogInformation("✅ Interpretação concluída com sucesso. Filtros extraídos: {FilterCount}", filterCount);
+                _logger.LogInformation("Interpretação concluída com sucesso. Filtros extraídos: {FilterCount}", filterCount);
                 _logger.LogDebug("🔍 Filtros detalhados: {@Filters}", filtros);
                 
                 return filtros ?? new Dictionary<string, object>();
             }
             catch (JsonException jsonEx)
             {
-                _logger.LogError(jsonEx, "❌ Erro ao deserializar resposta JSON da OpenAI. Input: {Input}", input);
+                _logger.LogError(jsonEx, "Erro ao deserializar resposta JSON da OpenAI. Input: {Input}", input);
                 return new Dictionary<string, object>();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Erro ao interpretar texto com OpenAI. Input: {Input}", input);
+                _logger.LogError(ex, "Erro ao interpretar texto com OpenAI. Input: {Input}", input);
                 return new Dictionary<string, object>();
             }
         }
@@ -89,21 +89,28 @@ namespace realestate_ia_site.Server.Services
         /// </summary>
         public async Task<string> ResponderComoChatbotAsync(string perguntaOriginal, List<PropertySearchDto> properties)
         {
-            _logger.LogInformation("💬 Gerando resposta do chatbot para: {Question}. Propriedades disponíveis: {PropertyCount}", 
+            _logger.LogInformation("Gerando resposta do chatbot para: {Question}. Propriedades disponíveis: {PropertyCount}", 
                 perguntaOriginal, properties.Count);
 
             string listaImoveis = string.Join("\n", properties.Select(i =>
-                $"[{i.Id}] {i.Type} em {i.Location}, {i.Bedrooms} quartos, R$ {i.Price:N0}, tags: {string.Join(", ", i.Tags)}, imageURL:{i.ImageUrl} "
+                $"[{i.Id}] {i.Type} em {i.Location}, {i.Bedrooms} quartos, € {i.Price:N0}, imageURL:{i.ImageUrl} "
             ));
 
-            _logger.LogDebug("🏠 Lista de imóveis formatada para OpenAI: {PropertyList}", listaImoveis);
+            _logger.LogInformation("Lista de imóveis formatada para OpenAI: {PropertyList}", listaImoveis);
 
             var messages = new List<ChatMessage>
             {
-                new SystemChatMessage(@"És um assistente inteligente que responde perguntas sobre imóveis.
-Tens acesso a uma lista de imóveis no seguinte formato:
-[ID] tipo, bairro, nº quartos, preço, tags
-Responde com frases naturais. Se não houver imóveis, avisa gentilmente."),
+                new SystemChatMessage(@"És um assistente inteligente especializado em imóveis em Portugal.
+                                        Recebes uma lista de imóveis no formato: [ID] tipo, localização, quartos, preço, imageURL
+                                        
+                                        IMPORTANTE:
+                                        - Se encontrares propriedades que correspondem APROXIMADAMENTE aos critérios do usuário, apresenta-as
+                                        - Considera variações de localização (cidades próximas, mesmo distrito/região)
+                                        - Se o usuário procura T2, considera também T3 como opção
+                                        - Mostra sempre as propriedades disponíveis, mesmo que não sejam uma correspondência perfeita
+                                        - Sê útil e positivo, oferece alternativas quando apropriado
+                                        
+                                        Responde em português de Portugal com frases naturais e amigáveis."),
                 new SystemChatMessage("Imóveis disponíveis:\n" + listaImoveis),
                 new UserChatMessage(perguntaOriginal)
             };
@@ -114,7 +121,7 @@ Responde com frases naturais. Se não houver imóveis, avisa gentilmente."),
                 Temperature = 0.7f
             };
 
-            _logger.LogDebug("📤 Enviando requisição de resposta para OpenAI. MaxTokens: {MaxTokens}, Temperature: {Temperature}", 
+            _logger.LogDebug("Enviando requisição de resposta para OpenAI. MaxTokens: {MaxTokens}, Temperature: {Temperature}", 
                 chatCompletionOptions.MaxOutputTokenCount, chatCompletionOptions.Temperature);
 
             try
@@ -122,14 +129,14 @@ Responde com frases naturais. Se não houver imóveis, avisa gentilmente."),
                 var response = await _client.GetChatClient(_modelo).CompleteChatAsync(messages, chatCompletionOptions);
                 var chatbotResponse = response.Value.Content[0].Text;
                 
-                _logger.LogInformation("✅ Resposta do chatbot gerada com sucesso. Tamanho: {ResponseLength} caracteres", chatbotResponse.Length);
-                _logger.LogDebug("💭 Resposta do chatbot: {Response}", chatbotResponse);
+                _logger.LogInformation("Resposta do chatbot gerada com sucesso. Tamanho: {ResponseLength} caracteres", chatbotResponse.Length);
+                _logger.LogDebug("Resposta do chatbot: {Response}", chatbotResponse);
                 
                 return chatbotResponse;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Erro ao gerar resposta do chatbot. Pergunta: {Question}, Propriedades: {PropertyCount}", 
+                _logger.LogError(ex, "Erro ao gerar resposta do chatbot. Pergunta: {Question}, Propriedades: {PropertyCount}", 
                     perguntaOriginal, properties.Count);
                 return "Desculpa, ocorreu um erro ao processar o teu pedido. Tenta novamente.";
             }
@@ -140,7 +147,7 @@ Responde com frases naturais. Se não houver imóveis, avisa gentilmente."),
         /// </summary>
         public async Task<string> ContinuarConversaAsync(List<ChatMessage> historicoConversa, string novaMensagem)
         {
-            _logger.LogInformation("🔄 Continuando conversa. Histórico: {HistoryCount} mensagens, Nova mensagem: {NewMessage}", 
+            _logger.LogInformation("Continuando conversa. Histórico: {HistoryCount} mensagens, Nova mensagem: {NewMessage}", 
                 historicoConversa.Count, novaMensagem);
 
             var messages = new List<ChatMessage>(historicoConversa)
@@ -154,22 +161,22 @@ Responde com frases naturais. Se não houver imóveis, avisa gentilmente."),
                 Temperature = 0.7f
             };
 
-            _logger.LogDebug("📤 Enviando conversa contínua para OpenAI. Total mensagens: {MessageCount}", messages.Count);
+            _logger.LogDebug("Enviando conversa contínua para OpenAI. Total mensagens: {MessageCount}", messages.Count);
 
             try
             {
                 var response = await _client.GetChatClient(_modelo).CompleteChatAsync(messages, chatCompletionOptions);
                 var conversationResponse = response.Value.Content[0].Text;
                 
-                _logger.LogInformation("✅ Conversa contínua processada com sucesso. Resposta: {ResponseLength} caracteres", 
+                _logger.LogInformation("Conversa contínua processada com sucesso. Resposta: {ResponseLength} caracteres", 
                     conversationResponse.Length);
-                _logger.LogDebug("💭 Resposta da conversa: {Response}", conversationResponse);
+                _logger.LogDebug("Resposta da conversa: {Response}", conversationResponse);
                 
                 return conversationResponse;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Erro na conversa contínua. Nova mensagem: {NewMessage}, Histórico: {HistoryCount}", 
+                _logger.LogError(ex, "Erro na conversa contínua. Nova mensagem: {NewMessage}, Histórico: {HistoryCount}", 
                     novaMensagem, historicoConversa.Count);
                 return "Desculpa, ocorreu um erro. Podes repetir?";
             }

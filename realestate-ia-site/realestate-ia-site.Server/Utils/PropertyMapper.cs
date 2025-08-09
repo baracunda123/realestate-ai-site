@@ -18,7 +18,7 @@ namespace realestate_ia_site.Server.Utils
             var usableArea = ExtractAreaUtil(text);
             var bedrooms = ExtractBedrooms(text);
             var bathrooms = ExtractBathrooms(text);
-            var (city, state, county) = await ParseLocationAsync(property.location, googleMapsService);
+            var (city, state, county,civilParish) = await ParseLocationAsync(property.location, googleMapsService);
             var garage = HasGarage(text);
 
             return new Property
@@ -32,6 +32,7 @@ namespace realestate_ia_site.Server.Utils
                 City = city,
                 State = state,
                 County = county,
+                CivilParish = civilParish,
                 ZipCode = ExtractZipCode(property.location),
                 Area = area,
                 UsableArea = usableArea,
@@ -170,15 +171,15 @@ namespace realestate_ia_site.Server.Utils
             return null;
         }
 
-        private static async Task<(string? city, string? state, string? county)> ParseLocationAsync(string? location, GoogleMapsService googleMapsService)
+        private static async Task<(string? city, string? state, string? county, string? CivilParish)> ParseLocationAsync(string? location, GoogleMapsService googleMapsService)
         {
             if (string.IsNullOrWhiteSpace(location))
-                return (null, null,null);
+                return (null, null,null,null);
 
             try
             {
                 var parsedLocation = await googleMapsService.ParseLocationAsync(location);
-                return (parsedLocation.City, parsedLocation.State,parsedLocation.County);
+                return (parsedLocation.City, parsedLocation.State,parsedLocation.County,parsedLocation.CivilParish);
             }
             catch
             {
@@ -187,8 +188,9 @@ namespace realestate_ia_site.Server.Utils
                 var county = parts.FirstOrDefault()?.Trim();
                 var city = parts.FirstOrDefault()?.Trim();
                 var state = parts.Length > 1 ? parts[1].Trim() : "Portugal";
+                var civilParish = parts.Length > 2 ? parts[2].Trim() : null;
 
-                return (city, state, county);
+                return (city, state, county, civilParish);
             }
         }
 

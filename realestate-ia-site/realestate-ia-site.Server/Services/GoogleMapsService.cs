@@ -23,7 +23,7 @@ namespace realestate_ia_site.Server.Services
         {
             if (string.IsNullOrWhiteSpace(locationText))
             {
-                return new ParsedLocation { City = string.Empty, State = string.Empty, County = string.Empty };
+                return new ParsedLocation { City = string.Empty, State = string.Empty, County = string.Empty, CivilParish = string.Empty };
             }
 
             var cacheKey = $"{locationText}_{countryCode}";
@@ -37,32 +37,42 @@ namespace realestate_ia_site.Server.Services
             {
                 _logger.LogDebug("Fazendo chamada para Google Maps Geocoding API: {Location}", locationText);
 
-                // Construir URL da API
-                var encodedAddress = Uri.EscapeDataString(locationText);
-                var url = $"https://maps.googleapis.com/maps/api/geocode/json?address={encodedAddress}&key={_apiKey}&region={countryCode.ToLower()}&language=pt";
+                // Primeira tentativa com o endereço original
+                var result = await MakeGeocodingRequest(locationText, countryCode);
 
-                var response = await _httpClient.GetAsync(url);
-                response.EnsureSuccessStatusCode();
-
-                var jsonContent = await response.Content.ReadAsStringAsync();
-                var geocodeResponse = JsonSerializer.Deserialize<GeocodeResponse>(jsonContent);
-
-                if (geocodeResponse?.Status != "OK" || geocodeResponse.Results == null || !geocodeResponse.Results.Any())
+                // Verificar se o resultado contém POI
+                if (result != null && ContainsPointOfInterest(result))
                 {
-                    _logger.LogWarning("Nenhum resultado encontrado para localização: {Location}. Status: {Status}",
-                        locationText, geocodeResponse?.Status);
-                    var emptyResult = new ParsedLocation { City = string.Empty, State = string.Empty, County = string.Empty };
+                    _logger.LogInformation("POI detectado em: {Location}. Tentando remover POI e fazer nova chamada.", locationText);
+
+                    // Remover POI e tentar novamente
+                    var cleanedLocation = RemovePointOfInterest(locationText);
+                    if (!string.IsNullOrEmpty(cleanedLocation) && !cleanedLocation.Equals(locationText, StringComparison.OrdinalIgnoreCase))
+                    {
+                        _logger.LogInformation("Fazendo segunda chamada sem POI: {CleanedLocation}", cleanedLocation);
+                        var cleanResult = await MakeGeocodingRequest(cleanedLocation, countryCode);
+                        if (cleanResult != null)
+                        {
+                            result = cleanResult;
+                        }
+                    }
+                }
+
+                if (result != null)
+                {
+                    var parsedLocation = ExtractCityStateCountyCivilParish(result);
+                    _logger.LogDebug("Localização processada: {City}, {State}, {County}, {CivilParish}",
+                        parsedLocation.City, parsedLocation.State, parsedLocation.County, parsedLocation.CivilParish);
+
+                    _cache.Set(cacheKey, parsedLocation, TimeSpan.FromHours(24));
+                    return parsedLocation;
+                }
+                else
+                {
+                    var emptyResult = new ParsedLocation { City = string.Empty, State = string.Empty, County = string.Empty, CivilParish = string.Empty };
                     _cache.Set(cacheKey, emptyResult, TimeSpan.FromHours(24));
                     return emptyResult;
                 }
-
-                var result = geocodeResponse.Results.First();
-                var parsedLocation = ExtractCityStateCounty(result);
-
-                _logger.LogDebug("Localização processada: {City}, {State}, {County}", parsedLocation.City, parsedLocation.State, parsedLocation.County);
-
-                _cache.Set(cacheKey, parsedLocation, TimeSpan.FromHours(24));
-                return parsedLocation;
             }
             catch (Exception ex)
             {
@@ -75,45 +85,121 @@ namespace realestate_ia_site.Server.Services
             }
         }
 
-        private ParsedLocation ExtractCityStateCounty(GeocodeResult result)
+        private async Task<GeocodeResult?> MakeGeocodingRequest(string locationText, string countryCode)
+        {
+            var encodedAddress = Uri.EscapeDataString(locationText);
+            var url = $"https://maps.googleapis.com/maps/api/geocode/json?address={encodedAddress}&key={_apiKey}&region={countryCode.ToLower()}&language=pt";
+
+            var response = await _httpClient.GetAsync(url);
+            response.EnsureSuccessStatusCode();
+
+            var jsonContent = await response.Content.ReadAsStringAsync();
+            var geocodeResponse = JsonSerializer.Deserialize<GeocodeResponse>(jsonContent);
+
+            if (geocodeResponse?.Status != "OK" || geocodeResponse.Results == null || !geocodeResponse.Results.Any())
+            {
+                _logger.LogWarning("Nenhum resultado encontrado para localização: {Location}. Status: {Status}",
+                    locationText, geocodeResponse?.Status);
+                return null;
+            }
+
+            return geocodeResponse.Results.First();
+        }
+
+        private ParsedLocation ExtractCityStateCountyCivilParish(GeocodeResult result)
         {
             string city = string.Empty;
             string state = string.Empty;
             string county = string.Empty;
+            string civilParish = string.Empty;
 
             if (result.AddressComponents == null)
             {
-                return new ParsedLocation { City = city, State = state, County = county };
+                return new ParsedLocation { City = city, State = state, County = county, CivilParish = civilParish };
             }
 
             foreach (var component in result.AddressComponents)
             {
                 if (component.Types == null) continue;
+                Console.WriteLine($"Processing component: {component.LongName} with types: {string.Join(", ", component.Types)}");
 
-                // Procurar por cidade - usar string comparison em vez de includes
-                if (component.Types.Any(type => type == "locality" || type == "administrative_area_level_2"))
-                {
-                    city = component.LongName ?? string.Empty;
-                }
 
-                // Procurar por estado/distrito - usar string comparison em vez de includes
-                if (component.Types.Any(type => type == "administrative_area_level_1"))
+                // Procurar por distrito/estado - administrative_area_level_1
+                if (component.Types.Contains("administrative_area_level_1"))
                 {
                     state = component.LongName ?? string.Empty;
+                    _logger.LogInformation("Estado/Distrito encontrado: {State}", state);
                 }
 
-                // Procurar por concelho/county - usar string comparison
-                if (component.Types.Any(type => type == "administrative_area_level_2" || type == "sublocality"))
+                // Procurar por concelho/county - administrative_area_level_2
+                if (component.Types.Contains("administrative_area_level_2"))
                 {
-                    // Se ainda não temos cidade, este pode ser o concelho
-                    if (string.IsNullOrEmpty(city) || component.Types.Any(type => type == "administrative_area_level_2"))
-                    {
-                        county = component.LongName ?? string.Empty;
-                    }
+                    county = component.LongName ?? string.Empty;
+                    _logger.LogInformation("Concelho/County encontrado: {County}", county);
+                }
+
+                // Procurar por freguesia - múltiplas estratégias
+                if (component.Types.Contains("administrative_area_level_3"))
+                {
+                    civilParish = component.LongName ?? string.Empty;
+                    _logger.LogInformation("Freguesia (admin_level_3) encontrada: {CivilParish}", civilParish);
+                }
+                // Procurar por cidade - locality tem prioridade
+                if (component.Types.Contains("locality"))
+                {
+                    city = component.LongName ?? string.Empty;
+                    _logger.LogInformation("Cidade (locality) encontrada: {City}", city);
                 }
             }
 
-            return new ParsedLocation { City = city, State = state, County = county };
+            return new ParsedLocation { City = city, State = state, County = county, CivilParish = civilParish };
+        }
+
+        private bool ContainsPointOfInterest(GeocodeResult result)
+        {
+            if (result.AddressComponents == null)
+                return false;
+
+            // Verificar se algum componente é um POI
+            foreach (var component in result.AddressComponents)
+            {
+                if (component.Types == null) continue;
+
+                // Types que indicam POI
+                var poiTypes = new[]
+                {
+                    "point_of_interest",
+                    "establishment"
+                };
+
+                if (component.Types.Any(type => poiTypes.Contains(type)))
+                {
+                    _logger.LogInformation("POI detectado: {ComponentName} com tipos: {Types}",
+                        component.LongName, string.Join(", ", component.Types));
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private string RemovePointOfInterest(string locationText)
+        {
+            if (string.IsNullOrWhiteSpace(locationText))
+                return string.Empty;
+
+            // Encontrar a primeira quebra de linha
+            var newlineIndex = locationText.IndexOf('\n');
+
+            if (newlineIndex >= 0)
+            {
+                // Remover tudo até ao \n (incluindo o \n)
+                var result = locationText.Substring(newlineIndex + 1);
+                return result.Trim();
+            }
+
+            // Se não há \n, retornar o texto original
+            return locationText;
         }
 
         private ParsedLocation ParseLocationFallback(string locationText)
@@ -124,14 +210,15 @@ namespace realestate_ia_site.Server.Services
                 var city = parts.FirstOrDefault()?.Trim() ?? string.Empty;
                 var state = parts.Length > 1 ? parts[1].Trim() : "Portugal";
                 var county = parts.Length > 2 ? parts[2].Trim() : string.Empty;
+                var civilParish = parts.Length > 3 ? parts[3].Trim() : string.Empty;
 
-                _logger.LogDebug("Usando fallback para localização: {City}, {State}, {County}", city, state, county);
-                return new ParsedLocation { City = city, State = state, County = county };
+                _logger.LogDebug("Usando fallback para localização: {City}, {State}, {County}, {CivilParish}", city, state, county, civilParish);
+                return new ParsedLocation { City = city, State = state, County = county, CivilParish = civilParish };
             }
             catch
             {
                 _logger.LogWarning("Erro no fallback de parsing para localização: {Location}", locationText);
-                return new ParsedLocation { City = string.Empty, State = "Portugal", County = string.Empty };
+                return new ParsedLocation { City = string.Empty, State = "Portugal", County = string.Empty , CivilParish = string.Empty };
             }
         }
     }
@@ -172,6 +259,6 @@ namespace realestate_ia_site.Server.Services
         public string City { get; set; } = string.Empty;
         public string State { get; set; } = string.Empty;
         public string County { get; set; } = string.Empty;
-
+        public string CivilParish { get; set; } = string.Empty; 
     }
 }

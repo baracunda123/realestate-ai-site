@@ -37,7 +37,10 @@ namespace realestate_ia_site.Server.Services.PropertyServices
             if (filtros.ContainsKey("location") && filtros["location"] != null)
             {
                 var location = filtros["location"].ToString();
-                query = query.Where(p => p.City != null && p.City.ToLower().Contains(location.ToLower()));
+                query = query.Where(p => p.City != null || p.City.ToLower().Contains(location.ToLower()) 
+                                                        || p.State.ToLower().Contains(location.ToLower())
+                                                        || p.County.ToLower().Contains(location.ToLower())
+                                                        || p.CivilParish.ToLower().Contains(location.ToLower()));
                 filtersApplied.Add($"location='{location}'");
                 _logger.LogDebug("Filtro 'location' aplicado: {Location}", location);
             }

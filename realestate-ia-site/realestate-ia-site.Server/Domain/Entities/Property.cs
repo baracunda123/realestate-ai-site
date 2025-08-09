@@ -34,6 +34,9 @@ namespace realestate_ia_site.Server.Domain.Entities
         [Column("county")]
         public string? County { get; set; }
 
+        [Column("civilParish")]
+        public string? CivilParish { get; set; }
+
         [Column("zipCode")]
         public string? ZipCode { get; set; }
         

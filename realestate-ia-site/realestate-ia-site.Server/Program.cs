@@ -13,11 +13,11 @@ builder.Services.AddScoped<PropertySearchService>();
 builder.Services.AddScoped<PropertyImportService>();
 builder.Services.AddScoped<ScraperStateService>();
 
+
 // Add HttpClient/memory cache for GoogleMapsService
 builder.Services.AddHttpClient<GoogleMapsService>();
 builder.Services.AddScoped<GoogleMapsService>();
 builder.Services.AddMemoryCache();
-
 
 // Add DbContext with PostgreSQL
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
