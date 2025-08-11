@@ -1,5 +1,5 @@
 import * as React from "react";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { SearchFilters } from './components/SearchFilters';
 import { PropertyGrid } from './components/PropertyGrid';
@@ -10,27 +10,10 @@ import { AuthModal } from './components/AuthModal';
 import { toast } from 'sonner';
 import { Toaster } from './components/ui/sonner';
 
-export interface Property {
-  id: string;
-  title: string;
-  price: number;
-  bedrooms: number;
-  bathrooms: number;
-  sqft: number;
-  location: string;
-  address: string;
-  images: string[];
-  description: string;
-  features: string[];
-  yearBuilt: number;
-  propertyType: 'house' | 'apartment' | 'condo' | 'townhouse';
-  listingAgent: {
-    name: string;
-    phone: string;
-    email: string;
-  };
-  aiRelevanceScore?: number;
-}
+import { searchProperties } from "./api/properties.service";
+
+import type { Property } from './types/property';
+
 
 export interface SearchFilters {
   priceRange: [number, number];
@@ -64,7 +47,11 @@ export default function App() {
   });
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
-  
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [aiResponse, setAiResponse] = useState<string>("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+    
   // Authentication state
   const [user, setUser] = useState<User | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -127,6 +114,46 @@ export default function App() {
     setIsAuthModalOpen(true);
   };
 
+    // Busca SÓ pela query (filtros NÃO vão pro backend)
+    useEffect(() => {
+        const ctrl = new AbortController();
+
+        (async () => {
+            try {
+                setLoading(true);
+                setError(null);
+
+                const result = await searchProperties({
+                    searchQuery: searchQuery, // pode ser opcional
+                    signal: ctrl.signal,
+                });
+
+                setProperties(Array.isArray(result?.properties) ? result.properties : []);
+                setAiResponse(result?.AIResponse ?? '');
+            } catch (e: unknown) {
+                if (e instanceof Error) {
+                    if (e.name !== 'AbortError') {
+                        console.error(e);
+                        setError('Erro ao carregar propriedades. Tente novamente.');
+                        setProperties([]);
+                    }
+                } else {
+                    console.error("Erro desconhecido", e);
+                    setError(
+                        typeof e === "string"
+                            ? e
+                            : "Erro desconhecido ao carregar propriedades."
+                    );
+                    setProperties([]);
+                }
+            } finally {
+                setLoading(false);
+            }
+        })();
+
+        return () => ctrl.abort();
+    }, [searchQuery]); // <-- apenas query dispara backend
+
   return (
     <div 
       className="min-h-screen"
@@ -157,18 +184,24 @@ export default function App() {
               filters={searchFilters}
               setFilters={setSearchFilters}
             />
+
+           
+
             <AISuggestions searchQuery={searchQuery} user={user} />
           </div>
           
           {/* Main Content */}
           <div className="lg:col-span-3">
             {viewMode === 'grid' ? (
-              <PropertyGrid 
+            <PropertyGrid
+                properties={properties}
+                isLoading={loading}
+                error={error}
                 filters={searchFilters}
-                searchQuery={searchQuery}
+                applyClientFilters={false}   // backend já aplica os filtros; mude para true se quiser filtrar no cliente
                 onPropertySelect={setSelectedProperty}
                 onFiltersUpdate={updateFilters}
-              />
+            />
             ) : (
               <MapView 
                 filters={searchFilters}

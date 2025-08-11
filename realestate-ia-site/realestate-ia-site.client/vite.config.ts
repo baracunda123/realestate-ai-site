@@ -47,7 +47,7 @@ export default defineConfig({
     },
     server: {
         proxy: {
-            '^/weatherforecast': {
+            '^/api': {     // Tudo que começa com /api vai para o backend
                 target,
                 secure: false
             }

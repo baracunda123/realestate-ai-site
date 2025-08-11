@@ -1,25 +1,29 @@
 using Microsoft.EntityFrameworkCore;
+using realestate_ia_site.Server.Application.SearchAI;
 using realestate_ia_site.Server.Data;
-using realestate_ia_site.Server.Services;
-using realestate_ia_site.Server.Services.AIServices;
-using realestate_ia_site.Server.Services.PropertyServices;
-using realestate_ia_site.Server.Services.ScraperServices;
+using realestate_ia_site.Server.Infrastructure;
+using realestate_ia_site.Server.Infrastructure.AI;
+using realestate_ia_site.Server.Infrastructure.RealEstate;
+using realestate_ia_site.Server.Infrastructure.Scraper;
 
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-builder.Services.AddSingleton<OpenAIService>();
-builder.Services.AddScoped<LocationAIService>();
-builder.Services.AddScoped<PropertySearchService>();
-builder.Services.AddScoped<PropertyAISearchService>();
-builder.Services.AddScoped<PropertyImportService>();
-builder.Services.AddScoped<ScraperStateService>();
 
+//Add orchestrator 
+builder.Services.AddScoped<SearchAIOrchestrator>();
+
+// Add services to the container.
+builder.Services.AddSingleton<OpenAIClient>();
+builder.Services.AddScoped<LocationAIClient>();
+builder.Services.AddScoped<PropertySearchProvider>();
+builder.Services.AddScoped<PropertyAISearchHandler>();
+builder.Services.AddScoped<PropertyImporter>();
+builder.Services.AddScoped<ScraperStateProvider>();
 
 // Add HttpClient/memory cache for GoogleMapsService
-builder.Services.AddHttpClient<GoogleMapsService>();
-builder.Services.AddScoped<GoogleMapsService>();
+builder.Services.AddHttpClient<GoogleMapsClient>();
+builder.Services.AddScoped<GoogleMapsClient>();
 builder.Services.AddMemoryCache();
 
 // Add DbContext with PostgreSQL

@@ -2,25 +2,27 @@
 using OpenAI.Chat;
 using System.Text.Json;
 
-namespace realestate_ia_site.Server.Services.AIServices
+namespace realestate_ia_site.Server.Infrastructure.AI
 {
-    public class LocationAIService
+    public class LocationAIClient
     {
-        private readonly OpenAIClient _client;
+        private readonly OpenAI.OpenAIClient _client;
         private readonly string _modelo;
-        private readonly ILogger<LocationAIService> _logger;
+        private readonly ILogger<LocationAIClient> _logger;
 
-        public LocationAIService(IConfiguration config, ILogger<LocationAIService> logger)
+        public LocationAIClient(IConfiguration config, ILogger<LocationAIClient> logger)
         {
             _logger = logger;
             var apiKey = config["OpenAI:ApiKey"];
             _modelo = config["OpenAI:Model"] ?? "gpt-3.5-turbo";
-            _client = new OpenAIClient(apiKey);
+            _client = new OpenAI.OpenAIClient(apiKey);
         }
 
-        public async Task<List<string>> GetNearbyLocationsAsync(string location)
+        public async Task<List<string>> GetNearbyLocationsAsync(string location , CancellationToken cancellationToken = default)
         {
             _logger.LogDebug("Solicitando localizações próximas para: {Location}", location);
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             var messages = new List<ChatMessage>
             {
@@ -47,7 +49,7 @@ namespace realestate_ia_site.Server.Services.AIServices
 
             try
             {
-                var response = await _client.GetChatClient(_modelo).CompleteChatAsync(messages, chatCompletionOptions);
+                var response = await _client.GetChatClient(_modelo).CompleteChatAsync(messages, chatCompletionOptions , cancellationToken);
                 var jsonResponse = response.Value.Content[0].Text.Trim();
 
                 _logger.LogDebug("Resposta da IA para localizações próximas: {Response}", jsonResponse);
@@ -59,6 +61,11 @@ namespace realestate_ia_site.Server.Services.AIServices
                     locations?.Count ?? 0, location, string.Join(", ", locations ?? new List<string>()));
 
                 return locations ?? new List<string>();
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("Interpretação cancelada para a location: {Location}", location);
+                throw;
             }
             catch (JsonException jsonEx)
             {

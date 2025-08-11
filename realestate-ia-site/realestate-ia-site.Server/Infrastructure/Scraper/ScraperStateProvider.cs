@@ -1,14 +1,14 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Data;
-using realestate_ia_site.Server.Services.PropertyServices;
+using realestate_ia_site.Server.Infrastructure.RealEstate;
 
-namespace realestate_ia_site.Server.Services.ScraperServices
+namespace realestate_ia_site.Server.Infrastructure.Scraper
 {
-    public class ScraperStateService
+    public class ScraperStateProvider
     {
         private readonly ApplicationDbContext _context;
-        private readonly ILogger<ScraperStateService> _logger;
-        public ScraperStateService(ApplicationDbContext context, ILogger<ScraperStateService> logger)
+        private readonly ILogger<ScraperStateProvider> _logger;
+        public ScraperStateProvider(ApplicationDbContext context, ILogger<ScraperStateProvider> logger)
         {
             _context = context;
             _logger = logger;

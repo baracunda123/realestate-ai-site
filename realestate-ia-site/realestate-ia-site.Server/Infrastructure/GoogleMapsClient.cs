@@ -2,16 +2,16 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace realestate_ia_site.Server.Services
+namespace realestate_ia_site.Server.Infrastructure
 {
-    public class GoogleMapsService
+    public class GoogleMapsClient
     {
         private readonly IMemoryCache _cache;
-        private readonly ILogger<GoogleMapsService> _logger;
+        private readonly ILogger<GoogleMapsClient> _logger;
         private readonly HttpClient _httpClient;
         private readonly string _apiKey;
 
-        public GoogleMapsService(IMemoryCache cache, IConfiguration config, ILogger<GoogleMapsService> logger, HttpClient httpClient)
+        public GoogleMapsClient(IMemoryCache cache, IConfiguration config, ILogger<GoogleMapsClient> logger, HttpClient httpClient)
         {
             _cache = cache;
             _logger = logger;

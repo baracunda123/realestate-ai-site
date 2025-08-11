@@ -1,8 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using realestate_ia_site.Server.Application.SearchAI;
 using realestate_ia_site.Server.DTOs.SearchAI;
-using realestate_ia_site.Server.Services.AIServices;
-using realestate_ia_site.Server.Services.PropertyServices;
 
 namespace realestate_ia_site.Server.Controllers
 {
@@ -10,45 +9,39 @@ namespace realestate_ia_site.Server.Controllers
     [ApiController]
     public class SearchAIController : ControllerBase
     {
-        private readonly OpenAIService _openAI;
-        private readonly PropertySearchService _property;
         private readonly ILogger<SearchAIController> _logger;
-        private readonly PropertyAISearchService _propertyAI;
+        private readonly SearchAIOrchestrator _orchestrator;
 
-        public SearchAIController(OpenAIService openAI, PropertySearchService property, ILogger<SearchAIController> logger,PropertyAISearchService propertyAI)
+        public SearchAIController(ILogger<SearchAIController> logger, SearchAIOrchestrator orchestrator)
         {
-            _openAI = openAI;
-            _property = property;
             _logger = logger;
-            _propertyAI = propertyAI;
+            _orchestrator = orchestrator;
         }
 
         [HttpPost]
-        public async Task<IActionResult> Search([FromBody] SearchAIRequestDto request)
+        [ProducesResponseType(typeof(SearchAIResponseDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<SearchAIResponseDto>> Search(
+            [FromBody] SearchAIRequestDto request,
+            CancellationToken ct)
         {
-            _logger.LogInformation("Iniciando pesquisa AI com query: {Query}", request.Query);
-            
+            if (string.IsNullOrWhiteSpace(request?.Query))
+                return BadRequest("Query é obrigatória.");
+
             try
             {
-                _logger.LogDebug("Interpretando texto com OpenAI...");
-                var filters = await _openAI.InterpretTextAsync(request.Query);
-                _logger.LogInformation("Interpretação concluída. Filtros extraídos: {@Filters}", filters);
-
-                _logger.LogDebug("Buscando propriedades com filtros...");
-                //var properties = await _property.SearchPropertiesWithFiltersAsync(filters);
-                var properties = await _propertyAI.SearchPropertiesWithFiltersAsync(filters);
-                _logger.LogInformation("Busca concluída. Encontradas {PropertyCount} propriedades", properties.Count);
-
-                _logger.LogDebug("Gerando resposta do chatbot...");
-                var resposta = await _openAI.ResponderComoChatbotAsync(request.Query, properties);
-                _logger.LogInformation("Resposta gerada com sucesso. Tamanho: {ResponseLength} caracteres", resposta.Length);
-
-                _logger.LogInformation("Pesquisa AI concluída com sucesso para query: {Query}", request.Query);
-                return Ok(resposta);
+                var result = await _orchestrator.HandleAsync(request, ct);
+                return Ok(result); // <- já retorna properties + AIResponse
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogInformation("Requisição cancelada pelo cliente.");
+                return StatusCode(499); // ou 400/204, dependendo da convenção
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "❌ Erro durante pesquisa AI. Query: {Query}", request.Query);
+                _logger.LogError(ex, "Erro interno durante pesquisa AI");
                 return StatusCode(500, "Erro interno do servidor durante a pesquisa");
             }
         }

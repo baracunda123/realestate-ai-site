@@ -16,11 +16,9 @@ import type { SearchFilters } from '../App';
 
 interface AISearchProcessorProps {
   searchQuery: string;
-  onFiltersUpdate: (filters: Partial<SearchFilters>) => void;
-  onSearchQueryUpdate: (query: string) => void;
 }
 
-export function AISearchProcessor({ searchQuery, onFiltersUpdate, onSearchQueryUpdate }: AISearchProcessorProps) {
+export function AISearchProcessor({ searchQuery }: AISearchProcessorProps) {
   const [aiResult, setAiResult] = useState<AISearchResult | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -43,34 +41,6 @@ export function AISearchProcessor({ searchQuery, onFiltersUpdate, onSearchQueryU
       setShowSuggestions(false);
     }
   }, [searchQuery]);
-
-  const applyAIFilters = () => {
-    if (!aiResult) return;
-
-    const newFilters: Partial<SearchFilters> = {};
-
-    if (aiResult.extractedFilters.priceRange) {
-      newFilters.priceRange = aiResult.extractedFilters.priceRange;
-    }
-
-    if (aiResult.extractedFilters.bedrooms) {
-      newFilters.bedrooms = aiResult.extractedFilters.bedrooms;
-    }
-
-    if (aiResult.extractedFilters.bathrooms) {
-      newFilters.bathrooms = aiResult.extractedFilters.bathrooms;
-    }
-
-    if (aiResult.extractedFilters.propertyType) {
-      newFilters.propertyType = aiResult.extractedFilters.propertyType;
-    }
-
-    if (aiResult.extractedFilters.location) {
-      newFilters.location = aiResult.extractedFilters.location;
-    }
-
-    onFiltersUpdate(newFilters);
-  };
 
   const getConfidenceColor = (confidence: number) => {
     if (confidence >= 0.7) return 'bg-gray-200 text-gray-800';

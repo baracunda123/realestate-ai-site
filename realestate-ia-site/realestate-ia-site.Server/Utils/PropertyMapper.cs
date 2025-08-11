@@ -1,6 +1,6 @@
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.DTOs.Scraper;
-using realestate_ia_site.Server.Services;
+using realestate_ia_site.Server.Infrastructure;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
@@ -8,7 +8,7 @@ namespace realestate_ia_site.Server.Utils
 {
     public static class PropertyMapper
     {
-        public static async Task<Property> MapToPropertyEntityAsync(ScraperPropertyDto property, GoogleMapsService googleMapsService)
+        public static async Task<Property> MapToPropertyEntityAsync(ScraperPropertyDto property, GoogleMapsClient googleMapsService)
         {
             var text = property.caracteristicas ?? string.Empty;
             
@@ -171,7 +171,7 @@ namespace realestate_ia_site.Server.Utils
             return null;
         }
 
-        private static async Task<(string? city, string? state, string? county, string? CivilParish)> ParseLocationAsync(string? location, GoogleMapsService googleMapsService)
+        private static async Task<(string? city, string? state, string? county, string? CivilParish)> ParseLocationAsync(string? location, GoogleMapsClient googleMapsService)
         {
             if (string.IsNullOrWhiteSpace(location))
                 return (null, null,null,null);

@@ -4,17 +4,17 @@ using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.DTOs.Scraper;
 using realestate_ia_site.Server.Utils;
 
-namespace realestate_ia_site.Server.Services.PropertyServices
+namespace realestate_ia_site.Server.Infrastructure.RealEstate
 {
-    public class PropertyImportService
+    public class PropertyImporter
     {
         private readonly ApplicationDbContext _context;
-        private readonly ILogger<PropertyImportService> _logger;
+        private readonly ILogger<PropertyImporter> _logger;
 
-        private GoogleMapsService _googleMapsService;
+        private GoogleMapsClient _googleMapsService;
 
-        public PropertyImportService(ApplicationDbContext context, ILogger<PropertyImportService> logger
-                                   , GoogleMapsService googleMapsService)
+        public PropertyImporter(ApplicationDbContext context, ILogger<PropertyImporter> logger
+                                   , GoogleMapsClient googleMapsService)
         {
             _context = context;
             _logger = logger;

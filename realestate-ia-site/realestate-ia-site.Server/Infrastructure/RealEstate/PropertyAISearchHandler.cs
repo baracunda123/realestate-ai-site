@@ -2,28 +2,30 @@
 using realestate_ia_site.Server.Data;
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.DTOs;
-using realestate_ia_site.Server.Services.AIServices;
+using realestate_ia_site.Server.Infrastructure.AI;
 using System.Text.Json;
 
-namespace realestate_ia_site.Server.Services.PropertyServices
+namespace realestate_ia_site.Server.Infrastructure.RealEstate
 {
-    public class PropertyAISearchService
+    public class PropertyAISearchHandler
     {
         private readonly ApplicationDbContext _context;
-        private readonly ILogger<PropertyAISearchService> _logger;
-        private readonly LocationAIService _locationAI;
+        private readonly ILogger<PropertyAISearchHandler> _logger;
+        private readonly LocationAIClient _locationAI;
 
-        public PropertyAISearchService(ILogger<PropertyAISearchService> logger,ApplicationDbContext context,LocationAIService locationAI)
+        public PropertyAISearchHandler(ILogger<PropertyAISearchHandler> logger,ApplicationDbContext context,LocationAIClient locationAI)
         {
             _context = context;
             _logger = logger;
             _locationAI = locationAI;
         }
 
-        public async Task<List<PropertySearchDto>> SearchPropertiesWithFiltersAsync(Dictionary<string, object> filtros)
+        public async Task<List<PropertySearchDto>> SearchPropertiesWithFiltersAsync(Dictionary<string, object> filtros, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Iniciando pesquisa de propriedades com {FilterCount} filtros", filtros.Count);
             _logger.LogDebug("Filtros recebidos: {@Filters}", filtros);
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             var query = _context.Properties.AsQueryable();
             var filtersApplied = new List<string>();
@@ -42,7 +44,7 @@ namespace realestate_ia_site.Server.Services.PropertyServices
             if (filtros.ContainsKey("location") && filtros["location"] != null)
             {
                 var location = filtros["location"].ToString();
-                var (locationQuery, searchType) = await ApplyLocationFilterWithAI(query, location);
+                var (locationQuery, searchType) = await ApplyLocationFilterWithAI(query, location , cancellationToken);
                 query = locationQuery;
                 //locationSearchType = searchType;
                 filtersApplied.Add($"location='{location}' ({searchType})");
@@ -116,7 +118,8 @@ namespace realestate_ia_site.Server.Services.PropertyServices
 
             try
             {
-                var properties = await query.Take(10).ToListAsync();
+
+                var properties = await query.Take(10).ToListAsync(cancellationToken);
                 var result = properties.Select(PropertySearchDto.FromDomain).ToList();
 
                 // Adicionar metadata sobre o tipo de busca de localização
@@ -134,8 +137,10 @@ namespace realestate_ia_site.Server.Services.PropertyServices
             }
         }
 
-        private async Task<(IQueryable<Property>, string)> ApplyLocationFilterWithAI(IQueryable<Property> query, string location)
+        private async Task<(IQueryable<Property>, string)> ApplyLocationFilterWithAI(IQueryable<Property> query, string location , CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             // 1. Primeiro tentar busca exata
             var exactQuery = query.Where(p => p.City != null && p.City.ToLower().Contains(location.ToLower())
                                            || p.State != null && p.State.ToLower().Contains(location.ToLower())
@@ -153,7 +158,7 @@ namespace realestate_ia_site.Server.Services.PropertyServices
             // 2. Se não há resultados exatos, usar IA para expandir busca
             _logger.LogDebug("Nenhum resultado exato encontrado para: {Location}. Usando IA para encontrar localizações próximas...", location);
 
-            var expandedLocations = await GetExpandedLocationsWithAI(location);
+            var expandedLocations = await GetExpandedLocationsWithAI(location , cancellationToken);
 
             if (expandedLocations.Any())
             {
@@ -175,9 +180,11 @@ namespace realestate_ia_site.Server.Services.PropertyServices
             return (exactQuery, "no_expansion");
         }
 
-        private async Task<List<string>> GetExpandedLocationsWithAI(string location)
+        private async Task<List<string>> GetExpandedLocationsWithAI(string location, CancellationToken cancellationToken = default)
         {
-            return await _locationAI.GetNearbyLocationsAsync(location);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            return await _locationAI.GetNearbyLocationsAsync(location, cancellationToken);
         }
     }
 }

@@ -3,20 +3,20 @@ using OpenAI.Chat;
 using realestate_ia_site.Server.DTOs;
 using System.Text.Json;
 
-namespace realestate_ia_site.Server.Services.AIServices
+namespace realestate_ia_site.Server.Infrastructure.AI
 {
-    public class OpenAIService
+    public class OpenAIClient
     {
-        private readonly OpenAIClient _client;
+        private readonly OpenAI.OpenAIClient _client;
         private readonly string _modelo;
-        private readonly ILogger<OpenAIService> _logger;
+        private readonly ILogger<OpenAIClient> _logger;
 
-        public OpenAIService(IConfiguration config, ILogger<OpenAIService> logger)
+        public OpenAIClient(IConfiguration config, ILogger<OpenAIClient> logger)
         {
             _logger = logger;
             var apiKey = config["OpenAI:ApiKey"];
             _modelo = config["OpenAI:Model"] ?? "gpt-3.5-turbo";
-            _client = new OpenAIClient(apiKey);
+            _client = new OpenAI.OpenAIClient(apiKey);
             
             _logger.LogInformation("OpenAIService inicializado com modelo: {Model}", _modelo);
         }
@@ -24,10 +24,12 @@ namespace realestate_ia_site.Server.Services.AIServices
         /// <summary>
         /// Extrai filtros da frase do utilizador em formato JSON
         /// </summary>
-        public async Task<Dictionary<string, object>> InterpretTextAsync(string input)
+        public async Task<Dictionary<string, object>> InterpretTextAsync(string input, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Iniciando interpretação de texto: {Input}", input);
-            
+
+            cancellationToken.ThrowIfCancellationRequested();
+
             var messages = new List<ChatMessage>
             {
                 new SystemChatMessage(@"Extrai filtros de imóveis a partir da frase do usuário.
@@ -59,7 +61,7 @@ namespace realestate_ia_site.Server.Services.AIServices
 
             try
             {
-                var response = await _client.GetChatClient(_modelo).CompleteChatAsync(messages, chatCompletionOptions);
+                var response = await _client.GetChatClient(_modelo).CompleteChatAsync(messages, chatCompletionOptions, cancellationToken);
                 var jsonResponse = response.Value.Content[0].Text;
                 
                 _logger.LogDebug("Resposta recebida da OpenAI: {Response}", jsonResponse);
@@ -71,6 +73,11 @@ namespace realestate_ia_site.Server.Services.AIServices
                 _logger.LogDebug("🔍 Filtros detalhados: {@Filters}", filtros);
                 
                 return filtros ?? new Dictionary<string, object>();
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("Interpretação cancelada para input: {Input}", input);
+                throw;
             }
             catch (JsonException jsonEx)
             {
@@ -87,10 +94,12 @@ namespace realestate_ia_site.Server.Services.AIServices
         /// <summary>
         /// Gera uma resposta textual natural com base nos imóveis encontrados
         /// </summary>
-        public async Task<string> ResponderComoChatbotAsync(string perguntaOriginal, List<PropertySearchDto> properties)
+        public async Task<string> ResponderComoChatbotAsync(string perguntaOriginal, List<PropertySearchDto> properties , CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Gerando resposta do chatbot para: {Question}. Propriedades disponíveis: {PropertyCount}", 
                 perguntaOriginal, properties.Count);
+
+            cancellationToken.ThrowIfCancellationRequested();
 
             string listaImoveis = string.Join("\n", properties.Select(i =>
                 $"[{i.Id}] {i.Type} em {i.Location}, {i.Bedrooms} quartos, € {i.Price:N0}, imageURL:{i.ImageUrl} "
@@ -134,13 +143,19 @@ namespace realestate_ia_site.Server.Services.AIServices
 
             try
             {
-                var response = await _client.GetChatClient(_modelo).CompleteChatAsync(messages, chatCompletionOptions);
+                var response = await _client.GetChatClient(_modelo).CompleteChatAsync(messages, chatCompletionOptions,cancellationToken);
                 var chatbotResponse = response.Value.Content[0].Text;
                 
                 _logger.LogInformation("Resposta do chatbot gerada com sucesso. Tamanho: {ResponseLength} caracteres", chatbotResponse.Length);
                 _logger.LogDebug("Resposta do chatbot: {Response}", chatbotResponse);
                 
                 return chatbotResponse;
+            }
+            catch (OperationCanceledException)
+            {
+                _logger.LogWarning("Interpretaçao cancelada ao gerar resposta do chatbot. Pergunta: {Question}, Propriedades: {PropertyCount}",
+                    perguntaOriginal, properties.Count);
+                throw;
             }
             catch (Exception ex)
             {

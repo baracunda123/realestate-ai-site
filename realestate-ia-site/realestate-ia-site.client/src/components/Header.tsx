@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import { Search, Map, Grid3X3, Home, UserPlus, LogIn, Sparkles } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -32,6 +32,15 @@ export function Header({
   onOpenAuth, 
   onLogout 
 }: HeaderProps) {
+
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement> | React.MouseEvent<HTMLButtonElement>) => {
+        if ('preventDefault' in e) e.preventDefault();
+        const value = inputRef.current?.value?.trim() ?? '';
+        setSearchQuery(value);
+    };
+
   return (
     <header className="bg-white/95 backdrop-blur-lg border-b border-gray-300 sticky top-0 z-50 shadow-md">
       <div className="container mx-auto px-4 relative">
@@ -52,20 +61,24 @@ export function Header({
           {/* Search Bar */}
           <div className="flex-1 max-w-2xl mx-8">
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-500" />
-              <Input
-                placeholder="Conte-me que tipo de casa você está procurando..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-12 pr-20 h-12 text-base border-slate-300 focus:border-slate-500 rounded-xl bg-white shadow-sm"
-              />
-              <Button
-                size="sm"
-                className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 bg-slate-800 hover:bg-slate-900 text-white border-0 rounded-lg shadow-sm"
-              >
-                <Sparkles className="h-3 w-3 mr-1" />
-                Busca AI
-              </Button>
+              <form className="relative" onSubmit={handleSubmit}>
+                  <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-500" />
+                  <Input
+                      ref={inputRef}
+                      defaultValue={searchQuery}
+                      placeholder="Conte-me que tipo de casa você está procurando..."
+                      aria-label="Buscar imóveis"
+                      className="pl-12 pr-24 h-12 text-base border-slate-300 focus:border-slate-500 rounded-xl bg-white shadow-sm"
+                  />
+                  <Button
+                      type="submit"
+                      size="sm"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 bg-slate-800 hover:bg-slate-900 text-white border-0 rounded-lg shadow-sm"
+                  >
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      Busca AI
+                  </Button>
+              </form>
             </div>
           </div>
 

@@ -18,7 +18,7 @@ import {
   ChevronRight,
   Play
 } from 'lucide-react';
-import type { Property } from '../App';
+import type { Property } from "../types/property";
 import { ImageWithFallback } from './figma/ImageWithFallback';
 
 interface PropertyModalProps {
@@ -30,15 +30,11 @@ export function PropertyModal({ property, onClose }: PropertyModalProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
+      return new Intl.NumberFormat('pt-PT', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'EUR',
       maximumFractionDigits: 0,
     }).format(price);
-  };
-
-  const formatSqft = (sqft: number) => {
-    return new Intl.NumberFormat('en-US').format(sqft);
   };
 
   const nextImage = () => {
@@ -147,7 +143,7 @@ export function PropertyModal({ property, onClose }: PropertyModalProps) {
                     </div>
                     <div className="flex items-center">
                       <Square className="h-4 w-4 mr-1" />
-                      {formatSqft(property.sqft)} ft²
+                      {property.area} m²
                     </div>
                     <div className="flex items-center">
                       <Calendar className="h-4 w-4 mr-1" />
@@ -191,9 +187,9 @@ export function PropertyModal({ property, onClose }: PropertyModalProps) {
                     </div>
                   </div>
                   <div>
-                    <span className="text-sm text-muted-foreground">Price per ft²</span>
+                    <span className="text-sm text-muted-foreground">Price per m²</span>
                     <div className="font-medium">
-                      ${Math.round(property.price / property.sqft)}
+                      ${Math.round(property.price / property.area)}
                     </div>
                   </div>
                 </div>
