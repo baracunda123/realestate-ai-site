@@ -129,7 +129,7 @@ export default function App() {
                 });
 
                 setProperties(Array.isArray(result?.properties) ? result.properties : []);
-                setAiResponse(result?.AIResponse ?? '');
+                setAiResponse(result?.aiResponse ?? '');
             } catch (e: unknown) {
                 if (e instanceof Error) {
                     if (e.name !== 'AbortError') {
@@ -184,9 +184,6 @@ export default function App() {
               filters={searchFilters}
               setFilters={setSearchFilters}
             />
-
-           
-
             <AISuggestions searchQuery={searchQuery} user={user} />
           </div>
           
@@ -194,6 +191,7 @@ export default function App() {
           <div className="lg:col-span-3">
             {viewMode === 'grid' ? (
             <PropertyGrid
+                aiResponse={aiResponse}
                 properties={properties}
                 isLoading={loading}
                 error={error}

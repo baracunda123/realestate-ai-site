@@ -1,22 +1,22 @@
-Ôªøusing Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Memory;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace realestate_ia_site.Server.Infrastructure
+namespace realestate_ia_site.Server.Infrastructure.ExternalServices
 {
-    public class GoogleMapsClient
+    public class GoogleMapsService
     {
         private readonly IMemoryCache _cache;
-        private readonly ILogger<GoogleMapsClient> _logger;
+        private readonly ILogger<GoogleMapsService> _logger;
         private readonly HttpClient _httpClient;
         private readonly string _apiKey;
 
-        public GoogleMapsClient(IMemoryCache cache, IConfiguration config, ILogger<GoogleMapsClient> logger, HttpClient httpClient)
+        public GoogleMapsService(IMemoryCache cache, IConfiguration config, ILogger<GoogleMapsService> logger, HttpClient httpClient)
         {
             _cache = cache;
             _logger = logger;
             _httpClient = httpClient;
-            _apiKey = config["GoogleMaps:ApiKey"] ?? throw new InvalidOperationException("Google Maps API key n√£o configurada");
+            _apiKey = config["GoogleMaps:ApiKey"] ?? throw new InvalidOperationException("Google Maps API key n„o configurada");
         }
 
         public async Task<ParsedLocation> ParseLocationAsync(string locationText, string countryCode = "PT")
@@ -29,7 +29,7 @@ namespace realestate_ia_site.Server.Infrastructure
             var cacheKey = $"{locationText}_{countryCode}";
             if (_cache.TryGetValue(cacheKey, out ParsedLocation? cachedResult) && cachedResult != null)
             {
-                _logger.LogDebug("Localiza√ß√£o encontrada no cache: {Location}", locationText);
+                _logger.LogDebug("LocalizaÁ„o encontrada no cache: {Location}", locationText);
                 return cachedResult;
             }
 
@@ -37,10 +37,10 @@ namespace realestate_ia_site.Server.Infrastructure
             {
                 _logger.LogDebug("Fazendo chamada para Google Maps Geocoding API: {Location}", locationText);
 
-                // Primeira tentativa com o endere√ßo original
+                // Primeira tentativa com o endereÁo original
                 var result = await MakeGeocodingRequest(locationText, countryCode);
 
-                // Verificar se o resultado cont√©m POI
+                // Verificar se o resultado contÈm POI
                 if (result != null && ContainsPointOfInterest(result))
                 {
                     _logger.LogInformation("POI detectado em: {Location}. Tentando remover POI e fazer nova chamada.", locationText);
@@ -61,7 +61,7 @@ namespace realestate_ia_site.Server.Infrastructure
                 if (result != null)
                 {
                     var parsedLocation = ExtractCityStateCountyCivilParish(result);
-                    _logger.LogDebug("Localiza√ß√£o processada: {City}, {State}, {County}, {CivilParish}",
+                    _logger.LogDebug("LocalizaÁ„o processada: {City}, {State}, {County}, {CivilParish}",
                         parsedLocation.City, parsedLocation.State, parsedLocation.County, parsedLocation.CivilParish);
 
                     _cache.Set(cacheKey, parsedLocation, TimeSpan.FromHours(24));
@@ -76,7 +76,7 @@ namespace realestate_ia_site.Server.Infrastructure
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao obter localiza√ß√£o do Google Maps: {Location}", locationText);
+                _logger.LogError(ex, "Erro ao obter localizaÁ„o do Google Maps: {Location}", locationText);
 
                 // Fallback para parsing simples
                 var fallbackResult = ParseLocationFallback(locationText);
@@ -98,7 +98,7 @@ namespace realestate_ia_site.Server.Infrastructure
 
             if (geocodeResponse?.Status != "OK" || geocodeResponse.Results == null || !geocodeResponse.Results.Any())
             {
-                _logger.LogWarning("Nenhum resultado encontrado para localiza√ß√£o: {Location}. Status: {Status}",
+                _logger.LogWarning("Nenhum resultado encontrado para localizaÁ„o: {Location}. Status: {Status}",
                     locationText, geocodeResponse?.Status);
                 return null;
             }
@@ -138,7 +138,7 @@ namespace realestate_ia_site.Server.Infrastructure
                     _logger.LogInformation("Concelho/County encontrado: {County}", county);
                 }
 
-                // Procurar por freguesia - m√∫ltiplas estrat√©gias
+                // Procurar por freguesia - m˙ltiplas estratÈgias
                 if (component.Types.Contains("administrative_area_level_3"))
                 {
                     civilParish = component.LongName ?? string.Empty;
@@ -160,7 +160,7 @@ namespace realestate_ia_site.Server.Infrastructure
             if (result.AddressComponents == null)
                 return false;
 
-            // Verificar se algum componente √© um POI
+            // Verificar se algum componente È um POI
             foreach (var component in result.AddressComponents)
             {
                 if (component.Types == null) continue;
@@ -193,12 +193,12 @@ namespace realestate_ia_site.Server.Infrastructure
 
             if (newlineIndex >= 0)
             {
-                // Remover tudo at√© ao \n (incluindo o \n)
+                // Remover tudo atÈ ao \n (incluindo o \n)
                 var result = locationText.Substring(newlineIndex + 1);
                 return result.Trim();
             }
 
-            // Se n√£o h√° \n, retornar o texto original
+            // Se n„o h· \n, retornar o texto original
             return locationText;
         }
 
@@ -212,18 +212,18 @@ namespace realestate_ia_site.Server.Infrastructure
                 var county = parts.Length > 2 ? parts[2].Trim() : string.Empty;
                 var civilParish = parts.Length > 3 ? parts[3].Trim() : string.Empty;
 
-                _logger.LogDebug("Usando fallback para localiza√ß√£o: {City}, {State}, {County}, {CivilParish}", city, state, county, civilParish);
+                _logger.LogDebug("Usando fallback para localizaÁ„o: {City}, {State}, {County}, {CivilParish}", city, state, county, civilParish);
                 return new ParsedLocation { City = city, State = state, County = county, CivilParish = civilParish };
             }
             catch
             {
-                _logger.LogWarning("Erro no fallback de parsing para localiza√ß√£o: {Location}", locationText);
-                return new ParsedLocation { City = string.Empty, State = "Portugal", County = string.Empty , CivilParish = string.Empty };
+                _logger.LogWarning("Erro no fallback de parsing para localizaÁ„o: {Location}", locationText);
+                return new ParsedLocation { City = string.Empty, State = "Portugal", County = string.Empty, CivilParish = string.Empty };
             }
         }
     }
 
-    // DTOs para deserializa√ß√£o JSON
+    // DTOs para deserializaÁ„o JSON
     public class GeocodeResponse
     {
         [JsonPropertyName("status")]
@@ -259,6 +259,6 @@ namespace realestate_ia_site.Server.Infrastructure
         public string City { get; set; } = string.Empty;
         public string State { get; set; } = string.Empty;
         public string County { get; set; } = string.Empty;
-        public string CivilParish { get; set; } = string.Empty; 
+        public string CivilParish { get; set; } = string.Empty;
     }
 }

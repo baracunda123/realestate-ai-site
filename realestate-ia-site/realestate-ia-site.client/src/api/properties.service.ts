@@ -10,7 +10,7 @@ interface SearchAIrequest {
 
 interface SearchAIResponse {
     properties: Property[];
-    AIResponse: string;
+    aiResponse: string;
 }
 
 const api = new ApiClient();

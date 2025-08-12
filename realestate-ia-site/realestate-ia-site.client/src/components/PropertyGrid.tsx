@@ -1,13 +1,13 @@
 import React, { useMemo } from 'react';
 import { PropertyCard } from './PropertyCard';
 import { AISearchProcessor } from './AISearchProcessor'
-
 import type { SearchFilters } from '../App';
 import type { Property } from "../types/property";
 import { Badge } from './ui/badge';
 import { Loader2, Sparkles } from 'lucide-react';
 
 interface PropertyGridProps {
+    aiResponse: string; 
     properties: Property[];
     isLoading?: boolean;
     error?: string | null;
@@ -23,6 +23,7 @@ interface PropertyGridProps {
 }
 
 export function PropertyGrid({
+    aiResponse,
     properties,
     isLoading = false,
     error = null,
@@ -109,12 +110,10 @@ export function PropertyGrid({
 
     return (
         <div className="space-y-6">
-            {/* IA só sugere e aplica filtros no cliente */}
-            <AISearchProcessor
-                searchQuery={searchQuery}
-                onFiltersUpdate={updateFilters}
-                onSearchQueryUpdate={setSearchQuery} // opcional
-            />
+
+            <AISearchProcessor aiResponse={aiResponse}
+                               isLoading={isLoading} />
+
             {/* Header de resultados */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">

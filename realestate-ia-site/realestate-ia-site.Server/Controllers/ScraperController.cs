@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.DTOs.Scraper;
 using realestate_ia_site.Server.Infrastructure.Scraper;
-using realestate_ia_site.Server.Infrastructure.RealEstate;
+using realestate_ia_site.Server.Infrastructure.Persistence;
 
 namespace realestate_ia_site.Server.Controllers
 {
@@ -12,10 +12,10 @@ namespace realestate_ia_site.Server.Controllers
     public class ScraperController : ControllerBase
     {
         private readonly ILogger<ScraperController> _logger;
-        private readonly PropertyImporter _propertyImportService;
+        private readonly PropertyImportService _propertyImportService;
         private readonly ScraperStateProvider _scraperStateService;
 
-        public ScraperController(ILogger<ScraperController> logger, PropertyImporter propertyImportService, ScraperStateProvider scraperStateService)
+        public ScraperController(ILogger<ScraperController> logger, PropertyImportService propertyImportService, ScraperStateProvider scraperStateService)
         {
             _logger = logger;
             _propertyImportService = propertyImportService;

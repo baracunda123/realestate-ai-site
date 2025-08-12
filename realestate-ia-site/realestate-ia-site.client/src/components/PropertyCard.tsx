@@ -12,13 +12,14 @@ interface PropertyCardProps {
 }
 
 export function PropertyCard({ property, onClick }: PropertyCardProps) {
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('pt-PT', {
-      style: 'currency',
-      currency: 'EUR',
-      maximumFractionDigits: 0,
-    }).format(price * 5.5); // Conversão mock para Real
-  };
+    const formatPrice = (price: number) => {
+        return new Intl.NumberFormat('pt-PT', {
+            style: 'currency',
+            currency: 'EUR',
+            maximumFractionDigits: 0, 
+        }).format(price);
+    };
+
 
   const getPropertyTypeColor = (type: string) => {
     // Todas as cores neutras usando tons de gray

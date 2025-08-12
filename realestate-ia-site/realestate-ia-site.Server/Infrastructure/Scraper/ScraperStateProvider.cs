@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Data;
-using realestate_ia_site.Server.Infrastructure.RealEstate;
+using realestate_ia_site.Server.Infrastructure.Persistence;
 
 namespace realestate_ia_site.Server.Infrastructure.Scraper
 {
