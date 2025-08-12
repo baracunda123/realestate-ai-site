@@ -12,7 +12,7 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence.Filters
         public LocationFilter(LocationAIService locationAI, ILogger<LocationFilter> logger)
         {
             _locationAI = locationAI;
-            _logger = logger;
+            _logger = logger;   
         }
 
         public bool CanHandle(string filterKey) => filterKey == "location";

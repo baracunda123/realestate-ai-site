@@ -7,14 +7,12 @@ using realestate_ia_site.Server.Infrastructure.Persistence;
 using realestate_ia_site.Server.Infrastructure.Persistence.Filters;
 using realestate_ia_site.Server.Infrastructure.ExternalServices;
 using realestate_ia_site.Server.Infrastructure.Scraper;
+using realestate_ia_site.Server.Infrastructure.Persistence.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add orchestrator 
 builder.Services.AddScoped<SearchAIOrchestrator>();
-
-// Add application services
-builder.Services.AddScoped<PropertySearchHandler>();
 
 // Add AI services
 builder.Services.AddSingleton<IOpenAIService, OpenAIService>();
@@ -24,7 +22,7 @@ builder.Services.AddScoped<PropertyAIService>();
 builder.Services.AddScoped<LocationAIService>();
 
 // Add persistence services
-builder.Services.AddScoped<PropertySearchService>();
+builder.Services.AddScoped<IPropertySearchService,PropertySearchService>();
 builder.Services.AddScoped<PropertyImportService>();
 
 // Add external services

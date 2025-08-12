@@ -2,10 +2,11 @@ using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Data;
 using realestate_ia_site.Server.DTOs;
 using realestate_ia_site.Server.Infrastructure.Persistence.Filters;
+using realestate_ia_site.Server.Infrastructure.Persistence.Interfaces;
 
 namespace realestate_ia_site.Server.Infrastructure.Persistence
 {
-    public class PropertySearchService
+    public sealed class PropertySearchService : IPropertySearchService
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<PropertySearchService> _logger;
@@ -25,6 +26,8 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
             Dictionary<string, object> filtros,
             CancellationToken cancellationToken = default)
         {
+            ArgumentNullException.ThrowIfNull(filtros, nameof(filtros));
+            
             _logger.LogInformation("Iniciando pesquisa de propriedades com {FilterCount} filtros", filtros.Count);
             _logger.LogDebug("Filtros recebidos: {@Filters}", filtros);
 
@@ -37,7 +40,7 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
             foreach (var filtroKey in filtros.Keys)
             {
                 var applicableFilters = _filters.Where(f => f.CanHandle(filtroKey));
-
+                
                 foreach (var filter in applicableFilters)
                 {
                     query = await filter.ApplyAsync(query, filtros, cancellationToken);
@@ -62,8 +65,12 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
             }
         }
 
-        public async Task<List<PropertySearchDto>> GetTopPicksAsync(Dictionary<string, object> filtros, CancellationToken cancellationToken = default)
+        public async Task<List<PropertySearchDto>> GetTopPicksAsync(
+            Dictionary<string, object> filtros, 
+            CancellationToken cancellationToken = default)
         {
+            ArgumentNullException.ThrowIfNull(filtros, nameof(filtros));
+            
             _logger.LogInformation("Gerando Top Picks com scoring heurístico");
             
             var topPicksFilters = new Dictionary<string, object>(filtros)
