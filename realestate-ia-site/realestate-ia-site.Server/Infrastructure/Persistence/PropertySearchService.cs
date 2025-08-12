@@ -39,13 +39,15 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
             // Aplicar todos os filtros dinamicamente
             foreach (var filtroKey in filtros.Keys)
             {
-                var applicableFilters = _filters.Where(f => f.CanHandle(filtroKey));
-                
-                foreach (var filter in applicableFilters)
+                var applicableFilter = _filters.FirstOrDefault(f => f.CanHandle(filtroKey));
+                if (applicableFilter == null)
                 {
-                    query = await filter.ApplyAsync(query, filtros, cancellationToken);
-                    filtersApplied.Add($"{filter.GetFilterName()}({filtroKey})");
+                    _logger.LogWarning("Filtro não reconhecido: {FilterKey}", filtroKey);
+                    continue;
                 }
+                query = await applicableFilter.ApplyAsync(query, filtros, cancellationToken);
+                filtersApplied.Add($"{applicableFilter.GetFilterName()}({filtroKey})");
+
             }
 
             _logger.LogInformation("Filtros aplicados: {AppliedFilters}", string.Join(", ", filtersApplied));

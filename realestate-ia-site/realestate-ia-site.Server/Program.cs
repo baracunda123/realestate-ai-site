@@ -20,6 +20,7 @@ builder.Services.AddScoped<IPropertyFilterInterpreter, PropertyFilterInterpreter
 builder.Services.AddScoped<IPropertyResponseGenerator, PropertyResponseGenerator>();
 builder.Services.AddScoped<PropertyAIService>();
 builder.Services.AddScoped<LocationAIService>();
+builder.Services.AddScoped<IConversationContextService, ConversationContextService>();
 
 // Add persistence services
 builder.Services.AddScoped<IPropertySearchService,PropertySearchService>();
