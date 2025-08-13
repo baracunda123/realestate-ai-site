@@ -1,6 +1,11 @@
 ﻿using OpenAI.Chat;
 using realestate_ia_site.Server.Infrastructure.AI.Interfaces;
+using realestate_ia_site.Server.Infrastructure.AI.Prompts;
+using realestate_ia_site.Server.Domain.Models; // ADDED (ConversationContext)
 using System.Text.Json;
+using System.Linq;
+using System.Collections.Generic;            // ADDED
+using System;                                // ADDED for completeness
 
 namespace realestate_ia_site.Server.Infrastructure.AI
 {
@@ -8,22 +13,31 @@ namespace realestate_ia_site.Server.Infrastructure.AI
     {
         private readonly IOpenAIService _openAIService;
         private readonly ILogger<PropertyFilterInterpreter> _logger;
+        private readonly IConversationContextService _contextService;
+        private const int MaxContextMessages = 4; // menor porque usamos memória estruturada
 
-        public PropertyFilterInterpreter(IOpenAIService openAIService, ILogger<PropertyFilterInterpreter> logger)
+        public PropertyFilterInterpreter(
+            IOpenAIService openAIService,
+            ILogger<PropertyFilterInterpreter> logger,
+            IConversationContextService contextService)
         {
             _openAIService = openAIService;
             _logger = logger;
+            _contextService = contextService;
         }
 
         public async Task<Dictionary<string, object>> ExtractFiltersAsync(string userQuery, CancellationToken cancellationToken = default)
+            => await ExtractFiltersAsync(userQuery, string.Empty, cancellationToken);
+
+        public async Task<Dictionary<string, object>> ExtractFiltersAsync(string userQuery, string sessionId, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Extraindo filtros do texto: {Input}", userQuery);
 
-            var messages = new List<ChatMessage>
-            {
-                new SystemChatMessage(GetFilterExtractionPrompt()),
-                new UserChatMessage(userQuery)
-            };
+            var context = !string.IsNullOrWhiteSpace(sessionId)
+                ? await _contextService.GetOrCreateContextAsync(sessionId, cancellationToken)
+                : null;
+
+            var messages = BuildMessages(userQuery, context);
 
             var options = new ChatCompletionOptions
             {
@@ -33,57 +47,199 @@ namespace realestate_ia_site.Server.Infrastructure.AI
 
             try
             {
-                var jsonResponse = await _openAIService.CompleteChatAsync(messages, options, cancellationToken);
-                var filters = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonResponse);
-                
-                _logger.LogInformation("Filtros extraídos com sucesso: {FilterCount}", filters?.Count ?? 0);
-                _logger.LogDebug("🔍 Filtros detalhados: {@Filters}", filters);
-                
-                return filters ?? new Dictionary<string, object>();
+                var rawResponse = await _openAIService.CompleteChatAsync(messages, options, cancellationToken);
+                var jsonText = ExtractFirstJsonObject(rawResponse);
+
+                if (jsonText is null)
+                {
+                    _logger.LogWarning("Resposta da IA não contém JSON reconhecível. Resposta recebida: {Response}", rawResponse);
+                    return context?.LastFilters ?? new Dictionary<string, object>();
+                }
+
+                Dictionary<string, object>? rawFilters;
+                try
+                {
+                    rawFilters = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonText);
+                }
+                catch (JsonException inner)
+                {
+                    _logger.LogError(inner, "Falha ao deserializar JSON extraído: {Json}", jsonText);
+                    return context?.LastFilters ?? new Dictionary<string, object>();
+                }
+
+                rawFilters ??= new Dictionary<string, object>();
+                NormalizeFilterValues(rawFilters);
+
+                var merged = MergeWithPreviousFilters(context?.LastFilters, rawFilters);
+
+                _logger.LogInformation("Filtros extraídos com sucesso: {FilterCount}", merged.Count);
+                _logger.LogDebug("🔍 Filtros (merged): {@Filters}", merged);
+
+                if (context != null && merged.Count > 0)
+                {
+                    context.LastFilters = merged;
+                    context.LastQuery = userQuery;
+                    _contextService.UpdateContext(sessionId!, context);
+                }
+
+                return merged;
             }
-            catch (JsonException jsonEx)
+            catch (OperationCanceledException)
             {
-                _logger.LogError(jsonEx, "Erro ao deserializar resposta JSON. Input: {Input}", userQuery);
-                return new Dictionary<string, object>();
+                _logger.LogWarning("Operação cancelada durante extração de filtros");
+                throw;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Erro ao extrair filtros. Input: {Input}", userQuery);
-                return new Dictionary<string, object>();
+                return context?.LastFilters ?? new Dictionary<string, object>();
             }
         }
 
-        private static string GetFilterExtractionPrompt()
+        private List<ChatMessage> BuildMessages(string userQuery, ConversationContext? context)
         {
-            return @"Extrai filtros de imóveis a partir da frase do utilizador.
-                    Responde **apenas** com JSON válido (um único objeto). NÃO incluas texto fora do JSON.
+            var messages = new List<ChatMessage>
+            {
+                new SystemChatMessage(AiPrompts.FilterExtraction)
+            };
 
-                    Campos suportados (não inventar chaves novas):
-                    - type (string)                // ex.: 'apartamento', 'moradia'
-                    - location (string)            // ex.: 'Lisboa', 'Porto, Foz'
-                    - max_price (number)           // em euros; se o user disser 300k/300 mil, interpretar como 300000
-                    - rooms (number)               // número mínimo de quartos
-                    - tags (string[])              // ex.: ['varanda','piscina','garagem']
-                    - sort (string)                // 'price_asc' | 'price_desc' | 'relevance' (default)
-                    - cheaper_hint (boolean)       // true se o user disser 'mais barato', 'em conta', 'abaixa o preço' sem valor
+            if (context?.LastFilters is { Count: > 0 })
+            {
+                var summary = SummarizeFilters(context.LastFilters);
+                messages.Add(new SystemChatMessage($"Contexto anterior (filtros ativos): {summary}"));
+            }
 
-                    Regras:
-                    - Deteta expressões de preço como '300k', '300 mil', '300.000€' e normaliza para número (euros).
-                    - Se o utilizador disser 'mais barato' (ou sinónimos) e NÃO der um valor, define cheaper_hint=true e sort='price_asc'.
-                    - Se disser 'mais caro', define sort='price_desc' e cheaper_hint=false.
-                    - Se não for especificado, usa sort='relevance'.
-                    - Normaliza strings para PT (sem maiúsculas desnecessárias). Não retornes campos nulos; simplesmente omite.
-                    - Nunca retornes explicações, apenas o JSON.
+            if (context != null)
+            {
+                var recent = context
+                    .GetRecentMessages(maxCount: MaxContextMessages)
+                    .Where(m => m is not SystemChatMessage)
+                    .ToList();
 
-                    Exemplos:
-                    Input: 'agora quero mais barato'
-                    Output: { ""sort"": ""price_asc"", ""cheaper_hint"": true }
+                if (recent.Count > 0)
+                    messages.AddRange(recent);
+            }
 
-                    Input: 'até 300k em Lisboa, T3 com varanda'
-                    Output: { ""location"": ""Lisboa"", ""rooms"": 3, ""max_price"": 300000, ""tags"": [""varanda""], ""sort"": ""relevance"" }
+            messages.Add(new UserChatMessage(userQuery));
+            return messages;
+        }
 
-                    Input: 'quero algo mais caro no Porto, com garagem'
-                    Output: { ""location"": ""Porto"", ""tags"": [""garagem""], ""sort"": ""price_desc"", ""cheaper_hint"": false }";
+        private static Dictionary<string, object> MergeWithPreviousFilters(
+            Dictionary<string, object>? previous,
+            Dictionary<string, object> current)
+        {
+            if (current.Count == 0)
+                return previous != null
+                    ? new Dictionary<string, object>(previous)
+                    : new Dictionary<string, object>();
+
+            if (previous == null || previous.Count == 0)
+                return current;
+
+            var structuralKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                { "type", "location", "max_price", "rooms", "tags" };
+
+            bool isIncremental = !current.Keys.Any(k => structuralKeys.Contains(k));
+
+            var result = new Dictionary<string, object>(isIncremental ? previous : new Dictionary<string, object>());
+
+            foreach (var kv in current)
+                result[kv.Key] = kv.Value;
+
+            return result;
+        }
+
+        private static string SummarizeFilters(Dictionary<string, object> filters)
+        {
+            var parts = new List<string>();
+
+            if (filters.TryGetValue("type", out var type))
+                parts.Add($"tipo={type}");
+            if (filters.TryGetValue("location", out var loc))
+                parts.Add($"loc={loc}");
+            if (filters.TryGetValue("rooms", out var rooms))
+                parts.Add($"quartos>={rooms}");
+            if (filters.TryGetValue("max_price", out var price))
+                parts.Add($"<=€{price}");
+            if (filters.TryGetValue("tags", out var tagsObj))
+            {
+                var tagList = ExtractStringList(tagsObj);
+                if (tagList.Count > 0)
+                    parts.Add($"tags=[{string.Join(",", tagList)}]");
+            }
+            if (filters.TryGetValue("sort", out var sort))
+                parts.Add($"ordenação={sort}");
+
+            return parts.Count == 0 ? "(sem filtros estruturados)" : string.Join("; ", parts);
+        }
+
+        private static List<string> ExtractStringList(object value)
+        {
+            var result = new List<string>();
+
+            switch (value)
+            {
+                case JsonElement je when je.ValueKind == JsonValueKind.Array:
+                    foreach (var item in je.EnumerateArray())
+                        if (item.ValueKind == JsonValueKind.String)
+                            result.Add(item.GetString()!);
+                    break;
+                case IEnumerable<object> objEnum:
+                    foreach (var item in objEnum)
+                    {
+                        var s = item?.ToString();
+                        if (!string.IsNullOrWhiteSpace(s))
+                            result.Add(s);
+                    }
+                    break;
+            }
+
+            return result;
+        }
+
+        private static void NormalizeFilterValues(Dictionary<string, object> filters)
+        {
+            var keys = filters.Keys.ToList();
+
+            foreach (var key in keys)
+            {
+                var val = filters[key];
+                if (val is JsonElement je)
+                {
+                    filters[key] = je.ValueKind switch
+                    {
+                        JsonValueKind.String => je.GetString()!,
+                        JsonValueKind.Number => je.TryGetInt64(out var l) ? l : je.GetDouble(),
+                        JsonValueKind.True => true,
+                        JsonValueKind.False => false,
+                        JsonValueKind.Array => ExtractStringList(je),
+                        _ => val
+                    };
+                }
+            }
+        }
+
+        private static string? ExtractFirstJsonObject(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+                return null;
+
+            int start = input.IndexOf('{');
+            if (start < 0) return null;
+
+            int depth = 0;
+            for (int i = start; i < input.Length; i++)
+            {
+                var c = input[i];
+                if (c == '{') depth++;
+                else if (c == '}')
+                {
+                    depth--;
+                    if (depth == 0)
+                        return input.Substring(start, i - start + 1);
+                }
+            }
+            return null;
         }
     }
 }

@@ -7,7 +7,7 @@ namespace realestate_ia_site.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class SearchAIController : ControllerBase
+    public class SearchAIController : BaseController
     {
         private readonly ILogger<SearchAIController> _logger;
         private readonly SearchAIOrchestrator _orchestrator;
@@ -31,13 +31,24 @@ namespace realestate_ia_site.Server.Controllers
 
             try
             {
+                // Usar método que já lança exceção se não existir
+                var sessionId = GetSessionIdOrThrow();
+                
+                // Definir sessionId diretamente no request existente
+                request.SessionId = sessionId;
+
                 var result = await _orchestrator.HandleAsync(request, ct);
-                return Ok(result); // <- já retorna properties + AIResponse
+                return Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                // Session ID não encontrado
+                return BadRequest(ex.Message);
             }
             catch (OperationCanceledException)
             {
                 _logger.LogInformation("Requisição cancelada pelo cliente.");
-                return StatusCode(499); // ou 400/204, dependendo da convenção
+                return StatusCode(499);
             }
             catch (Exception ex)
             {

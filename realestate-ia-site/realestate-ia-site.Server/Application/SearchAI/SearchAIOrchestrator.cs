@@ -1,4 +1,6 @@
-﻿using realestate_ia_site.Server.DTOs.SearchAI;
+﻿using Microsoft.OpenApi.Services;
+using realestate_ia_site.Server.DTOs.SearchAI;
+using realestate_ia_site.Server.Infrastructure.AI;
 using realestate_ia_site.Server.Infrastructure.AI.Interfaces;
 using realestate_ia_site.Server.Infrastructure.Persistence.Interfaces;
 
@@ -8,18 +10,21 @@ namespace realestate_ia_site.Server.Application.SearchAI
     {
         private readonly IPropertyFilterInterpreter _filterInterpreter;
         private readonly IPropertyResponseGenerator _responseGenerator;
-        private readonly IPropertySearchService _propertySearchService; // Mudança aqui
+        private readonly IPropertySearchService _propertySearchService; 
+        private readonly PropertyResponseParser _responseParser; 
         private readonly ILogger<SearchAIOrchestrator> _logger;
 
         public SearchAIOrchestrator(
             IPropertyFilterInterpreter filterInterpreter,
             IPropertyResponseGenerator responseGenerator,
-            IPropertySearchService propertySearchService, // Mudança aqui
+            IPropertySearchService propertySearchService,
+            PropertyResponseParser responseParser, 
             ILogger<SearchAIOrchestrator> logger)
         {
             _filterInterpreter = filterInterpreter;
             _responseGenerator = responseGenerator;
-            _propertySearchService = propertySearchService; // Mudança aqui
+            _propertySearchService = propertySearchService; 
+            _responseParser = responseParser; 
             _logger = logger;
         }
 
@@ -33,17 +38,24 @@ namespace realestate_ia_site.Server.Application.SearchAI
             try
             {
                 // Interpret the user query into filters
-                var filters = await _filterInterpreter.ExtractFiltersAsync(request.Query, ct);      
-                
-                // Search for properties using the service (não o handler)
-                var properties = await _propertySearchService.SearchPropertiesWithFiltersAsync(filters, ct);
-                
-                // Generate AI response
-                var aiResponse = await _responseGenerator.GenerateResponseAsync(request.Query, properties, ct);
+                var filters = await _filterInterpreter.ExtractFiltersAsync(request.Query, request.SessionId, ct);
 
-                _logger.LogInformation("Search completed. Found {PropertyCount} properties", properties.Count);
+                var properties = await _propertySearchService.SearchPropertiesWithFiltersAsync(filters, ct);
+
+                // Generate AI response baseada nos resultados da pesquisa
+                var aiResponse = await _responseGenerator.GenerateResponseAsync(request.Query, properties, request.SessionId, ct);
+
+                // Usar o novo método que faz parse e limpa a resposta
+                var parsingResult = _responseParser.ParseResponse(aiResponse, properties);
+
+                _logger.LogInformation("Search completed. Found {SearchCount} properties, AI mentioned {MentionedCount}",
+                  properties.Count, parsingResult.MentionedProperties.Count);
                 
-                return new SearchAIResponseDto { Properties = properties, AIResponse = aiResponse };
+                return new SearchAIResponseDto 
+                { 
+                    Properties = parsingResult.MentionedProperties,
+                    AIResponse = parsingResult.CleanResponse 
+                };
             }
             catch (Exception ex)
             {

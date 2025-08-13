@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Caching.Memory;
 using realestate_ia_site.Server.Domain.Models;
 using realestate_ia_site.Server.Infrastructure.AI.Interfaces;
+using realestate_ia_site.Server.Infrastructure.AI.Prompts; 
 
 namespace realestate_ia_site.Server.Infrastructure.AI
 {
@@ -61,13 +62,9 @@ namespace realestate_ia_site.Server.Infrastructure.AI
         private ConversationContext CreateNewContext(string sessionId, string cacheKey)
         {
             var context = new ConversationContext { SessionId = sessionId };
-            
-            // Adicionar mensagem do sistema inicial
-            context.AddSystemMessage(GetSystemPrompt());
-
+            context.AddSystemMessage(AiPrompts.UnifiedPropertyAssistant); // CHANGED
             var cacheOptions = CreateCacheOptions();
             _cache.Set(cacheKey, context, cacheOptions);
-            
             _logger.LogDebug("Novo contexto criado para sessão: {SessionId}", sessionId);
             return context;
         }
@@ -82,19 +79,6 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                 Priority = CacheItemPriority.Normal,
                 Size = 1
             };
-        }
-
-        private static string GetSystemPrompt()
-        {
-            return @"És um assistente imobiliário especializado em Portugal. 
-                    Mantém o contexto da conversa e refere-te a propriedades ou filtros mencionados anteriormente quando relevante.
-                    Se o utilizador fizer uma pergunta de seguimento (ex: 'e em Lisboa?', 'mais baratos?'), 
-                    considera os critérios da pesquisa anterior e ajuda a refinar a busca.
-                    
-                    Regras importantes:
-                    - Sempre apresenta propriedades da lista fornecida
-                    - Usa linguagem natural e amigável
-                    - Considera o histórico da conversa para dar respostas contextuais";
         }
     }
 }

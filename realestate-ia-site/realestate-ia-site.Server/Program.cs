@@ -8,6 +8,7 @@ using realestate_ia_site.Server.Infrastructure.Persistence.Filters;
 using realestate_ia_site.Server.Infrastructure.ExternalServices;
 using realestate_ia_site.Server.Infrastructure.Scraper;
 using realestate_ia_site.Server.Infrastructure.Persistence.Interfaces;
+using realestate_ia_site.Server.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +22,7 @@ builder.Services.AddScoped<IPropertyResponseGenerator, PropertyResponseGenerator
 builder.Services.AddScoped<PropertyAIService>();
 builder.Services.AddScoped<LocationAIService>();
 builder.Services.AddScoped<IConversationContextService, ConversationContextService>();
+builder.Services.AddScoped<PropertyResponseParser>(); 
 
 // Add persistence services
 builder.Services.AddScoped<IPropertySearchService,PropertySearchService>();
@@ -63,6 +65,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// ADICIONAR: Middleware de sessão antes da autorização
+app.UseMiddleware<SessionMiddleware>();
+
 app.UseAuthorization();
 app.MapControllers();
 app.MapFallbackToFile("/index.html");

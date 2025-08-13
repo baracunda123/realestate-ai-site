@@ -2,8 +2,9 @@
 
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
+import sessionService from '../services/session.service';
 
-//const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api';  para mais tarde, se necess�rio separar o backend do frontend
+//const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api';  para mais tarde, se necess�rio separar o backend do frontend
 
 class ApiClient {
   private client: AxiosInstance;
@@ -15,6 +16,39 @@ class ApiClient {
         'Content-Type': 'application/json',
       },
     });
+
+    // Interceptor para adicionar headers automaticamente
+    this.client.interceptors.request.use(
+      (config) => {
+        const sessionId = sessionService.getSessionId();
+        console.log('🔍 Enviando X-Session-ID:', sessionId);
+        
+        // Sempre adiciona o session ID
+        config.headers['X-Session-ID'] = sessionId;
+        
+        // Adiciona token de autenticação se o usuário estiver logado
+        const accessToken = sessionService.getAccessToken();
+        if (accessToken) {
+          config.headers['Authorization'] = `Bearer ${accessToken}`;
+        }
+        
+        console.log('📤 Headers enviados:', config.headers);
+        return config;
+      },
+      (error) => Promise.reject(error)
+    );
+
+    // Interceptor para lidar com respostas de erro de autenticação
+    this.client.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response?.status === 401) {
+          sessionService.logout();
+          console.warn('Token expirado, usuário deslogado automaticamente');
+        }
+        return Promise.reject(error);
+      }
+    );
   }
 
   public async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {

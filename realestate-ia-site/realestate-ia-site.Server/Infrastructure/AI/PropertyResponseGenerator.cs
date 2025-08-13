@@ -1,6 +1,7 @@
 ﻿using OpenAI.Chat;
 using realestate_ia_site.Server.DTOs;
 using realestate_ia_site.Server.Infrastructure.AI.Interfaces;
+using realestate_ia_site.Server.Infrastructure.AI.Prompts; // ADDED
 
 namespace realestate_ia_site.Server.Infrastructure.AI
 {
@@ -25,7 +26,6 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             List<PropertySearchDto> properties, 
             CancellationToken cancellationToken = default)
         {
-            // Manter compatibilidade para chamadas sem sessionId
             return await GenerateResponseAsync(originalQuery, properties, string.Empty, cancellationToken);
         }
 
@@ -67,7 +67,6 @@ namespace realestate_ia_site.Server.Infrastructure.AI
         {
             var messages = new List<ChatMessage>();
 
-            // Se temos sessionId, usar contexto da conversa
             if (!string.IsNullOrWhiteSpace(sessionId))
             {
                 var context = await _contextService.GetOrCreateContextAsync(sessionId, cancellationToken);
@@ -76,14 +75,12 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             }
             else
             {
-                // Fallback para comportamento sem contexto
-                messages.Add(new SystemChatMessage(GetStandaloneSystemPrompt()));
+                messages.Add(new SystemChatMessage(AiPrompts.UnifiedPropertyAssistant));
                 messages.Add(new UserChatMessage(originalQuery));
             }
 
-            // Adicionar informação sobre propriedades disponíveis
             var propertiesList = FormatPropertiesForAI(properties);
-            messages.Add(new SystemChatMessage($"Imóveis disponíveis para esta pesquisa:\n{propertiesList}"));
+            messages.Add(new SystemChatMessage($"Propriedades disponíveis:\n{propertiesList}"));
 
             return messages;
         }
@@ -119,19 +116,21 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             if (!properties.Any())
                 return "Nenhuma propriedade encontrada para os critérios especificados.";
 
-            return string.Join("\n", properties.Select(p =>
-                $"[{p.Id}] {p.Type} em {p.Location}, {p.Bedrooms} quartos, € {p.Price:N0}, imageURL:{p.ImageUrl}"));
-        }
-
-        private static string GetStandaloneSystemPrompt()
-        {
-            return @"És um assistente imobiliário em Portugal.
-
-                    REGRAS OBRIGATÓRIAS:
-                    1) LISTA FECHADA: Só podes apresentar imóveis que constam na lista fornecida.
-                    2) TIPOLOGIA: Se o utilizador procurar T2, considera também T3 como opção, apresentando primeiro todos os T2 (se existirem) e depois todos os T3 como ""resultados semelhantes"".
-                    3) FORMATO: Apresenta cada propriedade com: tipo, localização, quartos, preço.
-                    4) LINGUAGEM: Usa português natural e amigável.";
+            return string.Join("\n", properties.Select((p, index) =>
+            {
+                var num = index + 1;
+                var type = string.IsNullOrWhiteSpace(p.Type) ? "Imóvel" : p.Type;
+                var loc = string.IsNullOrWhiteSpace(p.Location) ? "localização não indicada" : p.Location;
+                var price = p.Price > 0 ? $"€{p.Price:N0}" : "preço sob consulta";
+                var rooms = p.Bedrooms > 0 ? $"{p.Bedrooms} quartos" : null;
+                var area = p.Area > 0 ? $"{p.Area:N0} m²" : null;
+                var title = string.IsNullOrWhiteSpace(p.Title) ? null : p.Title;
+                var parts = new[] { type, "em " + loc, rooms, area, price }
+                    .Where(s => !string.IsNullOrWhiteSpace(s));
+                var core = string.Join(", ", parts);
+                var tail = string.IsNullOrWhiteSpace(p.ImageUrl) ? "" : $" ({p.ImageUrl})";
+                return $"PROP[{num}] {core}{(title != null ? $" - {title}" : "")}{tail}";
+            }));
         }
     }
 }

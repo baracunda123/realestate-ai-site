@@ -14,7 +14,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
         {
             _logger = logger;
             var apiKey = config["OpenAI:ApiKey"];
-            _model = config["OpenAI:Model"] ?? "gpt-3.5-turbo";
+            _model = config["OpenAI:Model"] ?? "gpt-4o-mini";
             _client = new OpenAI.OpenAIClient(apiKey);
             
             _logger.LogInformation("OpenAI Service inicializado com modelo: {Model}", _model);

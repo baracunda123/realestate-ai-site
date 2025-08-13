@@ -31,6 +31,13 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
             _logger.LogInformation("Iniciando pesquisa de propriedades com {FilterCount} filtros", filtros.Count);
             _logger.LogDebug("Filtros recebidos: {@Filters}", filtros);
 
+            // Se não há filtros, retornar lista vazia
+            if (filtros.Count == 0)
+            {
+                _logger.LogInformation("Nenhum filtro fornecido - retornando lista vazia");
+                return new List<PropertySearchDto>();
+            }
+
             cancellationToken.ThrowIfCancellationRequested();
 
             var query = _context.Properties.AsQueryable();
@@ -47,7 +54,6 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
                 }
                 query = await applicableFilter.ApplyAsync(query, filtros, cancellationToken);
                 filtersApplied.Add($"{applicableFilter.GetFilterName()}({filtroKey})");
-
             }
 
             _logger.LogInformation("Filtros aplicados: {AppliedFilters}", string.Join(", ", filtersApplied));
