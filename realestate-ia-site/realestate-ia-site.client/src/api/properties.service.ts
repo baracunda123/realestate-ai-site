@@ -2,7 +2,7 @@
 // Service for handling property-related API requests
 
 import { ApiClient } from "./client";
-import sessionService from "../services/session.service";
+import sessionService from "./session.service";
 import type { Property } from "../types/property";
 
 interface SearchAIRequest {

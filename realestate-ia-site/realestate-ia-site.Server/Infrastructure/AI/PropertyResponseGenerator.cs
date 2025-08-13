@@ -1,7 +1,8 @@
 ﻿using OpenAI.Chat;
 using realestate_ia_site.Server.DTOs;
 using realestate_ia_site.Server.Infrastructure.AI.Interfaces;
-using realestate_ia_site.Server.Infrastructure.AI.Prompts; // ADDED
+using realestate_ia_site.Server.Infrastructure.AI.Core;
+using realestate_ia_site.Server.Domain.Models;
 
 namespace realestate_ia_site.Server.Infrastructure.AI
 {
@@ -43,10 +44,26 @@ namespace realestate_ia_site.Server.Infrastructure.AI
 
             try
             {
-                var messages = await BuildMessagesAsync(originalQuery, properties, sessionId, cancellationToken);
+                // Só usar contexto se sessionId for válido
+                var hasValidSession = !string.IsNullOrWhiteSpace(sessionId);
+                ConversationContext? context = null;
+                
+                if (hasValidSession)
+                {
+                    context = await _contextService.GetOrCreateContextAsync(sessionId, cancellationToken);
+                    context.AddUserMessage(originalQuery);
+                    _contextService.UpdateContext(sessionId, context);
+                }
+                
+                var messages = BuildMessages(originalQuery, properties, context);
                 var response = await GenerateAIResponseAsync(messages, cancellationToken);
                 
-                await UpdateContextWithResponseAsync(sessionId, originalQuery, response, cancellationToken);
+                // Só salvar resposta se há sessão válida
+                if (hasValidSession && context != null)
+                {
+                    context.AddAssistantMessage(response);
+                    _contextService.UpdateContext(sessionId, context);
+                }
                 
                 _logger.LogInformation("Resposta gerada com sucesso. Tamanho: {ResponseLength} caracteres", response.Length);
                 return response;
@@ -59,30 +76,21 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             }
         }
 
-        private async Task<List<ChatMessage>> BuildMessagesAsync(
+        private List<ChatMessage> BuildMessages(
             string originalQuery,
             List<PropertySearchDto> properties,
-            string sessionId,
-            CancellationToken cancellationToken)
+            ConversationContext? context)
         {
-            var messages = new List<ChatMessage>();
+            List<ChatMessage>? conversationHistory = null;
+            bool isRefinement = false;
 
-            if (!string.IsNullOrWhiteSpace(sessionId))
+            if (context != null)
             {
-                var context = await _contextService.GetOrCreateContextAsync(sessionId, cancellationToken);
-                context.AddUserMessage(originalQuery);
-                messages = context.GetRecentMessages().ToList();
-            }
-            else
-            {
-                messages.Add(new SystemChatMessage(AiPrompts.UnifiedPropertyAssistant));
-                messages.Add(new UserChatMessage(originalQuery));
+                conversationHistory = context.GetRecentMessages().ToList();
+                isRefinement = context.Messages.Count > 2;
             }
 
-            var propertiesList = FormatPropertiesForAI(properties);
-            messages.Add(new SystemChatMessage($"Propriedades disponíveis:\n{propertiesList}"));
-
-            return messages;
+            return PromptBuilder.BuildForResponse(originalQuery, properties, conversationHistory, isRefinement);
         }
 
         private async Task<string> GenerateAIResponseAsync(
@@ -96,41 +104,6 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             };
 
             return await _openAIService.CompleteChatAsync(messages, options, cancellationToken);
-        }
-
-        private async Task UpdateContextWithResponseAsync(
-            string sessionId,
-            string originalQuery,
-            string response,
-            CancellationToken cancellationToken)
-        {
-            if (string.IsNullOrWhiteSpace(sessionId)) return;
-
-            var context = await _contextService.GetOrCreateContextAsync(sessionId, cancellationToken);
-            context.AddAssistantMessage(response);
-            _contextService.UpdateContext(sessionId, context);
-        }
-
-        private static string FormatPropertiesForAI(List<PropertySearchDto> properties)
-        {
-            if (!properties.Any())
-                return "Nenhuma propriedade encontrada para os critérios especificados.";
-
-            return string.Join("\n", properties.Select((p, index) =>
-            {
-                var num = index + 1;
-                var type = string.IsNullOrWhiteSpace(p.Type) ? "Imóvel" : p.Type;
-                var loc = string.IsNullOrWhiteSpace(p.Location) ? "localização não indicada" : p.Location;
-                var price = p.Price > 0 ? $"€{p.Price:N0}" : "preço sob consulta";
-                var rooms = p.Bedrooms > 0 ? $"{p.Bedrooms} quartos" : null;
-                var area = p.Area > 0 ? $"{p.Area:N0} m²" : null;
-                var title = string.IsNullOrWhiteSpace(p.Title) ? null : p.Title;
-                var parts = new[] { type, "em " + loc, rooms, area, price }
-                    .Where(s => !string.IsNullOrWhiteSpace(s));
-                var core = string.Join(", ", parts);
-                var tail = string.IsNullOrWhiteSpace(p.ImageUrl) ? "" : $" ({p.ImageUrl})";
-                return $"PROP[{num}] {core}{(title != null ? $" - {title}" : "")}{tail}";
-            }));
         }
     }
 }

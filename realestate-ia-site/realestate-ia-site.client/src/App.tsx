@@ -38,7 +38,7 @@ interface User {
 export default function App() {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
-    priceRange: [0, 2000000], 
+    priceRange: [0, 100000000], 
     bedrooms: null,
     bathrooms: null,
     propertyType: '',
@@ -51,6 +51,7 @@ export default function App() {
   const [aiResponse, setAiResponse] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasSearched, setHasSearched] = useState(false); // Novo estado para controlar se já foi feita alguma busca
     
   // Authentication state
   const [user, setUser] = useState<User | null>(null);
@@ -114,45 +115,65 @@ export default function App() {
     setIsAuthModalOpen(true);
   };
 
-    // Busca SÓ pela query (filtros NÃO vão pro backend)
-    useEffect(() => {
-        const ctrl = new AbortController();
 
-        (async () => {
-            try {
-                setLoading(true);
-                setError(null);
+  // Handler para busca por exemplo do WelcomeScreen
+  const handleExampleSearch = (query: string) => {
+    setSearchQuery(query);
+    setHasSearched(true);
+    // Foca no campo de busca após definir a query
+    setTimeout(() => {
+      const searchInput = document.querySelector('input[type="search"]') as HTMLInputElement;
+      if (searchInput) {
+        searchInput.focus();
+      }
+    }, 100);
+  };
 
-                const result = await searchProperties({
-                    searchQuery: searchQuery, // pode ser opcional
-                    signal: ctrl.signal,
-                });
+  // Busca SÓ pela query (filtros NÃO vão pro backend)
+  useEffect(() => {
+    // Se não há query e não foi feita nenhuma busca ainda, não faz nada
+    if (!searchQuery.trim() && !hasSearched) {
+      return;
+    }
 
-                setProperties(Array.isArray(result?.properties) ? result.properties : []);
-                setAiResponse(result?.aiResponse ?? '');
-            } catch (e: unknown) {
-                if (e instanceof Error) {
-                    if (e.name !== 'AbortError') {
-                        console.error(e);
-                        setError('Erro ao carregar propriedades. Tente novamente.');
-                        setProperties([]);
-                    }
-                } else {
-                    console.error("Erro desconhecido", e);
-                    setError(
-                        typeof e === "string"
-                            ? e
-                            : "Erro desconhecido ao carregar propriedades."
-                    );
-                    setProperties([]);
-                }
-            } finally {
-                setLoading(false);
-            }
-        })();
+    const ctrl = new AbortController();
 
-        return () => ctrl.abort();
-    }, [searchQuery]); // <-- apenas query dispara backend
+    (async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        setHasSearched(true); // Marca que uma busca foi feita
+
+        const result = await searchProperties({
+          searchQuery: searchQuery, // pode ser opcional
+          signal: ctrl.signal,
+        });
+
+        setProperties(Array.isArray(result?.properties) ? result.properties : []);
+        setAiResponse(result?.aiResponse ?? '');
+      } catch (e: unknown) {
+        if (e instanceof Error) {
+          if (e.name !== 'AbortError') {
+            console.error(e);
+            setError('Erro ao carregar propriedades. Tente novamente.');
+            setProperties([]);
+          }
+        } else {
+          console.error("Erro desconhecido", e);
+          setError(
+            typeof e === "string"
+              ? e
+              : "Erro desconhecido ao carregar propriedades."
+          );
+          setProperties([]);
+        }
+      } finally {
+        setLoading(false);
+      }
+    })();
+
+    return () => ctrl.abort();
+  }, [searchQuery, hasSearched]); // Inclui hasSearched na dependência
 
   return (
     <div 
@@ -195,10 +216,14 @@ export default function App() {
                 properties={properties}
                 isLoading={loading}
                 error={error}
+                searchQuery={searchQuery}
+                isFirstLoad={!hasSearched}
                 filters={searchFilters}
-                applyClientFilters={false}   // backend já aplica os filtros; mude para true se quiser filtrar no cliente
+                applyClientFilters={true}
                 onPropertySelect={setSelectedProperty}
                 onFiltersUpdate={updateFilters}
+                onExampleSearch={handleExampleSearch}
+                user={user}
             />
             ) : (
               <MapView 

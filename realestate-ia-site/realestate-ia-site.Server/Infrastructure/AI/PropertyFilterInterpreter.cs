@@ -1,11 +1,12 @@
 ﻿using OpenAI.Chat;
 using realestate_ia_site.Server.Infrastructure.AI.Interfaces;
 using realestate_ia_site.Server.Infrastructure.AI.Prompts;
-using realestate_ia_site.Server.Domain.Models; // ADDED (ConversationContext)
+using realestate_ia_site.Server.Infrastructure.AI.Core; // ADDED
+using realestate_ia_site.Server.Domain.Models;
 using System.Text.Json;
 using System.Linq;
-using System.Collections.Generic;            // ADDED
-using System;                                // ADDED for completeness
+using System.Collections.Generic;
+using System;
 
 namespace realestate_ia_site.Server.Infrastructure.AI
 {
@@ -14,7 +15,6 @@ namespace realestate_ia_site.Server.Infrastructure.AI
         private readonly IOpenAIService _openAIService;
         private readonly ILogger<PropertyFilterInterpreter> _logger;
         private readonly IConversationContextService _contextService;
-        private const int MaxContextMessages = 4; // menor porque usamos memória estruturada
 
         public PropertyFilterInterpreter(
             IOpenAIService openAIService,
@@ -31,146 +31,119 @@ namespace realestate_ia_site.Server.Infrastructure.AI
 
         public async Task<Dictionary<string, object>> ExtractFiltersAsync(string userQuery, string sessionId, CancellationToken cancellationToken = default)
         {
-            _logger.LogInformation("Extraindo filtros do texto: {Input}", userQuery);
-
             var context = !string.IsNullOrWhiteSpace(sessionId)
                 ? await _contextService.GetOrCreateContextAsync(sessionId, cancellationToken)
                 : null;
 
-            var messages = BuildMessages(userQuery, context);
+            // Usar o PromptBuilder
+            var messages = PromptBuilder.BuildForFilterExtraction(userQuery, context?.LastFilters);
 
             var options = new ChatCompletionOptions
             {
-                MaxOutputTokenCount = 500,
-                Temperature = 0.3f
+                MaxOutputTokenCount = 300,
+                Temperature = 0.2f
             };
 
             try
             {
-                var rawResponse = await _openAIService.CompleteChatAsync(messages, options, cancellationToken);
-                var jsonText = ExtractFirstJsonObject(rawResponse);
-
-                if (jsonText is null)
+                var response = await _openAIService.CompleteChatAsync(messages, options, cancellationToken);
+                var filters = ParseFiltersFromResponse(response);
+                
+                // Salvar no contexto
+                if (context != null && filters.Any())
                 {
-                    _logger.LogWarning("Resposta da IA não contém JSON reconhecível. Resposta recebida: {Response}", rawResponse);
-                    return context?.LastFilters ?? new Dictionary<string, object>();
+                    context.LastFilters = MergeFilters(context.LastFilters, filters);
+                    _contextService.UpdateContext(sessionId, context);
                 }
 
-                Dictionary<string, object>? rawFilters;
-                try
-                {
-                    rawFilters = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonText);
-                }
-                catch (JsonException inner)
-                {
-                    _logger.LogError(inner, "Falha ao deserializar JSON extraído: {Json}", jsonText);
-                    return context?.LastFilters ?? new Dictionary<string, object>();
-                }
-
-                rawFilters ??= new Dictionary<string, object>();
-                NormalizeFilterValues(rawFilters);
-
-                var merged = MergeWithPreviousFilters(context?.LastFilters, rawFilters);
-
-                _logger.LogInformation("Filtros extraídos com sucesso: {FilterCount}", merged.Count);
-                _logger.LogDebug("🔍 Filtros (merged): {@Filters}", merged);
-
-                if (context != null && merged.Count > 0)
-                {
-                    context.LastFilters = merged;
-                    context.LastQuery = userQuery;
-                    _contextService.UpdateContext(sessionId!, context);
-                }
-
-                return merged;
-            }
-            catch (OperationCanceledException)
-            {
-                _logger.LogWarning("Operação cancelada durante extração de filtros");
-                throw;
+                return filters;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao extrair filtros. Input: {Input}", userQuery);
+                _logger.LogError(ex, "Erro ao extrair filtros");
                 return context?.LastFilters ?? new Dictionary<string, object>();
             }
         }
 
-        private List<ChatMessage> BuildMessages(string userQuery, ConversationContext? context)
+        private static Dictionary<string, object> ParseFiltersFromResponse(string response)
         {
-            var messages = new List<ChatMessage>
+            try
             {
-                new SystemChatMessage(AiPrompts.FilterExtraction)
-            };
+                var jsonContent = ExtractFirstJsonObject(response);
+                if (string.IsNullOrWhiteSpace(jsonContent))
+                    return new Dictionary<string, object>();
 
-            if (context?.LastFilters is { Count: > 0 })
+                var filters = JsonSerializer.Deserialize<Dictionary<string, object>>(jsonContent);
+                if (filters != null)
+                {
+                    NormalizeFilterValues(filters);
+                    return filters;
+                }
+            }
+            catch (JsonException)
             {
-                var summary = SummarizeFilters(context.LastFilters);
-                messages.Add(new SystemChatMessage($"Contexto anterior (filtros ativos): {summary}"));
+                // Se não conseguir fazer parse, retorna vazio
             }
 
-            if (context != null)
-            {
-                var recent = context
-                    .GetRecentMessages(maxCount: MaxContextMessages)
-                    .Where(m => m is not SystemChatMessage)
-                    .ToList();
-
-                if (recent.Count > 0)
-                    messages.AddRange(recent);
-            }
-
-            messages.Add(new UserChatMessage(userQuery));
-            return messages;
+            return new Dictionary<string, object>();
         }
 
-        private static Dictionary<string, object> MergeWithPreviousFilters(
+        private static Dictionary<string, object> MergeFilters(
             Dictionary<string, object>? previous,
             Dictionary<string, object> current)
         {
+            // Se não há filtros novos, retorna os anteriores (ou vazio)
             if (current.Count == 0)
                 return previous != null
                     ? new Dictionary<string, object>(previous)
                     : new Dictionary<string, object>();
 
+            // Se não há filtros anteriores, retorna os novos
             if (previous == null || previous.Count == 0)
                 return current;
 
-            var structuralKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                { "type", "location", "max_price", "rooms", "tags" };
+            // Filtros que substituem completamente quando especificados
+            var replacingKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+                { "type", "location", "max_price", "rooms" };
 
-            bool isIncremental = !current.Keys.Any(k => structuralKeys.Contains(k));
+            // Se algum filtro estrutural foi especificado, começa com base limpa
+            bool hasStructuralChange = current.Keys.Any(k => replacingKeys.Contains(k));
+            
+            var result = hasStructuralChange 
+                ? new Dictionary<string, object>() 
+                : new Dictionary<string, object>(previous);
 
-            var result = new Dictionary<string, object>(isIncremental ? previous : new Dictionary<string, object>());
+            // Se houve mudança estrutural, preserva apenas tags dos filtros anteriores (podem ser cumulativas)
+            if (hasStructuralChange && previous.ContainsKey("tags"))
+            {
+                result["tags"] = previous["tags"];
+            }
 
+            // Aplica todos os filtros novos
             foreach (var kv in current)
-                result[kv.Key] = kv.Value;
+            {
+                if (kv.Key.Equals("tags", StringComparison.OrdinalIgnoreCase))
+                {
+                    // Tags podem ser cumulativas se não houver mudança estrutural major
+                    if (!hasStructuralChange && result.ContainsKey("tags"))
+                    {
+                        var existingTags = ExtractStringList(result["tags"]);
+                        var newTags = ExtractStringList(kv.Value);
+                        var combined = existingTags.Union(newTags, StringComparer.OrdinalIgnoreCase).ToList();
+                        result[kv.Key] = combined;
+                    }
+                    else
+                    {
+                        result[kv.Key] = kv.Value;
+                    }
+                }
+                else
+                {
+                    result[kv.Key] = kv.Value;
+                }
+            }
 
             return result;
-        }
-
-        private static string SummarizeFilters(Dictionary<string, object> filters)
-        {
-            var parts = new List<string>();
-
-            if (filters.TryGetValue("type", out var type))
-                parts.Add($"tipo={type}");
-            if (filters.TryGetValue("location", out var loc))
-                parts.Add($"loc={loc}");
-            if (filters.TryGetValue("rooms", out var rooms))
-                parts.Add($"quartos>={rooms}");
-            if (filters.TryGetValue("max_price", out var price))
-                parts.Add($"<=€{price}");
-            if (filters.TryGetValue("tags", out var tagsObj))
-            {
-                var tagList = ExtractStringList(tagsObj);
-                if (tagList.Count > 0)
-                    parts.Add($"tags=[{string.Join(",", tagList)}]");
-            }
-            if (filters.TryGetValue("sort", out var sort))
-                parts.Add($"ordenação={sort}");
-
-            return parts.Count == 0 ? "(sem filtros estruturados)" : string.Join("; ", parts);
         }
 
         private static List<string> ExtractStringList(object value)

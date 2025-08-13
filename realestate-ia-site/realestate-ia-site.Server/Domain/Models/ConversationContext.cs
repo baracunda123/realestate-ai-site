@@ -36,11 +36,13 @@ namespace realestate_ia_site.Server.Domain.Models
 
         public IReadOnlyList<ChatMessage> GetRecentMessages(int maxCount = 10)
         {
-            // Manter sempre a primeira mensagem do sistema se existir
-            var systemMessages = Messages.Where(m => m is SystemChatMessage).Take(1);
-            var recentMessages = Messages.Where(m => !(m is SystemChatMessage)).TakeLast(maxCount - systemMessages.Count());
-            
-            return systemMessages.Concat(recentMessages).ToList().AsReadOnly();
+            // CORRIGIDO: Só retorna user/assistant messages (não system)
+            // O PromptBuilder é responsável pelas system messages
+            return Messages
+                .Where(m => m is UserChatMessage || m is AssistantChatMessage)
+                .TakeLast(maxCount)
+                .ToList()
+                .AsReadOnly();
         }
     }
 }

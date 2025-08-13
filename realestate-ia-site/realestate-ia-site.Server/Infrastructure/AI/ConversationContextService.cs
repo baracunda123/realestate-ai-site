@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Caching.Memory;
 using realestate_ia_site.Server.Domain.Models;
 using realestate_ia_site.Server.Infrastructure.AI.Interfaces;
-using realestate_ia_site.Server.Infrastructure.AI.Prompts; 
 
 namespace realestate_ia_site.Server.Infrastructure.AI
 {
@@ -62,7 +61,8 @@ namespace realestate_ia_site.Server.Infrastructure.AI
         private ConversationContext CreateNewContext(string sessionId, string cacheKey)
         {
             var context = new ConversationContext { SessionId = sessionId };
-            context.AddSystemMessage(AiPrompts.UnifiedPropertyAssistant); // CHANGED
+            // REMOVIDO: Não adicionar mensagem de sistema aqui
+            // O PromptBuilder é responsável por adicionar as mensagens de sistema apropriadas
             var cacheOptions = CreateCacheOptions();
             _cache.Set(cacheKey, context, cacheOptions);
             _logger.LogDebug("Novo contexto criado para sessão: {SessionId}", sessionId);

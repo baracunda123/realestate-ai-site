@@ -1,54 +1,49 @@
-namespace realestate_ia_site.Server.Infrastructure.AI.Prompts
+Ôªønamespace realestate_ia_site.Server.Infrastructure.AI.Prompts
 {
     internal static class AiPrompts
     {
-        internal static string UnifiedPropertyAssistant =>
-@"…s um assistente imobili·rio especializado em Portugal.
+        /// <summary>
+        /// Prompt principal - usado como base para todas as intera√ß√µes
+        /// </summary>
+        internal static string BaseAssistant =>
+@"√âs um assistente imobili√°rio especializado em Portugal. 
 
-REGRAS CRÕTICAS:
-1. Sempre que mencionares (ou voltares a referir) uma propriedade, prefixa com PROP[X] onde X È o n˙mero fornecido na lista desta interaÁ„o (nunca inventes n˙meros).
-2. ApÛs PROP[X], descreve de forma natural: tipo, localizaÁ„o (cidade/bairro), preÁo formatado, atributos relevantes (quartos, ·rea se disponÌvel, algo distintivo).
-3. Nunca refiras propriedades que n„o estejam na lista fornecida.
-4. MantÈm o contexto da conversa podendo comparar propriedades usando os respetivos identificadores PROP[X].
-5. N„o repitas detalhes supÈrfluos; responde de forma clara, ˙til e em portuguÍs europeu amig·vel.
+PERSONALIDADE: Profissional, √∫til, direto mas cordial.
+IDIOMA: Portugu√™s europeu claro.
+FORMATO: Respostas concisas e focadas no valor para o utilizador.
 
-EXEMPLO:
-PROP[1] Apartamento T2 em Lisboa por Ä250.000 - Excelente localizaÁ„o
-PROP[3] Moradia T3 no Porto por Ä280.000 - Ideal para famÌlia
+REGRAS FUNDAMENTAIS:
+- S√≥ responde com base nos dados fornecidos
+- N√£o inventes informa√ß√µes
+- Usa PROP[X] apenas quando necess√°rio para referir propriedades espec√≠ficas
+- Mant√©m respostas em 2-3 par√°grafos m√°ximo";
 
-Ex: A PROP[1] destaca-se pela proximidade a transportes; a PROP[3] oferece mais espaÁo exterior.
-
-IMPORTANTE:
-- N„o cries novos identificadores.
-- Se o utilizador pedir opini„o ou comparaÁ„o, podes referenciar PROP[X] diretamente.
-- MantÈm coerÍncia terminolÛgica (ex.: 'quartos', 'moradia', 'apartamento').";
-
-        internal static string FilterExtraction =>
-@"Extrai filtros de imÛveis a partir da frase do utilizador.
-Responde apenas com JSON v·lido (um ˙nico objeto). N√O incluas texto fora do JSON.
-
-Campos suportados:
-- type (string)
-- location (string)
-- max_price (number)
-- rooms (number)
-- tags (string[])
-- sort ('price_asc' | 'price_desc' | 'relevance')
-- cheaper_hint (boolean)
-
-REGRAS:
-- N„o extrair filtros se a frase for apenas pedido de conselho/opini„o sobre resultados j· mostrados.
-- Extrair filtros sÛ quando h· intenÁ„o de nova pesquisa.
-- Interpretar '300k' / '300 mil' / '300.000Ä' como 300000.
-- 'mais barato' sem valor => cheaper_hint=true e sort='price_asc'.
-- 'mais caro' => sort='price_desc', cheaper_hint=false.
-- AusÍncia de sorting explÌcito => relevance.
-- Omitir campos n„o mencionados (n„o usar null).
-- Nunca adicionar explicaÁıes fora do JSON.
-
+        /// <summary>
+        /// Contexto espec√≠fico para extra√ß√£o de filtros - usado apenas quando necess√°rio
+        /// </summary>
+        internal static string GetFilterExtractionContext() =>
+@"TAREFA ESPEC√çFICA: Extrair filtros de pesquisa.
+Responde APENAS com JSON v√°lido. Campos: type, location, max_price, rooms, tags, sort.
 Exemplos:
-Input: 'qual me aconselhas?'            Output: {}
-Input: 'agora quero mais barato'        Output: { ""sort"": ""price_asc"", ""cheaper_hint"": true }
-Input: 'atÈ 300k em Lisboa, T3 varanda' Output: { ""location"": ""Lisboa"", ""rooms"": 3, ""max_price"": 300000, ""tags"": [""varanda""], ""sort"": ""relevance"" }";
+'T3 no Porto at√© 300k' ‚Üí {""rooms"": 3, ""location"": ""Porto"", ""max_price"": 300000}
+'mais barato' ‚Üí {""sort"": ""price_asc""}";
+
+        /// <summary>
+        /// Contexto para resposta conversacional - usado para respostas ao utilizador
+        /// </summary>
+        internal static string GetConversationalContext(int propertyCount, bool isRefinement = false) =>
+$@"TAREFA ESPEC√çFICA: Responder ao utilizador sobre {propertyCount} propriedades.
+{(isRefinement ? "CONTEXTO: O utilizador est√° a refinar resultados anteriores." : "")}
+- Sintetiza padr√µes, n√£o listes todas as propriedades
+- Destaca 1-2 exemplos relevantes usando PROP[X]
+- Oferece pr√≥ximos passos √∫teis";
+
+        /// <summary>
+        /// Contexto para localiza√ß√µes - m√≠nimo e focado
+        /// </summary>
+        internal static string GetLocationContext() =>
+@"TAREFA: Lista localiza√ß√µes pr√≥ximas em Portugal.
+Responde APENAS com array JSON: [""loc1"", ""loc2"", ...]
+M√°ximo 6 localiza√ß√µes pr√≥ximas.";
     }
 }

@@ -13,26 +13,25 @@ interface SearchFiltersProps {
 }
 
 export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
+  // Constantes alinhadas com App.tsx
+  const DEFAULT_PRICE_RANGE: [number, number] = [0, 100000000];
+
   const [manualPrices, setManualPrices] = useState({
     min: '',
     max: ''
   });
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('pt-BR', {
+    return new Intl.NumberFormat('pt-PT', {
       style: 'currency',
-      currency: 'BRL',
+      currency: 'EUR',
       maximumFractionDigits: 0,
-    }).format(price * 5.5); // Conversão mock para Real
-  };
-
-  const formatPriceInput = (price: number) => {
-    return Math.round(price * 5.5).toString();
+    }).format(price); // Já não precisa de conversão
   };
 
   const parsePriceInput = (value: string) => {
     const parsed = parseInt(value.replace(/\D/g, ''));
-    return isNaN(parsed) ? 0 : Math.round(parsed / 5.5);
+    return isNaN(parsed) ? 0 : parsed; // Remove a divisão por 5.5
   };
 
   const updateFilter = (key: keyof SearchFiltersType, value: any) => {
@@ -52,14 +51,14 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
     const minPrice = parsePriceInput(manualPrices.min);
     const maxPrice = parsePriceInput(manualPrices.max);
     
-    // Validações
-    const validMin = Math.max(0, Math.min(minPrice, 2000000));
-    const validMax = Math.max(validMin, Math.min(maxPrice || 2000000, 2000000));
+    // Validações usando a constante
+    const validMin = Math.max(DEFAULT_PRICE_RANGE[0], Math.min(minPrice, DEFAULT_PRICE_RANGE[1]));
+    const validMax = Math.max(validMin, Math.min(maxPrice || DEFAULT_PRICE_RANGE[1], DEFAULT_PRICE_RANGE[1]));
     
     updateFilter('priceRange', [validMin, validMax]);
   };
 
-  const handleManualPriceKeyPress = (e: React.KeyboardEvent) => {
+  const handleManualPriceKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       applyManualPrices();
     }
@@ -67,7 +66,7 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
 
   const resetManualPrices = () => {
     setManualPrices({ min: '', max: '' });
-    updateFilter('priceRange', [0, 2000000]);
+    updateFilter('priceRange', DEFAULT_PRICE_RANGE);
   };
 
   return (
@@ -89,12 +88,12 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
             <div className="space-y-1">
               <Label className="text-xs text-gray-600">Preço Mínimo</Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-gray-500">R$</span>
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-gray-500">€</span>
                 <Input
                   placeholder="0"
                   value={manualPrices.min}
                   onChange={(e) => handleManualPriceChange('min', e.target.value)}
-                  onKeyPress={handleManualPriceKeyPress}
+                  onKeyDown={handleManualPriceKeyDown}
                   onBlur={applyManualPrices}
                   className="pl-8 border border-gray-200 hover:border-gray-300 focus:border-gray-400 transition-colors text-sm"
                 />
@@ -103,12 +102,12 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
             <div className="space-y-1">
               <Label className="text-xs text-gray-600">Preço Máximo</Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-gray-500">R$</span>
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-gray-500">€</span>
                 <Input
-                  placeholder="11.000.000"
+                  placeholder="100.000.000"
                   value={manualPrices.max}
                   onChange={(e) => handleManualPriceChange('max', e.target.value)}
-                  onKeyPress={handleManualPriceKeyPress}
+                  onKeyDown={handleManualPriceKeyDown}
                   onBlur={applyManualPrices}
                   className="pl-8 border border-gray-200 hover:border-gray-300 focus:border-gray-400 transition-colors text-sm"
                 />
@@ -135,7 +134,8 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
           </div>
 
           {/* Current Range Display */}
-          {(filters.priceRange[0] > 0 || filters.priceRange[1] < 2000000) && (
+          {(filters.priceRange[0] > DEFAULT_PRICE_RANGE[0] || 
+            filters.priceRange[1] < DEFAULT_PRICE_RANGE[1]) && (
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-600">Faixa atual:</span>
@@ -240,7 +240,7 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
           className="w-full bg-gray-50 border border-gray-200 hover:border-gray-300 hover:bg-gray-100 transition-all duration-200"
           onClick={() => {
             setFilters({
-              priceRange: [0, 2000000],
+              priceRange: DEFAULT_PRICE_RANGE,
               bedrooms: null,
               bathrooms: null,
               propertyType: '',

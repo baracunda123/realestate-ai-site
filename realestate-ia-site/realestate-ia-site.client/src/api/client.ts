@@ -2,7 +2,7 @@
 
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
-import sessionService from '../services/session.service';
+import sessionService from './session.service';
 
 //const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5000/api';  para mais tarde, se necess�rio separar o backend do frontend
 

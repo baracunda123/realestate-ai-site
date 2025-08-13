@@ -1,5 +1,6 @@
 using OpenAI.Chat;
 using realestate_ia_site.Server.Infrastructure.AI.Interfaces;
+using realestate_ia_site.Server.Infrastructure.AI.Core; // ADDED
 using System.Text.Json;
 
 namespace realestate_ia_site.Server.Infrastructure.AI
@@ -19,18 +20,8 @@ namespace realestate_ia_site.Server.Infrastructure.AI
         {
             _logger.LogInformation("Obtendo localizações próximas para: {Location}", location);
 
-            var messages = new List<ChatMessage>
-            {
-                new SystemChatMessage(@"És um especialista em geografia de Portugal. 
-                                      Quando te for dada uma localização, responde com uma lista JSON de cidades/freguesias próximas.
-                                      Inclui apenas localizações reais que existam em Portugal.
-                                      Responde APENAS com o array JSON, sem explicações.
-                                      
-                                      Exemplo:
-                                      Input: 'Foz'
-                                      Output: [""Foz do Douro"", ""Aldoar"", ""Nevogilde"", ""Lordelo do Ouro"", ""Ramalde""]"),
-                new UserChatMessage(location)
-            };
+            // Usar o PromptBuilder em vez de prompts inline
+            var messages = PromptBuilder.BuildForLocationExpansion(location);
 
             var options = new ChatCompletionOptions
             {
