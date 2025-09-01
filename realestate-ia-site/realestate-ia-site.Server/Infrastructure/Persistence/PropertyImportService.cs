@@ -59,7 +59,7 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
                 if (existingProperty != null)
                 {
                     // Atualizar propriedade existente usando o mapper
-                    await PropertyMapper.UpdatePropertyFromScrapperAsync(existingProperty, scrapperDto);
+                    PropertyMapper.UpdatePropertyFromScrapper(existingProperty, scrapperDto);
                     result.Updated++;
                     _logger.LogDebug("Propriedade atualizada: {Title}", scrapperDto.titleFromListing);
                 }

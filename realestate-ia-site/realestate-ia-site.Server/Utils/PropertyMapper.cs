@@ -220,10 +220,10 @@ namespace realestate_ia_site.Server.Utils
         }
 
         // Método para atualizar propriedade existente
-        public static async Task UpdatePropertyFromScrapperAsync(Property existing, ScraperPropertyDto dto)
+        public static void UpdatePropertyFromScrapper(Property existing, ScraperPropertyDto dto)
         {
             var text = dto.caracteristicas ?? string.Empty;
-            
+
             existing.Title = dto.titleFromListing?.Trim() ?? existing.Title;
             existing.Description = string.Join(" ", dto.descricao ?? "") ?? existing.Description;
             existing.Price = ParsePrice(dto.preco) ?? existing.Price;
