@@ -364,7 +364,7 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
 
       {/* Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-7 bg-pale-clay-light border border-pale-clay-deep">
+        <TabsList className="grid w-full grid-cols-1 lg:grid-cols-7 bg-pale-clay-light border border-pale-clay-deep">
           <TabsTrigger value="dashboard" className="flex items-center space-x-2">
             <BarChart3 className="h-4 w-4" />
             <span className="hidden sm:inline">Dashboard</span>
