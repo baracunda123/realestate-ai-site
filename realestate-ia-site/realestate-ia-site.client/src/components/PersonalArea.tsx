@@ -156,11 +156,13 @@ interface PersonalAreaProps {
   onPropertySelect: (property: Property) => void;
   onOpenUpgradeModal?: () => void;
   onNavigateToAlertResults?: (alert: PropertyAlert) => void;
+  favorites: Property[];
+  onToggleFavorite: (property: Property) => void;
 }
 
-export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNavigateToAlertResults }: PersonalAreaProps) {
+export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNavigateToAlertResults, favorites, onToggleFavorite }: PersonalAreaProps) {
   const [activeTab, setActiveTab] = useState('dashboard');
-  
+
   // Modal state
   const [isNewAlertModalOpen, setIsNewAlertModalOpen] = useState(false);
   const [editingAlert, setEditingAlert] = useState<string | null>(null);
@@ -355,7 +357,7 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="site-container space-y-6 py-6">
       {/* Header */}
       <PersonalAreaHeader 
         user={user} 
@@ -364,32 +366,32 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
 
       {/* Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-7 bg-pale-clay-light border border-pale-clay-deep">
-          <TabsTrigger value="dashboard" className="flex items-center space-x-2">
+        <TabsList className="grid w-full grid-cols-7 gap-2 bg-pale-clay-light border border-pale-clay-deep">
+          <TabsTrigger value="dashboard" className="w-full flex items-center space-x-2">
             <BarChart3 className="h-4 w-4" />
             <span className="hidden sm:inline">Dashboard</span>
           </TabsTrigger>
-          <TabsTrigger value="favorites" className="flex items-center space-x-2">
+          <TabsTrigger value="favorites" className="w-full flex items-center space-x-2">
             <Heart className="h-4 w-4" />
             <span className="hidden sm:inline">Favoritos</span>
           </TabsTrigger>
-          <TabsTrigger value="searches" className="flex items-center space-x-2">
+          <TabsTrigger value="searches" className="w-full flex items-center space-x-2">
             <Bookmark className="h-4 w-4" />
             <span className="hidden sm:inline">Pesquisas</span>
           </TabsTrigger>
-          <TabsTrigger value="alerts" className="flex items-center space-x-2">
+          <TabsTrigger value="alerts" className="w-full flex items-center space-x-2">
             <Bell className="h-4 w-4" />
             <span className="hidden sm:inline">Alertas</span>
           </TabsTrigger>
-          <TabsTrigger value="history" className="flex items-center space-x-2">
+          <TabsTrigger value="history" className="w-full flex items-center space-x-2">
             <Clock className="h-4 w-4" />
             <span className="hidden sm:inline">Histórico</span>
           </TabsTrigger>
-          <TabsTrigger value="plans" className="flex items-center space-x-2">
+          <TabsTrigger value="plans" className="w-full flex items-center space-x-2">
             <Crown className="h-4 w-4" />
             <span className="hidden sm:inline">Planos</span>
           </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center space-x-2">
+          <TabsTrigger value="settings" className="w-full flex items-center space-x-2">
             <Settings className="h-4 w-4" />
             <span className="hidden sm:inline">Perfil</span>
           </TabsTrigger>
@@ -399,7 +401,7 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
         <TabsContent value="dashboard" className="space-y-6">
           <PersonalAreaDashboard
             user={user}
-            favoritesCount={mockFavoriteProperties.length}
+            favoritesCount={favorites.length}
             savedSearchesCount={filteredSavedSearches.length}
             alertsCount={allAlerts.filter(alert => alert.isActive).length}
             onCardClick={handleCardClick}
@@ -410,10 +412,11 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
         <TabsContent value="favorites">
           <PersonalAreaFavorites
             user={user}
-            favorites={mockFavoriteProperties}
+            favorites={favorites}
             onPropertySelect={onPropertySelect}
             onOpenUpgradeModal={onOpenUpgradeModal}
             onGoToHome={handleGoToHome}
+            onToggleFavorite={onToggleFavorite}
           />
         </TabsContent>
 

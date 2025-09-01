@@ -15,14 +15,16 @@ interface PersonalAreaFavoritesProps {
   onPropertySelect: (property: Property) => void;
   onOpenUpgradeModal?: () => void;
   onGoToHome: () => void;
+  onToggleFavorite?: (property: Property) => void;
 }
 
-export function PersonalAreaFavorites({ 
-  user, 
-  favorites, 
-  onPropertySelect, 
-  onOpenUpgradeModal, 
-  onGoToHome 
+export function PersonalAreaFavorites({
+  user,
+  favorites,
+  onPropertySelect,
+  onOpenUpgradeModal,
+  onGoToHome,
+  onToggleFavorite,
 }: PersonalAreaFavoritesProps) {
   const currentLimits = getCurrentLimits(user);
 
@@ -73,6 +75,8 @@ export function PersonalAreaFavorites({
           <PropertyCard
             key={property.id}
             property={property}
+            isFavorite={true}
+            onToggleFavorite={onToggleFavorite}
             onClick={() => onPropertySelect(property)}
           />
         ))}

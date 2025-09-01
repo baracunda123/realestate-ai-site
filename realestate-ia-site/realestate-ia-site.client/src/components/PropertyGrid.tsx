@@ -158,6 +158,8 @@ interface PropertyGridProps {
   searchQuery: string;
   onPropertySelect: (property: Property) => void;
   onFiltersUpdate: (filters: Partial<SearchFilters>) => void;
+  favorites?: Property[];
+  onToggleFavorite?: (property: Property) => void;
 }
 
 // Calculate simple text relevance score for ranking
@@ -193,7 +195,7 @@ const calculateRelevanceScore = (property: Property, query: string): number => {
   return score;
 };
 
-export function PropertyGrid({ filters, searchQuery, onPropertySelect, onFiltersUpdate }: PropertyGridProps) {
+export function PropertyGrid({ filters, searchQuery, onPropertySelect, onFiltersUpdate, favorites = [], onToggleFavorite }: PropertyGridProps) {
   const filteredAndRankedProperties = useMemo(() => {
     let filtered = mockProperties.filter(property => {
       // Price filter
@@ -292,10 +294,12 @@ export function PropertyGrid({ filters, searchQuery, onPropertySelect, onFilters
               property={property}
               onClick={() => onPropertySelect(property)}
               isWhiteBackground={index < 3}
+              isFavorite={favorites.some(f => f.id === property.id)}
+              onToggleFavorite={onToggleFavorite}
             />
             {hasAIRanking && index < 3 && (
-              <div className="absolute top-3 left-3 z-10">
-                <Badge 
+              <div className="absolute left-3 z-10 top-12 sm:top-12">
+                <Badge
                   className={`
                     ${index === 0 ? 'bg-burnt-peach' : ''}
                     ${index === 1 ? 'bg-cocoa-taupe' : ''}
