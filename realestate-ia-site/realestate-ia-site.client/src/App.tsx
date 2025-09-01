@@ -8,7 +8,8 @@ import { Toaster } from './components/ui/sonner';
 import { type PropertyAlert } from './types/PersonalArea';
 import { type SearchFilters as SearchFiltersType } from './types/SearchFilters';
 import { type Property } from './types/property';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
+import { getCurrentLimits } from './utils/PersonalArea';
 
 const SearchFilters = lazy(() => import('./components/SearchFilters').then(m => ({ default: m.SearchFilters })));
 const PropertyGrid = lazy(() => import('./components/PropertyGrid').then(m => ({ default: m.PropertyGrid })));
@@ -42,6 +43,7 @@ export default function App() {
     sortBy: 'price'
   });
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+  const [favorites, setFavorites] = useState<Property[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentView, setCurrentView] = useState<'home' | 'personal' | 'alert-results'>('home');
   const [selectedAlert, setSelectedAlert] = useState<PropertyAlert | null>(null);
@@ -114,6 +116,36 @@ export default function App() {
       searchFilters.sortBy === 'price';
     
     return searchQuery.trim() === '' && isDefaultFilters;
+  };
+
+  // Persist favorites in localStorage
+  useEffect(() => {
+    const raw = localStorage.getItem('hf_favorites');
+    if (raw) {
+      try { setFavorites(JSON.parse(raw)); } catch {}
+    }
+  }, []);
+  useEffect(() => {
+    localStorage.setItem('hf_favorites', JSON.stringify(favorites));
+  }, [favorites]);
+
+  const toggleFavorite = (property: Property) => {
+    // Limits only enforce on add
+    const exists = favorites.some(p => p.id === property.id);
+    if (!exists) {
+      if (!user) {
+        openAuthModal();
+        return;
+      }
+      const limits = getCurrentLimits(user as any);
+      if (!user.isPremium && favorites.length >= limits.maxFavorites) {
+        toast.error('Limite de favoritos atingido', {
+          description: `Plano Free permite até ${limits.maxFavorites}. Faça upgrade para ilimitados.`,
+        });
+        return;
+      }
+    }
+    setFavorites(prev => exists ? prev.filter(p => p.id !== property.id) : [...prev, property]);
   };
 
   // Handle example search from welcome screen
@@ -340,6 +372,8 @@ export default function App() {
                 properties={generateAlertProperties(selectedAlert)}
                 onBack={navigateBackFromAlertResults}
                 onPropertySelect={setSelectedProperty}
+                favorites={favorites}
+                onToggleFavorite={toggleFavorite}
               />
             </Suspense>
           </div>
@@ -349,6 +383,8 @@ export default function App() {
             onPropertySelect={setSelectedProperty}
             onOpenUpgradeModal={openUpgradeModal}
             onNavigateToAlertResults={navigateToAlertResults}
+            favorites={favorites}
+            onToggleFavorite={toggleFavorite}
           />
         ) : showWelcomeScreen ? (
           <div className="site-container">
@@ -374,11 +410,13 @@ export default function App() {
                 <div className="lg:col-span-3">
                   {viewMode === 'grid' ? (
                     <PropertyGrid
-                      filters={searchFilters}
-                      searchQuery={searchQuery}
-                      onPropertySelect={setSelectedProperty}
-                      onFiltersUpdate={updateFilters}
-                    />
+                    filters={searchFilters}
+                    searchQuery={searchQuery}
+                    onPropertySelect={setSelectedProperty}
+                    onFiltersUpdate={updateFilters}
+                    favorites={favorites}
+                    onToggleFavorite={toggleFavorite}
+                  />
                   ) : (
                     <MapView
                       filters={searchFilters}
