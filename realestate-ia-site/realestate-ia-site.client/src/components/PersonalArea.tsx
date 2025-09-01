@@ -365,31 +365,31 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
       {/* Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-7 gap-2 bg-pale-clay-light border border-pale-clay-deep">
-          <TabsTrigger value="dashboard" className="flex items-center space-x-2">
+          <TabsTrigger value="dashboard" className="w-full flex items-center space-x-2">
             <BarChart3 className="h-4 w-4" />
             <span className="hidden sm:inline">Dashboard</span>
           </TabsTrigger>
-          <TabsTrigger value="favorites" className="flex items-center space-x-2">
+          <TabsTrigger value="favorites" className="w-full flex items-center space-x-2">
             <Heart className="h-4 w-4" />
             <span className="hidden sm:inline">Favoritos</span>
           </TabsTrigger>
-          <TabsTrigger value="searches" className="flex items-center space-x-2">
+          <TabsTrigger value="searches" className="w-full flex items-center space-x-2">
             <Bookmark className="h-4 w-4" />
             <span className="hidden sm:inline">Pesquisas</span>
           </TabsTrigger>
-          <TabsTrigger value="alerts" className="flex items-center space-x-2">
+          <TabsTrigger value="alerts" className="w-full flex items-center space-x-2">
             <Bell className="h-4 w-4" />
             <span className="hidden sm:inline">Alertas</span>
           </TabsTrigger>
-          <TabsTrigger value="history" className="flex items-center space-x-2">
+          <TabsTrigger value="history" className="w-full flex items-center space-x-2">
             <Clock className="h-4 w-4" />
             <span className="hidden sm:inline">Histórico</span>
           </TabsTrigger>
-          <TabsTrigger value="plans" className="flex items-center space-x-2">
+          <TabsTrigger value="plans" className="w-full flex items-center space-x-2">
             <Crown className="h-4 w-4" />
             <span className="hidden sm:inline">Planos</span>
           </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center space-x-2">
+          <TabsTrigger value="settings" className="w-full flex items-center space-x-2">
             <Settings className="h-4 w-4" />
             <span className="hidden sm:inline">Perfil</span>
           </TabsTrigger>
