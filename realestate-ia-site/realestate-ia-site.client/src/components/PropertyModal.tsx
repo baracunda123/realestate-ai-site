@@ -51,7 +51,7 @@ export function PropertyModal({ property, onClose }: PropertyModalProps) {
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl h-[90vh] p-0 overflow-hidden">
+      <DialogContent className="max-w-6xl w-[95vw] h-[90vh] p-0 overflow-hidden">
         <div className="flex flex-col h-full">
           {/* Header */}
           <DialogHeader className="flex flex-row items-center justify-between p-4 border-b">
@@ -70,9 +70,9 @@ export function PropertyModal({ property, onClose }: PropertyModalProps) {
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto">
-            <div className="grid grid-cols-2 h-full">
+            <div className="grid h-full grid-cols-[1.2fr_1fr] md:grid-cols-[1.4fr_1fr]">
               {/* Images */}
-              <div className="relative bg-muted">
+              <div className="relative bg-muted min-h-0">
                 <ImageWithFallback
                   src={property.images[currentImageIndex]}
                   alt={`${property.title} - Image ${currentImageIndex + 1}`}
@@ -125,7 +125,7 @@ export function PropertyModal({ property, onClose }: PropertyModalProps) {
               </div>
 
               {/* Property Details */}
-              <div className="p-6 space-y-6 min-w-0">
+              <div className="p-6 space-y-6 min-w-0 overflow-y-auto">
                 {/* Price and Basic Info */}
                 <div>
                   <div className="text-3xl font-medium text-primary mb-2">
