@@ -355,7 +355,7 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="site-container space-y-6 py-6">
       {/* Header */}
       <PersonalAreaHeader 
         user={user} 
