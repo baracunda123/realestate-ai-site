@@ -298,8 +298,8 @@ export function PropertyGrid({ filters, searchQuery, onPropertySelect, onFilters
               onToggleFavorite={onToggleFavorite}
             />
             {hasAIRanking && index < 3 && (
-              <div className="absolute top-3 left-3 z-10">
-                <Badge 
+              <div className="absolute left-3 z-10 top-12 sm:top-12">
+                <Badge
                   className={`
                     ${index === 0 ? 'bg-burnt-peach' : ''}
                     ${index === 1 ? 'bg-cocoa-taupe' : ''}
