@@ -13,9 +13,11 @@ interface AlertResultsProps {
   properties: Property[];
   onBack: () => void;
   onPropertySelect: (property: Property) => void;
+  favorites?: Property[];
+  onToggleFavorite?: (property: Property) => void;
 }
 
-export function AlertResults({ alert, properties, onBack, onPropertySelect }: AlertResultsProps) {
+export function AlertResults({ alert, properties, onBack, onPropertySelect, favorites = [], onToggleFavorite }: AlertResultsProps) {
   const [sortBy, setSortBy] = useState<'newest' | 'price' | 'relevance'>('newest');
 
   // Sort properties based on selection
@@ -145,6 +147,8 @@ export function AlertResults({ alert, properties, onBack, onPropertySelect }: Al
                 property={property}
                 onClick={() => onPropertySelect(property)}
                 isWhiteBackground={false}
+                isFavorite={favorites.some(f => f.id === property.id)}
+                onToggleFavorite={onToggleFavorite}
               />
               
               {/* Alert Badge Overlay */}
