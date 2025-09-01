@@ -160,7 +160,8 @@ interface PersonalAreaProps {
 
 export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNavigateToAlertResults }: PersonalAreaProps) {
   const [activeTab, setActiveTab] = useState('dashboard');
-  
+  const [favoriteProperties, setFavoriteProperties] = useState<Property[]>(mockFavoriteProperties);
+
   // Modal state
   const [isNewAlertModalOpen, setIsNewAlertModalOpen] = useState(false);
   const [editingAlert, setEditingAlert] = useState<string | null>(null);
@@ -399,7 +400,7 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
         <TabsContent value="dashboard" className="space-y-6">
           <PersonalAreaDashboard
             user={user}
-            favoritesCount={mockFavoriteProperties.length}
+            favoritesCount={favoriteProperties.length}
             savedSearchesCount={filteredSavedSearches.length}
             alertsCount={allAlerts.filter(alert => alert.isActive).length}
             onCardClick={handleCardClick}
@@ -410,10 +411,16 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
         <TabsContent value="favorites">
           <PersonalAreaFavorites
             user={user}
-            favorites={mockFavoriteProperties}
+            favorites={favoriteProperties}
             onPropertySelect={onPropertySelect}
             onOpenUpgradeModal={onOpenUpgradeModal}
             onGoToHome={handleGoToHome}
+            onToggleFavorite={(property) => {
+              setFavoriteProperties((prev) => {
+                const exists = prev.some((p) => p.id === property.id);
+                return exists ? prev.filter((p) => p.id !== property.id) : [...prev, property];
+              });
+            }}
           />
         </TabsContent>
 
