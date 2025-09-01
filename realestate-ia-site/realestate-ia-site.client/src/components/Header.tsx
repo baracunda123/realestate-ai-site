@@ -81,10 +81,15 @@ export function Header({
                   }`}
                 />
               </div>
-              
+
+              {/* AI response box under search */}
+              {user && (
+                <AIResponseBox query={searchQuery} open={searchQuery.trim().length > 0} />
+              )}
+
               {/* Overlay for non-logged users */}
               {!user && (
-                <div 
+                <div
                   className="absolute inset-0 bg-transparent cursor-pointer rounded-xl"
                   onClick={onOpenAuth}
                   title="Crie a sua conta para aceder à pesquisa"
