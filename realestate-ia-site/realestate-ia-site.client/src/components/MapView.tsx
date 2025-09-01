@@ -2,7 +2,8 @@ import React from 'react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { MapPin, Layers, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
-import type { Property, SearchFilters } from '../App';
+import { type SearchFilters } from '../types/SearchFilters';
+import { type Property } from '../types/property'; 
 
 interface MapViewProps {
   filters: SearchFilters;

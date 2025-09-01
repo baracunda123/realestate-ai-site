@@ -9,211 +9,837 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --font-size: 14px;
-  --background: #f1f5f9;
-  --foreground: #1e293b;
-  --card: #ffffff;
-  --card-foreground: #1e293b;
-  --popover: #ffffff;
-  --popover-foreground: #1e293b;
-  --primary: #475569;
-  --primary-foreground: #ffffff;
-  --secondary: #e2e8f0;
-  --secondary-foreground: #475569;
-  --muted: #f8fafc;
-  --muted-foreground: #64748b;
-  --accent: #cbd5e1;
-  --accent-foreground: #334155;
-  --destructive: #dc2626;
-  --destructive-foreground: #ffffff;
-  --border: #cbd5e1;
-  --input: transparent;
-  --input-background: #f8fafc;
-  --switch-background: #cbd5e1;
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --ring: #475569;
-  --chart-1: #64748b;
-  --chart-2: #10b981;
-  --chart-3: #8b5cf6;
-  --chart-4: #f59e0b;
-  --chart-5: #dc2626;
-  --radius: 0.75rem;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #1e293b;
-  --sidebar-primary: #475569;
-  --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #f1f5f9;
-  --sidebar-accent-foreground: #334155;
-  --sidebar-border: #cbd5e1;
-  --sidebar-ring: #475569;
-
-  /* Cores personalizadas mais suaves */
-  --success: #059669;
-  --success-foreground: #ffffff;
-  --warning: #d97706;
-  --warning-foreground: #ffffff;
-  --info: #0284c7;
-  --info-foreground: #ffffff;
-  --luxury: #7c3aed;
-  --luxury-foreground: #ffffff;
-
-  /* Cores de acento suaves */
-  --soft-blue: #dbeafe;
-  --soft-green: #dcfce7;
-  --soft-purple: #f3e8ff;
-  --soft-orange: #fed7aa;
-  --soft-red: #fecaca;
+    --font-size: 14px;
+    /* Paleta Soft Clay - Design System Imobiliária */
+    /* Clay Base - Tons principais da paleta */
+    --porcelain: #F8F6F3; /* Background principal */
+    --pale-clay: #E4D8D0; /* Neutro secundário - cards/containers */
+    --burnt-peach: #E59A79; /* Acento primário - CTAs/preços */
+    --cocoa-taupe: #A78B7C; /* Complemento - hovers/destaques */
+    --deep-mocha: #3C2F2B; /* Texto primário */
+    --warm-taupe: #7A6960; /* Texto secundário/labels */
+    /* Clay Variations - Extensões da paleta base */
+    --porcelain-light: #FDFCFA; /* Background mais claro */
+    --porcelain-soft: #F5F2EF; /* Background alternativo */
+    --porcelain-breath: #F1EEEB; /* Background sutil */
+    --pale-clay-light: #EDE3DB; /* Cards destacados */
+    --pale-clay-medium: #DDD0C7; /* Elementos sutis */
+    --pale-clay-deep: #D4C3B8; /* Borders visíveis */
+    --pale-clay-darker: #CEB8AA; /* Elementos definidos */
+    /* Burnt Peach Variations - Tons do acento primário */
+    --burnt-peach-lighter: #F7C5A8; /* Background CTA suave */
+    --burnt-peach-light: #F2B896; /* Hover CTA claro */
+    --burnt-peach-soft: #EEAD87; /* Estados intermediários */
+    --burnt-peach-medium: #E59A79; /* Padrão */
+    --burnt-peach-deep: #D9875F; /* Active/pressed */
+    --burnt-peach-dark: #CD7A52; /* Acento forte */
+    --burnt-peach-darker: #C16C44; /* CTA escuro */
+    /* Cocoa Taupe Variations - Tons complementares */
+    --cocoa-taupe-lighter: #C1A89B; /* Background hover suave */
+    --cocoa-taupe-light: #B69C8F; /* Hover suave */
+    --cocoa-taupe-soft: #AE9388; /* Estados intermediários */
+    --cocoa-taupe-medium: #A78B7C; /* Padrão */
+    --cocoa-taupe-deep: #9A7D6C; /* Elementos definidos */
+    --cocoa-taupe-dark: #8D6F5C; /* Acento escuro */
+    --cocoa-taupe-darker: #80614C; /* Elementos fortes */
+    /* Mocha Text Variations - Hierarquia de texto */
+    --deep-mocha-lighter: #6B524A; /* Texto suave */
+    --deep-mocha-light: #5A453F; /* Texto médio */
+    --deep-mocha-medium: #3C2F2B; /* Padrão */
+    --deep-mocha-dark: #2B1F1C; /* Texto forte */
+    --deep-mocha-darker: #1A0F0C; /* Texto muito forte */
+    --warm-taupe-lighter: #9F8A80; /* Labels muito claros */
+    --warm-taupe-light: #8F7A70; /* Labels claros */
+    --warm-taupe-medium: #7A6960; /* Padrão */
+    --warm-taupe-dark: #6A5850; /* Texto secundário forte */
+    --warm-taupe-darker: #5A4840; /* Texto secundário escuro */
+    /* Neutros Harmonizados */
+    --pure-white: #FFFFFF; /* Background absoluto */
+    --clay-white: #FEFDFB; /* Background especial */
+    --warm-white: #FDFBF8; /* Background warm */
+    --soft-white: #FBFAF7; /* Background disabled */
+    --gentle-clay: #F7F4F1; /* Separadores sutis */
+    --whisper-clay: #F3EFEB; /* Borders mínimas */
+    --cloud-clay: #EFEAE5; /* Borders visíveis */
+    --calm-clay: #EBE5DF; /* Elementos desabilitados */
+    --soft-clay: #E7E0D9; /* Texto terciário */
+    /* Cores de Estado Harmonizadas com Clay */
+    --success-soft: #EBF4E6; /* Background success */
+    --success-gentle: #9BB28C; /* Success principal */
+    --success-strong: #87A075; /* Success para texto */
+    --warning-soft: #FBF3E8; /* Background warning */
+    --warning-gentle: #E5B876; /* Warning principal */
+    --warning-strong: #D9AB68; /* Warning para texto */
+    --info-soft: #EDF4F7; /* Background info */
+    --info-gentle: #8BADBD; /* Info principal */
+    --info-strong: #7FA0B3; /* Info para texto */
+    --error-soft: #F9F0ED; /* Background error */
+    --error-gentle: #D68A6F; /* Error principal */
+    --error-strong: #CA7D61; /* Error para texto */
+    /* Mapeamento do Sistema - Soft Clay Design Acessível */
+    --background: var(--porcelain);
+    --foreground: var(--deep-mocha); /* Texto principal - contraste AA+ */
+    --card: var(--pale-clay);
+    --card-foreground: var(--deep-mocha); /* Títulos e texto principal */
+    --popover: var(--pure-white);
+    --popover-foreground: var(--deep-mocha);
+    --primary: var(--burnt-peach); /* CTA principal */
+    --primary-foreground: var(--pure-white); /* Texto branco puro em CTAs */
+    --secondary: var(--cocoa-taupe); /* Botões secundários */
+    --secondary-foreground: var(--pure-white); /* Texto branco em secundários */
+    --muted: var(--pale-clay-light);
+    --muted-foreground: var(--warm-taupe); /* Texto secundário - contraste AA */
+    --accent: var(--cocoa-taupe); /* Acentos definidos */
+    --accent-foreground: var(--pure-white); /* Texto em acentos */
+    --destructive: var(--error-gentle);
+    --destructive-foreground: var(--pure-white);
+    --border: var(--pale-clay-deep); /* Borders visíveis */
+    --input: transparent;
+    --input-background: var(--pure-white);
+    --switch-background: var(--pale-clay-medium);
+    --font-weight-medium: 500;
+    --font-weight-normal: 400;
+    --ring: var(--burnt-peach); /* Focus ring mais visível */
+    --chart-1: var(--burnt-peach);
+    --chart-2: var(--cocoa-taupe);
+    --chart-3: var(--deep-mocha); /* Chart com melhor contraste */
+    --chart-4: var(--burnt-peach-deep);
+    --chart-5: var(--cocoa-taupe-deep);
+    --radius: 0.875rem; /* Cantos arredondados suaves */
+    --sidebar: var(--pure-white);
+    --sidebar-foreground: var(--deep-mocha); /* Texto sidebar - contraste AA+ */
+    --sidebar-primary: var(--burnt-peach);
+    --sidebar-primary-foreground: var(--pure-white); /* Texto branco puro */
+    --sidebar-accent: var(--pale-clay);
+    --sidebar-accent-foreground: var(--warm-taupe); /* Texto secundário */
+    --sidebar-border: var(--pale-clay-deep);
+    --sidebar-ring: var(--burnt-peach);
+    /* Cores Especiais Clay */
+    --luxury: var(--cocoa-taupe-dark);
+    --luxury-foreground: var(--pure-white);
+    --premium: var(--burnt-peach-dark);
+    --premium-foreground: var(--pure-white);
+    /* Estados Hover/Active Harmonizados */
+    --hover-porcelain: var(--porcelain-soft);
+    --hover-pale: var(--pale-clay-light);
+    --hover-burnt: var(--burnt-peach-light);
+    --hover-cocoa: var(--cocoa-taupe-light);
+    --active-burnt: var(--burnt-peach-deep);
+    --active-cocoa: var(--cocoa-taupe-deep);
+    --focus-ring: var(--burnt-peach-light);
+    --disabled: var(--gentle-clay);
+    --disabled-foreground: var(--calm-clay);
 }
 
 .dark {
-  --background: #0f172a;
-  --foreground: #f1f5f9;
-  --card: #1e293b;
-  --card-foreground: #f1f5f9;
-  --popover: #1e293b;
-  --popover-foreground: #f1f5f9;
-  --primary: #64748b;
-  --primary-foreground: #f1f5f9;
-  --secondary: #334155;
-  --secondary-foreground: #f1f5f9;
-  --muted: #334155;
-  --muted-foreground: #94a3b8;
-  --accent: #475569;
-  --accent-foreground: #f1f5f9;
-  --destructive: #dc2626;
-  --destructive-foreground: #f1f5f9;
-  --border: #334155;
-  --input: #334155;
-  --ring: #64748b;
-  --font-weight-medium: 500;
-  --font-weight-normal: 400;
-  --chart-1: #94a3b8;
-  --chart-2: #34d399;
-  --chart-3: #a78bfa;
-  --chart-4: #fbbf24;
-  --chart-5: #f87171;
-  --sidebar: #1e293b;
-  --sidebar-foreground: #f1f5f9;
-  --sidebar-primary: #64748b;
-  --sidebar-primary-foreground: #f1f5f9;
-  --sidebar-accent: #334155;
-  --sidebar-accent-foreground: #f1f5f9;
-  --sidebar-border: #334155;
-  --sidebar-ring: #64748b;
-
-  /* Cores personalizadas para modo escuro */
-  --success: #10b981;
-  --success-foreground: #064e3b;
-  --warning: #f59e0b;
-  --warning-foreground: #451a03;
-  --info: #0ea5e9;
-  --info-foreground: #0c4a6e;
-  --luxury: #8b5cf6;
-  --luxury-foreground: #4c1d95;
+    --background: #1A1512;
+    --foreground: var(--porcelain);
+    --card: #2A251F;
+    --card-foreground: var(--porcelain);
+    --popover: #2A251F;
+    --popover-foreground: var(--porcelain);
+    --primary: var(--burnt-peach-light);
+    --primary-foreground: var(--deep-mocha-dark);
+    --secondary: var(--cocoa-taupe-light);
+    --secondary-foreground: var(--deep-mocha-dark);
+    --muted: #35302A;
+    --muted-foreground: var(--warm-taupe-light);
+    --accent: var(--cocoa-taupe);
+    --accent-foreground: var(--porcelain);
+    --destructive: var(--error-gentle);
+    --destructive-foreground: var(--porcelain);
+    --border: #40392F;
+    --input: #40392F;
+    --ring: var(--burnt-peach-light);
+    --chart-1: var(--burnt-peach-light);
+    --chart-2: var(--cocoa-taupe-light);
+    --chart-3: var(--warm-taupe-light);
+    --chart-4: var(--burnt-peach);
+    --chart-5: var(--cocoa-taupe);
+    --sidebar: #2A251F;
+    --sidebar-foreground: var(--porcelain);
+    --sidebar-primary: var(--burnt-peach-light);
+    --sidebar-primary-foreground: var(--deep-mocha-dark);
+    --sidebar-accent: #35302A;
+    --sidebar-accent-foreground: var(--porcelain);
+    --sidebar-border: #40392F;
+    --sidebar-ring: var(--burnt-peach-light);
+    /* Cores escuras */
+    --luxury: var(--cocoa-taupe);
+    --luxury-foreground: var(--deep-mocha-dark);
 }
 
-/*
-  Map root variables to Tailwind design tokens.
-  With these, you can use utilities like `bg-background`, `text-foreground`, `border-border`, etc.
-*/
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-input-background: var(--input-background);
-  --color-switch-background: var(--switch-background);
-  --color-ring: var(--ring);
-  --color-chart-1: var(--chart-1);
-  --color-chart-2: var(--chart-2);
-  --color-chart-3: var(--chart-3);
-  --color-chart-4: var(--chart-4);
-  --color-chart-5: var(--chart-5);
-
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-ring: var(--sidebar-ring);
-
-  /* Cores personalizadas */
-  --color-success: var(--success);
-  --color-success-foreground: var(--success-foreground);
-  --color-warning: var(--warning);
-  --color-warning-foreground: var(--warning-foreground);
-  --color-info: var(--info);
-  --color-info-foreground: var(--info-foreground);
-  --color-luxury: var(--luxury);
-  --color-luxury-foreground: var(--luxury-foreground);
-
-  /* Cores suaves */
-  --color-soft-blue: var(--soft-blue);
-  --color-soft-green: var(--soft-green);
-  --color-soft-purple: var(--soft-purple);
-  --color-soft-orange: var(--soft-orange);
-  --color-soft-red: var(--soft-red);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-input-background: var(--input-background);
+    --color-switch-background: var(--switch-background);
+    --color-ring: var(--ring);
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+    --radius-sm: calc(var(--radius) - 6px);
+    --radius-md: calc(var(--radius) - 3px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
+    --radius-2xl: calc(var(--radius) + 8px);
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+    /* Cores personalizadas Clay */
+    --color-porcelain: var(--porcelain);
+    --color-porcelain-light: var(--porcelain-light);
+    --color-porcelain-soft: var(--porcelain-soft);
+    --color-porcelain-breath: var(--porcelain-breath);
+    --color-pale-clay: var(--pale-clay);
+    --color-pale-clay-light: var(--pale-clay-light);
+    --color-pale-clay-medium: var(--pale-clay-medium);
+    --color-pale-clay-deep: var(--pale-clay-deep);
+    --color-pale-clay-darker: var(--pale-clay-darker);
+    --color-burnt-peach: var(--burnt-peach);
+    --color-burnt-peach-lighter: var(--burnt-peach-lighter);
+    --color-burnt-peach-light: var(--burnt-peach-light);
+    --color-burnt-peach-soft: var(--burnt-peach-soft);
+    --color-burnt-peach-deep: var(--burnt-peach-deep);
+    --color-burnt-peach-dark: var(--burnt-peach-dark);
+    --color-burnt-peach-darker: var(--burnt-peach-darker);
+    --color-cocoa-taupe: var(--cocoa-taupe);
+    --color-cocoa-taupe-lighter: var(--cocoa-taupe-lighter);
+    --color-cocoa-taupe-light: var(--cocoa-taupe-light);
+    --color-cocoa-taupe-soft: var(--cocoa-taupe-soft);
+    --color-cocoa-taupe-deep: var(--cocoa-taupe-deep);
+    --color-cocoa-taupe-dark: var(--cocoa-taupe-dark);
+    --color-cocoa-taupe-darker: var(--cocoa-taupe-darker);
+    --color-deep-mocha: var(--deep-mocha);
+    --color-deep-mocha-lighter: var(--deep-mocha-lighter);
+    --color-deep-mocha-light: var(--deep-mocha-light);
+    --color-deep-mocha-dark: var(--deep-mocha-dark);
+    --color-deep-mocha-darker: var(--deep-mocha-darker);
+    --color-warm-taupe: var(--warm-taupe);
+    --color-warm-taupe-lighter: var(--warm-taupe-lighter);
+    --color-warm-taupe-light: var(--warm-taupe-light);
+    --color-warm-taupe-dark: var(--warm-taupe-dark);
+    --color-warm-taupe-darker: var(--warm-taupe-darker);
+    /* Neutros Clay */
+    --color-pure-white: var(--pure-white);
+    --color-clay-white: var(--clay-white);
+    --color-warm-white: var(--warm-white);
+    --color-soft-white: var(--soft-white);
+    --color-gentle-clay: var(--gentle-clay);
+    --color-whisper-clay: var(--whisper-clay);
+    --color-cloud-clay: var(--cloud-clay);
+    --color-calm-clay: var(--calm-clay);
+    --color-soft-clay: var(--soft-clay);
+    /* Cores de Estado */
+    --color-success-soft: var(--success-soft);
+    --color-success-gentle: var(--success-gentle);
+    --color-success-strong: var(--success-strong);
+    --color-success-foreground: var(--pure-white);
+    --color-warning-soft: var(--warning-soft);
+    --color-warning-gentle: var(--warning-gentle);
+    --color-warning-strong: var(--warning-strong);
+    --color-warning-foreground: var(--pure-white);
+    --color-info-soft: var(--info-soft);
+    --color-info-gentle: var(--info-gentle);
+    --color-info-strong: var(--info-strong);
+    --color-info-foreground: var(--pure-white);
+    --color-error-soft: var(--error-soft);
+    --color-error-gentle: var(--error-gentle);
+    --color-error-strong: var(--error-strong);
+    --color-error-foreground: var(--pure-white);
+    /* Cores Especiais */
+    --color-luxury: var(--luxury);
+    --color-luxury-foreground: var(--luxury-foreground);
+    --color-premium: var(--premium);
+    --color-premium-foreground: var(--premium-foreground);
+    /* Estados Hover/Active */
+    --color-hover-porcelain: var(--hover-porcelain);
+    --color-hover-pale: var(--hover-pale);
+    --color-hover-burnt: var(--hover-burnt);
+    --color-hover-cocoa: var(--hover-cocoa);
+    --color-active-burnt: var(--active-burnt);
+    --color-active-cocoa: var(--active-cocoa);
+    --color-focus-ring: var(--focus-ring);
+    --color-disabled: var(--disabled);
+    --color-disabled-foreground: var(--disabled-foreground);
 }
 
 @layer base {
-  * { @apply border-border outline-ring/50; }
+    * {
+        @apply border-border outline-ring/50;
+    }
 
-  html { font-size: var(--font-size); }
-
-  body {
-    @apply bg-background text-foreground;
-    background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 50%, #cbd5e1 100%);
-    background-attachment: fixed;
-  }
-
-  .dark body {
-    background: linear-gradient(135deg, #0f172a 0%, #0b1222 50%, #0a0f1d 100%);
-  }
-
-  /* Tipografia base (não afeta elementos dentro de containers com utilitários text-*) */
-  :where(body):not(:has([class*=" text-"]), :has([class^="text-"])) h1 { font-size: var(--text-2xl); font-weight: var(--font-weight-medium); line-height: 1.5; }
-  :where(body):not(:has([class*=" text-"]), :has([class^="text-"])) h2 { font-size: var(--text-xl);  font-weight: var(--font-weight-medium); line-height: 1.5; }
-  :where(body):not(:has([class*=" text-"]), :has([class^="text-"])) h3 { font-size: var(--text-lg);  font-weight: var(--font-weight-medium); line-height: 1.5; }
-  :where(body):not(:has([class*=" text-"]), :has([class^="text-"])) h4 { font-size: var(--text-base);font-weight: var(--font-weight-medium); line-height: 1.5; }
-  :where(body):not(:has([class*=" text-"]), :has([class^="text-"])) p {  font-size: var(--text-base);font-weight: var(--font-weight-normal); line-height: 1.5; }
-  :where(body):not(:has([class*=" text-"]), :has([class^="text-"])) label { font-size: var(--text-base);font-weight: var(--font-weight-medium); line-height: 1.5; }
-  :where(body):not(:has([class*=" text-"]), :has([class^="text-"])) button {font-size: var(--text-base);font-weight: var(--font-weight-medium); line-height: 1.5; }
-  :where(body):not(:has([class*=" text-"]), :has([class^="text-"])) input { font-size: var(--text-base);font-weight: var(--font-weight-normal); line-height: 1.5; }
+    body {
+        @apply bg-background text-foreground;
+        background: linear-gradient(135deg, var(--porcelain) 0%, var(--porcelain-soft) 50%, var(--pale-clay-light) 100%);
+        background-attachment: fixed;
+    }
 }
 
-/* Gradientes utilitários personalizados */
-.gradient-primary { background: linear-gradient(135deg, #475569 0%, #64748b 100%); }
-.gradient-success { background: linear-gradient(135deg, #059669 0%, #047857 100%); }
-.gradient-warning { background: linear-gradient(135deg, #d97706 0%, #b45309 100%); }
-.gradient-info    { background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%); }
-.gradient-luxury  { background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%); }
+/**
+ * Typography - Design System Clay Acessível
+ */
+@layer base {
+    :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
+        h1
 
-/* Gradientes sutis para backgrounds */
-.gradient-soft        { background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); }
-.gradient-soft-blue   { background: linear-gradient(135deg, #dbeafe 0%, #e0f2fe 100%); }
-.gradient-soft-green  { background: linear-gradient(135deg, #dcfce7 0%, #d1fae5 100%); }
-.gradient-soft-purple { background: linear-gradient(135deg, #f3e8ff 0%, #ede9fe 100%); }
-.gradient-soft-orange { background: linear-gradient(135deg, #fed7aa 0%, #fed7aa 100%); }
-.gradient-soft-red    { background: linear-gradient(135deg, #fecaca 0%, #fecaca 100%); }
+{
+    font-size: var(--text-2xl);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.4;
+    color: var(--deep-mocha); /* Contraste AA+ para títulos */
+    letter-spacing: -0.01em;
+}
+
+h2 {
+    font-size: var(--text-xl);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.4;
+    color: var(--deep-mocha); /* Contraste AA+ para títulos */
+    letter-spacing: -0.01em;
+}
+
+h3 {
+    font-size: var(--text-lg);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.4;
+    color: var(--deep-mocha); /* Contraste AA+ para títulos */
+}
+
+h4 {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+    color: var(--deep-mocha); /* Contraste AA+ para títulos */
+}
+
+p {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-normal);
+    line-height: 1.6;
+    color: var(--warm-taupe); /* Texto secundário - contraste AA */
+}
+
+label {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+    color: var(--warm-taupe); /* Labels - contraste AA */
+}
+
+button {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-medium);
+    line-height: 1.5;
+    letter-spacing: 0.01em;
+}
+
+input {
+    font-size: var(--text-base);
+    font-weight: var(--font-weight-normal);
+    line-height: 1.5;
+    color: var(--deep-mocha); /* Input text - contraste AA+ */
+}
+
+a {
+    color: var(--burnt-peach); /* Links - contraste AA */
+    text-decoration: none;
+}
+
+    a:hover {
+        color: var(--burnt-peach-deep); /* Hover mais escuro */
+    }
+
+}
+}
+
+html {
+    font-size: var(--font-size);
+}
+
+/* Gradientes Clay - Design System */
+.gradient-primary {
+    background: linear-gradient(135deg, var(--burnt-peach) 0%, var(--burnt-peach-deep) 100%);
+}
+
+.gradient-secondary {
+    background: linear-gradient(135deg, var(--cocoa-taupe) 0%, var(--cocoa-taupe-deep) 100%);
+}
+
+.gradient-tertiary {
+    background: linear-gradient(135deg, var(--pale-clay) 0%, var(--pale-clay-deep) 100%);
+}
+
+.gradient-success {
+    background: linear-gradient(135deg, var(--success-soft) 0%, var(--success-gentle) 100%);
+}
+
+.gradient-warning {
+    background: linear-gradient(135deg, var(--warning-soft) 0%, var(--warning-gentle) 100%);
+}
+
+.gradient-info {
+    background: linear-gradient(135deg, var(--info-soft) 0%, var(--info-gentle) 100%);
+}
+
+.gradient-luxury {
+    background: linear-gradient(135deg, var(--cocoa-taupe-dark) 0%, var(--cocoa-taupe) 100%);
+}
+
+/* Gradientes Clay Especiais */
+.gradient-clay-warm {
+    background: linear-gradient(135deg, var(--porcelain) 0%, var(--pale-clay-light) 100%);
+}
+
+.gradient-clay-soft {
+    background: linear-gradient(135deg, var(--pale-clay-light) 0%, var(--pale-clay) 100%);
+}
+
+.gradient-clay-deep {
+    background: linear-gradient(135deg, var(--pale-clay) 0%, var(--pale-clay-deep) 100%);
+}
+
+.gradient-peach-warm {
+    background: linear-gradient(135deg, var(--burnt-peach-lighter) 0%, var(--burnt-peach-light) 100%);
+}
+
+.gradient-peach-soft {
+    background: linear-gradient(135deg, var(--burnt-peach-light) 0%, var(--burnt-peach) 100%);
+}
+
+.gradient-peach-deep {
+    background: linear-gradient(135deg, var(--burnt-peach) 0%, var(--burnt-peach-dark) 100%);
+}
+
+.gradient-taupe-warm {
+    background: linear-gradient(135deg, var(--cocoa-taupe-lighter) 0%, var(--cocoa-taupe-light) 100%);
+}
+
+.gradient-taupe-soft {
+    background: linear-gradient(135deg, var(--cocoa-taupe-light) 0%, var(--cocoa-taupe) 100%);
+}
+
+.gradient-taupe-deep {
+    background: linear-gradient(135deg, var(--cocoa-taupe) 0%, var(--cocoa-taupe-dark) 100%);
+}
+
+.gradient-warm-neutral {
+    background: linear-gradient(135deg, var(--clay-white) 0%, var(--warm-white) 100%);
+}
+
+.gradient-soft-neutral {
+    background: linear-gradient(135deg, var(--warm-white) 0%, var(--gentle-clay) 100%);
+}
+
+/* Sombras Clay - Design System */
+.shadow-clay-whisper {
+    box-shadow: 0 1px 3px 0 rgba(60, 47, 43, 0.08), 0 1px 2px 0 rgba(60, 47, 43, 0.05);
+}
+
+.shadow-clay-soft {
+    box-shadow: 0 2px 4px -1px rgba(60, 47, 43, 0.10), 0 1px 2px -1px rgba(60, 47, 43, 0.06);
+}
+
+.shadow-clay-medium {
+    box-shadow: 0 4px 6px -1px rgba(60, 47, 43, 0.12), 0 2px 4px -1px rgba(60, 47, 43, 0.08);
+}
+
+.shadow-clay-deep {
+    box-shadow: 0 8px 10px -3px rgba(60, 47, 43, 0.15), 0 4px 6px -2px rgba(60, 47, 43, 0.10);
+}
+
+.shadow-clay-strong {
+    box-shadow: 0 12px 16px -4px rgba(60, 47, 43, 0.18), 0 6px 8px -2px rgba(60, 47, 43, 0.12);
+}
+
+.shadow-burnt-peach {
+    box-shadow: 0 4px 6px -1px rgba(229, 154, 121, 0.25), 0 2px 4px -1px rgba(229, 154, 121, 0.15);
+}
+
+.shadow-cocoa-taupe {
+    box-shadow: 0 4px 6px -1px rgba(167, 139, 124, 0.20), 0 2px 4px -1px rgba(167, 139, 124, 0.12);
+}
+
+/* Backgrounds Clay com Opacidade */
+.bg-clay-balanced {
+    background-color: rgba(248, 246, 243, 0.8);
+}
+
+.bg-pale-balanced {
+    background-color: rgba(228, 216, 208, 0.6);
+}
+
+.bg-burnt-balanced {
+    background-color: rgba(229, 154, 121, 0.1);
+}
+
+.bg-cocoa-balanced {
+    background-color: rgba(167, 139, 124, 0.1);
+}
+
+.bg-warm-balanced {
+    background-color: rgba(255, 255, 255, 0.9);
+}
+
+/* Borders Clay - Hierarquia Visual Acessível */
+.border-clay-soft {
+    border-color: var(--pale-clay-medium); /* Borders sutis */
+}
+
+.border-clay-medium {
+    border-color: var(--pale-clay-deep); /* Borders padrão - bem visíveis */
+}
+
+.border-clay-strong {
+    border-color: var(--pale-clay-darker); /* Borders definidas */
+}
+
+.border-burnt-soft {
+    border-color: var(--burnt-peach-light); /* Borders accent suaves */
+}
+
+.border-burnt-medium {
+    border-color: var(--burnt-peach); /* Borders accent padrão */
+}
+
+.border-burnt-strong {
+    border-color: var(--burnt-peach-deep); /* Borders accent fortes */
+}
+
+.border-cocoa-soft {
+    border-color: var(--cocoa-taupe-light); /* Borders secundárias suaves */
+}
+
+.border-cocoa-medium {
+    border-color: var(--cocoa-taupe); /* Borders secundárias padrão */
+}
+
+.border-cocoa-strong {
+    border-color: var(--cocoa-taupe-deep); /* Borders secundárias fortes */
+}
+
+/* Borders Especiais para Contraste */
+.border-contrast {
+    border-color: var(--deep-mocha); /* Border de alto contraste */
+}
+
+.border-accessible {
+    border-color: var(--warm-taupe); /* Border acessível mínima */
+}
+
+/* Estados Hover Clay - Feedback Visual Acessível */
+.hover\:bg-clay-soft:hover {
+    background-color: var(--pale-clay-light); /* Hover mais definido */
+}
+
+.hover\:bg-clay-warm:hover {
+    background-color: var(--porcelain-soft); /* Hover sutil */
+}
+
+.hover\:bg-burnt-soft:hover {
+    background-color: var(--burnt-peach-lighter); /* Hover CTA suave */
+}
+
+.hover\:bg-cocoa-soft:hover {
+    background-color: var(--cocoa-taupe-lighter); /* Hover secundário suave */
+}
+
+.hover\:border-clay-strong:hover {
+    border-color: var(--pale-clay-darker); /* Border mais escura */
+}
+
+.hover\:border-burnt-strong:hover {
+    border-color: var(--burnt-peach-deep); /* Border accent forte */
+}
+
+.hover\:border-cocoa-strong:hover {
+    border-color: var(--cocoa-taupe-deep); /* Border secundário forte */
+}
+
+.focus\:ring-clay:focus {
+    --tw-ring-color: var(--burnt-peach); /* Focus ring mais visível */
+    --tw-ring-opacity: 0.4; /* Opacidade aumentada */
+}
+
+.focus\:ring-burnt:focus {
+    --tw-ring-color: var(--burnt-peach); /* Focus ring principal */
+    --tw-ring-opacity: 0.4;
+}
+
+.focus\:ring-cocoa:focus {
+    --tw-ring-color: var(--cocoa-taupe); /* Focus ring secundário */
+    --tw-ring-opacity: 0.4;
+}
+
+/* Estados Active - Feedback Tátil */
+.active\:bg-burnt-deep:active {
+    background-color: var(--burnt-peach-dark);
+}
+
+.active\:bg-cocoa-deep:active {
+    background-color: var(--cocoa-taupe-dark);
+}
+
+/* Classes Utilitárias Clay - Hierarquia de Texto Acessível */
+.text-clay-primary {
+    color: var(--deep-mocha); /* Títulos, métricas - contraste AA+ */
+}
+
+.text-clay-secondary {
+    color: var(--warm-taupe); /* Descrições, subtítulos - contraste AA */
+}
+
+.text-clay-muted {
+    color: var(--warm-taupe-light); /* Texto terciário - uso limitado */
+}
+
+.text-clay-soft {
+    color: var(--warm-taupe-lighter); /* Apenas para elementos decorativos */
+}
+
+.text-burnt-primary {
+    color: var(--burnt-peach); /* Links, acentos - contraste AA */
+}
+
+.text-burnt-strong {
+    color: var(--burnt-peach-deep); /* Links hover, acentos fortes */
+}
+
+.text-cocoa-primary {
+    color: var(--cocoa-taupe); /* Elementos secundários */
+}
+
+.text-cocoa-strong {
+    color: var(--cocoa-taupe-deep); /* Elementos secundários hover */
+}
+
+/* Classes Específicas para Contraste Acessível */
+.text-title {
+    color: var(--deep-mocha); /* Títulos principais - Contraste AAA */
+}
+
+.text-description {
+    color: var(--warm-taupe); /* Descrições - Contraste AA */
+}
+
+.text-metric {
+    color: var(--deep-mocha); /* Preços, números - Contraste AAA */
+}
+
+.text-label {
+    color: var(--warm-taupe); /* Labels - Contraste AA */
+}
+
+.text-link {
+    color: var(--burnt-peach); /* Links - Contraste AA */
+}
+
+    .text-link:hover {
+        color: var(--burnt-peach-deep); /* Links hover - Contraste AA+ */
+    }
+
+/* Classes de Texto com Garantia de Contraste */
+.text-primary-contrast {
+    color: var(--deep-mocha); /* Máximo contraste para texto principal */
+}
+
+.text-secondary-contrast {
+    color: var(--warm-taupe); /* Contraste AA garantido para secundário */
+}
+
+.text-accent-contrast {
+    color: var(--burnt-peach); /* Contraste AA para acentos */
+}
+
+/* Classes de Background com Texto Seguro */
+.bg-clay-with-dark-text {
+    background-color: var(--pale-clay);
+    color: var(--deep-mocha); /* Texto escuro em fundo claro */
+}
+
+.bg-white-with-dark-text {
+    background-color: var(--pure-white);
+    color: var(--deep-mocha); /* Máximo contraste */
+}
+
+.bg-primary-with-white-text {
+    background-color: var(--burnt-peach);
+    color: #FFFFFF; /* Branco puro garantido */
+}
+
+.bg-secondary-with-white-text {
+    background-color: var(--cocoa-taupe);
+    color: #FFFFFF; /* Branco puro garantido */
+}
+
+/* Classe especial para forçar background branco nos primeiros cards */
+.bg-forced-white {
+    background-color: #FFFFFF !important;
+    background: #FFFFFF !important;
+}
+
+/* Seletor específico para cards com background branco */
+[data-slot="card"][style*="background-color: rgb(255, 255, 255)"] {
+    background-color: #FFFFFF !important;
+    background: #FFFFFF !important;
+}
+
+/* Seletor ainda mais específico */
+.property-card-white {
+    background-color: #FFFFFF !important;
+    background: #FFFFFF !important;
+}
+
+/* Spacing System Clay - Generoso e Limpo */
+.space-clay-xs {
+    gap: 0.5rem;
+}
+
+.space-clay-sm {
+    gap: 0.75rem;
+}
+
+.space-clay-md {
+    gap: 1rem;
+}
+
+.space-clay-lg {
+    gap: 1.5rem;
+}
+
+.space-clay-xl {
+    gap: 2rem;
+}
+
+.space-clay-2xl {
+    gap: 3rem;
+}
+
+/* Containers Clay - Cards Elegantes e Acessíveis */
+.container-clay {
+    background-color: var(--pale-clay); /* Background neutro */
+    border: 1px solid var(--pale-clay-deep); /* Border bem visível */
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-clay-soft);
+    color: var(--deep-mocha); /* Texto principal */
+}
+
+.container-clay-elevated {
+    background-color: var(--pure-white); /* Background elevado */
+    border: 1px solid var(--pale-clay-medium); /* Border suave mas visível */
+    border-radius: var(--radius-lg);
+    padding: 2rem;
+    box-shadow: var(--shadow-clay-medium);
+    color: var(--deep-mocha); /* Texto principal */
+}
+
+/* Container especial para CTAs */
+.container-clay-cta {
+    background-color: var(--burnt-peach-lighter); /* Background CTA suave */
+    border: 1px solid var(--burnt-peach-light);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    box-shadow: var(--shadow-burnt-peach);
+    color: var(--deep-mocha); /* Texto escuro em fundo claro */
+}
+
+/* Container para informações secundárias */
+.container-clay-secondary {
+    background-color: var(--porcelain-soft); /* Background muito sutil */
+    border: 1px solid var(--pale-clay-medium);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    color: var(--warm-taupe); /* Texto secundário */
+}
+
+/* Botões Clay - CTAs Acessíveis e Convidativos */
+.btn-clay-primary {
+    background-color: var(--burnt-peach); /* Fundo Burnt Peach */
+    color: #FFFFFF; /* Texto branco puro - contraste AAA */
+    border: none;
+    border-radius: var(--radius-lg);
+    padding: 0.875rem 2rem;
+    font-weight: var(--font-weight-medium);
+    box-shadow: var(--shadow-burnt-peach);
+    transition: all 0.2s ease;
+}
+
+    .btn-clay-primary:hover {
+        background-color: var(--burnt-peach-deep); /* Hover mais escuro */
+        color: #FFFFFF; /* Manter branco puro */
+        transform: translateY(-1px);
+        box-shadow: 0 6px 8px -2px rgba(229, 154, 121, 0.35);
+    }
+
+.btn-clay-secondary {
+    background-color: var(--cocoa-taupe); /* Fundo Cocoa Taupe */
+    color: #FFFFFF; /* Texto branco puro - contraste AA+ */
+    border: none;
+    border-radius: var(--radius-lg);
+    padding: 0.875rem 2rem;
+    font-weight: var(--font-weight-medium);
+    box-shadow: var(--shadow-cocoa-taupe);
+    transition: all 0.2s ease;
+}
+
+    .btn-clay-secondary:hover {
+        background-color: var(--cocoa-taupe-deep); /* Hover mais escuro */
+        color: #FFFFFF; /* Manter branco puro */
+        transform: translateY(-1px);
+    }
+
+.btn-clay-ghost {
+    background-color: transparent;
+    color: var(--cocoa-taupe); /* Cocoa Taupe para melhor contraste */
+    border: 1px solid var(--cocoa-taupe-light);
+    border-radius: var(--radius-lg);
+    padding: 0.875rem 2rem;
+    font-weight: var(--font-weight-medium);
+    transition: all 0.2s ease;
+}
+
+    .btn-clay-ghost:hover {
+        background-color: var(--cocoa-taupe-lighter); /* Hover suave */
+        color: var(--cocoa-taupe-dark); /* Texto mais escuro no hover */
+        border-color: var(--cocoa-taupe);
+    }
+
+/* Botão de texto simples */
+.btn-clay-text {
+    background-color: transparent;
+    color: var(--burnt-peach); /* Link style */
+    border: none;
+    border-radius: var(--radius-lg);
+    padding: 0.5rem 1rem;
+    font-weight: var(--font-weight-medium);
+    transition: all 0.2s ease;
+}
+
+    .btn-clay-text:hover {
+        color: var(--burnt-peach-deep); /* Hover mais escuro */
+        background-color: var(--burnt-peach-lighter); /* Background suave */
+    }

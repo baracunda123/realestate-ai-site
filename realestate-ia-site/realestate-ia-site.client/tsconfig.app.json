@@ -24,7 +24,13 @@
     "noUncheckedSideEffectImports": true,
 
     /* Fix for default imports */
-    "esModuleInterop": true
+    "esModuleInterop": true,
+    
+    /* Path mapping */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
   },
   "include": ["src"]
 }

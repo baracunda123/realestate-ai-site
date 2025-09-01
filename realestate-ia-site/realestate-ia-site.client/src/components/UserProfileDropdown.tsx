@@ -1,26 +1,16 @@
 import React from 'react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from './ui/dropdown-menu';
-import { Button } from './ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import {
-  User,
-  Heart,
-  Search,
-  Settings,
-  Bell,
-  CreditCard,
-  LogOut,
-  Sparkles,
-  Home,
-  TrendingUp
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel } from './ui/dropdown-menu';
+import { 
+  User, 
+  LogOut, 
+  Crown, 
+  ChevronDown, 
+  Shield,
+  UserCircle,
+  Mail
 } from 'lucide-react';
 
 interface User {
@@ -35,184 +25,113 @@ interface User {
 interface UserProfileDropdownProps {
   user: User;
   onLogout: () => void;
+  onNavigateToPersonal?: () => void;
+  onOpenUpgradeModal?: () => void;
 }
 
-export function UserProfileDropdown({ user, onLogout }: UserProfileDropdownProps) {
-  const getInitials = (name: string) => {
-    return name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
+export function UserProfileDropdown({ user, onLogout, onNavigateToPersonal, onOpenUpgradeModal }: UserProfileDropdownProps) {
+  const handleNavigation = (section?: string) => {
+    if (onNavigateToPersonal) {
+      onNavigateToPersonal();
+      // If specific section, navigate to it (future enhancement)
+      if (section) {
+        setTimeout(() => {
+          window.location.hash = `#personal-${section}`;
+        }, 100);
+      }
+    }
+  };
+
+  const handleExternalLink = (url: string) => {
+    window.open(url, '_blank');
   };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="h-10 w-10 rounded-full p-0 hover:bg-gray-100">
-          <Avatar className="h-9 w-9 border border-gray-200">
+        <Button variant="ghost" className="flex items-center space-x-2 hover:bg-pale-clay-light">
+          <Avatar className="h-8 w-8 border-2 border-pale-clay-deep">
             <AvatarImage src={user.avatar} alt={user.name} />
-            <AvatarFallback className="bg-gray-600 text-white text-sm">
-              {getInitials(user.name)}
+            <AvatarFallback className="bg-pale-clay text-deep-mocha text-sm">
+              {user.name.split(' ').map(n => n[0]).join('')}
             </AvatarFallback>
           </Avatar>
+          <div className="hidden md:flex items-center space-x-1">
+            <span className="text-deep-mocha">{user.name.split(' ')[0]}</span>
+            <ChevronDown className="h-3 w-3 text-warm-taupe" />
+          </div>
         </Button>
       </DropdownMenuTrigger>
-      
-      <DropdownMenuContent className="w-80 p-0 border border-gray-200 bg-white" align="end">
+      <DropdownMenuContent align="end" className="w-72 bg-pure-white border border-pale-clay-deep shadow-clay-deep">
         {/* User Info Header */}
-        <div className="p-4 border-b border-gray-200">
+        <div className="px-4 py-3 bg-gradient-to-r from-pale-clay-light to-porcelain-soft">
           <div className="flex items-center space-x-3">
-            <Avatar className="h-12 w-12 border border-gray-200">
+            <Avatar className="h-12 w-12 border-2 border-burnt-peach-light">
               <AvatarImage src={user.avatar} alt={user.name} />
-              <AvatarFallback className="bg-gray-600 text-white">
-                {getInitials(user.name)}
+              <AvatarFallback className="bg-burnt-peach-lighter text-deep-mocha font-medium">
+                {user.name.split(' ').map(n => n[0]).join('')}
               </AvatarFallback>
             </Avatar>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center space-x-2">
-                <p className="font-medium text-gray-900 truncate">{user.name}</p>
-                {user.isPremium && (
-                  <Badge className="bg-gray-800 text-white border-0 text-xs">
-                    <Sparkles className="h-2 w-2 mr-1" />
+            <div className="flex-1">
+              <p className="font-medium text-deep-mocha">{user.name}</p>
+              <p className="text-xs text-warm-taupe">{user.email}</p>
+              <div className="flex items-center mt-1.5">
+                {user.isPremium ? (
+                  <Badge className="bg-burnt-peach text-pure-white border-0 text-xs px-2 py-0.5">
+                    <Crown className="h-3 w-3 mr-1" />
                     Premium
+                  </Badge>
+                ) : (
+                  <Badge className="bg-pale-clay-deep text-warm-taupe border-0 text-xs px-2 py-0.5">
+                    <Shield className="h-3 w-3 mr-1" />
+                    Gratuito
                   </Badge>
                 )}
               </div>
-              <p className="text-sm text-gray-600 truncate">{user.email}</p>
             </div>
           </div>
         </div>
 
-        {/* Quick Stats */}
-        <div className="p-3 border-b border-gray-100">
-          <div className="grid grid-cols-3 gap-3 text-center">
-            <div className="space-y-1">
-              <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mx-auto">
-                <Heart className="h-4 w-4 text-gray-600" />
-              </div>
-              <div className="text-xs font-medium text-gray-900">12</div>
-              <div className="text-xs text-gray-500">Favoritos</div>
-            </div>
-            <div className="space-y-1">
-              <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mx-auto">
-                <Search className="h-4 w-4 text-gray-600" />
-              </div>
-              <div className="text-xs font-medium text-gray-900">47</div>
-              <div className="text-xs text-gray-500">Buscas</div>
-            </div>
-            <div className="space-y-1">
-              <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center mx-auto">
-                <TrendingUp className="h-4 w-4 text-gray-600" />
-              </div>
-              <div className="text-xs font-medium text-gray-900">5</div>
-              <div className="text-xs text-gray-500">Alertas</div>
-            </div>
-          </div>
-        </div>
+        <DropdownMenuSeparator className="bg-pale-clay-medium" />
 
-        {/* Menu Items */}
-        <div className="py-2">
-          <DropdownMenuItem className="flex items-center space-x-3 px-4 py-2 hover:bg-gray-50 cursor-pointer">
-            <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-              <User className="h-4 w-4 text-gray-600" />
-            </div>
-            <div>
-              <div className="text-sm font-medium text-gray-900">Meu Perfil</div>
-              <div className="text-xs text-gray-500">Informações pessoais</div>
-            </div>
-          </DropdownMenuItem>
+        {/* Quick Access - Personal Area */}
+        <DropdownMenuLabel className="px-4 py-2 text-xs font-medium text-warm-taupe-dark bg-pale-clay-light/50">
+          Área Pessoal
+        </DropdownMenuLabel>
+        
+        <DropdownMenuItem 
+          onClick={() => handleNavigation()}
+          className="px-4 py-2.5 hover:bg-pale-clay-light text-deep-mocha hover:text-deep-mocha cursor-pointer group"
+        >
+          <UserCircle className="h-4 w-4 mr-3 text-burnt-peach group-hover:text-burnt-peach-deep" />
+          <span>Meu Perfil</span>
+        </DropdownMenuItem>
 
-          <DropdownMenuItem className="flex items-center space-x-3 px-4 py-2 hover:bg-gray-50 cursor-pointer">
-            <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-              <Heart className="h-4 w-4 text-gray-600" />
-            </div>
-            <div>
-              <div className="text-sm font-medium text-gray-900">Favoritos</div>
-              <div className="text-xs text-gray-500">Propriedades salvas</div>
-            </div>
-          </DropdownMenuItem>
+        <DropdownMenuSeparator className="bg-pale-clay-medium" />
 
-          <DropdownMenuItem className="flex items-center space-x-3 px-4 py-2 hover:bg-gray-50 cursor-pointer">
-            <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-              <Sparkles className="h-4 w-4 text-gray-600" />
-            </div>
-            <div>
-              <div className="text-sm font-medium text-gray-900">Buscas IA</div>
-              <div className="text-xs text-gray-500">Histórico e recomendações</div>
-            </div>
-          </DropdownMenuItem>
+        {/* Support & Resources */}
+        <DropdownMenuLabel className="px-4 py-2 text-xs font-medium text-warm-taupe-dark bg-pale-clay-light/50">
+          Suporte & Recursos
+        </DropdownMenuLabel>
 
-          <DropdownMenuItem className="flex items-center space-x-3 px-4 py-2 hover:bg-gray-50 cursor-pointer">
-            <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-              <Bell className="h-4 w-4 text-gray-600" />
-            </div>
-            <div>
-              <div className="text-sm font-medium text-gray-900">Alertas</div>
-              <div className="text-xs text-gray-500">Notificações de preços</div>
-            </div>
-          </DropdownMenuItem>
+        <DropdownMenuItem 
+          onClick={() => handleExternalLink('mailto:suporte@homefinder.ai')}
+          className="px-4 py-2.5 hover:bg-pale-clay-light text-deep-mocha hover:text-deep-mocha cursor-pointer group"
+        >
+          <Mail className="h-4 w-4 mr-3 text-info-gentle group-hover:text-info-strong" />
+          <span>Contacto por Email</span>
+        </DropdownMenuItem>
 
-          <DropdownMenuSeparator />
+        <DropdownMenuSeparator className="bg-pale-clay-medium" />
 
-          <DropdownMenuItem className="flex items-center space-x-3 px-4 py-2 hover:bg-gray-50 cursor-pointer">
-            <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center">
-              <Settings className="h-4 w-4 text-gray-600" />
-            </div>
-            <div>
-              <div className="text-sm font-medium text-gray-900">Configurações</div>
-              <div className="text-xs text-gray-500">Preferências da conta</div>
-            </div>
-          </DropdownMenuItem>
-
-          {!user.isPremium && (
-            <DropdownMenuItem className="flex items-center space-x-3 px-4 py-2 hover:bg-gray-50 cursor-pointer">
-              <div className="w-8 h-8 bg-gray-800 rounded-lg flex items-center justify-center">
-                <Sparkles className="h-4 w-4 text-white" />
-              </div>
-              <div>
-                <div className="text-sm font-medium text-gray-900">Upgrade Premium</div>
-                <div className="text-xs text-gray-500">Recursos exclusivos</div>
-              </div>
-            </DropdownMenuItem>
-          )}
-
-          <DropdownMenuSeparator />
-
-          <DropdownMenuItem 
-            className="flex items-center space-x-3 px-4 py-2 hover:bg-red-50 cursor-pointer text-red-600"
-            onClick={onLogout}
-          >
-            <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
-              <LogOut className="h-4 w-4 text-red-600" />
-            </div>
-            <div>
-              <div className="text-sm font-medium">Sair</div>
-              <div className="text-xs text-red-500">Desconectar da conta</div>
-            </div>
-          </DropdownMenuItem>
-        </div>
-
-        {/* Premium Upgrade Banner */}
-        {!user.isPremium && (
-          <div className="p-3 border-t border-gray-100">
-            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-              <div className="flex items-center space-x-2">
-                <div className="w-6 h-6 bg-gray-800 rounded-md flex items-center justify-center">
-                  <Sparkles className="h-3 w-3 text-white" />
-                </div>
-                <div className="flex-1">
-                  <div className="text-xs font-medium text-gray-800">HomeFinder Premium</div>
-                  <div className="text-xs text-gray-600">Busca AI avançada + alertas ilimitados</div>
-                </div>
-              </div>
-              <Button size="sm" className="w-full mt-2 bg-gray-800 hover:bg-gray-900 text-white border-0">
-                Upgrade Agora
-              </Button>
-            </div>
-          </div>
-        )}
+        {/* Logout */}
+        <DropdownMenuItem 
+          onClick={onLogout}
+          className="px-4 py-3 hover:bg-error-soft text-error-strong hover:text-error-strong cursor-pointer group"
+        >
+          <LogOut className="h-4 w-4 mr-3" />
+          <span className="font-medium">Terminar Sessão</span>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

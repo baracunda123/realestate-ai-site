@@ -50,7 +50,7 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
   const handleSignUp = (e: React.FormEvent) => {
     e.preventDefault();
     if (formData.password !== formData.confirmPassword) {
-      alert('As senhas não coincidem');
+      alert('As palavras-passe não coincidem');
       return;
     }
     onSignUp(formData.name, formData.email, formData.phone, formData.password);
@@ -75,32 +75,32 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md border border-slate-200 bg-white shadow-lg">
+      <DialogContent className="sm:max-w-md border border-border bg-card shadow-mocha-lg">
         <DialogHeader className="text-center pb-2">
-          <div className="mx-auto w-12 h-12 bg-slate-700 rounded-xl flex items-center justify-center mb-3">
+          <div className="mx-auto w-12 h-12 gradient-mocha rounded-xl flex items-center justify-center mb-3">
             <Sparkles className="h-6 w-6 text-white" />
           </div>
-          <DialogTitle className="text-xl text-slate-800">
+          <DialogTitle className="text-xl text-foreground">
             Bem-vindo ao HomeFinder AI
           </DialogTitle>
-          <DialogDescription className="text-sm text-slate-600">
-            Encontre seu lar ideal com tecnologia de ponta. Entre na sua conta ou crie uma nova conta para começar.
+          <DialogDescription className="text-sm text-muted-foreground">
+            Encontre o seu lar ideal com tecnologia de ponta. Inicie sessão na sua conta ou crie uma nova conta para começar.
           </DialogDescription>
         </DialogHeader>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-slate-100 rounded-xl p-1">
+          <TabsList className="grid w-full grid-cols-2 bg-secondary rounded-xl p-1">
             <TabsTrigger 
               value="signin" 
-              className="rounded-lg data-[state=active]:bg-slate-700 data-[state=active]:text-white"
+              className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
-              Entrar
+              Iniciar Sessão
             </TabsTrigger>
             <TabsTrigger 
               value="signup"
-              className="rounded-lg data-[state=active]:bg-slate-700 data-[state=active]:text-white"
+              className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
             >
-              Cadastrar
+              Registar
             </TabsTrigger>
           </TabsList>
 
@@ -109,30 +109,30 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
               <div className="space-y-2">
                 <Label htmlFor="signin-email">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="signin-email"
                     type="email"
                     placeholder="seu.email@exemplo.com"
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="pl-10 border-slate-200 focus:border-slate-400"
+                    className="pl-10 border-border focus:border-primary"
                     required
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="signin-password">Senha</Label>
+                <Label htmlFor="signin-password">Palavra-passe</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="signin-password"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Sua senha"
+                    placeholder="A sua palavra-passe"
                     value={formData.password}
                     onChange={(e) => handleInputChange('password', e.target.value)}
-                    className="pl-10 pr-10 border-slate-200 focus:border-slate-400"
+                    className="pl-10 pr-10 border-border focus:border-primary"
                     required
                   />
                   <Button
@@ -149,16 +149,16 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
 
               <Button 
                 type="submit" 
-                className="w-full bg-slate-700 hover:bg-slate-800 text-white border-0 shadow-sm"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground border-0 shadow-sm"
               >
                 <Sparkles className="h-4 w-4 mr-2" />
-                Entrar
+                Iniciar Sessão
               </Button>
             </form>
 
             <div className="text-center">
-              <Button variant="ghost" className="text-sm text-slate-600 hover:bg-slate-50">
-                Esqueceu sua senha?
+              <Button variant="ghost" className="text-sm text-muted-foreground hover:bg-accent">
+                Esqueceu-se da palavra-passe?
               </Button>
             </div>
           </TabsContent>
@@ -168,14 +168,14 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
               <div className="space-y-2">
                 <Label htmlFor="signup-name">Nome Completo</Label>
                 <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="signup-name"
                     type="text"
                     placeholder="João Silva"
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
-                    className="pl-10 border-slate-200 focus:border-slate-400"
+                    className="pl-10 border-border focus:border-primary"
                     required
                   />
                 </div>
@@ -184,46 +184,46 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
               <div className="space-y-2">
                 <Label htmlFor="signup-email">Email</Label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="signup-email"
                     type="email"
                     placeholder="seu.email@exemplo.com"
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="pl-10 border-slate-200 focus:border-slate-400"
+                    className="pl-10 border-border focus:border-primary"
                     required
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="signup-phone">Telefone</Label>
+                <Label htmlFor="signup-phone">Telemóvel</Label>
                 <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="signup-phone"
                     type="tel"
                     placeholder="(11) 99999-9999"
                     value={formData.phone}
                     onChange={(e) => handleInputChange('phone', e.target.value)}
-                    className="pl-10 border-slate-200 focus:border-slate-400"
+                    className="pl-10 border-border focus:border-primary"
                     required
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="signup-password">Senha</Label>
+                <Label htmlFor="signup-password">Palavra-passe</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="signup-password"
                     type={showPassword ? 'text' : 'password'}
                     placeholder="Mínimo 8 caracteres"
                     value={formData.password}
                     onChange={(e) => handleInputChange('password', e.target.value)}
-                    className="pl-10 pr-10 border-slate-200 focus:border-slate-400"
+                    className="pl-10 pr-10 border-border focus:border-primary"
                     required
                     minLength={8}
                   />
@@ -240,16 +240,16 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="signup-confirm-password">Confirmar Senha</Label>
+                <Label htmlFor="signup-confirm-password">Confirmar Palavra-passe</Label>
                 <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                  <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="signup-confirm-password"
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="Confirme sua senha"
+                    placeholder="Confirme a sua palavra-passe"
                     value={formData.confirmPassword}
                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                    className="pl-10 border-slate-200 focus:border-slate-400"
+                    className="pl-10 border-border focus:border-primary"
                     required
                   />
                 </div>
@@ -257,7 +257,7 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
 
               <Button 
                 type="submit" 
-                className="w-full bg-slate-700 hover:bg-slate-800 text-white border-0 shadow-sm"
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground border-0 shadow-sm"
               >
                 <Sparkles className="h-4 w-4 mr-2" />
                 Criar Conta
@@ -271,40 +271,40 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
             <Separator className="w-full" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-slate-500">ou continue com</span>
+            <span className="bg-background px-2 text-muted-foreground">ou continue com</span>
           </div>
         </div>
 
         <div className="grid grid-cols-3 gap-3">
-          <Button variant="outline" className="border-slate-200 hover:border-slate-300 hover:bg-slate-50">
+          <Button variant="outline" className="border-border hover:border-primary/50 hover:bg-accent">
             <Chrome className="h-4 w-4" />
           </Button>
-          <Button variant="outline" className="border-slate-200 hover:border-slate-300 hover:bg-slate-50">
+          <Button variant="outline" className="border-border hover:border-primary/50 hover:bg-accent">
             <Facebook className="h-4 w-4" />
           </Button>
-          <Button variant="outline" className="border-slate-200 hover:border-slate-300 hover:bg-slate-50">
+          <Button variant="outline" className="border-border hover:border-primary/50 hover:bg-accent">
             <Apple className="h-4 w-4" />
           </Button>
         </div>
 
         <div className="text-center">
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted-foreground">
             Ao continuar, você concorda com nossos{' '}
-            <Button variant="link" className="p-0 h-auto text-xs text-slate-600">
+            <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
               Termos de Uso
             </Button>{' '}
             e{' '}
-            <Button variant="link" className="p-0 h-auto text-xs text-slate-600">
+            <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
               Política de Privacidade
             </Button>
           </p>
         </div>
 
         {activeTab === 'signup' && (
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+          <div className="bg-soft-peach border border-mocha-lighter rounded-lg p-3">
             <div className="flex items-start space-x-2">
-              <Sparkles className="h-4 w-4 text-blue-600 mt-0.5 flex-shrink-0" />
-              <div className="text-xs text-blue-800">
+              <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+              <div className="text-xs text-foreground">
                 <p className="font-medium mb-1">Benefícios da conta HomeFinder AI:</p>
                 <ul className="space-y-1 text-xs">
                   <li>• Salvar propriedades favoritas</li>
