@@ -329,10 +329,10 @@ export default function App() {
         onOpenUpgradeModal={openUpgradeModal}
       />
       
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <main className="flex-1 site-container py-8">
         {currentView === 'alert-results' && user && selectedAlert ? (
           /* Alert Results - Full Width */
-          <div className="max-w-6xl mx-auto">
+          <div className="site-container">
             <AlertResults
               alert={selectedAlert}
               properties={generateAlertProperties(selectedAlert)}
@@ -350,7 +350,7 @@ export default function App() {
           />
         ) : showWelcomeScreen ? (
           /* Welcome Screen - Full Width */
-          <div className="max-w-6xl mx-auto">
+          <div className="site-container">
             <WelcomeScreen 
               onExampleSearch={handleExampleSearch}
               onOpenPremiumFeatures={openPremiumFeaturesModal}
