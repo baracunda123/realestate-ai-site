@@ -70,7 +70,7 @@ export function PropertyModal({ property, onClose }: PropertyModalProps) {
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto">
-            <div className="grid grid-cols-1 lg:grid-cols-2 h-full">
+            <div className="grid grid-cols-2 h-full">
               {/* Images */}
               <div className="relative bg-muted">
                 <ImageWithFallback
@@ -125,7 +125,7 @@ export function PropertyModal({ property, onClose }: PropertyModalProps) {
               </div>
 
               {/* Property Details */}
-              <div className="p-6 space-y-6">
+              <div className="p-6 space-y-6 min-w-0">
                 {/* Price and Basic Info */}
                 <div>
                   <div className="text-3xl font-medium text-primary mb-2">
