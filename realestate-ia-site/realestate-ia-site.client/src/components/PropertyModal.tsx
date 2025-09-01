@@ -18,7 +18,7 @@ import {
   ChevronRight,
   Play
 } from 'lucide-react';
-import type { Property } from '../App';
+import { type Property } from '../types/property';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 
 interface PropertyModalProps {
@@ -147,7 +147,7 @@ export function PropertyModal({ property, onClose }: PropertyModalProps) {
                     </div>
                     <div className="flex items-center">
                       <Square className="h-4 w-4 mr-1" />
-                      {formatSqft(property.sqft)} ft²
+                      {formatSqft(property.area)} m²
                     </div>
                     <div className="flex items-center">
                       <Calendar className="h-4 w-4 mr-1" />
@@ -191,9 +191,9 @@ export function PropertyModal({ property, onClose }: PropertyModalProps) {
                     </div>
                   </div>
                   <div>
-                    <span className="text-sm text-muted-foreground">Price per ft²</span>
+                    <span className="text-sm text-muted-foreground">Price per m²</span>
                     <div className="font-medium">
-                      ${Math.round(property.price / property.sqft)}
+                      ${Math.round(property.price / property.area)}
                     </div>
                   </div>
                 </div>

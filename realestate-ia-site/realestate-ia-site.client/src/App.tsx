@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { SearchFilters } from './components/SearchFilters';
 import { PropertyGrid } from './components/PropertyGrid';
@@ -6,45 +6,23 @@ import { PropertyModal } from './components/PropertyModal';
 import { AISuggestions } from './components/AISuggestions';
 import { MapView } from './components/MapView';
 import { AuthModal } from './components/AuthModal';
+import { WelcomeScreen } from './components/WelcomeScreen';
+import { PersonalArea } from './components/PersonalArea';
+import { PremiumFeaturesModal } from './components/PremiumFeaturesModal';
+import { UpgradeModal } from './components/UpgradeModal';
+import { Footer } from './components/Footer';
+import { AlertResults } from './components/AlertResults';
 import { toast } from 'sonner';
 import { Toaster } from './components/ui/sonner';
+import { type PropertyAlert } from './types/PersonalArea';
+import { type SearchFilters as SearchFiltersType } from './types/SearchFilters';
+import { type Property } from './types/property';
 
-export interface Property {
-  id: string;
-  title: string;
-  price: number;
-  bedrooms: number;
-  bathrooms: number;
-  sqft: number;
-  location: string;
-  address: string;
-  images: string[];
-  description: string;
-  features: string[];
-  yearBuilt: number;
-  propertyType: 'house' | 'apartment' | 'condo' | 'townhouse';
-  listingAgent: {
-    name: string;
-    phone: string;
-    email: string;
-  };
-  aiRelevanceScore?: number;
-}
-
-export interface SearchFilters {
-  priceRange: [number, number];
-  bedrooms: number | null;
-  bathrooms: number | null;
-  propertyType: string;
-  location: string;
-  sortBy: 'price' | 'date' | 'size';
-}
 
 interface User {
   id: string;
   name: string;
-    email: string;
-    passwd: string; // Note: In real apps, passwords should not be stored like this
+  email: string;
   phone: string;
   avatar?: string;
   isPremium?: boolean;
@@ -53,7 +31,7 @@ interface User {
 
 export default function App() {
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
-  const [searchFilters, setSearchFilters] = useState<SearchFilters>({
+  const [searchFilters, setSearchFilters] = useState<SearchFiltersType>({
     priceRange: [0, 2000000],
     bedrooms: null,
     bathrooms: null,
@@ -63,48 +41,201 @@ export default function App() {
   });
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   const [searchQuery, setSearchQuery] = useState('');
+  const [currentView, setCurrentView] = useState<'home' | 'personal' | 'alert-results'>('home');
+  const [selectedAlert, setSelectedAlert] = useState<PropertyAlert | null>(null);
   
   // Authentication state
   const [user, setUser] = useState<User | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  
+  // Premium upgrade modals state
+  const [isPremiumFeaturesModalOpen, setIsPremiumFeaturesModalOpen] = useState(false);
+  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+
+  // Handle URL navigation
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash;
+      
+      if (hash === '#personal' && user) {
+        setCurrentView('personal');
+      } else if (hash === '#alert-results' && user && selectedAlert) {
+        setCurrentView('alert-results');
+      } else if (hash === '#alert-results' && user && !selectedAlert) {
+        // If trying to access alert results but no alert selected, go to personal
+        setCurrentView('personal');
+        window.location.hash = '#personal';
+      } else if (!hash || hash === '#' || !user) {
+        setCurrentView('home');
+        if (hash && hash !== '#') {
+          window.location.hash = '';
+        }
+      }
+    };
+
+    window.addEventListener('hashchange', handleHashChange);
+    handleHashChange(); // Check initial hash
+
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, [user, selectedAlert]);
+
+  // Redirect to home if user logs out while in personal area or alert results
+  useEffect(() => {
+    if (!user && (currentView === 'personal' || currentView === 'alert-results')) {
+      setCurrentView('home');
+      setSelectedAlert(null);
+      window.location.hash = '';
+    }
+  }, [user, currentView]);
 
   // Function to update filters (can be used by AI)
-  const updateFilters = (newFilters: Partial<SearchFilters>) => {
+  const updateFilters = (newFilters: Partial<SearchFiltersType>) => {
+    if (!user) {
+      openAuthModal();
+      return;
+    }
     setSearchFilters(prevFilters => ({
       ...prevFilters,
       ...newFilters
     }));
   };
 
+  // Check if we should show welcome screen - always show for non-logged users
+  const isDefaultState = () => {
+    const isDefaultFilters = 
+      searchFilters.priceRange[0] === 0 &&
+      searchFilters.priceRange[1] === 2000000 &&
+      searchFilters.bedrooms === null &&
+      searchFilters.bathrooms === null &&
+      searchFilters.propertyType === '' &&
+      searchFilters.location === '' &&
+      searchFilters.sortBy === 'price';
+    
+    return searchQuery.trim() === '' && isDefaultFilters;
+  };
+
+  // Handle example search from welcome screen
+  const handleExampleSearch = (query: string) => {
+    if (!user) {
+      openAuthModal();
+      return;
+    }
+    setSearchQuery(query);
+    setCurrentView('home');
+    window.location.hash = '';
+    toast.success('Pesquisa iniciada!', {
+      description: `A pesquisar: "${query}"`,
+    });
+  };
+
+  // Navigation handler
+  const navigateToPersonalArea = () => {
+    if (user) {
+      setCurrentView('personal');
+      window.location.hash = '#personal';
+    } else {
+      openAuthModal();
+    }
+  };
+
+  const navigateToHome = () => {
+    setCurrentView('home');
+    window.location.hash = '';
+  };
+
+  const navigateToAlertResults = (alert: PropertyAlert) => {
+    setSelectedAlert(alert);
+    setCurrentView('alert-results');
+    window.location.hash = '#alert-results';
+  };
+
+  const navigateBackFromAlertResults = () => {
+    setSelectedAlert(null);
+    setCurrentView('personal');
+    window.location.hash = '#personal';
+  };
+
+  // Generate mock properties for alert results
+  const generateAlertProperties = (alert: PropertyAlert): Property[] => {
+    const mockProperties: Property[] = [
+      {
+        id: 'alert-1',
+        title: `Apartamento Moderno em ${alert.location}`,
+        price: alert.priceRange[0] + (alert.priceRange[1] - alert.priceRange[0]) * 0.3,
+        bedrooms: alert.bedrooms || 2,
+        bathrooms: alert.bathrooms || 2,
+        area: 1200,
+        location: alert.location,
+        address: `123 Rua Principal, ${alert.location}`,
+        images: [
+          'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+          'https://images.unsplash.com/photo-1562663474-6cbb3eaa4d14?w=800&h=600&fit=crop'
+        ],
+        description: `Propriedade encontrada através do seu alerta "${alert.name}". Corresponde perfeitamente aos seus critérios!`,
+        features: ['Corresponde ao Alerta', 'Recém Listado', 'Vista Panorâmica', 'Garagem'],
+        yearBuilt: 2020,
+        propertyType: alert.propertyType as any,
+        listingAgent: {
+          name: 'Ana Silva',
+          phone: '(11) 99999-1111',
+          email: 'ana@alertaimoveis.com'
+        }
+      },
+      {
+        id: 'alert-2',
+        title: `${alert.propertyType === 'house' ? 'Casa' : 'Apartamento'} Premium ${alert.location}`,
+        price: alert.priceRange[0] + (alert.priceRange[1] - alert.priceRange[0]) * 0.7,
+        bedrooms: (alert.bedrooms || 2) + 1,
+        bathrooms: (alert.bathrooms || 2),
+        area: 1600,
+        location: alert.location,
+        address: `456 Av. Central, ${alert.location}`,
+        images: [
+          'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop',
+          'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&h=600&fit=crop'
+        ],
+        description: `Exclusiva propriedade que atende todos os critérios do seu alerta "${alert.name}". Nova no mercado!`,
+        features: ['Match Perfeito', 'Acabamento Premium', 'Localização Privilegiada', 'Piscina'],
+        yearBuilt: 2021,
+        propertyType: alert.propertyType as any,
+        listingAgent: {
+          name: 'Carlos Santos',
+          phone: '(11) 99999-2222',
+          email: 'carlos@alertaimoveis.com'
+        }
+      }
+    ];
+
+    return mockProperties.slice(0, alert.newMatches || 2);
+  };
+
   // Authentication handlers
   const handleSignIn = (email: string, password: string) => {
-    // Mock authentication - in real app, this would call an API
+    // Mock authentication
     const mockUser: User = {
       id: '1',
       name: 'João Silva',
-        email: email,
-        passwd: password, // Not stored in real apps    
+      email: email,
       phone: '(11) 99999-9999',
-      isPremium: Math.random() > 0.5, // Random premium status for demo
+      isPremium: false,  // Set to Free to test limitations
       createdAt: new Date()
     };
     
     setUser(mockUser);
     setIsAuthModalOpen(false);
     toast.success(`Bem-vindo de volta, ${mockUser.name}!`, {
-      description: 'Você está logado com sucesso.',
+      description: 'Sessão iniciada com sucesso.',
     });
   };
 
   const handleSignUp = (name: string, email: string, phone: string, password: string) => {
-    // Mock registration - in real app, this would call an API
+    // Mock registration
     const mockUser: User = {
       id: Date.now().toString(),
       name: name,
-        email: email,
-        passwd: password, // Not stored in real apps
+      email: email,
       phone: phone,
-      isPremium: false, // New users start as free
+      isPremium: false,
       createdAt: new Date()
     };
     
@@ -117,67 +248,152 @@ export default function App() {
 
   const handleLogout = () => {
     setUser(null);
-    toast.success('Logout realizado com sucesso!', {
+    setCurrentView('home');
+    setSearchQuery(''); // Clear search when logging out
+    // Reset filters to default
+    setSearchFilters({
+      priceRange: [0, 2000000],
+      bedrooms: null,
+      bathrooms: null,
+      propertyType: '',
+      location: '',
+      sortBy: 'price'
+    });
+    window.location.hash = '';
+    toast.success('Sessão terminada com sucesso!', {
       description: 'Até logo! Esperamos vê-lo em breve.',
     });
   };
 
+  // Modal handlers
   const openAuthModal = () => {
     setIsAuthModalOpen(true);
   };
 
+  const openPremiumFeaturesModal = () => {
+    setIsPremiumFeaturesModalOpen(true);
+  };
+
+  const openUpgradeModal = () => {
+    setIsPremiumFeaturesModalOpen(false);
+    setIsUpgradeModalOpen(true);
+  };
+
+  const handleBackToPremiumFeatures = () => {
+    setIsUpgradeModalOpen(false);
+    setIsPremiumFeaturesModalOpen(true);
+  };
+
+  const handleUpgradeComplete = () => {
+    // Update user to premium
+    if (user) {
+      setUser({
+        ...user,
+        isPremium: true
+      });
+      
+      toast.success('Upgrade realizado com sucesso!', {
+        description: 'Bem-vindo ao Premium! Todas as funcionalidades foram desbloqueadas.',
+      });
+    }
+    
+    setIsUpgradeModalOpen(false);
+    setIsPremiumFeaturesModalOpen(false);
+  };
+
+  // Show welcome screen for non-logged users OR logged users with default state
+  const showWelcomeScreen = !user || (user && isDefaultState() && currentView === 'home');
+
+  // Block search functionality for non-logged users
+  const handleSearchQueryChange = (query: string) => {
+    if (!user) {
+      openAuthModal();
+      return;
+    }
+    setSearchQuery(query);
+  };
+
   return (
-    <div 
-      className="min-h-screen"
-      style={{
-        background: `
-          linear-gradient(135deg, #fafbff 0%, #f0f9ff 50%, #faf5ff 100%),
-          radial-gradient(circle at 20% 20%, rgba(79, 70, 229, 0.03) 0%, transparent 50%),
-          radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.03) 0%, transparent 50%),
-          radial-gradient(circle at 40% 60%, rgba(139, 92, 246, 0.02) 0%, transparent 50%)
-        `
-      }}
-    >
+    <div className="min-h-screen bg-background flex flex-col">
       <Header 
         searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
+        setSearchQuery={handleSearchQueryChange}
         viewMode={viewMode}
         setViewMode={setViewMode}
         user={user}
         onOpenAuth={openAuthModal}
         onLogout={handleLogout}
+        onNavigateToPersonal={navigateToPersonalArea}
+        onNavigateToHome={navigateToHome}
+        currentView={currentView}
+        onOpenUpgradeModal={openUpgradeModal}
       />
       
-      <main className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-          {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-6">
-            <SearchFilters 
-              filters={searchFilters}
-              setFilters={setSearchFilters}
+      <main className="flex-1 container mx-auto px-4 py-8">
+        {currentView === 'alert-results' && user && selectedAlert ? (
+          /* Alert Results - Full Width */
+          <div className="max-w-6xl mx-auto">
+            <AlertResults
+              alert={selectedAlert}
+              properties={generateAlertProperties(selectedAlert)}
+              onBack={navigateBackFromAlertResults}
+              onPropertySelect={setSelectedProperty}
             />
-            <AISuggestions searchQuery={searchQuery} user={user} />
           </div>
-          
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            {viewMode === 'grid' ? (
-              <PropertyGrid 
-                filters={searchFilters}
-                searchQuery={searchQuery}
-                onPropertySelect={setSelectedProperty}
-                onFiltersUpdate={updateFilters}
-              />
-            ) : (
-              <MapView 
-                filters={searchFilters}
-                searchQuery={searchQuery}
-                onPropertySelect={setSelectedProperty}
-              />
-            )}
+        ) : currentView === 'personal' && user ? (
+          /* Personal Area - Full Width */
+          <PersonalArea 
+            user={user}
+            onPropertySelect={setSelectedProperty}
+            onOpenUpgradeModal={openUpgradeModal}
+            onNavigateToAlertResults={navigateToAlertResults}
+          />
+        ) : showWelcomeScreen ? (
+          /* Welcome Screen - Full Width */
+          <div className="max-w-6xl mx-auto">
+            <WelcomeScreen 
+              onExampleSearch={handleExampleSearch}
+              onOpenPremiumFeatures={openPremiumFeaturesModal}
+              user={user}
+            />
           </div>
-        </div>
+        ) : (
+          /* Search Results - With Sidebar - Only for logged users */
+          user && (
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+              {/* Sidebar */}
+              <div className="lg:col-span-1 space-y-6">
+                <SearchFilters 
+                  filters={searchFilters}
+                  setFilters={setSearchFilters}
+                />
+                <AISuggestions searchQuery={searchQuery} user={user} />
+              </div>
+              
+              {/* Main Content */}
+              <div className="lg:col-span-3">
+                {viewMode === 'grid' ? (
+                  <PropertyGrid 
+                    filters={searchFilters}
+                    searchQuery={searchQuery}
+                    onPropertySelect={setSelectedProperty}
+                    onFiltersUpdate={updateFilters}
+                  />
+                ) : (
+                  <MapView 
+                    filters={searchFilters}
+                    searchQuery={searchQuery}
+                    onPropertySelect={setSelectedProperty}
+                  />
+                )}
+              </div>
+            </div>
+          )
+        )}
       </main>
+
+      {/* Footer Fixo */}
+      <Footer />
 
       {/* Modals */}
       {selectedProperty && (
@@ -192,6 +408,19 @@ export default function App() {
         onClose={() => setIsAuthModalOpen(false)}
         onSignIn={handleSignIn}
         onSignUp={handleSignUp}
+      />
+
+      <PremiumFeaturesModal
+        isOpen={isPremiumFeaturesModalOpen}
+        onClose={() => setIsPremiumFeaturesModalOpen(false)}
+        onUpgrade={openUpgradeModal}
+      />
+
+      <UpgradeModal
+        isOpen={isUpgradeModalOpen}
+        onClose={() => setIsUpgradeModalOpen(false)}
+        onBack={handleBackToPremiumFeatures}
+        onUpgradeComplete={handleUpgradeComplete}
       />
 
       {/* Toast Notifications */}

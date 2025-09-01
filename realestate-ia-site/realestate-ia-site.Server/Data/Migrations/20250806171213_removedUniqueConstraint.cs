@@ -1,0 +1,20 @@
+﻿using Microsoft.EntityFrameworkCore.Migrations;
+
+#nullable disable
+
+namespace realestate_ia_site.Server.Data.Migrations
+{
+    /// <inheritdoc />
+    public partial class removedUniqueConstraint : Migration
+    {
+        /// <inheritdoc />
+        protected override void Up(MigrationBuilder migrationBuilder)
+        {
+        }
+
+        /// <inheritdoc />
+        protected override void Down(MigrationBuilder migrationBuilder)
+        {
+        }
+    }
+}

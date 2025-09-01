@@ -1,8 +1,7 @@
 import React, { useMemo } from 'react';
 import { PropertyCard } from './PropertyCard';
-import { AISearchProcessor } from './AISearchProcessor';
-import { AISearchEngine } from './AISearchEngine';
-import type { Property, SearchFilters } from '../App';
+import { type SearchFilters } from '../types/SearchFilters';
+import { type Property } from '../types/property';
 import { Badge } from './ui/badge';
 import { Sparkles, TrendingUp } from 'lucide-react';
 
@@ -14,7 +13,7 @@ const mockProperties: Property[] = [
     price: 850000,
     bedrooms: 2,
     bathrooms: 2,
-    sqft: 1200,
+    area: 1200,
     location: 'Centro de São Paulo',
     address: '123 Rua Augusta, São Paulo, SP 01234-567',
     images: [
@@ -38,7 +37,7 @@ const mockProperties: Property[] = [
     price: 1200000,
     bedrooms: 4,
     bathrooms: 3,
-    sqft: 2400,
+    area: 2400,
     location: 'Vila Madalena',
     address: '456 Rua Harmonia, São Paulo, SP 05435-000',
     images: [
@@ -62,7 +61,7 @@ const mockProperties: Property[] = [
     price: 1800000,
     bedrooms: 3,
     bathrooms: 2,
-    sqft: 1800,
+    area: 1800,
     location: 'Jardins',
     address: '789 Rua Oscar Freire, São Paulo, SP 01426-001',
     images: [
@@ -86,7 +85,7 @@ const mockProperties: Property[] = [
     price: 750000,
     bedrooms: 3,
     bathrooms: 2,
-    sqft: 1500,
+    area: 1500,
     location: 'Moema',
     address: '321 Rua Iraí, São Paulo, SP 04082-000',
     images: [
@@ -110,7 +109,7 @@ const mockProperties: Property[] = [
     price: 950000,
     bedrooms: 3,
     bathrooms: 2.5,
-    sqft: 1600,
+    area: 1600,
     location: 'Pinheiros',
     address: '654 Rua Teodoro Sampaio, São Paulo, SP 05405-000',
     images: [
@@ -134,7 +133,7 @@ const mockProperties: Property[] = [
     price: 1350000,
     bedrooms: 5,
     bathrooms: 4,
-    sqft: 3200,
+    area: 3200,
     location: 'Brooklin',
     address: '987 Rua Engenheiro Luis Carlos Berrini, São Paulo, SP 04571-000',
     images: [
@@ -161,56 +160,35 @@ interface PropertyGridProps {
   onFiltersUpdate: (filters: Partial<SearchFilters>) => void;
 }
 
-// Calculate AI relevance score for ranking - moved before useMemo
-const calculateAIRelevanceScore = (property: Property, aiResult: any, query: string): number => {
+// Calculate simple text relevance score for ranking
+const calculateRelevanceScore = (property: Property, query: string): number => {
   let score = 0;
   
-  // Base score for query match
   const queryLower = query.toLowerCase();
   const searchableText = `${property.title} ${property.description} ${property.location} ${property.features.join(' ')}`.toLowerCase();
   
-  // Text relevance
-  const words = queryLower.split(' ');
+  // Exact phrase match gets highest score
+  if (searchableText.includes(queryLower)) {
+    score += 100;
+  }
+  
+  // Individual word matches
+  const words = queryLower.split(' ').filter(word => word.length > 2);
   words.forEach(word => {
-    if (word.length > 2 && searchableText.includes(word)) {
+    if (searchableText.includes(word)) {
+      score += 20;
+    }
+    
+    // Title matches get extra points
+    if (property.title.toLowerCase().includes(word)) {
       score += 10;
     }
-  });
-
-  // AI extracted criteria matching
-  if (aiResult.extractedFilters.propertyType === property.propertyType) {
-    score += 50;
-  }
-
-  if (aiResult.extractedFilters.bedrooms === property.bedrooms) {
-    score += 30;
-  }
-
-  if (aiResult.extractedFilters.bathrooms === property.bathrooms) {
-    score += 20;
-  }
-
-  if (aiResult.extractedFilters.location && 
-      property.location.toLowerCase().includes(aiResult.extractedFilters.location.toLowerCase())) {
-    score += 40;
-  }
-
-  // Feature matching
-  if (aiResult.extractedFilters.features) {
-    aiResult.extractedFilters.features.forEach((feature: string) => {
-      if (property.features.some(pf => pf.toLowerCase().includes(feature.toLowerCase()))) {
-        score += 15;
-      }
-    });
-  }
-
-  // Price range matching
-  if (aiResult.extractedFilters.priceRange) {
-    const [min, max] = aiResult.extractedFilters.priceRange;
-    if (property.price >= min && property.price <= max) {
-      score += 25;
+    
+    // Location matches get extra points
+    if (property.location.toLowerCase().includes(word)) {
+      score += 15;
     }
-  }
+  });
 
   return score;
 };
@@ -255,13 +233,11 @@ export function PropertyGrid({ filters, searchQuery, onPropertySelect, onFilters
       return true;
     });
 
-    // AI-based ranking if there's a search query
+    // Text-based ranking if there's a search query
     if (searchQuery.trim()) {
-      const aiResult = AISearchEngine.analyzeQuery(searchQuery);
-      
       filtered = filtered.map(property => ({
         ...property,
-        aiRelevanceScore: calculateAIRelevanceScore(property, aiResult, searchQuery)
+        aiRelevanceScore: calculateRelevanceScore(property, searchQuery)
       })).sort((a, b) => (b.aiRelevanceScore || 0) - (a.aiRelevanceScore || 0));
     } else {
       // Regular sorting
@@ -272,7 +248,7 @@ export function PropertyGrid({ filters, searchQuery, onPropertySelect, onFilters
           case 'date':
             return Math.random() - 0.5; // Mock random sorting for "newest"
           case 'size':
-            return b.sqft - a.sqft;
+            return b.area - a.area;
           default:
             return 0;
         }
@@ -286,23 +262,16 @@ export function PropertyGrid({ filters, searchQuery, onPropertySelect, onFilters
 
   return (
     <div className="space-y-6">
-      {/* AI Search Processor */}
-      <AISearchProcessor
-        searchQuery={searchQuery}
-        onFiltersUpdate={onFiltersUpdate}
-        onSearchQueryUpdate={() => {}} // Handled by parent
-      />
-
       {/* Results Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-3">
-          <h2 className="text-xl font-medium">
+          <h2 className="text-xl font-medium text-foreground">
             {filteredAndRankedProperties.length} {filteredAndRankedProperties.length === 1 ? 'Propriedade Encontrada' : 'Propriedades Encontradas'}
           </h2>
           {hasAIRanking && (
-            <Badge className="bg-gradient-to-r from-primary to-purple-600 text-white border-0">
+            <Badge className="bg-burnt-peach text-pure-white border-0">
               <Sparkles className="h-3 w-3 mr-1" />
-              Ranking IA
+              Ranking Inteligente
             </Badge>
           )}
         </div>
@@ -310,7 +279,7 @@ export function PropertyGrid({ filters, searchQuery, onPropertySelect, onFilters
         {hasAIRanking && (
           <div className="flex items-center space-x-1 text-xs text-muted-foreground">
             <TrendingUp className="h-3 w-3" />
-            <span>Ordenado por relevância IA</span>
+            <span>Ordenado por relevância</span>
           </div>
         )}
       </div>
@@ -322,19 +291,20 @@ export function PropertyGrid({ filters, searchQuery, onPropertySelect, onFilters
             <PropertyCard
               property={property}
               onClick={() => onPropertySelect(property)}
+              isWhiteBackground={index < 3}
             />
             {hasAIRanking && index < 3 && (
               <div className="absolute top-3 left-3 z-10">
                 <Badge 
                   className={`
-                    ${index === 0 ? 'bg-gradient-to-r from-yellow-500 to-orange-500' : ''}
-                    ${index === 1 ? 'bg-gradient-to-r from-gray-400 to-gray-500' : ''}
-                    ${index === 2 ? 'bg-gradient-to-r from-amber-600 to-orange-600' : ''}
-                    text-white border-0 shadow-lg font-semibold
+                    ${index === 0 ? 'bg-burnt-peach' : ''}
+                    ${index === 1 ? 'bg-cocoa-taupe' : ''}
+                    ${index === 2 ? 'bg-warm-taupe' : ''}
+                    text-pure-white border-0 shadow-clay-medium font-semibold
                   `}
                 >
                   <Sparkles className="h-3 w-3 mr-1" />
-                  #{index + 1} Match IA
+                  #{index + 1} Match
                 </Badge>
               </div>
             )}
@@ -344,14 +314,14 @@ export function PropertyGrid({ filters, searchQuery, onPropertySelect, onFilters
       
       {filteredAndRankedProperties.length === 0 && (
         <div className="text-center py-12">
-          <div className="w-16 h-16 bg-gradient-to-r from-primary to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Sparkles className="h-8 w-8 text-white" />
+          <div className="w-16 h-16 bg-pale-clay-light rounded-full flex items-center justify-center mx-auto mb-4">
+            <Sparkles className="h-8 w-8 text-cocoa-taupe" />
           </div>
-          <p className="text-muted-foreground mb-2">Nenhuma propriedade corresponde aos seus critérios</p>
-          <p className="text-sm text-muted-foreground">Tente ajustar seus filtros ou termos de busca</p>
+          <p className="text-foreground mb-2">Nenhuma propriedade corresponde aos seus critérios</p>
+          <p className="text-sm text-muted-foreground">Tente ajustar os seus filtros ou termos de procura</p>
           {searchQuery && (
-            <p className="text-sm text-primary mt-2">
-              A IA pode sugerir filtros alternativos baseados na sua busca
+            <p className="text-sm text-burnt-peach mt-2">
+              Experimente procurar por características específicas como localização ou tipo de imóvel
             </p>
           )}
         </div>

@@ -3,15 +3,16 @@ import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Heart, MapPin, Bed, Bath, Square, Calendar } from 'lucide-react';
-import type { Property } from '../App';
+import { type Property } from '../types/property';
 import { ImageWithFallback } from './figma/ImageWithFallback';
 
 interface PropertyCardProps {
   property: Property;
   onClick: () => void;
+  isWhiteBackground?: boolean;
 }
 
-export function PropertyCard({ property, onClick }: PropertyCardProps) {
+export function PropertyCard({ property, onClick, isWhiteBackground = false }: PropertyCardProps) {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -25,18 +26,14 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
   };
 
   const getPropertyTypeColor = (type: string) => {
-    switch (type) {
-      case 'house':
-        return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-      case 'apartment':
-        return 'bg-blue-100 text-blue-700 border-blue-200';
-      case 'condo':
-        return 'bg-purple-100 text-purple-700 border-purple-200';
-      case 'townhouse':
-        return 'bg-orange-100 text-orange-700 border-orange-200';
-      default:
-        return 'bg-gray-100 text-gray-700 border-gray-200';
-    }
+    // Background branco para todos os badges com texto escuro e border colorida por tipo
+    const colors = {
+      house: 'bg-pure-white text-title border-burnt-soft',
+      apartment: 'bg-pure-white text-title border-cocoa-soft', 
+      condo: 'bg-pure-white text-title border-clay-medium',
+      townhouse: 'bg-pure-white text-title border-clay-medium'
+    };
+    return colors[type as keyof typeof colors] || 'bg-pure-white text-title border-clay-medium';
   };
 
   const getPropertyTypeName = (type: string) => {
@@ -50,17 +47,24 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
   };
 
   return (
-    <Card className="overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group border-2 border-transparent hover:border-primary/20 bg-white">
+    <Card 
+      className={`overflow-hidden hover:shadow-clay-medium transition-all duration-300 cursor-pointer group border border-clay-medium hover:border-clay-strong ${isWhiteBackground ? 'property-card-white' : ''}`} 
+      style={isWhiteBackground ? { 
+        backgroundColor: '#FFFFFF',
+        background: '#FFFFFF'
+      } : undefined}
+      onClick={onClick}
+    >
       <div className="relative">
         <ImageWithFallback
           src={property.images[0]}
           alt={property.title}
-          className="w-full h-48 object-cover group-hover:scale-110 transition-transform duration-500"
+          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
         <div className="absolute top-3 left-3">
-          <Badge className={`${getPropertyTypeColor(property.propertyType)} font-medium border shadow-sm`}>
+          <Badge className={`${getPropertyTypeColor(property.propertyType)} font-medium border shadow-clay-soft`}>
             {getPropertyTypeName(property.propertyType)}
           </Badge>
         </div>
@@ -68,92 +72,93 @@ export function PropertyCard({ property, onClick }: PropertyCardProps) {
         <Button
           variant="ghost"
           size="sm"
-          className="absolute top-3 right-3 h-9 w-9 p-0 bg-white/90 hover:bg-white shadow-md backdrop-blur-sm hover:scale-110 transition-all duration-200"
+          className="absolute top-3 right-3 h-9 w-9 p-0 bg-warm-white/95 hover:bg-warm-white shadow-clay-soft backdrop-blur-sm hover:scale-105 transition-all duration-200"
           onClick={(e) => {
             e.stopPropagation();
             // Add to favorites logic here
           }}
         >
-          <Heart className="h-4 w-4 text-red-500 hover:fill-red-500 transition-all duration-200" />
+          <Heart className="h-4 w-4 text-clay-secondary hover:text-burnt-primary transition-all duration-200" />
         </Button>
+
+
 
         {/* Price overlay */}
         <div className="absolute bottom-3 right-3">
-          <div className="bg-white/95 backdrop-blur-sm px-3 py-1 rounded-full shadow-lg border border-white/20">
-            <span className="text-sm font-semibold text-primary">
+          <div className="bg-warm-white/95 backdrop-blur-sm px-3 py-1 rounded-full shadow-clay-soft border border-clay-medium">
+            <span className="text-sm font-semibold text-metric">
               {formatPrice(property.price)}
             </span>
           </div>
         </div>
       </div>
       
-      <CardContent className="p-5">
+      <CardContent 
+        className={`p-5 ${isWhiteBackground ? 'property-card-white' : ''}`}
+        style={isWhiteBackground ? { 
+          backgroundColor: '#FFFFFF',
+          background: '#FFFFFF'
+        } : undefined}
+      >
         <div className="space-y-4">
           <div>
-            <h3 className="font-semibold line-clamp-1 text-lg text-gray-900">{property.title}</h3>
-            <div className="flex items-center text-sm text-muted-foreground mt-1">
-              <MapPin className="h-3 w-3 mr-1 text-primary" />
+            <h3 className="font-semibold line-clamp-1 text-lg text-title">{property.title}</h3>
+            <div className="flex items-center text-sm text-clay-secondary mt-1">
+              <MapPin className="h-3 w-3 mr-1 text-clay-secondary" />
               {property.location}
             </div>
           </div>
           
           <div className="grid grid-cols-3 gap-4 text-sm">
-            <div className="flex items-center space-x-1 text-gray-600">
-              <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Bed className="h-4 w-4 text-blue-600" />
+            <div className="flex items-center space-x-1 text-clay-secondary">
+              <div className="w-8 h-8 bg-pale-clay rounded-lg flex items-center justify-center">
+                <Bed className="h-4 w-4 text-cocoa-primary" />
               </div>
               <div>
-                <div className="font-medium text-gray-900">{property.bedrooms}</div>
-                <div className="text-xs text-gray-500">quartos</div>
+                <div className="font-medium text-title">{property.bedrooms}</div>
+                <div className="text-xs text-clay-secondary">quartos</div>
               </div>
             </div>
             
-            <div className="flex items-center space-x-1 text-gray-600">
-              <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-                <Bath className="h-4 w-4 text-green-600" />
+            <div className="flex items-center space-x-1 text-clay-secondary">
+              <div className="w-8 h-8 bg-pale-clay rounded-lg flex items-center justify-center">
+                <Bath className="h-4 w-4 text-cocoa-primary" />
               </div>
               <div>
-                <div className="font-medium text-gray-900">{property.bathrooms}</div>
-                <div className="text-xs text-gray-500">banheiros</div>
+                <div className="font-medium text-title">{property.bathrooms}</div>
+                <div className="text-xs text-clay-secondary">banheiros</div>
               </div>
             </div>
             
-            <div className="flex items-center space-x-1 text-gray-600">
-              <div className="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                <Square className="h-4 w-4 text-purple-600" />
+            <div className="flex items-center space-x-1 text-clay-secondary">
+              <div className="w-8 h-8 bg-pale-clay rounded-lg flex items-center justify-center">
+                <Square className="h-4 w-4 text-cocoa-primary" />
               </div>
               <div>
-                <div className="font-medium text-gray-900">{formatSqft(property.sqft)}</div>
-                <div className="text-xs text-gray-500">m²</div>
+                <div className="font-medium text-title">{formatSqft(property.area)}</div>
+                <div className="text-xs text-clay-secondary">m²</div>
               </div>
             </div>
           </div>
           
           <div className="flex items-center justify-between">
-            <div className="flex items-center text-xs text-muted-foreground">
+            <div className="flex items-center text-xs text-clay-secondary">
               <Calendar className="h-3 w-3 mr-1" />
               Construído em {property.yearBuilt}
             </div>
-            <div className="text-sm text-muted-foreground">
-              {Math.round(property.price * 5.5 / property.sqft)}/m²
+            <div className="text-sm text-burnt-primary font-medium">
+              R$ {Math.round(property.price * 5.5 / property.area)}/m²
             </div>
           </div>
           
           <div className="flex flex-wrap gap-1">
-            {property.features.slice(0, 3).map((feature, index) => {
-              const colors = [
-                'bg-indigo-50 text-indigo-700 border-indigo-200',
-                'bg-emerald-50 text-emerald-700 border-emerald-200',
-                'bg-amber-50 text-amber-700 border-amber-200'
-              ];
-              return (
-                <Badge key={feature} className={`text-xs border ${colors[index % 3]}`}>
-                  {feature}
-                </Badge>
-              );
-            })}
+            {property.features.slice(0, 3).map((feature, index) => (
+              <Badge key={feature} className="text-xs border bg-pure-white text-title border-clay-medium">
+                {feature}
+              </Badge>
+            ))}
             {property.features.length > 3 && (
-              <Badge variant="outline" className="text-xs bg-gray-50 text-gray-600 border-gray-200">
+              <Badge variant="outline" className="text-xs bg-pure-white text-clay-secondary border-clay-medium">
                 +{property.features.length - 3} mais
               </Badge>
             )}
