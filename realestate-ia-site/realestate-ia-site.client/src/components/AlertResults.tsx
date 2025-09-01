@@ -152,7 +152,7 @@ export function AlertResults({ alert, properties, onBack, onPropertySelect, favo
               />
               
               {/* Alert Badge Overlay */}
-              <div className="absolute top-3 left-3 z-10">
+              <div className="absolute left-3 top-12 z-10">
                 <Badge className="bg-success-gentle text-pure-white border-0 shadow-clay-medium font-semibold">
                   <Bell className="h-3 w-3 mr-1" />
                   Via Alerta
@@ -161,7 +161,7 @@ export function AlertResults({ alert, properties, onBack, onPropertySelect, favo
               
               {/* New Badge for recent matches */}
               {index < alert.newMatches && (
-                <div className="absolute top-3 right-3 z-10">
+                <div className="absolute right-3 top-12 z-10">
                   <Badge className="bg-burnt-peach text-pure-white border-0 shadow-clay-medium font-semibold animate-pulse">
                     <Sparkles className="h-3 w-3 mr-1" />
                     Nova
