@@ -3,6 +3,7 @@ import { Search, Map, Grid3X3, Home, Crown, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { UserProfileDropdown } from './UserProfileDropdown';
+import { AIResponseBox } from './AIResponseBox';
 
 interface User {
   id: string;
