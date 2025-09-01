@@ -10,9 +10,11 @@ interface PropertyCardProps {
   property: Property;
   onClick: () => void;
   isWhiteBackground?: boolean;
+  isFavorite?: boolean;
+  onToggleFavorite?: (property: Property) => void;
 }
 
-export function PropertyCard({ property, onClick, isWhiteBackground = false }: PropertyCardProps) {
+export function PropertyCard({ property, onClick, isWhiteBackground = false, isFavorite = false, onToggleFavorite }: PropertyCardProps) {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -72,13 +74,15 @@ export function PropertyCard({ property, onClick, isWhiteBackground = false }: P
         <Button
           variant="ghost"
           size="sm"
+          aria-pressed={isFavorite}
+          aria-label={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
           className="absolute top-3 right-3 h-9 w-9 p-0 bg-warm-white/95 hover:bg-warm-white shadow-clay-soft backdrop-blur-sm hover:scale-105 transition-all duration-200"
           onClick={(e) => {
             e.stopPropagation();
-            // Add to favorites logic here
+            if (onToggleFavorite) onToggleFavorite(property);
           }}
         >
-          <Heart className="h-4 w-4 text-clay-secondary hover:text-burnt-primary transition-all duration-200" />
+          <Heart className={`h-4 w-4 transition-all duration-200 ${isFavorite ? 'text-burnt-primary' : 'text-clay-secondary'}`} />
         </Button>
 
 
