@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Header } from './components/Header';
 import { AISuggestions } from './components/AISuggestions';
 import { PersonalArea } from './components/PersonalArea';
@@ -8,7 +8,6 @@ import { Toaster } from './components/ui/sonner';
 import { type PropertyAlert } from './types/PersonalArea';
 import { type SearchFilters as SearchFiltersType } from './types/SearchFilters';
 import { type Property } from './types/property';
-import { lazy, Suspense, useEffect } from 'react';
 import { getCurrentLimits } from './utils/PersonalArea';
 
 const SearchFilters = lazy(() => import('./components/SearchFilters').then(m => ({ default: m.SearchFilters })));
