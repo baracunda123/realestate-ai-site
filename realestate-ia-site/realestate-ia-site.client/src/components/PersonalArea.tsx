@@ -156,11 +156,12 @@ interface PersonalAreaProps {
   onPropertySelect: (property: Property) => void;
   onOpenUpgradeModal?: () => void;
   onNavigateToAlertResults?: (alert: PropertyAlert) => void;
+  favorites: Property[];
+  onToggleFavorite: (property: Property) => void;
 }
 
-export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNavigateToAlertResults }: PersonalAreaProps) {
+export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNavigateToAlertResults, favorites, onToggleFavorite }: PersonalAreaProps) {
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [favoriteProperties, setFavoriteProperties] = useState<Property[]>(mockFavoriteProperties);
 
   // Modal state
   const [isNewAlertModalOpen, setIsNewAlertModalOpen] = useState(false);
@@ -400,7 +401,7 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
         <TabsContent value="dashboard" className="space-y-6">
           <PersonalAreaDashboard
             user={user}
-            favoritesCount={favoriteProperties.length}
+            favoritesCount={favorites.length}
             savedSearchesCount={filteredSavedSearches.length}
             alertsCount={allAlerts.filter(alert => alert.isActive).length}
             onCardClick={handleCardClick}
@@ -411,16 +412,11 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
         <TabsContent value="favorites">
           <PersonalAreaFavorites
             user={user}
-            favorites={favoriteProperties}
+            favorites={favorites}
             onPropertySelect={onPropertySelect}
             onOpenUpgradeModal={onOpenUpgradeModal}
             onGoToHome={handleGoToHome}
-            onToggleFavorite={(property) => {
-              setFavoriteProperties((prev) => {
-                const exists = prev.some((p) => p.id === property.id);
-                return exists ? prev.filter((p) => p.id !== property.id) : [...prev, property];
-              });
-            }}
+            onToggleFavorite={onToggleFavorite}
           />
         </TabsContent>
 
