@@ -3,6 +3,7 @@ import { Search, Map, Grid3X3, Home, Crown, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { UserProfileDropdown } from './UserProfileDropdown';
+import { AIResponseBox } from './AIResponseBox';
 
 interface User {
   id: string;
@@ -80,10 +81,15 @@ export function Header({
                   }`}
                 />
               </div>
-              
+
+              {/* AI response box under search */}
+              {user && (
+                <AIResponseBox query={searchQuery} open={searchQuery.trim().length > 0} />
+              )}
+
               {/* Overlay for non-logged users */}
               {!user && (
-                <div 
+                <div
                   className="absolute inset-0 bg-transparent cursor-pointer rounded-xl"
                   onClick={onOpenAuth}
                   title="Crie a sua conta para aceder à pesquisa"
