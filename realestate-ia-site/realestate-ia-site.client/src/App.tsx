@@ -1,22 +1,24 @@
 import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
-import { SearchFilters } from './components/SearchFilters';
-import { PropertyGrid } from './components/PropertyGrid';
-import { PropertyModal } from './components/PropertyModal';
 import { AISuggestions } from './components/AISuggestions';
-import { MapView } from './components/MapView';
-import { AuthModal } from './components/AuthModal';
-import { WelcomeScreen } from './components/WelcomeScreen';
 import { PersonalArea } from './components/PersonalArea';
-import { PremiumFeaturesModal } from './components/PremiumFeaturesModal';
-import { UpgradeModal } from './components/UpgradeModal';
 import { Footer } from './components/Footer';
-import { AlertResults } from './components/AlertResults';
 import { toast } from 'sonner';
 import { Toaster } from './components/ui/sonner';
 import { type PropertyAlert } from './types/PersonalArea';
 import { type SearchFilters as SearchFiltersType } from './types/SearchFilters';
 import { type Property } from './types/property';
+import { lazy, Suspense } from 'react';
+
+const SearchFilters = lazy(() => import('./components/SearchFilters').then(m => ({ default: m.SearchFilters })));
+const PropertyGrid = lazy(() => import('./components/PropertyGrid').then(m => ({ default: m.PropertyGrid })));
+const PropertyModal = lazy(() => import('./components/PropertyModal').then(m => ({ default: m.PropertyModal })));
+const MapView = lazy(() => import('./components/MapView').then(m => ({ default: m.MapView })));
+const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
+const WelcomeScreen = lazy(() => import('./components/WelcomeScreen').then(m => ({ default: m.WelcomeScreen })));
+const PremiumFeaturesModal = lazy(() => import('./components/PremiumFeaturesModal').then(m => ({ default: m.PremiumFeaturesModal })));
+const UpgradeModal = lazy(() => import('./components/UpgradeModal').then(m => ({ default: m.UpgradeModal })));
+const AlertResults = lazy(() => import('./components/AlertResults').then(m => ({ default: m.AlertResults })));
 
 
 interface User {
@@ -331,63 +333,62 @@ export default function App() {
       
       <main className="flex-1 site-container py-8">
         {currentView === 'alert-results' && user && selectedAlert ? (
-          /* Alert Results - Full Width */
           <div className="site-container">
-            <AlertResults
-              alert={selectedAlert}
-              properties={generateAlertProperties(selectedAlert)}
-              onBack={navigateBackFromAlertResults}
-              onPropertySelect={setSelectedProperty}
-            />
+            <Suspense fallback={null}>
+              <AlertResults
+                alert={selectedAlert}
+                properties={generateAlertProperties(selectedAlert)}
+                onBack={navigateBackFromAlertResults}
+                onPropertySelect={setSelectedProperty}
+              />
+            </Suspense>
           </div>
         ) : currentView === 'personal' && user ? (
-          /* Personal Area - Full Width */
-          <PersonalArea 
+          <PersonalArea
             user={user}
             onPropertySelect={setSelectedProperty}
             onOpenUpgradeModal={openUpgradeModal}
             onNavigateToAlertResults={navigateToAlertResults}
           />
         ) : showWelcomeScreen ? (
-          /* Welcome Screen - Full Width */
           <div className="site-container">
-            <WelcomeScreen 
-              onExampleSearch={handleExampleSearch}
-              onOpenPremiumFeatures={openPremiumFeaturesModal}
-              user={user}
-            />
+            <Suspense fallback={null}>
+              <WelcomeScreen
+                onExampleSearch={handleExampleSearch}
+                onOpenPremiumFeatures={openPremiumFeaturesModal}
+                user={user}
+              />
+            </Suspense>
           </div>
         ) : (
-          /* Search Results - With Sidebar - Only for logged users */
           user && (
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-              {/* Sidebar */}
-              <div className="lg:col-span-1 space-y-6">
-                <SearchFilters 
-                  filters={searchFilters}
-                  setFilters={setSearchFilters}
-                />
-                <AISuggestions searchQuery={searchQuery} user={user} />
-              </div>
-              
-              {/* Main Content */}
-              <div className="lg:col-span-3">
-                {viewMode === 'grid' ? (
-                  <PropertyGrid 
+            <Suspense fallback={null}>
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <div className="lg:col-span-1 space-y-6">
+                  <SearchFilters
                     filters={searchFilters}
-                    searchQuery={searchQuery}
-                    onPropertySelect={setSelectedProperty}
-                    onFiltersUpdate={updateFilters}
+                    setFilters={setSearchFilters}
                   />
-                ) : (
-                  <MapView 
-                    filters={searchFilters}
-                    searchQuery={searchQuery}
-                    onPropertySelect={setSelectedProperty}
-                  />
-                )}
+                  <AISuggestions searchQuery={searchQuery} user={user} />
+                </div>
+                <div className="lg:col-span-3">
+                  {viewMode === 'grid' ? (
+                    <PropertyGrid
+                      filters={searchFilters}
+                      searchQuery={searchQuery}
+                      onPropertySelect={setSelectedProperty}
+                      onFiltersUpdate={updateFilters}
+                    />
+                  ) : (
+                    <MapView
+                      filters={searchFilters}
+                      searchQuery={searchQuery}
+                      onPropertySelect={setSelectedProperty}
+                    />
+                  )}
+                </div>
               </div>
-            </div>
+            </Suspense>
           )
         )}
       </main>
@@ -397,31 +398,39 @@ export default function App() {
 
       {/* Modals */}
       {selectedProperty && (
-        <PropertyModal
-          property={selectedProperty}
-          onClose={() => setSelectedProperty(null)}
-        />
+        <Suspense fallback={null}>
+          <PropertyModal
+            property={selectedProperty}
+            onClose={() => setSelectedProperty(null)}
+          />
+        </Suspense>
       )}
 
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        onSignIn={handleSignIn}
-        onSignUp={handleSignUp}
-      />
+      <Suspense fallback={null}>
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          onSignIn={handleSignIn}
+          onSignUp={handleSignUp}
+        />
+      </Suspense>
 
-      <PremiumFeaturesModal
-        isOpen={isPremiumFeaturesModalOpen}
-        onClose={() => setIsPremiumFeaturesModalOpen(false)}
-        onUpgrade={openUpgradeModal}
-      />
+      <Suspense fallback={null}>
+        <PremiumFeaturesModal
+          isOpen={isPremiumFeaturesModalOpen}
+          onClose={() => setIsPremiumFeaturesModalOpen(false)}
+          onUpgrade={openUpgradeModal}
+        />
+      </Suspense>
 
-      <UpgradeModal
-        isOpen={isUpgradeModalOpen}
-        onClose={() => setIsUpgradeModalOpen(false)}
-        onBack={handleBackToPremiumFeatures}
-        onUpgradeComplete={handleUpgradeComplete}
-      />
+      <Suspense fallback={null}>
+        <UpgradeModal
+          isOpen={isUpgradeModalOpen}
+          onClose={() => setIsUpgradeModalOpen(false)}
+          onBack={handleBackToPremiumFeatures}
+          onUpgradeComplete={handleUpgradeComplete}
+        />
+      </Suspense>
 
       {/* Toast Notifications */}
       <Toaster richColors position="top-right" />
