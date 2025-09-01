@@ -5,6 +5,7 @@ import { Button } from './ui/button';
 import { Heart, MapPin, Bed, Bath, Square, Calendar } from 'lucide-react';
 import { type Property } from '../types/property';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { memo } from 'react';
 
 interface PropertyCardProps {
   property: Property;
@@ -14,7 +15,7 @@ interface PropertyCardProps {
   onToggleFavorite?: (property: Property) => void;
 }
 
-export function PropertyCard({ property, onClick, isWhiteBackground = false, isFavorite = false, onToggleFavorite }: PropertyCardProps) {
+function PropertyCardComponent({ property, onClick, isWhiteBackground = false, isFavorite = false, onToggleFavorite }: PropertyCardProps) {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -172,3 +173,5 @@ export function PropertyCard({ property, onClick, isWhiteBackground = false, isF
     </Card>
   );
 }
+
+export const PropertyCard = memo(PropertyCardComponent);
