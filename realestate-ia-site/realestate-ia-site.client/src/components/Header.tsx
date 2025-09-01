@@ -42,7 +42,7 @@ export function Header({
 }: HeaderProps) {
   return (
     <header className="bg-card/95 backdrop-blur-lg border-b border-clay-medium sticky top-0 z-50 shadow-clay-soft">
-      <div className="container mx-auto px-4 relative">
+      <div className="site-container relative">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center space-x-3">
