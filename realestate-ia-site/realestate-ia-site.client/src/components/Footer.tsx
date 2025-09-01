@@ -4,7 +4,7 @@ import { Home, Mail } from 'lucide-react';
 export function Footer() {
   return (
     <footer className="w-full bg-pale-clay border-t border-cocoa-taupe/20">
-      <div className="container mx-auto px-6 py-8">
+      <div className="site-container py-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-6 text-center md:text-left min-h-[120px] items-center">
           
           {/* Coluna 1 - Identidade */}
