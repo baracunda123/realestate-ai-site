@@ -1,62 +1,20 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Sparkles, Loader2, X, ChevronDown, ChevronUp } from 'lucide-react';
-import { searchProperties } from '../api/properties.service';
 
 interface AIResponseBoxProps {
   query: string;
   open: boolean;
+  text?: string;
+  loading?: boolean;
+  error?: string | null;
   onClose?: () => void;
 }
 
-export function AIResponseBox({ query, open, onClose }: AIResponseBoxProps) {
-  const [aiText, setAiText] = useState<string>('');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export function AIResponseBox({ query, open, text, loading = false, error = null, onClose }: AIResponseBoxProps) {
   const [minimized, setMinimized] = useState(false);
-  const abortRef = useRef<AbortController | null>(null);
-
-  const shouldQuery = useMemo(() => open && query.trim().length >= 3, [open, query]);
-
-  useEffect(() => {
-    if (!shouldQuery) {
-      setAiText('');
-      setLoading(false);
-      setError(null);
-      setMinimized(false);
-      if (abortRef.current) {
-        abortRef.current.abort();
-        abortRef.current = null;
-      }
-      return;
-    }
-
-    const controller = new AbortController();
-    abortRef.current = controller;
-    setLoading(true);
-    setError(null);
-
-    const handler = setTimeout(async () => {
-      try {
-        const res = await searchProperties({ searchQuery: query, signal: controller.signal });
-        setAiText(res.aiResponse || '');
-        setError(null);
-      } catch (e: any) {
-        if (e?.name !== 'AbortError') {
-          setError('Não foi possível obter a resposta da IA agora.');
-        }
-      } finally {
-        setLoading(false);
-      }
-    }, 450);
-
-    return () => {
-      clearTimeout(handler);
-      controller.abort();
-    };
-  }, [query, shouldQuery]);
 
   if (!open) return null;
 
@@ -101,7 +59,7 @@ export function AIResponseBox({ query, open, onClose }: AIResponseBoxProps) {
               <div className="text-sm text-error-strong">{error}</div>
             ) : (
               <div className="text-sm text-warm-taupe leading-relaxed whitespace-pre-wrap max-h-48 overflow-auto pr-1">
-                {aiText ? aiText : (
+                {text ? text : (
                   loading ? '' : 'Descreva o que procura e a IA ajudará a interpretar a sua pesquisa.'
                 )}
               </div>

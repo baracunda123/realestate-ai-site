@@ -168,7 +168,7 @@ const calculateRelevanceScore = (property: Property, query: string): number => {
   let score = 0;
   
   const queryLower = query.toLowerCase();
-  const searchableText = `${property.title} ${property.description} ${property.location} ${property.features.join(' ')}`.toLowerCase();
+  const searchableText = `${property.title} ${property.description} ${property.location} ${(property.features || []).join(' ')}`.toLowerCase();
   
   // Exact phrase match gets highest score
   if (searchableText.includes(queryLower)) {
@@ -225,10 +225,10 @@ export function PropertyGrid({ filters, searchQuery, serverResults, onPropertySe
         return false;
       }
       
-      // Search query filter
-      if (searchQuery) {
+      // Search query filter (skip if using server-provided results)
+      if (searchQuery && !serverResults) {
         const searchLower = searchQuery.toLowerCase();
-        const searchableText = `${property.title} ${property.description} ${property.location} ${property.features.join(' ')}`.toLowerCase();
+        const searchableText = `${property.title} ${property.description} ${property.location} ${(property.features || []).join(' ')}`.toLowerCase();
         if (!searchableText.includes(searchLower)) {
           return false;
         }
@@ -237,8 +237,8 @@ export function PropertyGrid({ filters, searchQuery, serverResults, onPropertySe
       return true;
     });
 
-    // Text-based ranking if there's a search query
-    if (searchQuery.trim()) {
+    // Text-based ranking if there's a search query and not using server results
+    if (searchQuery.trim() && !serverResults) {
       filtered = filtered.map(property => ({
         ...property,
         aiRelevanceScore: calculateRelevanceScore(property, searchQuery)

@@ -28,6 +28,9 @@ interface HeaderProps {
   currentView: 'home' | 'personal';
   onOpenUpgradeModal?: () => void;
   onSubmitSearch?: (query: string) => void;
+  aiText?: string;
+  aiLoading?: boolean;
+  aiError?: string | null;
 }
 
 export function Header({
@@ -42,19 +45,16 @@ export function Header({
   onNavigateToHome,
   currentView,
   onOpenUpgradeModal,
-  onSubmitSearch
+  onSubmitSearch,
+  aiText,
+  aiLoading,
+  aiError
 }: HeaderProps) {
   const [aiOpen, setAiOpen] = useState(false);
   const [aiQuery, setAiQuery] = useState('');
   const [localInput, setLocalInput] = useState(searchQuery);
 
-  const openAIBox = () => {
-    if (!user) { onOpenAuth(); return; }
-    const q = (localInput || '').trim();
-    if (!q) return;
-    setAiQuery(q);
-    setAiOpen(true);
-  };
+  // removed openAIBox - arrow will submit the search
 
   const submitSearch = () => {
     if (!user) { onOpenAuth(); return; }
@@ -110,7 +110,7 @@ export function Header({
                   <Button
                     size="icon"
                     className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-burnt-peach hover:bg-burnt-peach-deep text-white border-0 shadow-clay-soft"
-                    onClick={openAIBox}
+                    onClick={submitSearch}
                     disabled={!user || !(localInput || '').trim().length}
                     aria-label="Abrir resposta IA"
                     title="Perguntar IA"
@@ -122,7 +122,7 @@ export function Header({
 
               {/* AI response box under search (only when explicitly opened) */}
               {user && (
-                <AIResponseBox query={aiQuery} open={aiOpen} onClose={() => setAiOpen(false)} />
+                <AIResponseBox query={aiQuery} open={aiOpen} text={aiText} loading={aiLoading} error={aiError || null} onClose={() => setAiOpen(false)} />
               )}
 
               {/* Overlay for non-logged users */}

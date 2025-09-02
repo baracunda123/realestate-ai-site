@@ -47,6 +47,9 @@ export default function App() {
   const [currentView, setCurrentView] = useState<'home' | 'personal' | 'alert-results'>('home');
   const [selectedAlert, setSelectedAlert] = useState<PropertyAlert | null>(null);
   const [searchResults, setSearchResults] = useState<Property[] | null>(null);
+  const [aiText, setAiText] = useState<string>('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   
   // Authentication state
   const [user, setUser] = useState<User | null>(null);
@@ -362,11 +365,14 @@ export default function App() {
         currentView={currentView}
         onOpenUpgradeModal={openUpgradeModal}
         onSubmitSearch={async (q) => {
+          setAiLoading(true);
+          setAiError(null);
           try {
             const { searchProperties } = await import('./api/properties.service');
             const res = await searchProperties({ searchQuery: q });
             const props = res.properties || [];
             setSearchResults(props);
+            setAiText(res.aiResponse || '');
             setSearchQuery(q);
             setCurrentView('home');
             window.location.hash = '';
@@ -375,12 +381,18 @@ export default function App() {
             }
           } catch {
             setSearchResults([]);
+            setAiText('');
+            setAiError('Não foi possível obter a resposta da IA agora.');
             setSearchQuery(q);
             setCurrentView('home');
             window.location.hash = '';
-            // aviso de falha removido a pedido do utilizador
+          } finally {
+            setAiLoading(false);
           }
         }}
+        aiText={aiText}
+        aiLoading={aiLoading}
+        aiError={aiError}
       />
       
       <main className="flex-1 site-container py-8">

@@ -49,6 +49,15 @@ function PropertyCardComponent({ property, onClick, isWhiteBackground = false, i
     return names[type as keyof typeof names] || type;
   };
 
+  // Função para obter a primeira imagem disponível ou usar fallback
+  const getMainImage = () => {
+    if (property.images && property.images.length > 0) {
+      return property.images[0];
+    }
+    // Fallback para uma imagem padrão de propriedade
+    return 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop';
+  };
+
   return (
     <Card 
       className={`overflow-hidden hover:shadow-clay-medium transition-all duration-300 cursor-pointer group border border-clay-medium hover:border-clay-strong ${isWhiteBackground ? 'property-card-white' : ''}`} 
@@ -60,7 +69,7 @@ function PropertyCardComponent({ property, onClick, isWhiteBackground = false, i
     >
       <div className="relative">
         <ImageWithFallback
-          src={property.images[0]}
+          src={getMainImage()}
           alt={property.title}
           className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500"
         />
@@ -157,12 +166,12 @@ function PropertyCardComponent({ property, onClick, isWhiteBackground = false, i
           </div>
           
           <div className="flex flex-wrap gap-1">
-            {property.features.slice(0, 3).map((feature, index) => (
+            {property.features && property.features.slice(0, 3).map((feature, index) => (
               <Badge key={feature} className="text-xs border bg-pure-white text-title border-clay-medium">
                 {feature}
               </Badge>
             ))}
-            {property.features.length > 3 && (
+            {property.features && property.features.length > 3 && (
               <Badge variant="outline" className="text-xs bg-pure-white text-clay-secondary border-clay-medium">
                 +{property.features.length - 3} mais
               </Badge>
