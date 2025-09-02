@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import { Sparkles, Loader2, X } from 'lucide-react';
+import { Sparkles, Loader2, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { searchProperties } from '../api/properties.service';
 
 interface AIResponseBoxProps {
@@ -15,6 +15,7 @@ export function AIResponseBox({ query, open, onClose }: AIResponseBoxProps) {
   const [aiText, setAiText] = useState<string>('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [minimized, setMinimized] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
 
   const shouldQuery = useMemo(() => open && query.trim().length >= 3, [open, query]);
@@ -24,6 +25,7 @@ export function AIResponseBox({ query, open, onClose }: AIResponseBoxProps) {
       setAiText('');
       setLoading(false);
       setError(null);
+      setMinimized(false);
       if (abortRef.current) {
         abortRef.current.abort();
         abortRef.current = null;
@@ -40,6 +42,7 @@ export function AIResponseBox({ query, open, onClose }: AIResponseBoxProps) {
       try {
         const res = await searchProperties({ searchQuery: query, signal: controller.signal });
         setAiText(res.aiResponse || '');
+        setError(null);
       } catch (e: any) {
         if (e?.name !== 'AbortError') {
           setError('Não foi possível obter a resposta da IA agora.');
@@ -74,21 +77,35 @@ export function AIResponseBox({ query, open, onClose }: AIResponseBoxProps) {
                 </Badge>
               )}
             </div>
-            {onClose && (
-              <Button variant="ghost" size="icon" className="h-7 w-7 text-clay-secondary hover:text-title" onClick={onClose}>
-                <X className="h-4 w-4" />
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 text-clay-secondary hover:text-title"
+                onClick={() => setMinimized(m => !m)}
+                aria-label={minimized ? 'Maximizar' : 'Minimizar'}
+                title={minimized ? 'Maximizar' : 'Minimizar'}
+              >
+                {minimized ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
               </Button>
-            )}
-          </div>
-
-          {error ? (
-            <div className="text-sm text-error-strong">{error}</div>
-          ) : (
-            <div className="text-sm text-warm-taupe leading-relaxed whitespace-pre-wrap max-h-48 overflow-auto pr-1">
-              {aiText ? aiText : (
-                loading ? '': 'Descreva o que procura e a IA ajudará a interpretar a sua pesquisa.'
+              {onClose && (
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-clay-secondary hover:text-title" onClick={onClose} aria-label="Fechar">
+                  <X className="h-4 w-4" />
+                </Button>
               )}
             </div>
+          </div>
+
+          {!minimized && (
+            error ? (
+              <div className="text-sm text-error-strong">{error}</div>
+            ) : (
+              <div className="text-sm text-warm-taupe leading-relaxed whitespace-pre-wrap max-h-48 overflow-auto pr-1">
+                {aiText ? aiText : (
+                  loading ? '' : 'Descreva o que procura e a IA ajudará a interpretar a sua pesquisa.'
+                )}
+              </div>
+            )
           )}
         </CardContent>
       </Card>

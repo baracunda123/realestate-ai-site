@@ -156,6 +156,7 @@ const mockProperties: Property[] = [
 interface PropertyGridProps {
   filters: SearchFilters;
   searchQuery: string;
+  serverResults?: Property[];
   onPropertySelect: (property: Property) => void;
   onFiltersUpdate: (filters: Partial<SearchFilters>) => void;
   favorites?: Property[];
@@ -195,9 +196,10 @@ const calculateRelevanceScore = (property: Property, query: string): number => {
   return score;
 };
 
-export function PropertyGrid({ filters, searchQuery, onPropertySelect, onFiltersUpdate, favorites = [], onToggleFavorite }: PropertyGridProps) {
+export function PropertyGrid({ filters, searchQuery, serverResults, onPropertySelect, onFiltersUpdate, favorites = [], onToggleFavorite }: PropertyGridProps) {
+  const source = serverResults && serverResults.length > 0 ? serverResults : mockProperties;
   const filteredAndRankedProperties = useMemo(() => {
-    let filtered = mockProperties.filter(property => {
+    let filtered = source.filter(property => {
       // Price filter
       if (property.price < filters.priceRange[0] || property.price > filters.priceRange[1]) {
         return false;
@@ -258,7 +260,7 @@ export function PropertyGrid({ filters, searchQuery, onPropertySelect, onFilters
     }
 
     return filtered;
-  }, [filters, searchQuery]);
+  }, [filters, searchQuery, serverResults]);
 
   const hasAIRanking = searchQuery.trim().length > 0;
 

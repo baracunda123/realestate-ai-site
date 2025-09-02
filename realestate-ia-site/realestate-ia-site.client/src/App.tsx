@@ -46,6 +46,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [currentView, setCurrentView] = useState<'home' | 'personal' | 'alert-results'>('home');
   const [selectedAlert, setSelectedAlert] = useState<PropertyAlert | null>(null);
+  const [searchResults, setSearchResults] = useState<Property[] | null>(null);
   
   // Authentication state
   const [user, setUser] = useState<User | null>(null);
@@ -348,7 +349,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header 
+      <Header
         searchQuery={searchQuery}
         setSearchQuery={handleSearchQueryChange}
         viewMode={viewMode}
@@ -360,6 +361,26 @@ export default function App() {
         onNavigateToHome={navigateToHome}
         currentView={currentView}
         onOpenUpgradeModal={openUpgradeModal}
+        onSubmitSearch={async (q) => {
+          try {
+            const { searchProperties } = await import('./api/properties.service');
+            const res = await searchProperties({ searchQuery: q });
+            const props = res.properties || [];
+            setSearchResults(props);
+            setSearchQuery(q);
+            setCurrentView('home');
+            window.location.hash = '';
+            if (props.length === 0) {
+              toast.info('Sem resultados', { description: 'A IA responderá com dicas mesmo sem listagens.' });
+            }
+          } catch {
+            setSearchResults([]);
+            setSearchQuery(q);
+            setCurrentView('home');
+            window.location.hash = '';
+            // aviso de falha removido a pedido do utilizador
+          }
+        }}
       />
       
       <main className="flex-1 site-container py-8">
@@ -411,6 +432,7 @@ export default function App() {
                     <PropertyGrid
                     filters={searchFilters}
                     searchQuery={searchQuery}
+                    serverResults={searchResults || undefined}
                     onPropertySelect={setSelectedProperty}
                     onFiltersUpdate={updateFilters}
                     favorites={favorites}
