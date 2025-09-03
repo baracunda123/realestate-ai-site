@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+ï»¿using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -23,7 +23,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Configurar Identity
 builder.Services.AddIdentity<User, IdentityRole>(options =>
 {
-    // Configurações de senha
+    // ConfiguraÃ§Ãµes de senha
     options.Password.RequireDigit = true;
     options.Password.RequireLowercase = true;
     options.Password.RequireUppercase = true;
@@ -31,25 +31,29 @@ builder.Services.AddIdentity<User, IdentityRole>(options =>
     options.Password.RequiredLength = 8;
     options.Password.RequiredUniqueChars = 4;
 
-    // Configurações de bloqueio
+    // ConfiguraÃ§Ãµes de bloqueio
     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
     options.Lockout.MaxFailedAccessAttempts = 5;
     options.Lockout.AllowedForNewUsers = true;
 
-    // Configurações de usuário
+    // ConfiguraÃ§Ãµes de usuÃ¡rio
     options.User.RequireUniqueEmail = true;
     options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
 
-    // Configurações de email
+    // ConfiguraÃ§Ãµes de email
     options.SignIn.RequireConfirmedEmail = true;
     options.SignIn.RequireConfirmedPhoneNumber = false;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
-// Configurar JWT
-builder.Services.AddAuthentication("Bearer")
-    .AddJwtBearer("Bearer", options =>
+// Configurar JWT como PADRÃƒO
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = "Bearer";  // â† ISTO Ã‰ CRUCIAL!
+    options.DefaultChallengeScheme = "Bearer";     // â† E ISTO TAMBÃ‰M!
+})
+.AddJwtBearer("Bearer", options =>
     {
         options.TokenValidationParameters = new TokenValidationParameters
         {
@@ -64,18 +68,17 @@ builder.Services.AddAuthentication("Bearer")
         };
     });
 
+
 // Configurar Rate Limiting
 builder.Services.AddRateLimiter(options =>
 {
-    options.AddPolicy("AuthPolicy", context =>
+    options.AddPolicy("JwtPolicy", context =>
         RateLimitPartition.GetFixedWindowLimiter(
             partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             factory: _ => new FixedWindowRateLimiterOptions
             {
-                PermitLimit = 5,
-                Window = TimeSpan.FromMinutes(1),
-                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                QueueLimit = 2
+                PermitLimit = 100, // 100 requisiÃ§Ãµes por minuto
+                Window = TimeSpan.FromMinutes(1)
             }));
 });
 
@@ -136,31 +139,48 @@ builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        policy.WithOrigins("https://yourdomain.com") // Seu domínio específico
-              .AllowCredentials()
-              .AllowAnyMethod()
-              .AllowAnyHeader();
+        if (builder.Environment.IsDevelopment())
+        {
+            policy.WithOrigins("https://localhost:64222") 
+                  .AllowCredentials()
+                  .AllowAnyMethod()
+                  .WithHeaders("Content-Type", "Authorization", "X-Session-ID"); 
+        }
+        else
+        {
+            policy.WithOrigins("https://yourdomain.com")
+                  .AllowCredentials()
+                  .AllowAnyMethod()
+                  .WithHeaders("Content-Type", "Authorization", "X-Session-ID");
+        }
     });
 });
 
 var app = builder.Build();
 
-// Adicionar headers de segurança
+// CSP mais permissiva para desenvolvimento
 app.Use(async (context, next) =>
 {
-    // Content Security Policy mais restritiva
-    context.Response.Headers["Content-Security-Policy"] = 
-        "default-src 'self'; " +
-        "script-src 'self'; " + // REMOVER 'unsafe-inline' e 'unsafe-eval'
-        "style-src 'self' 'unsafe-inline'; " + // CSS inline ainda permitido
-        "img-src 'self' data: https:; " +
-        "font-src 'self' data:; " +
-        "connect-src 'self'; " +
-        "frame-ancestors 'none'; " +
-        "base-uri 'self'; " + 
-        "form-action 'self';"; 
+    if (app.Environment.IsDevelopment())
+    {
+        // CSP relaxada para Swagger funcionar
+        context.Response.Headers["Content-Security-Policy"] = 
+            "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; " +
+            "connect-src 'self' https: http:; " +
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
+            "style-src 'self' 'unsafe-inline';";
+    }
+    else
+    {
+        // CSP restritiva para produÃ§Ã£o
+        context.Response.Headers["Content-Security-Policy"] = 
+            "default-src 'self'; " +
+            "script-src 'self'; " +
+            "style-src 'self' 'unsafe-inline'; " +
+            "connect-src 'self';";
+    }
     
-    // Headers adicionais de segurança
+    // Outros headers...
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
     context.Response.Headers["X-Frame-Options"] = "DENY";
     context.Response.Headers["X-XSS-Protection"] = "1; mode=block";
@@ -180,7 +200,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// ADICIONAR: Middleware de sessão antes da autorização
+// ADICIONAR: Middleware de sessÃ£o antes da autorizaÃ§Ã£o
 app.UseMiddleware<SessionMiddleware>();
 
 app.UseRateLimiter();

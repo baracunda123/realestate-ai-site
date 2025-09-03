@@ -1,4 +1,4 @@
-// client.ts -  client 
+// client.ts - client 
 import axios from 'axios';
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { v4 as uuidv4 } from 'uuid';
@@ -22,10 +22,22 @@ interface UserProfile {
   createdAt: string;
 }
 
+// Função simples para logs
+function logClient(message: string) {
+    const timestamp = new Date().toLocaleTimeString();
+    const fullMessage = `[${timestamp}] CLIENT: ${message}`;
+
+    // Para desenvolvimento: também alert se for muito importante
+    if (message.includes('BLOQUEADO') || message.includes('ERRO')) {
+        console.error(fullMessage);
+    } else {
+        console.log(fullMessage);
+    }
+}
+
 // Classe para gerenciamento SEGURO de tokens
 class SecureTokenManager {
   private static readonly SESSION_KEY = 'realestate_session_id';
-  private static readonly TOKEN_EXPIRY_KEY = 'token_expiry';
   private static readonly USER_KEY = 'user_profile';
   
   private static accessTokenMemory: string | null = null;
@@ -36,29 +48,39 @@ class SecureTokenManager {
   static initialize(): void {
     this.sessionId = localStorage.getItem(this.SESSION_KEY) || uuidv4();
     localStorage.setItem(this.SESSION_KEY, this.sessionId);
+    logClient(`Session inicializada: ${this.sessionId.substring(0, 8)}...`);
   }
 
   static saveTokens(tokenResponse: TokenResponse, user: UserProfile): void {
     // Validação rigorosa
     if (!tokenResponse?.accessToken || !tokenResponse?.expiresAt || !user?.id) {
-      console.warn('Dados de token inválidos');
+      logClient('Dados de token inválidos');
       return;
     }
 
     const expiryDate = new Date(tokenResponse.expiresAt);
     if (expiryDate <= new Date()) {
-      console.warn('Token já expirado');
+      logClient('Token já expirado');
       return;
     }
 
+    //APENAS EM MEMÓRIA
     this.accessTokenMemory = tokenResponse.accessToken;
     this.tokenExpiryMemory = expiryDate;
     
     try {
-      localStorage.setItem(this.TOKEN_EXPIRY_KEY, tokenResponse.expiresAt);
-      localStorage.setItem(this.USER_KEY, JSON.stringify(user));
-    } catch (error) {
-      console.warn('Erro ao salvar no localStorage:', error);
+      
+      //SÓ SALVA USER (sem dados sensíveis)
+      const safeUser = {
+        id: user.id,
+        email: user.email,
+        fullName: user.fullName,
+        isEmailVerified: user.isEmailVerified,
+      };
+      localStorage.setItem(this.USER_KEY, JSON.stringify(safeUser));
+      logClient(`Tokens salvos para: ${user.email}`);
+    } catch {
+      logClient('Erro ao salvar no localStorage');
     }
   }
 
@@ -83,14 +105,13 @@ class SecureTokenManager {
   }
 
   static isTokenExpired(): boolean {
+    //  SÓ VERIFICA MEMÓRIA
     if (this.tokenExpiryMemory) {
       return this.isTokenExpiredMemory();
     }
-    
-    const expiry = localStorage.getItem(this.TOKEN_EXPIRY_KEY);
-    if (!expiry) return true;
-    
-    return new Date() >= new Date(new Date(expiry).getTime() - 30000);
+
+    // Se não há token em memória, considera expirado
+    return true;
   }
 
   static getCurrentUser(): UserProfile | null {
@@ -108,10 +129,10 @@ class SecureTokenManager {
     this.isRefreshing = false;
     
     try {
-      localStorage.removeItem(this.TOKEN_EXPIRY_KEY);
       localStorage.removeItem(this.USER_KEY);
-    } catch (error) {
-      console.warn('Erro ao limpar localStorage:', error);
+      logClient('Tokens limpos');
+    } catch {
+      logClient('Erro ao limpar localStorage');
     }
   }
 
@@ -119,14 +140,11 @@ class SecureTokenManager {
     const expiryDate = new Date(expiresAt);
     if (expiryDate <= new Date()) return;
 
+    // APENAS EM MEMÓRIA
     this.accessTokenMemory = newToken;
     this.tokenExpiryMemory = expiryDate;
     
-    try {
-      localStorage.setItem(this.TOKEN_EXPIRY_KEY, expiresAt);
-    } catch (error) {
-      console.warn('Erro ao atualizar localStorage:', error);
-    }
+    logClient('Token atualizado');
   }
 
   static isAuthenticated(): boolean {
@@ -144,8 +162,9 @@ class SecureTokenManager {
     this.sessionId = uuidv4();
     try {
       localStorage.setItem(this.SESSION_KEY, this.sessionId);
-    } catch (error) {
-      console.warn('Erro ao regenerar sessão:', error);
+      logClient(`Nova sessão gerada`);
+    } catch  {
+      logClient('Erro ao regenerar sessão');
     }
     return this.sessionId;
   }
@@ -168,6 +187,7 @@ async function refreshAccessToken(): Promise<TokenResponse | null> {
   }
 
   try {
+    logClient('Tentando renovar token');
     SecureTokenManager.setRefreshing(true);
     
     const refreshClient = axios.create({
@@ -179,8 +199,10 @@ async function refreshAccessToken(): Promise<TokenResponse | null> {
     });
     
     const response = await refreshClient.post<{ token: TokenResponse }>('/api/auth/refresh-token');
+    logClient('Token renovado com sucesso');
     return response.data.token;
   } catch {
+    logClient('Falha na renovação do token');
     return null;
   } finally {
     SecureTokenManager.setRefreshing(false);
@@ -196,7 +218,7 @@ class ApiClient {
     this.client = axios.create({
       baseURL,
       withCredentials: true,
-      timeout: 30000, // 30 segundos timeout
+      timeout: 30000,
       headers: {
         'Content-Type': 'application/json',
       },
@@ -211,20 +233,16 @@ class ApiClient {
         // SEMPRE adicionar Session ID
         config.headers['X-Session-ID'] = SecureTokenManager.getSessionId();
         
-        // Para endpoints protegidos, token é OBRIGATÓRIO
+        // Para endpoints protegidos, adicionar token se disponível
         if (!this.isAuthEndpoint(config.url)) {
           const accessToken = SecureTokenManager.getAccessToken();
           
-          if (!accessToken) {
-            // Sem token para endpoint protegido = redirecionar
-            console.warn('Token necessário para endpoint protegido:', config.url);
-            if (typeof window !== 'undefined') {
-              window.location.href = '/login';
-            }
-            return Promise.reject(new Error('Autenticação necessária'));
+          if (accessToken) {
+            config.headers['Authorization'] = `Bearer ${accessToken}`;
+            logClient(`Requisição: ${config.method?.toUpperCase()} ${config.url}`);
+          } else {
+            logClient(`Requisição sem token: ${config.method?.toUpperCase()} ${config.url}`);
           }
-          
-          config.headers['Authorization'] = `Bearer ${accessToken}`;
         }
         
         return config;
@@ -233,20 +251,34 @@ class ApiClient {
     );
 
     this.client.interceptors.response.use(
-      (response) => response,
+      (response) => {
+        // Log para confirmar que interceptor funciona em sucesso
+        logClient(`Resposta SUCESSO: ${response.status} - ${response.config?.method?.toUpperCase()} ${response.config?.url}`);
+        return response;
+      },
       async (error) => {
+        // LOG IMEDIATO: confirmar que interceptor executa
+        logClient(`INTERCEPTOR ERRO EXECUTADO!`);
+        logClient(`Status: ${error.response?.status || 'SEM_STATUS'}`);
+        logClient(`URL: ${error.config?.url || 'SEM_URL'}`);
+        logClient(`Método: ${error.config?.method?.toUpperCase() || 'SEM_MÉTODO'}`);
+        
         const originalRequest = error.config;
         
         // Não tentar renovação em endpoints de auth
         if (this.isAuthEndpoint(originalRequest.url)) {
+          logClient(`Endpoint de auth - rejeitando erro`);
           return Promise.reject(error);
         }
         
-        // Para endpoints protegidos: sempre tentar renovação em 401
+        logClient(`Não é endpoint de auth - verificando 401...`);
+        
+        // Para endpoints protegidos: tentar renovação em 401
         if (error.response?.status === 401 && 
             !originalRequest._retry && 
             !SecureTokenManager.getIsRefreshing()) {
           
+          logClient('Erro 401 - tentando renovar token');
           originalRequest._retry = true;
           
           try {
@@ -257,15 +289,19 @@ class ApiClient {
               SecureTokenManager.updateAccessToken(newTokens.accessToken, newTokens.expiresAt);
               originalRequest.headers.Authorization = `Bearer ${newTokens.accessToken}`;
               return this.client(originalRequest);
+            } else {
+              logClient('Falha na renovação - limpando tokens');
+              SecureTokenManager.clearTokens();
             }
           } catch {
+            logClient('Erro na renovação - limpando tokens');
             SecureTokenManager.clearTokens();
-            if (typeof window !== 'undefined') {
-              window.location.href = '/login';
-            }
           }
+        } else {
+          logClient(`Não é 401 ou já tentou retry. Status: ${error.response?.status}, Retry: ${originalRequest._retry}, Refreshing: ${SecureTokenManager.getIsRefreshing()}`);
         }
         
+        logClient(`Rejeitando erro final`);
         return Promise.reject(error);
       }
     );
@@ -326,6 +362,11 @@ class ApiClient {
 }
 
 const apiClient = new ApiClient();
+
+// LOG: Quando o client carrega
+if (import.meta.env.DEV) {
+    logClient('ApiClient carregado');
+}
 
 export default apiClient;
 export { ApiClient, SecureTokenManager };

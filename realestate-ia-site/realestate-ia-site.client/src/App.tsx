@@ -128,6 +128,7 @@ export default function App() {
       try { setFavorites(JSON.parse(raw)); } catch {}
     }
   }, []);
+
   useEffect(() => {
     localStorage.setItem('hf_favorites', JSON.stringify(favorites));
   }, [favorites]);
