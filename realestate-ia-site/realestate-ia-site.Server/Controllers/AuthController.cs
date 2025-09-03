@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+Ôªøusing Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -54,12 +54,12 @@ namespace realestate_ia_site.Server.Controllers
 
             try
             {
-                // Verificar se email j· existe
+                // Verificar se email j√° existe
                 var existingUser = await _userManager.FindByEmailAsync(request.Email);
                 if (existingUser != null)
-                    return BadRequest(new { message = "Email j· est· em uso" });
+                    return BadRequest(new { message = "Email j√° est√° em uso" });
 
-                // Criar usu·rio
+                // Criar usu√°rio
                 var user = new User
                 {
                     UserName = request.Email.ToLowerInvariant(),
@@ -81,25 +81,44 @@ namespace realestate_ia_site.Server.Controllers
                     });
                 }
 
-                // Gerar token de confirmaÁ„o de email
+                // Gerar token de confirma√ß√£o de email
                 var emailToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                 await SendEmailConfirmationAsync(user, emailToken);
 
-                _logger.LogInformation("Usu·rio {Email} registrado com sucesso", request.Email);
+                _logger.LogInformation("Usu√°rio {Email} registrado com sucesso", request.Email);
 
                 // Gerar tokens JWT
                 var tokens = await GenerateTokensAsync(user);
                 var userProfile = MapToUserProfile(user);
 
+                // Enviar refresh token como cookie HttpOnly
+                Response.Cookies.Append("refresh_token", tokens.RefreshToken, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = true,
+                    SameSite = SameSiteMode.Strict,
+                    Expires = DateTime.UtcNow.AddDays(30),
+                    Path = "/api/auth"
+                });
+
+                // N√£o enviar refresh token na resposta
+                var responseTokens = new TokenResponse
+                {
+                    AccessToken = tokens.AccessToken,
+                    RefreshToken = "", // N√£o enviar na resposta
+                    ExpiresAt = tokens.ExpiresAt,
+                    TokenType = tokens.TokenType
+                };
+
                 return Ok(AuthResult.SuccessResult(
-                    tokens, 
+                    responseTokens, 
                     userProfile, 
                     "Registro realizado com sucesso. Verifique seu email para ativar a conta."
                 ));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro durante registro do usu·rio {Email}", request.Email);
+                _logger.LogError(ex, "Erro durante registro do usu√°rio {Email}", request.Email);
                 return StatusCode(500, new { message = "Erro interno do servidor" });
             }
         }
@@ -117,10 +136,10 @@ namespace realestate_ia_site.Server.Controllers
                 if (user == null)
                 {
                     _logger.LogWarning("Tentativa de login com email inexistente: {Email}", request.Email);
-                    return BadRequest(new { message = "Credenciais inv·lidas" });
+                    return BadRequest(new { message = "Credenciais inv√°lidas" });
                 }
 
-                // Verificar se conta est· bloqueada
+                // Verificar se conta est√° bloqueada
                 if (user.IsLocked)
                 {
                     _logger.LogWarning("Tentativa de login em conta bloqueada: {Email}", request.Email);
@@ -130,7 +149,7 @@ namespace realestate_ia_site.Server.Controllers
                 // Verificar se email foi confirmado
                 if (!await _userManager.IsEmailConfirmedAsync(user))
                 {
-                    _logger.LogWarning("Tentativa de login com email n„o confirmado: {Email}", request.Email);
+                    _logger.LogWarning("Tentativa de login com email n√£o confirmado: {Email}", request.Email);
                     return BadRequest(new { message = "Por favor, confirme seu email antes de fazer login. Verifique sua caixa de entrada." });
                 }
 
@@ -142,8 +161,8 @@ namespace realestate_ia_site.Server.Controllers
                     user.IncrementFailedLogin();
                     await _userManager.UpdateAsync(user);
                     
-                    _logger.LogWarning("Senha inv·lida para {Email}", request.Email);
-                    return BadRequest(new { message = "Credenciais inv·lidas" });
+                    _logger.LogWarning("Senha inv√°lida para {Email}", request.Email);
+                    return BadRequest(new { message = "Credenciais inv√°lidas" });
                 }
 
                 // Login bem-sucedido
@@ -151,7 +170,7 @@ namespace realestate_ia_site.Server.Controllers
                 user.UpdateLastLogin(ipAddress);
                 await _userManager.UpdateAsync(user);
 
-                // Criar sess„o de login
+                // Criar sess√£o de login
                 await CreateLoginSessionAsync(user, ipAddress);
 
                 // Gerar tokens
@@ -161,9 +180,9 @@ namespace realestate_ia_site.Server.Controllers
                 // Enviar refresh token como cookie HttpOnly
                 Response.Cookies.Append("refresh_token", tokens.RefreshToken, new CookieOptions
                 {
-                    HttpOnly = true,        // N„o acessÌvel via JavaScript (proteÁ„o XSS)
+                    HttpOnly = true,        // N√£o acess√≠vel via JavaScript (prote√ß√£o XSS)
                     Secure = true,          // Apenas HTTPS
-                    SameSite = SameSiteMode.Strict, // ProteÁ„o CSRF
+                    SameSite = SameSiteMode.Strict, // Prote√ß√£o CSRF
                     Expires = DateTime.UtcNow.AddDays(30),
                     Path = "/api/auth"      // Apenas para endpoints de auth
                 });
@@ -174,7 +193,7 @@ namespace realestate_ia_site.Server.Controllers
                 var responseTokens = new TokenResponse
                 {
                     AccessToken = tokens.AccessToken,
-                    RefreshToken = "", // N„o enviar na resposta
+                    RefreshToken = "", // N√£o enviar na resposta
                     ExpiresAt = tokens.ExpiresAt,
                     TokenType = tokens.TokenType
                 };
@@ -187,7 +206,7 @@ namespace realestate_ia_site.Server.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro durante login do usu·rio {Email}", request.Email);
+                _logger.LogError(ex, "Erro durante login do usu√°rio {Email}", request.Email);
                 return StatusCode(500, new { message = "Erro interno do servidor" });
             }
         }
@@ -197,12 +216,20 @@ namespace realestate_ia_site.Server.Controllers
         {
             try
             {
-                // Obter refresh token do cookie em vez do body
+                //  Validar origem da requisi√ß√£o
+                var origin = Request.Headers["Origin"].ToString();
+                var allowedOrigins = _configuration.GetSection("AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+                
+                if (!string.IsNullOrEmpty(origin) && !allowedOrigins.Contains(origin))
+                {
+                    return BadRequest(new { message = "Origem n√£o autorizada" });
+                }
+
                 var refreshToken = Request.Cookies["refresh_token"];
                 
                 if (string.IsNullOrEmpty(refreshToken))
                 {
-                    return BadRequest(new { message = "Token de atualizaÁ„o n„o encontrado" });
+                    return BadRequest(new { message = "Token de atualiza√ß√£o n√£o encontrado" });
                 }
 
                 var user = await _userManager.Users
@@ -210,9 +237,9 @@ namespace realestate_ia_site.Server.Controllers
 
                 if (user == null || user.RefreshTokenExpires < DateTime.UtcNow)
                 {
-                    // Limpar cookie inv·lido
+                    // Limpar cookie inv√°lido
                     Response.Cookies.Delete("refresh_token");
-                    return BadRequest(new { message = "Token de atualizaÁ„o inv·lido ou expirado" });
+                    return BadRequest(new { message = "Token de atualiza√ß√£o inv√°lido ou expirado" });
                 }
 
                 var tokens = await GenerateTokensAsync(user);
@@ -231,7 +258,7 @@ namespace realestate_ia_site.Server.Controllers
                 var responseTokens = new TokenResponse
                 {
                     AccessToken = tokens.AccessToken,
-                    RefreshToken = "", // N„o enviar na resposta
+                    RefreshToken = "", // N√£o enviar na resposta
                     ExpiresAt = tokens.ExpiresAt,
                     TokenType = tokens.TokenType
                 };
@@ -265,7 +292,7 @@ namespace realestate_ia_site.Server.Controllers
                         user.RefreshTokenExpires = null;
                         await _userManager.UpdateAsync(user);
 
-                        // Desativar sessıes ativas
+                        // Desativar sess√µes ativas
                         var activeSessions = await _context.UserLoginSessions
                             .Where(s => s.UserId == userId && s.IsActive)
                             .ToListAsync();
@@ -302,7 +329,7 @@ namespace realestate_ia_site.Server.Controllers
                 var user = await _userManager.FindByIdAsync(userId!);
                 
                 if (user == null)
-                    return NotFound(new { message = "Usu·rio n„o encontrado" });
+                    return NotFound(new { message = "Usu√°rio n√£o encontrado" });
 
                 var userProfile = MapToUserProfile(user);
                 return Ok(userProfile);
@@ -327,7 +354,7 @@ namespace realestate_ia_site.Server.Controllers
                 var user = await _userManager.FindByIdAsync(userId!);
                 
                 if (user == null)
-                    return NotFound(new { message = "Usu·rio n„o encontrado" });
+                    return NotFound(new { message = "Usu√°rio n√£o encontrado" });
 
                 var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
                 
@@ -357,18 +384,18 @@ namespace realestate_ia_site.Server.Controllers
             try
             {
                 if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(token))
-                    return BadRequest(new { message = "Par‚metros inv·lidos" });
+                    return BadRequest(new { message = "Par√¢metros inv√°lidos" });
 
                 var user = await _userManager.FindByIdAsync(userId);
                 if (user == null)
-                    return BadRequest(new { message = "Usu·rio n„o encontrado" });
+                    return BadRequest(new { message = "Usu√°rio n√£o encontrado" });
 
                 var result = await _userManager.ConfirmEmailAsync(user, token);
                 
                 if (!result.Succeeded)
                 {
                     return BadRequest(new { 
-                        message = "Falha na confirmaÁ„o do email",
+                        message = "Falha na confirma√ß√£o do email",
                         errors = result.Errors.Select(e => e.Description).ToArray()
                     });
                 }
@@ -377,13 +404,13 @@ namespace realestate_ia_site.Server.Controllers
                 user.AccountStatus = AccountStatus.Active;
                 await _userManager.UpdateAsync(user);
 
-                _logger.LogInformation("Email confirmado com sucesso para usu·rio {UserId}", userId);
+                _logger.LogInformation("Email confirmado com sucesso para usu√°rio {UserId}", userId);
                 
                 return Ok(new { message = "Email confirmado com sucesso. Agora pode fazer login." });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro na confirmaÁ„o de email para usu·rio {UserId}", userId);
+                _logger.LogError(ex, "Erro na confirma√ß√£o de email para usu√°rio {UserId}", userId);
                 return StatusCode(500, new { message = "Erro interno do servidor" });
             }
         }
@@ -458,7 +485,7 @@ namespace realestate_ia_site.Server.Controllers
         {
             var confirmationLink = $"{_configuration["App:BaseUrl"]}/confirm-email?userId={user.Id}&token={Uri.EscapeDataString(token)}";
             
-            // Implementar envio de email de confirmaÁ„o
+            // Implementar envio de email de confirma√ß√£o
             await _emailService.SendTemplateEmailAsync("email-confirmation", user.Email!, new
             {
                 UserName = user.FullName,
@@ -475,7 +502,7 @@ namespace realestate_ia_site.Server.Controllers
                 FullName = user.FullName,
                 AvatarUrl = user.AvatarUrl,
                 IsEmailVerified = user.IsEmailVerified,
-                Credits = int.TryParse(user.Credits, out var credits) ? credits : 0, // Convers„o de string para int
+                Credits = int.TryParse(user.Credits, out var credits) ? credits : 0, // Convers√£o de string para int
                 Subscription = user.Subscription,
                 CreatedAt = user.CreatedAt
             };

@@ -132,20 +132,33 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddCors(options =>
+{
+    options.AddDefaultPolicy(policy =>
+    {
+        policy.WithOrigins("https://yourdomain.com") // Seu domínio específico
+              .AllowCredentials()
+              .AllowAnyMethod()
+              .AllowAnyHeader();
+    });
+});
+
 var app = builder.Build();
 
 // Adicionar headers de segurança
 app.Use(async (context, next) =>
 {
-    // Content Security Policy para prevenir XSS
+    // Content Security Policy mais restritiva
     context.Response.Headers["Content-Security-Policy"] = 
         "default-src 'self'; " +
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " +
-        "style-src 'self' 'unsafe-inline'; " +
+        "script-src 'self'; " + // REMOVER 'unsafe-inline' e 'unsafe-eval'
+        "style-src 'self' 'unsafe-inline'; " + // CSS inline ainda permitido
         "img-src 'self' data: https:; " +
         "font-src 'self' data:; " +
         "connect-src 'self'; " +
-        "frame-ancestors 'none';";
+        "frame-ancestors 'none'; " +
+        "base-uri 'self'; " + 
+        "form-action 'self';"; 
     
     // Headers adicionais de segurança
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";
@@ -173,6 +186,7 @@ app.UseMiddleware<SessionMiddleware>();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseCors();
 app.MapControllers();
 app.MapFallbackToFile("/index.html");
 
