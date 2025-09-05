@@ -24,10 +24,11 @@ interface AuthModalProps {
   onClose: () => void;
   onSignIn: (email: string, password: string) => void;
   onSignUp: (name: string, email: string, phone: string, password: string) => void;
+  defaultTab?: 'signin' | 'signup';
 }
 
-export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProps) {
-  const [activeTab, setActiveTab] = useState('signin');
+export function AuthModal({ isOpen, onClose, onSignIn, onSignUp, defaultTab = 'signin' }: AuthModalProps) {
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -40,6 +41,13 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
+
+  // Ensure correct initial tab when opening or when parent intent changes
+  React.useEffect(() => {
+    if (isOpen) {
+      setActiveTab(defaultTab);
+    }
+  }, [isOpen, defaultTab]);
 
   const handleSignIn = (e: React.FormEvent) => {
     e.preventDefault();
@@ -75,7 +83,7 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md border border-border bg-card shadow-mocha-lg">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto border border-border bg-card shadow-mocha-lg">
         <DialogHeader className="text-center pb-2">
           <div className="mx-auto w-12 h-12 gradient-mocha rounded-xl flex items-center justify-center mb-3">
             <Sparkles className="h-6 w-6 text-white" />

@@ -1,6 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Header } from './components/Header';
-import { AISuggestions } from './components/AISuggestions';
 import { PersonalArea } from './components/PersonalArea';
 import { Footer } from './components/Footer';
 import { toast } from 'sonner';
@@ -54,6 +53,8 @@ export default function App() {
   // Authentication state
   const [user, setUser] = useState<User | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authDefaultTab, setAuthDefaultTab] = useState<'signin' | 'signup'>('signin');
+  const [signupIntent, setSignupIntent] = useState<'free' | 'premium' | null>(null);
   
   // Premium upgrade modals state
   const [isPremiumFeaturesModalOpen, setIsPremiumFeaturesModalOpen] = useState(false);
@@ -258,9 +259,18 @@ export default function App() {
       isPremium: false,  // Set to Free to test limitations
       createdAt: new Date()
     };
-    
+
     setUser(mockUser);
     setIsAuthModalOpen(false);
+
+    // If the user clicked "Assinar Premium" and chose to sign in instead, open upgrade flow
+    if (signupIntent === 'premium' && !mockUser.isPremium) {
+      setSignupIntent(null);
+      setTimeout(() => {
+        setIsUpgradeModalOpen(true);
+      }, 0);
+    }
+
     toast.success(`Bem-vindo de volta, ${mockUser.name}!`, {
       description: 'Sessão iniciada com sucesso.',
     });
@@ -276,12 +286,26 @@ export default function App() {
       isPremium: false,
       createdAt: new Date()
     };
-    
+
     setUser(mockUser);
-    setIsAuthModalOpen(false);
-    toast.success(`Conta criada com sucesso!`, {
-      description: `Bem-vindo ao HomeFinder AI, ${mockUser.name}!`,
-    });
+
+    // Decide post-signup flow based on intent
+    if (signupIntent === 'premium') {
+      setIsAuthModalOpen(false);
+      setSignupIntent(null);
+      setTimeout(() => {
+        setIsUpgradeModalOpen(true);
+      }, 0);
+      toast.success(`Conta criada com sucesso!`, {
+        description: `Agora conclua o pagamento para ativar o Premium.`,
+      });
+    } else {
+      setIsAuthModalOpen(false);
+      setSignupIntent(null);
+      toast.success(`Conta criada com sucesso!`, {
+        description: `Bem-vindo ao HomeFinder AI, ${mockUser.name}!`,
+      });
+    }
   };
 
   const handleLogout = () => {
@@ -298,13 +322,15 @@ export default function App() {
       sortBy: 'price'
     });
     window.location.hash = '';
-    toast.success('Sessão terminada com sucesso!', {
+    toast.success('Sess��o terminada com sucesso!', {
       description: 'Até logo! Esperamos vê-lo em breve.',
     });
   };
 
   // Modal handlers
-  const openAuthModal = () => {
+  const openAuthModal = (tab: 'signin' | 'signup' = 'signin', intent: 'free' | 'premium' | null = null) => {
+    setAuthDefaultTab(tab);
+    setSignupIntent(intent);
     setIsAuthModalOpen(true);
   };
 
@@ -375,8 +401,8 @@ export default function App() {
             setSearchResults(props);
             setAiText(res.aiResponse || '');
             setSearchQuery(q);
-            setCurrentView('home');
-            window.location.hash = '';
+            if (currentView !== 'home') setCurrentView('home');
+            if (window.location.hash) window.location.hash = '';
             if (props.length === 0) {
               toast.info('Sem resultados', { description: 'A IA responderá com dicas mesmo sem listagens.' });
             }
@@ -385,8 +411,8 @@ export default function App() {
             setAiText('');
             setAiError('Não foi possível obter a resposta da IA agora.');
             setSearchQuery(q);
-            setCurrentView('home');
-            window.location.hash = '';
+            if (currentView !== 'home') setCurrentView('home');
+            if (window.location.hash) window.location.hash = '';
           } finally {
             setAiLoading(false);
           }
@@ -426,6 +452,8 @@ export default function App() {
                 onExampleSearch={handleExampleSearch}
                 onOpenPremiumFeatures={openPremiumFeaturesModal}
                 user={user}
+                onStartFreeSignup={() => openAuthModal('signup', 'free')}
+                onStartPremiumSignup={() => openAuthModal('signup', 'premium')}
               />
             </Suspense>
           </div>
@@ -438,7 +466,6 @@ export default function App() {
                     filters={searchFilters}
                     setFilters={setSearchFilters}
                   />
-                  <AISuggestions searchQuery={searchQuery} user={user} />
                 </div>
                 <div className="lg:col-span-3">
                   {viewMode === 'grid' ? (
@@ -484,6 +511,7 @@ export default function App() {
           onClose={() => setIsAuthModalOpen(false)}
           onSignIn={handleSignIn}
           onSignUp={handleSignUp}
+          defaultTab={authDefaultTab}
         />
       </Suspense>
 

@@ -72,12 +72,23 @@ builder.Services.AddAuthentication(options =>
 // Configurar Rate Limiting
 builder.Services.AddRateLimiter(options =>
 {
+    // Política existente para JWT
     options.AddPolicy("JwtPolicy", context =>
         RateLimitPartition.GetFixedWindowLimiter(
             partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             factory: _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 100, // 100 requisições por minuto
+                Window = TimeSpan.FromMinutes(1)
+            }));
+
+    // AuthPolicy para endpoints de autenticação
+    options.AddPolicy("AuthPolicy", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10, // 10 tentativas por IP por minuto (mais restritivo para auth)
                 Window = TimeSpan.FromMinutes(1)
             }));
 });

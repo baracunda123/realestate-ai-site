@@ -272,12 +272,6 @@ export function PropertyGrid({ filters, searchQuery, serverResults, onPropertySe
           <h2 className="text-xl font-medium text-foreground">
             {filteredAndRankedProperties.length} {filteredAndRankedProperties.length === 1 ? 'Propriedade Encontrada' : 'Propriedades Encontradas'}
           </h2>
-          {hasAIRanking && (
-            <Badge className="bg-burnt-peach text-pure-white border-0">
-              <Sparkles className="h-3 w-3 mr-1" />
-              Ranking Inteligente
-            </Badge>
-          )}
         </div>
         
         {hasAIRanking && (
@@ -299,21 +293,6 @@ export function PropertyGrid({ filters, searchQuery, serverResults, onPropertySe
               isFavorite={favorites.some(f => f.id === property.id)}
               onToggleFavorite={onToggleFavorite}
             />
-            {hasAIRanking && index < 3 && (
-              <div className="absolute left-3 z-10 top-12 sm:top-12">
-                <Badge
-                  className={`
-                    ${index === 0 ? 'bg-burnt-peach' : ''}
-                    ${index === 1 ? 'bg-cocoa-taupe' : ''}
-                    ${index === 2 ? 'bg-warm-taupe' : ''}
-                    text-pure-white border-0 shadow-clay-medium font-semibold
-                  `}
-                >
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  #{index + 1} Match
-                </Badge>
-              </div>
-            )}
           </div>
         ))}
       </div>

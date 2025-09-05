@@ -18,6 +18,23 @@ export function AIResponseBox({ query, open, text, loading = false, error = null
 
   if (!open) return null;
 
+  if (minimized) {
+    return (
+      <div className="absolute right-0 mt-2 z-50 pointer-events-none">
+        <div className="flex items-center gap-1 pointer-events-auto bg-pure-white/90 backdrop-blur rounded-md border border-pale-clay-deep p-1 shadow-clay-deep">
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-clay-secondary hover:text-title" onClick={() => setMinimized(false)} aria-label="Maximizar" title="Maximizar">
+            <ChevronUp className="h-4 w-4" />
+          </Button>
+          {onClose && (
+            <Button variant="ghost" size="icon" className="h-7 w-7 text-clay-secondary hover:text-title" onClick={onClose} aria-label="Fechar">
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="absolute left-0 right-0 mt-2 z-50">
       <Card className="border border-pale-clay-deep bg-pure-white shadow-clay-deep overflow-hidden">
