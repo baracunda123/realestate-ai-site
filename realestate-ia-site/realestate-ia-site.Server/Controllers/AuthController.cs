@@ -59,7 +59,7 @@ namespace realestate_ia_site.Server.Controllers
                 if (existingUser != null)
                     return BadRequest(new { message = "Email já está em uso" });
 
-                // Criar usuário
+                // Criar utilizador
                 var user = new User
                 {
                     UserName = request.Email.ToLowerInvariant(),
@@ -85,7 +85,7 @@ namespace realestate_ia_site.Server.Controllers
                 var emailToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                 await SendEmailConfirmationAsync(user, emailToken);
 
-                _logger.LogInformation("Usuário {Email} registrado com sucesso", request.Email);
+                _logger.LogInformation("Utilizador {Email} registrado com sucesso", request.Email);
 
                 // Gerar tokens JWT
                 var tokens = await GenerateTokensAsync(user);
@@ -113,12 +113,12 @@ namespace realestate_ia_site.Server.Controllers
                 return Ok(AuthResult.SuccessResult(
                     responseTokens, 
                     userProfile, 
-                    "Registro realizado com sucesso. Verifique seu email para ativar a conta."
+                    "Registo realizado com sucesso. Verifique seu email para ativar a conta."
                 ));
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro durante registro do usuário {Email}", request.Email);
+                _logger.LogError(ex, "Erro durante registo do utilizador {Email}", request.Email);
                 return StatusCode(500, new { message = "Erro interno do servidor" });
             }
         }
@@ -136,7 +136,7 @@ namespace realestate_ia_site.Server.Controllers
                 if (user == null)
                 {
                     _logger.LogWarning("Tentativa de login com email inexistente: {Email}", request.Email);
-                    return BadRequest(new { message = "Credenciais inválidas" });
+                    return BadRequest(new { message = "Email ou palavra-passe inválidos." });
                 }
 
                 // Verificar se conta está bloqueada
@@ -162,7 +162,7 @@ namespace realestate_ia_site.Server.Controllers
                     await _userManager.UpdateAsync(user);
                     
                     _logger.LogWarning("Senha inválida para {Email}", request.Email);
-                    return BadRequest(new { message = "Credenciais inválidas" });
+                    return BadRequest(new { message = "Email ou palavra-passe inválidos." });
                 }
 
                 // Login bem-sucedido
@@ -206,7 +206,7 @@ namespace realestate_ia_site.Server.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro durante login do usuário {Email}", request.Email);
+                _logger.LogError(ex, "Erro durante login do utilizador {Email}", request.Email);
                 return StatusCode(500, new { message = "Erro interno do servidor" });
             }
         }

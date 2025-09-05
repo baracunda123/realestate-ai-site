@@ -4,8 +4,8 @@ namespace realestate_ia_site.Server.Domain.Models
 {
     public class RegisterRequest
     {
-        [Required(ErrorMessage = "Nome completo é obrigatório")]
-        [StringLength(100, MinimumLength = 2, ErrorMessage = "Nome deve ter entre 2 e 100 caracteres")]
+        [Required(ErrorMessage = "Nome completo é obrigatório.")]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "Nome deve ter entre 2 e 100 caracteres.")]
         public string FullName { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Email é obrigatório")]
@@ -16,13 +16,13 @@ namespace realestate_ia_site.Server.Domain.Models
         public string? PhoneNumber { get; set; }
 
         [Required(ErrorMessage = "Senha é obrigatória")]
-        [StringLength(100, MinimumLength = 8, ErrorMessage = "Senha deve ter pelo menos 8 caracteres")]
-        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]+$", 
-            ErrorMessage = "Senha deve conter: 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial")]
+        [StringLength(100, MinimumLength = 8, ErrorMessage = "Senha deve ter pelo menos 8 caracteres.")]
+        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&.])[A-Za-z\d@$!%*?&.]+$", 
+            ErrorMessage = "Senha deve conter: 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial.")]
         public string Password { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Confirmação de senha é obrigatória")]
-        [Compare("Password", ErrorMessage = "Senhas não coincidem")]
+        [Required(ErrorMessage = "Confirmação de senha é obrigatória.")]
+        [Compare("Password", ErrorMessage = "Senhas não coincidem.")]
         public string ConfirmPassword { get; set; } = string.Empty;
 
         public bool AcceptTerms { get; set; } = false;
@@ -30,11 +30,11 @@ namespace realestate_ia_site.Server.Domain.Models
 
     public class LoginRequest
     {
-        [Required(ErrorMessage = "Email é obrigatório")]
-        [EmailAddress(ErrorMessage = "Email inválido")]
+        [Required(ErrorMessage = "Email é obrigatório.")]
+        [EmailAddress(ErrorMessage = "Email inválido.")]
         public string Email { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Senha é obrigatória")]
+        [Required(ErrorMessage = "Senha é obrigatória.")]
         public string Password { get; set; } = string.Empty;
 
         public bool RememberMe { get; set; } = false;
@@ -83,17 +83,17 @@ namespace realestate_ia_site.Server.Domain.Models
 
     public class ChangePasswordRequest
     {
-        [Required(ErrorMessage = "Senha atual é obrigatória")]
+        [Required(ErrorMessage = "Senha atual é obrigatória.")]
         public string CurrentPassword { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Nova senha é obrigatória")]
-        [StringLength(100, MinimumLength = 8, ErrorMessage = "Senha deve ter pelo menos 8 caracteres")]
+        [Required(ErrorMessage = "Nova senha é obrigatória.")]
+        [StringLength(100, MinimumLength = 8, ErrorMessage = "Senha deve ter pelo menos 8 caracteres.")]
         [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&.])[A-Za-z\d@$!%*?&.]+$", 
-            ErrorMessage = "Senha deve conter: 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial")]
+            ErrorMessage = "Senha deve conter: 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial.")]
         public string NewPassword { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Confirmação de senha é obrigatória")]
-        [Compare("NewPassword", ErrorMessage = "Senhas não coincidem")]
+        [Required(ErrorMessage = "Confirmação de senha é obrigatória.")]
+        [Compare("NewPassword", ErrorMessage = "Senhas não coincidem.")]
         public string ConfirmPassword { get; set; } = string.Empty;
     }
 }
