@@ -20,35 +20,77 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
         {
             try
             {
+                _logger.LogInformation("Iniciando envio de email para {Email} com assunto '{Subject}'", message.ToEmail, message.Subject);
+
+                // Validar configurações antes de tentar criar o cliente
+                if (string.IsNullOrEmpty(_config.SmtpHost) || string.IsNullOrEmpty(_config.Username) || string.IsNullOrEmpty(_config.Password))
+                {
+                    _logger.LogError("Configurações de email inválidas. SmtpHost: {Host}, Username: {Username}",
+                        _config.SmtpHost, _config.Username);
+                    return false;
+                }
+
                 using var client = CreateSmtpClient();
                 using var mailMessage = CreateMailMessage(message);
-                
+
+                _logger.LogInformation("Cliente SMTP criado. Enviando email...");
+
                 await client.SendMailAsync(mailMessage, cancellationToken);
-                
+
                 _logger.LogInformation("Email enviado com sucesso para {Email}", message.ToEmail);
                 return true;
             }
+            catch (SmtpException smtpEx)
+            {
+                _logger.LogError(smtpEx, "Erro SMTP ao enviar email para {Email}. StatusCode: {StatusCode}",
+                    message.ToEmail, smtpEx.StatusCode);
+                return false;
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao enviar email para {Email}", message.ToEmail);
+                _logger.LogError(ex, "Erro geral ao enviar email para {Email}", message.ToEmail);
                 return false;
             }
         }
 
         public async Task<bool> SendTemplateEmailAsync(string templateId, string recipientEmail, object templateData, CancellationToken cancellationToken = default)
         {
-            // Implementar templates de email aqui
-            var template = GetEmailTemplate(templateId);
-            var body = ProcessTemplate(template, templateData);
-            
-            var message = new EmailMessage
+            try
             {
-                ToEmail = recipientEmail,
-                Subject = template.Subject,
-                Body = body
-            };
+                _logger.LogInformation("Iniciando envio de email template {TemplateId} para {Email}", templateId, recipientEmail);
 
-            return await SendEmailAsync(message, cancellationToken);
+                // Implementar templates de email aqui
+                var template = GetEmailTemplate(templateId);
+                var body = ProcessTemplate(template, templateData);
+
+                var message = new EmailMessage
+                {
+                    ToEmail = recipientEmail,
+                    Subject = template.Subject,
+                    Body = body,
+                    IsHtml = true // Certificar que está definido como HTML
+                };
+
+                _logger.LogInformation("Template {TemplateId} processado com sucesso. Enviando email...", templateId);
+
+                var result = await SendEmailAsync(message, cancellationToken);
+
+                if (result)
+                {
+                    _logger.LogInformation("Email template {TemplateId} enviado com sucesso para {Email}", templateId, recipientEmail);
+                }
+                else
+                {
+                    _logger.LogWarning("Falha no envio do email template {TemplateId} para {Email}", templateId, recipientEmail);
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro crítico ao enviar email template {TemplateId} para {Email}", templateId, recipientEmail);
+                return false;
+            }
         }
 
         public async Task<bool> SendBulkEmailAsync(IEnumerable<EmailMessage> messages, CancellationToken cancellationToken = default)
@@ -60,12 +102,25 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
 
         private SmtpClient CreateSmtpClient()
         {
-            return new SmtpClient(_config.SmtpHost, _config.SmtpPort)
+            try
             {
-                Credentials = new NetworkCredential(_config.Username, _config.Password),
-                EnableSsl = _config.EnableSsl,
-                Timeout = _config.TimeoutMs
-            };
+                _logger.LogInformation("Criando cliente SMTP para {Host}:{Port}", _config.SmtpHost, _config.SmtpPort);
+
+                var client = new SmtpClient(_config.SmtpHost, _config.SmtpPort)
+                {
+                    Credentials = new NetworkCredential(_config.Username, _config.Password),
+                    EnableSsl = _config.EnableSsl,
+                    Timeout = _config.TimeoutMs
+                };
+
+                _logger.LogInformation("Cliente SMTP criado com sucesso");
+                return client;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao criar cliente SMTP");
+                throw;
+            }
         }
 
         private MailMessage CreateMailMessage(EmailMessage message)

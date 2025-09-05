@@ -57,7 +57,7 @@ namespace realestate_ia_site.Server.Controllers
                 // Verificar se email já existe
                 var existingUser = await _userManager.FindByEmailAsync(request.Email);
                 if (existingUser != null)
-                    return BadRequest(new { message = "Email já está em uso" });
+                    return BadRequest(new { message = "Email já está em uso." });
 
                 // Criar utilizador
                 var user = new User

@@ -18,7 +18,8 @@ import {
   Apple,
   AlertCircle,
   CheckCircle,
-  Loader2
+  Loader2,
+  MailCheck
 } from 'lucide-react';
 import { login, register, type LoginPayload, type RegisterPayload } from '../api/auth.service';
 
@@ -35,6 +36,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
@@ -49,6 +51,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
     // Limpar mensagens quando o usuário começar a digitar
     if (error) setError(null);
     if (success) setSuccess(null);
+    if (showEmailConfirmation) setShowEmailConfirmation(false);
   };
 
   // Função para extrair mensagens de erro do backend
@@ -109,6 +112,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
     setIsLoading(true);
     setError(null);
     setSuccess(null);
+    setShowEmailConfirmation(false);
 
     try {
       const loginData: LoginPayload = {
@@ -143,6 +147,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
     setIsLoading(true);
     setError(null);
     setSuccess(null);
+    setShowEmailConfirmation(false);
 
     if (!acceptTerms) {
       setError('Deve aceitar os termos de uso para prosseguir');
@@ -162,15 +167,18 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
 
       const result = await register(registerData);
 
-      if (result.success) {
-        setSuccess(result.message || 'Conta criada com sucesso! Verifique seu email para ativar a conta.');
-        resetForm();
-        
-        // Para registro, aguardar mais tempo para ler a mensagem
-        setTimeout(() => {
-          onSuccess?.();
-          onClose();
-        }, 3000);
+        if (result.success) {
+            resetForm();
+            // Mostrar aviso específico para confirmação de email
+            setShowEmailConfirmation(true);
+            setSuccess(result.message || 'Conta criada com sucesso!');
+            
+            
+            // Para registro, aguardar mais tempo para ler a mensagem
+            /*setTimeout(() => {
+              onSuccess?.();
+              onClose();
+            }, 5000); // Aumentado para 5 segundos para dar tempo de ler*/
       } else {
         setError(result.message || 'Erro no registro. Tente novamente.');
       }
@@ -193,6 +201,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
     setShowPassword(false);
     setError(null);
     setSuccess(null);
+    setShowEmailConfirmation(false);
     setAcceptTerms(false);
   };
 
@@ -205,7 +214,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto border border-border bg-card shadow-mocha-lg">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto scrollbar-hide border border-border bg-card shadow-mocha-lg">
         <DialogHeader className="text-center pb-2">
           <div className="mx-auto w-12 h-12 gradient-mocha rounded-xl flex items-center justify-center mb-3">
             <Sparkles className="h-6 w-6 text-white" />
@@ -240,6 +249,26 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
             <div className="flex items-start space-x-2">
               <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
               <p className="text-sm text-green-700">{success}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Aviso específico para confirmação de email */}
+        {showEmailConfirmation && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div className="flex items-start space-x-3">
+              <MailCheck className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-blue-700">
+                <h4 className="font-semibold mb-2">Confirme o seu email</h4>
+                <p className="mb-2">
+                  Foi enviado um email de confirmação para <strong>{formData.email}</strong>
+                </p>
+                <p className="text-xs text-blue-600">
+                  • Verifique a sua caixa de entrada (e pasta de spam)<br/>
+                  • Clique no link de confirmação no email<br/>
+                  • Depois poderá fazer login na sua conta
+                </p>
+              </div>
             </div>
           </div>
         )}
@@ -488,7 +517,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
           <div className="absolute inset-0 flex items-center">
             <Separator className="w-full" />
           </div>
-          <div className="relative flex justify center text-xs uppercase">
+          <div className="relative flex justify-center text-xs uppercase">
             <span className="bg-background px-2 text-muted-foreground">ou continue com</span>
           </div>
         </div>

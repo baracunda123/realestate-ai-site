@@ -872,3 +872,13 @@ html {
         color: var(--burnt-peach-deep); /* Hover mais escuro */
         background-color: var(--burnt-peach-lighter); /* Background suave */
     }
+
+/* Esconder scrollbar para webkit (Chrome, Safari, Edge) */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE e Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari, Opera */
+}
