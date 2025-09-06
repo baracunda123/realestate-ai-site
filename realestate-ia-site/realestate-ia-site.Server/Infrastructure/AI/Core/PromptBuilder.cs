@@ -1,5 +1,5 @@
 using OpenAI.Chat;
-using realestate_ia_site.Server.DTOs;
+using realestate_ia_site.Server.Application.DTOs.PropertySearch;
 using realestate_ia_site.Server.Infrastructure.AI.Prompts;
 
 namespace realestate_ia_site.Server.Infrastructure.AI.Core
@@ -27,8 +27,8 @@ namespace realestate_ia_site.Server.Infrastructure.AI.Core
         }
 
         public static List<ChatMessage> BuildForResponse(
-            string userQuery, 
-            List<PropertySearchDto> properties, 
+            string userQuery,
+            List<PropertySearchDto> properties,
             List<ChatMessage>? conversationHistory = null,
             bool isRefinement = false)
         {
@@ -41,19 +41,17 @@ namespace realestate_ia_site.Server.Infrastructure.AI.Core
                 new SystemChatMessage(AiPrompts.GetConversationalContext(properties.Count, isRefinement))
             };
 
-            // Adicionar histórico recente se existir (máximo 4 mensagens)
             if (conversationHistory?.Any() == true)
             {
                 var recentHistory = conversationHistory
-                    .Where(m => !(m is SystemChatMessage))
+                    .Where(m => m is not SystemChatMessage)
                     .TakeLast(4)
                     .ToList();
                 messages.AddRange(recentHistory);
             }
 
             messages.Add(new UserChatMessage(userQuery));
-            
-            // Adicionar propriedades como contexto final
+
             var propertiesList = FormatPropertiesForAI(properties);
             messages.Add(new SystemChatMessage($"Propriedades disponíveis:\n{propertiesList}"));
 
@@ -85,12 +83,12 @@ namespace realestate_ia_site.Server.Infrastructure.AI.Core
                 var rooms = p.Bedrooms > 0 ? $"{p.Bedrooms} quartos" : null;
                 var area = p.Area > 0 ? $"{p.Area:N0} m²" : null;
                 var title = string.IsNullOrWhiteSpace(p.Title) ? null : p.Title;
-                
+
                 var parts = new[] { type, "em " + loc, rooms, area, price }
                     .Where(s => !string.IsNullOrWhiteSpace(s));
                 var core = string.Join(", ", parts);
                 var tail = string.IsNullOrWhiteSpace(p.ImageUrl) ? "" : $" ({p.ImageUrl})";
-                
+
                 return $"PROP[{num}] {core}{(title != null ? $" - {title}" : "")}{tail}";
             }));
         }

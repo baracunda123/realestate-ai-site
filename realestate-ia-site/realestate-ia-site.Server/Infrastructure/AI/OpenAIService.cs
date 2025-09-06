@@ -1,12 +1,12 @@
 using OpenAI;
 using OpenAI.Chat;
-using realestate_ia_site.Server.Infrastructure.AI.Interfaces;
+using realestate_ia_site.Server.Application.AI.Interfaces;
 
 namespace realestate_ia_site.Server.Infrastructure.AI
 {
     public class OpenAIService : IOpenAIService
     {
-        private readonly OpenAI.OpenAIClient _client;
+        private readonly OpenAIClient _client;
         private readonly string _model;
         private readonly ILogger<OpenAIService> _logger;
 
@@ -15,7 +15,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             _logger = logger;
             var apiKey = config["OpenAI:ApiKey"];
             _model = config["OpenAI:Model"] ?? "gpt-4o-mini";
-            _client = new OpenAI.OpenAIClient(apiKey);
+            _client = new OpenAIClient(apiKey);
             
             _logger.LogInformation("OpenAI Service inicializado com modelo: {Model}", _model);
         }

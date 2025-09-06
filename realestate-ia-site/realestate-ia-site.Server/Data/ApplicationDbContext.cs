@@ -3,11 +3,13 @@ using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Domain.Models;
-using realestate_ia_site.Server.Infrastructure.Events;
+using realestate_ia_site.Server.Application.Common.Events;
+using realestate_ia_site.Server.Domain.Events;
+using realestate_ia_site.Server.Application.Common.Interfaces;
 
 namespace realestate_ia_site.Server.Data
 {
-    public class ApplicationDbContext : IdentityDbContext<User>
+    public class ApplicationDbContext : IdentityDbContext<User>, IApplicationDbContext
     {
         private readonly IDomainEventDispatcher _eventDispatcher;
 
@@ -25,6 +27,7 @@ namespace realestate_ia_site.Server.Data
         public DbSet<PropertyAlert> PropertyAlerts { get; set; }
         public DbSet<PropertyPriceHistory> PropertyPriceHistories { get; set; }
         public DbSet<UserLoginSession> UserLoginSessions { get; set; }
+        public DbSet<User> Users => Set<User>();
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -74,48 +77,33 @@ namespace realestate_ia_site.Server.Data
                 entry.Entity.UpdatedAt = DateTime.UtcNow;
             }
 
-            // Resto da lógica existente para eventos...
-            var events = new List<IDomainEvent>();
-            
+            var domainEvents = new List<IDomainEvent>();
+
             foreach (var entry in ChangeTracker.Entries<Property>())
             {
                 if (entry.State == EntityState.Added)
                 {
-                    events.Add(new PropertyCreatedEvent 
-                    { 
-                        PropertyId = entry.Entity.Id, 
-                        Property = entry.Entity 
+                    domainEvents.Add(new PropertyCreatedEvent
+                    {
+                        PropertyId = entry.Entity.Id,
+                        Property = entry.Entity
                     });
                 }
                 else if (entry.State == EntityState.Modified)
                 {
                     var originalPrice = entry.OriginalValues.GetValue<decimal?>(nameof(Property.Price));
-                    var currentPrice = entry.CurrentValues.GetValue<decimal?>(nameof(Property.Price));
-                    
-                    if (originalPrice != currentPrice && originalPrice.HasValue && currentPrice.HasValue)
+                    var outcome = entry.Entity.EvaluatePriceChange(originalPrice);
+                    if (outcome.HasChange)
                     {
-                        PropertyPriceHistories.Add(new PropertyPriceHistory
-                        {
-                            PropertyId = entry.Entity.Id,
-                            OldPrice = originalPrice.Value,
-                            NewPrice = currentPrice.Value,
-                            ChangeReason = "update"
-                        });
-
-                        events.Add(new PropertyPriceChangedEvent 
-                        { 
-                            PropertyId = entry.Entity.Id,
-                            Property = entry.Entity,
-                            OldPrice = originalPrice.Value,
-                            NewPrice = currentPrice.Value
-                        });
+                        PropertyPriceHistories.Add(outcome.History!);
+                        domainEvents.Add(outcome.Event!);
                     }
                 }
             }
 
             var result = await base.SaveChangesAsync(cancellationToken);
 
-            foreach (var domainEvent in events)
+            foreach (var domainEvent in domainEvents)
             {
                 try
                 {

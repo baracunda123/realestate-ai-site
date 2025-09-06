@@ -1,0 +1,240 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using System.Security.Cryptography;
+using realestate_ia_site.Server.Domain.Entities;
+using realestate_ia_site.Server.Domain.Models;
+using realestate_ia_site.Server.Application.Notifications.Interfaces;
+using realestate_ia_site.Server.Application.Common.Interfaces;
+
+namespace realestate_ia_site.Server.Application.Auth;
+
+public class AuthService
+{
+    private readonly UserManager<User> _userManager;
+    private readonly IEmailService _emailService;
+    private readonly IApplicationDbContext _context;
+    private readonly IConfiguration _config;
+    private readonly ILogger<AuthService> _logger;
+
+    public AuthService(UserManager<User> userManager,
+        IEmailService emailService,
+        IApplicationDbContext context,
+        IConfiguration config,
+        ILogger<AuthService> logger)
+    {
+        _userManager = userManager;
+        _emailService = emailService;
+        _context = context;
+        _config = config;
+        _logger = logger;
+    }
+
+    public async Task<(AuthResult result, TokenResponse? tokens)> RegisterAsync(RegisterRequest request, CancellationToken ct = default)
+    {
+        var existing = await _userManager.FindByEmailAsync(request.Email);
+        if (existing != null)
+        {
+            _logger.LogWarning("[Auth] Tentativa de registo com email já existente email={Email}", request.Email);
+            return (AuthResult.ErrorResult("Email já em uso"), null);
+        }
+
+        var user = new User
+        {
+            UserName = request.Email.ToLowerInvariant(),
+            Email = request.Email.ToLowerInvariant(),
+            FullName = request.FullName.Trim(),
+            PhoneNumber = request.PhoneNumber?.Trim(),
+            AccountStatus = AccountStatus.PendingVerification,
+            CreatedAt = DateTime.UtcNow,
+            TokenIdentifier = Guid.NewGuid().ToString()
+        };
+
+        var create = await _userManager.CreateAsync(user, request.Password);
+        if (!create.Succeeded)
+        {
+            _logger.LogWarning("[Auth] Falha no registo email={Email} errors={Errors}", request.Email, string.Join(';', create.Errors.Select(e => e.Code)));
+            return (AuthResult.ErrorResult(create.Errors.Select(e => e.Description).ToArray()), null);
+        }
+
+        var emailToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+        await SendEmailConfirmationAsync(user, emailToken, ct);
+        var tokens = await GenerateTokensAsync(user, ct);
+        _logger.LogInformation("[Auth] Registo efetuado utilizador={UserId} email={Email}", user.Id, user.Email);
+        return (AuthResult.SuccessResult(tokens, MapToUserProfile(user), "Registo realizado com sucesso. Verifique o email."), tokens);
+    }
+
+    public async Task<(AuthResult result, TokenResponse? tokens)> LoginAsync(LoginRequest request, string? ip, CancellationToken ct = default)
+    {
+        var user = await _userManager.FindByEmailAsync(request.Email);
+        if (user == null)
+        {
+            _logger.LogWarning("[Auth] Login falhou - email inexistente email={Email}", request.Email);
+            return (AuthResult.ErrorResult("Email ou palavra-passe inválidos."), null);
+        }
+
+        if (user.IsLocked)
+        {
+            _logger.LogWarning("[Auth] Login bloqueado utilizador={UserId} até={LockedUntil}", user.Id, user.LockedUntil);
+            return (AuthResult.ErrorResult("Conta temporariamente bloqueada"), null);
+        }
+
+        if (!await _userManager.IsEmailConfirmedAsync(user))
+        {
+            _logger.LogWarning("[Auth] Login sem email confirmado utilizador={UserId}", user.Id);
+            return (AuthResult.ErrorResult("Confirme o email antes de entrar."), null);
+        }
+
+        if (!await _userManager.CheckPasswordAsync(user, request.Password))
+        {
+            user.IncrementFailedLogin();
+            await _userManager.UpdateAsync(user);
+            _logger.LogWarning("[Auth] Password inválida utilizador={UserId} tentativas={Attempts}", user.Id, user.FailedLoginAttempts);
+            return (AuthResult.ErrorResult("Email ou palavra-passe inválidos."), null);
+        }
+
+        user.UpdateLastLogin(ip);
+        await _userManager.UpdateAsync(user);
+        await CreateLoginSessionAsync(user, ip, ct);
+        var tokens = await GenerateTokensAsync(user, ct);
+        _logger.LogInformation("[Auth] Login bem-sucedido utilizador={UserId} ip={IP}", user.Id, ip);
+        return (AuthResult.SuccessResult(tokens, MapToUserProfile(user), "Login realizado com sucesso"), tokens);
+    }
+
+    public async Task<AuthResult> LogoutAsync(string userId, CancellationToken ct = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+        {
+            _logger.LogInformation("[Auth] Logout solicitado para utilizador inexistente userId={UserId}", userId);
+            return AuthResult.SuccessResult(new TokenResponse(), new UserProfile(), "Logout efetuado");
+        }
+        user.RefreshToken = null;
+        user.RefreshTokenExpires = null;
+        await _userManager.UpdateAsync(user);
+
+        var sessions = await _context.UserLoginSessions.Where(s => s.UserId == userId && s.IsActive).ToListAsync(ct);
+        foreach (var s in sessions)
+        {
+            s.IsActive = false;
+            s.LogoutAt = DateTime.UtcNow;
+        }
+        await _context.SaveChangesAsync(ct);
+        _logger.LogInformation("[Auth] Logout concluído utilizador={UserId}", user.Id);
+        return AuthResult.SuccessResult(new TokenResponse(), MapToUserProfile(user), "Logout realizado com sucesso");
+    }
+
+    public async Task<(TokenResponse? tokens, AuthResult result)> RefreshAsync(string refreshToken, CancellationToken ct = default)
+    {
+        var user = await _userManager.Users.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken, ct);
+        if (user == null || user.RefreshTokenExpires < DateTime.UtcNow)
+        {
+            _logger.LogWarning("[Auth] Refresh token inválido ou expirado");
+            return (null, AuthResult.ErrorResult("Token inválido"));
+        }
+        var tokens = await GenerateTokensAsync(user, ct);
+        _logger.LogInformation("[Auth] Token renovado utilizador={UserId}", user.Id);
+        return (tokens, AuthResult.SuccessResult(tokens, MapToUserProfile(user), "Token atualizado"));
+    }
+
+    public async Task<AuthResult> ChangePasswordAsync(string userId, ChangePasswordRequest request, CancellationToken ct = default)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null)
+        {
+            _logger.LogWarning("[Auth] Alteração de password - utilizador não encontrado userId={UserId}", userId);
+            return AuthResult.ErrorResult("Usuário não encontrado");
+        }
+        var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
+        if (!result.Succeeded)
+        {
+            _logger.LogWarning("[Auth] Falha alteração password utilizador={UserId} errors={Errors}", user.Id, string.Join(';', result.Errors.Select(e => e.Code)));
+            return AuthResult.ErrorResult(result.Errors.Select(e => e.Description).ToArray());
+        }
+        user.PasswordChangedAt = DateTime.UtcNow;
+        await _userManager.UpdateAsync(user);
+        _logger.LogInformation("[Auth] Password alterada utilizador={UserId}", user.Id);
+        return AuthResult.SuccessResult(new TokenResponse(), MapToUserProfile(user), "Senha alterada");
+    }
+
+    private async Task<TokenResponse> GenerateTokensAsync(User user, CancellationToken ct)
+    {
+        var claims = new List<Claim>
+        {
+            new(ClaimTypes.NameIdentifier, user.Id),
+            new(ClaimTypes.Email, user.Email ?? string.Empty),
+            new("user_id", user.Id),
+            new("email_verified", user.IsEmailVerified.ToString()),
+            new("account_status", user.AccountStatus.ToString())
+        };
+
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:SecretKey"]!));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var expiry = DateTime.UtcNow.AddMinutes(int.Parse(_config["Jwt:ExpiryMinutes"] ?? "60"));
+
+        var token = new JwtSecurityToken(
+            issuer: _config["Jwt:Issuer"],
+            audience: _config["Jwt:Audience"],
+            claims: claims,
+            expires: expiry,
+            signingCredentials: creds);
+
+        var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
+        var refreshToken = GenerateRefreshToken();
+        user.RefreshToken = refreshToken;
+        user.RefreshTokenExpires = DateTime.UtcNow.AddDays(30);
+        await _userManager.UpdateAsync(user);
+
+        return new TokenResponse
+        {
+            AccessToken = accessToken,
+            RefreshToken = refreshToken,
+            ExpiresAt = expiry,
+            TokenType = "Bearer"
+        };
+    }
+
+    private static string GenerateRefreshToken()
+    {
+        var bytes = new byte[32];
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(bytes);
+        return Convert.ToBase64String(bytes);
+    }
+
+    private async Task CreateLoginSessionAsync(User user, string? ip, CancellationToken ct)
+    {
+        var session = new UserLoginSession
+        {
+            UserId = user.Id,
+            SessionToken = Guid.NewGuid().ToString(),
+            IpAddress = ip,
+            UserAgent = string.Empty,
+            ExpiresAt = DateTime.UtcNow.AddDays(30)
+        };
+        _context.UserLoginSessions.Add(session);
+        await _context.SaveChangesAsync(ct);
+    }
+
+    private async Task SendEmailConfirmationAsync(User user, string token, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(user.Email)) return;
+        var link = $"{_config["App:BaseUrl"]}/confirm-email?userId={user.Id}&token={Uri.EscapeDataString(token)}";
+        await _emailService.SendTemplateEmailAsync("email-confirmation", user.Email, new { UserName = user.FullName, ConfirmationLink = link });
+    }
+
+    private static UserProfile MapToUserProfile(User user) => new()
+    {
+        Id = user.Id,
+        Email = user.Email ?? string.Empty,
+        FullName = user.FullName,
+        AvatarUrl = user.AvatarUrl,
+        IsEmailVerified = user.IsEmailVerified,
+        Credits = user.CreditsAsInt,
+        Subscription = user.Subscription,
+        CreatedAt = user.CreatedAt
+    };
+}

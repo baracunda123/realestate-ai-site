@@ -1,4 +1,6 @@
-using realestate_ia_site.Server.Infrastructure.Notifications;
+using realestate_ia_site.Server.Application.Common.Events;
+using realestate_ia_site.Server.Domain.Events;
+using realestate_ia_site.Server.Application.PropertyAlerts;
 
 namespace realestate_ia_site.Server.Infrastructure.Events
 {

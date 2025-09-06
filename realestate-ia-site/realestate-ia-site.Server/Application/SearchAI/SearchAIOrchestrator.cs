@@ -1,8 +1,7 @@
 ﻿using Microsoft.OpenApi.Services;
-using realestate_ia_site.Server.DTOs.SearchAI;
-using realestate_ia_site.Server.Infrastructure.AI;
-using realestate_ia_site.Server.Infrastructure.AI.Interfaces;
-using realestate_ia_site.Server.Infrastructure.Persistence.Interfaces;
+using realestate_ia_site.Server.Application.DTOs.SearchAI;
+using realestate_ia_site.Server.Application.AI.Interfaces;
+using realestate_ia_site.Server.Application.PropertySearch;
 
 namespace realestate_ia_site.Server.Application.SearchAI
 {

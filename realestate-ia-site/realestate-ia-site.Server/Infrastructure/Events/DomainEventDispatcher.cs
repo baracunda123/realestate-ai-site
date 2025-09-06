@@ -1,4 +1,6 @@
 using System.Reflection;
+using realestate_ia_site.Server.Application.Common.Events;
+using realestate_ia_site.Server.Domain.Events;
 
 namespace realestate_ia_site.Server.Infrastructure.Events
 {
@@ -13,19 +15,16 @@ namespace realestate_ia_site.Server.Infrastructure.Events
             _logger = logger;
         }
 
-        public async Task PublishAsync<T>(T domainEvent, CancellationToken cancellationToken = default) where T : IDomainEvent
+        public async Task PublishAsync<TEvent>(TEvent domainEvent, CancellationToken cancellationToken = default) where TEvent : IDomainEvent
         {
             _logger.LogInformation("Publishing domain event: {EventType} with ID: {EventId}", 
-                typeof(T).Name, domainEvent.Id);
+                typeof(TEvent).Name, domainEvent.Id);
 
             using var scope = _serviceProvider.CreateScope();
-            
-            // Encontrar todos os handlers para este tipo de evento
-            var handlerType = typeof(IDomainEventHandler<>).MakeGenericType(typeof(T));
+            var handlerType = typeof(IDomainEventHandler<>).MakeGenericType(typeof(TEvent));
             var handlers = scope.ServiceProvider.GetServices(handlerType);
-
             var tasks = new List<Task>();
-            
+
             foreach (var handler in handlers)
             {
                 var method = handlerType.GetMethod("HandleAsync");
@@ -40,11 +39,11 @@ namespace realestate_ia_site.Server.Infrastructure.Events
             {
                 await Task.WhenAll(tasks);
                 _logger.LogInformation("Successfully processed {HandlerCount} handlers for event {EventType}", 
-                    tasks.Count, typeof(T).Name);
+                    tasks.Count, typeof(TEvent).Name);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing handlers for event {EventType}", typeof(T).Name);
+                _logger.LogError(ex, "Error processing handlers for event {EventType}", typeof(TEvent).Name);
                 throw;
             }
         }

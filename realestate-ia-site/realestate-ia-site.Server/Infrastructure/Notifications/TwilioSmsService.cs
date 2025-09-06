@@ -1,10 +1,12 @@
 using Microsoft.Extensions.Options;
 using Twilio;
 using Twilio.Rest.Api.V2010.Account;
+using AppSmsService = realestate_ia_site.Server.Application.Notifications.Interfaces.ISmsService;
+using realestate_ia_site.Server.Infrastructure.Configurations;
 
 namespace realestate_ia_site.Server.Infrastructure.Notifications
 {
-    public class TwilioSmsService : ISmsService
+    public class TwilioSmsService : AppSmsService
     {
         private readonly SmsConfiguration _config;
         private readonly ILogger<TwilioSmsService> _logger;
@@ -21,36 +23,30 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
         {
             try
             {
-                var messageResource = await MessageResource.CreateAsync(
+                var msg = await MessageResource.CreateAsync(
                     body: message,
                     from: new Twilio.Types.PhoneNumber(_config.FromPhoneNumber),
                     to: new Twilio.Types.PhoneNumber(phoneNumber)
                 );
 
-                _logger.LogInformation("SMS enviado com sucesso para {PhoneNumber}. SID: {MessageSid}", 
-                    phoneNumber, messageResource.Sid);
+                _logger.LogInformation("SMS enviado para {Phone}. SID: {Sid}", phoneNumber, msg.Sid);
                     
-                return messageResource.Status != MessageResource.StatusEnum.Failed;
+                return msg.Status != MessageResource.StatusEnum.Failed;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao enviar SMS para {PhoneNumber}", phoneNumber);
+                _logger.LogError(ex, "Erro ao enviar SMS para {Phone}", phoneNumber);
                 return false;
             }
         }
 
         public async Task<bool> SendBulkSmsAsync(IEnumerable<(string phoneNumber, string message)> messages, CancellationToken cancellationToken = default)
         {
-            var tasks = messages.Select(msg => SendSmsAsync(msg.phoneNumber, msg.message, cancellationToken));
+            var tasks = messages.Select(m => SendSmsAsync(m.phoneNumber, m.message, cancellationToken));
             var results = await Task.WhenAll(tasks);
             return results.All(r => r);
         }
     }
 
-    public class SmsConfiguration
-    {
-        public required string AccountSid { get; set; }
-        public required string AuthToken { get; set; }
-        public required string FromPhoneNumber { get; set; }
-    }
+    // SmsConfiguration movido para Infrastructure/Configurations
 }

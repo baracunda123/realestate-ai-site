@@ -2,10 +2,12 @@ using System.Net;
 using System.Net.Mail;
 using Microsoft.Extensions.Options;
 using realestate_ia_site.Server.Infrastructure.Notifications.Models;
+using AppEmailService = realestate_ia_site.Server.Application.Notifications.Interfaces.IEmailService;
+using realestate_ia_site.Server.Infrastructure.Configurations;
 
 namespace realestate_ia_site.Server.Infrastructure.Notifications
 {
-    public class EmailService : IEmailService
+    public class EmailService : AppEmailService
     {
         private readonly EmailConfiguration _config;
         private readonly ILogger<EmailService> _logger;
@@ -71,18 +73,14 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
                     IsHtml = true // Certificar que está definido como HTML
                 };
 
-                _logger.LogInformation("Template {TemplateId} processado com sucesso. Enviando email...", templateId);
+                _logger.LogInformation("Template {TemplateId} processado. Enviando email...", templateId);
 
                 var result = await SendEmailAsync(message, cancellationToken);
 
                 if (result)
-                {
-                    _logger.LogInformation("Email template {TemplateId} enviado com sucesso para {Email}", templateId, recipientEmail);
-                }
+                    _logger.LogInformation("Email template {TemplateId} enviado para {Email}", templateId, recipientEmail);
                 else
-                {
-                    _logger.LogWarning("Falha no envio do email template {TemplateId} para {Email}", templateId, recipientEmail);
-                }
+                    _logger.LogWarning("Falha envio email template {TemplateId} para {Email}", templateId, recipientEmail);
 
                 return result;
             }
@@ -113,7 +111,7 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
                     Timeout = _config.TimeoutMs
                 };
 
-                _logger.LogInformation("Cliente SMTP criado com sucesso");
+                _logger.LogInformation("Cliente SMTP criado");
                 return client;
             }
             catch (Exception ex)
@@ -127,15 +125,14 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
         {
             var mail = new MailMessage
             {
-                From = new MailAddress(message.FromEmail ?? _config.DefaultFromEmail, 
-                                     message.FromName ?? _config.DefaultFromName),
+                From = new MailAddress(message.FromEmail ?? _config.DefaultFromEmail, message.FromName ?? _config.DefaultFromName),
                 Subject = message.Subject,
                 Body = message.Body,
                 IsBodyHtml = message.IsHtml
             };
 
-            mail.To.Add(new MailAddress(message.ToEmail, message.ToName ?? ""));
-            
+            mail.To.Add(new MailAddress(message.ToEmail, message.ToName ?? string.Empty));
+
             if (message.Attachments?.Any() == true)
             {
                 foreach (var attachment in message.Attachments)
@@ -148,131 +145,34 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
             return mail;
         }
 
-        private EmailTemplate GetEmailTemplate(string templateId)
+        private EmailTemplate GetEmailTemplate(string templateId) => templateId switch
         {
-            // Implementar carregamento de templates
-            return templateId switch
-            {
-                "email-confirmation" => new EmailTemplate { Subject = "Confirme seu email", Body = GetEmailConfirmationTemplate() },
-                "property-alert" => new EmailTemplate { Subject = "Nova Propriedade Encontrada!", Body = GetPropertyAlertTemplate() },
-                "price-drop" => new EmailTemplate { Subject = "Preço Reduzido!", Body = GetPriceDropTemplate() },
-                _ => throw new ArgumentException($"Template não encontrado: {templateId}")
-            };
-        }
+            "email-confirmation" => new EmailTemplate { Subject = "Confirme seu email", Body = GetEmailConfirmationTemplate() },
+            "property-alert" => new EmailTemplate { Subject = "Nova Propriedade Encontrada!", Body = GetPropertyAlertTemplate() },
+            "price-drop" => new EmailTemplate { Subject = "Preço Reduzido!", Body = GetPriceDropTemplate() },
+            _ => throw new ArgumentException($"Template não encontrado: {templateId}")
+        };
 
         private string ProcessTemplate(EmailTemplate template, object data)
         {
-            // Implementar processamento de template (pode usar Razor, Handlebars, etc.)
             var body = template.Body;
-            
-            // Substituição simples por agora
             var properties = data.GetType().GetProperties();
             foreach (var prop in properties)
             {
-                var value = prop.GetValue(data)?.ToString() ?? "";
+                var value = prop.GetValue(data)?.ToString() ?? string.Empty;
                 body = body.Replace($"{{{{{prop.Name}}}}}", value);
             }
-            
             return body;
         }
 
-        private string GetEmailConfirmationTemplate()
-        {
-            return @"
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset='utf-8'>
-                    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-                    <title>Confirmação de Email</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-                        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-                        .header { background-color: #f8f9fa; padding: 20px; border-radius: 5px 5px 0 0; }
-                        .content { background-color: #ffffff; padding: 30px; border: 1px solid #e9ecef; }
-                        .footer { background-color: #f8f9fa; padding: 15px; border-radius: 0 0 5px 5px; text-align: center; font-size: 12px; color: #6c757d; }
-                        .btn { display: inline-block; padding: 12px 30px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
-                        .btn:hover { background-color: #0056b3; }
-                    </style>
-                </head>
-                <body>
-                    <div class='container'>
-                        <div class='header'>
-                            <h1>Bem-vindo ao RealEstate IA!</h1>
-                        </div>
-                        <div class='content'>
-                            <h2>Olá {{UserName}}!</h2>
-                            <p>Obrigado por se registrar na nossa plataforma. Para ativar sua conta e começar a usar nossos serviços, você precisa confirmar seu endereço de email.</p>
-                            
-                            <p>Clique no botão abaixo para confirmar seu email:</p>
-                            
-                            <a href='{{ConfirmationLink}}' class='btn'>Confirmar Email</a>
-                            
-                            <p>Se o botão não funcionar, copie e cole o seguinte link no seu navegador:</p>
-                            <p><a href='{{ConfirmationLink}}'>{{ConfirmationLink}}</a></p>
-                            
-                            <p><strong>Importante:</strong> Este link expira em 24 horas por motivos de segurança.</p>
-                            
-                            <p>Se você não criou uma conta conosco, ignore este email.</p>
-                            
-                            <p>Atenciosamente,<br>Equipe RealEstate IA</p>
-                        </div>
-                        <div class='footer'>
-                            <p>Este é um email automático, não responda a esta mensagem.</p>
-                            <p>&copy; 2024 RealEstate IA. Todos os direitos reservados.</p>
-                        </div>
-                    </div>
-                </body>
-                </html>
-            ";
-        }
-
-        private string GetPropertyAlertTemplate()
-        {
-            return @"
-                <h2>Nova Propriedade Encontrada!</h2>
-                <p>Encontrámos uma nova propriedade que corresponde aos seus critérios:</p>
-                <div>
-                    <h3>{{PropertyTitle}}</h3>
-                    <p><strong>Localização:</strong> {{Location}}</p>
-                    <p><strong>Preço:</strong> {{Price}}</p>
-                    <p><strong>Quartos:</strong> {{Bedrooms}}</p>
-                    <a href='{{PropertyUrl}}'>Ver Propriedade</a>
-                </div>
-            ";
-        }
-
-        private string GetPriceDropTemplate()
-        {
-            return @"
-                <h2>Preço Reduzido!</h2>
-                <p>O preço de uma propriedade nos seus alertas foi reduzido:</p>
-                <div>
-                    <h3>{{PropertyTitle}}</h3>
-                    <p><strong>Preço Anterior:</strong> {{OldPrice}}</p>
-                    <p><strong>Novo Preço:</strong> {{NewPrice}}</p>
-                    <p><strong>Poupança:</strong> {{Savings}}</p>
-                    <a href='{{PropertyUrl}}'>Ver Propriedade</a>
-                </div>
-            ";
-        }
+        private string GetEmailConfirmationTemplate() => @"<html><body><h1>Confirme seu email</h1><p>Olá {{UserName}},</p><p>Clique no link para confirmar: <a href='{{ConfirmationLink}}'>Confirmar Email</a></p></body></html>";
+        private string GetPropertyAlertTemplate() => @"<h2>Nova Propriedade Encontrada!</h2><p>{{PropertyTitle}}</p><p>{{Location}} - {{Price}}</p><a href='{{PropertyUrl}}'>Ver Propriedade</a>";
+        private string GetPriceDropTemplate() => @"<h2>Preço Reduzido!</h2><p>{{PropertyTitle}}</p><p>Antes: {{OldPrice}} Agora: {{NewPrice}}</p><p>Poupança: {{Savings}}</p><a href='{{PropertyUrl}}'>Ver Propriedade</a>";
     }
 
     public record EmailTemplate
     {
         public required string Subject { get; init; }
         public required string Body { get; init; }
-    }
-
-    public class EmailConfiguration
-    {
-        public required string SmtpHost { get; set; }
-        public int SmtpPort { get; set; } = 587;
-        public required string Username { get; set; }
-        public required string Password { get; set; }
-        public bool EnableSsl { get; set; } = true;
-        public required string DefaultFromEmail { get; set; }
-        public required string DefaultFromName { get; set; }
-        public int TimeoutMs { get; set; } = 30000;
     }
 }

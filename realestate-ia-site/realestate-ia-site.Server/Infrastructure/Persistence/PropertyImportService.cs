@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Data;
 using realestate_ia_site.Server.Domain.Entities;
-using realestate_ia_site.Server.DTOs.Scraper;
+using realestate_ia_site.Server.Application.DTOs.Scraper;
 using realestate_ia_site.Server.Infrastructure.ExternalServices;
 using realestate_ia_site.Server.Utils;
 
@@ -22,27 +22,21 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
 
         public async Task<ImportResult> ImportScrapperPropertiesAsync(ScraperPropertyDto[] scrapperProperties)
         {
-            _logger.LogInformation("Iniciando importação de {Count} propriedades do scrapper", scrapperProperties.Length);
-            
+            _logger.LogInformation("[Import] Início lote total={Total}", scrapperProperties.Length);
             var result = new ImportResult();
-            
             try
             {
                 foreach (var scrapperProperty in scrapperProperties)
                 {
                     await ProcessSinglePropertyAsync(scrapperProperty, result);
                 }
-
                 await _context.SaveChangesAsync();
-                
-                _logger.LogInformation("Importação concluída. Criadas: {Created}, Atualizadas: {Updated}, Erros: {Errors}", 
-                    result.Created, result.Updated, result.Errors);
-                
+                _logger.LogInformation("[Import] Concluído criadas={Created} atualizadas={Updated} erros={Errors}", result.Created, result.Updated, result.Errors);
                 return result;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro durante importação em lote");
+                _logger.LogError(ex, "[Import] Erro durante importação em lote");
                 throw;
             }
         }
@@ -51,31 +45,28 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
         {
             try
             {
-                // Verificar se propriedade já existe (por link ou título + localização)
                 var existingProperty = await _context.Properties
-                    .FirstOrDefaultAsync(p => p.Link == scrapperDto.url || 
-                                            p.Title == scrapperDto.titleFromListing && p.Address == scrapperDto.location);
+                    .FirstOrDefaultAsync(p => p.Link == scrapperDto.url ||
+                        (p.Title == scrapperDto.titleFromListing && p.Address == scrapperDto.location));
 
                 if (existingProperty != null)
                 {
-                    // Atualizar propriedade existente usando o mapper
                     PropertyMapper.UpdatePropertyFromScrapper(existingProperty, scrapperDto);
                     result.Updated++;
-                    _logger.LogDebug("Propriedade atualizada: {Title}", scrapperDto.titleFromListing);
+                    _logger.LogDebug("[Import] Atualizada propriedade title={Title}", scrapperDto.titleFromListing);
                 }
                 else
                 {
-                    // Criar nova propriedade usando o mapper
                     var newProperty = await PropertyMapper.MapToPropertyEntityAsync(scrapperDto, _googleMapsService);
                     _context.Properties.Add(newProperty);
                     result.Created++;
-                    _logger.LogDebug("Nova propriedade criada: {Title}", scrapperDto.titleFromListing);
+                    _logger.LogDebug("[Import] Criada propriedade title={Title}", scrapperDto.titleFromListing);
                 }
             }
             catch (Exception ex)
             {
                 result.Errors++;
-                _logger.LogError(ex, "Erro ao processar propriedade: {Title}", scrapperDto.titleFromListing);
+                _logger.LogError(ex, "[Import] Erro a processar propriedade title={Title}", scrapperDto.titleFromListing);
             }
         }
     }

@@ -1,5 +1,5 @@
-using realestate_ia_site.Server.DTOs;
-using realestate_ia_site.Server.Infrastructure.AI.Interfaces;
+using realestate_ia_site.Server.Application.DTOs.PropertySearch;
+using realestate_ia_site.Server.Application.AI.Interfaces;
 
 namespace realestate_ia_site.Server.Infrastructure.AI
 {
