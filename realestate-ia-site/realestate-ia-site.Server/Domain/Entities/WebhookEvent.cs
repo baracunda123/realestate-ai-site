@@ -7,13 +7,15 @@ namespace realestate_ia_site.Server.Domain.Entities
     [Table("webhook_events")]
     public class WebhookEvent
     {
+        [Column("id")]
         [Key]
         public string Id { get; set; } = string.Empty;
         
         [Column("event_type")]
         [Required]
         public string EventType { get; set; } = string.Empty;
-        
+
+        [Column("type")]
         [Required]
         public string Type { get; set; } = string.Empty;
         

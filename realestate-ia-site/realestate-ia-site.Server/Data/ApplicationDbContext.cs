@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Identity; 
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Domain.Entities;
@@ -38,7 +38,6 @@ namespace realestate_ia_site.Server.Data
             builder.Entity<IdentityUserLogin<string>>().ToTable("user_logins");
             builder.Entity<IdentityUserToken<string>>().ToTable("user_tokens");
 
-
             // IGNORAR todas as outras entidades do Identity para não criar tabelas
             builder.Ignore<IdentityRole>();
             builder.Ignore<IdentityUserRole<string>>();
@@ -63,6 +62,14 @@ namespace realestate_ia_site.Server.Data
                       .WithMany(u => u.LoginSessions)
                       .HasForeignKey(e => e.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Configurações específicas para WebhookEvent
+            builder.Entity<WebhookEvent>(entity =>
+            {
+                entity.HasIndex(e => e.StripeEventId).IsUnique();
+                entity.HasIndex(e => e.EventType);
+                entity.HasIndex(e => e.CreatedAt);
             });
         }
 
