@@ -1,22 +1,23 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Header } from './components/Header';
-import { SearchFilters } from './components/SearchFilters';
-import { PropertyGrid } from './components/PropertyGrid';
-import { PropertyModal } from './components/PropertyModal';
-import { AISuggestions } from './components/AISuggestions';
-import { MapView } from './components/MapView';
-import { AuthModal } from './components/AuthModal';
-import { WelcomeScreen } from './components/WelcomeScreen';
 import { PersonalArea } from './components/PersonalArea';
-import { PremiumFeaturesModal } from './components/PremiumFeaturesModal';
-import { UpgradeModal } from './components/UpgradeModal';
 import { Footer } from './components/Footer';
-import { AlertResults } from './components/AlertResults';
 import { toast } from 'sonner';
 import { Toaster } from './components/ui/sonner';
 import { type PropertyAlert } from './types/PersonalArea';
 import { type SearchFilters as SearchFiltersType } from './types/SearchFilters';
 import { type Property } from './types/property';
+import { getCurrentLimits } from './utils/PersonalArea';
+
+const SearchFilters = lazy(() => import('./components/SearchFilters').then(m => ({ default: m.SearchFilters })));
+const PropertyGrid = lazy(() => import('./components/PropertyGrid').then(m => ({ default: m.PropertyGrid })));
+const PropertyModal = lazy(() => import('./components/PropertyModal').then(m => ({ default: m.PropertyModal })));
+const MapView = lazy(() => import('./components/MapView').then(m => ({ default: m.MapView })));
+const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
+const WelcomeScreen = lazy(() => import('./components/WelcomeScreen').then(m => ({ default: m.WelcomeScreen })));
+const PremiumFeaturesModal = lazy(() => import('./components/PremiumFeaturesModal').then(m => ({ default: m.PremiumFeaturesModal })));
+const UpgradeModal = lazy(() => import('./components/UpgradeModal').then(m => ({ default: m.UpgradeModal })));
+const AlertResults = lazy(() => import('./components/AlertResults').then(m => ({ default: m.AlertResults })));
 
 
 interface User {
@@ -40,13 +41,20 @@ export default function App() {
     sortBy: 'price'
   });
   const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+  const [favorites, setFavorites] = useState<Property[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [currentView, setCurrentView] = useState<'home' | 'personal' | 'alert-results'>('home');
   const [selectedAlert, setSelectedAlert] = useState<PropertyAlert | null>(null);
+  const [searchResults, setSearchResults] = useState<Property[] | null>(null);
+  const [aiText, setAiText] = useState<string>('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   
   // Authentication state
   const [user, setUser] = useState<User | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authDefaultTab, setAuthDefaultTab] = useState<'signin' | 'signup'>('signin');
+  const [signupIntent, setSignupIntent] = useState<'free' | 'premium' | null>(null);
   
   // Premium upgrade modals state
   const [isPremiumFeaturesModalOpen, setIsPremiumFeaturesModalOpen] = useState(false);
@@ -112,6 +120,37 @@ export default function App() {
       searchFilters.sortBy === 'price';
     
     return searchQuery.trim() === '' && isDefaultFilters;
+  };
+
+  // Persist favorites in localStorage
+  useEffect(() => {
+    const raw = localStorage.getItem('hf_favorites');
+    if (raw) {
+      try { setFavorites(JSON.parse(raw)); } catch {}
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('hf_favorites', JSON.stringify(favorites));
+  }, [favorites]);
+
+  const toggleFavorite = (property: Property) => {
+    // Limits only enforce on add
+    const exists = favorites.some(p => p.id === property.id);
+    if (!exists) {
+      if (!user) {
+        openAuthModal();
+        return;
+      }
+      const limits = getCurrentLimits(user as any);
+      if (!user.isPremium && favorites.length >= limits.maxFavorites) {
+        toast.error('Limite de favoritos atingido', {
+          description: `Plano Free permite até ${limits.maxFavorites}. Faça upgrade para ilimitados.`,
+        });
+        return;
+      }
+    }
+    setFavorites(prev => exists ? prev.filter(p => p.id !== property.id) : [...prev, property]);
   };
 
   // Handle example search from welcome screen
@@ -220,9 +259,18 @@ export default function App() {
       isPremium: false,  // Set to Free to test limitations
       createdAt: new Date()
     };
-    
+
     setUser(mockUser);
     setIsAuthModalOpen(false);
+
+    // If the user clicked "Assinar Premium" and chose to sign in instead, open upgrade flow
+    if (signupIntent === 'premium' && !mockUser.isPremium) {
+      setSignupIntent(null);
+      setTimeout(() => {
+        setIsUpgradeModalOpen(true);
+      }, 0);
+    }
+
     toast.success(`Bem-vindo de volta, ${mockUser.name}!`, {
       description: 'Sessão iniciada com sucesso.',
     });
@@ -238,12 +286,26 @@ export default function App() {
       isPremium: false,
       createdAt: new Date()
     };
-    
+
     setUser(mockUser);
-    setIsAuthModalOpen(false);
-    toast.success(`Conta criada com sucesso!`, {
-      description: `Bem-vindo ao HomeFinder AI, ${mockUser.name}!`,
-    });
+
+    // Decide post-signup flow based on intent
+    if (signupIntent === 'premium') {
+      setIsAuthModalOpen(false);
+      setSignupIntent(null);
+      setTimeout(() => {
+        setIsUpgradeModalOpen(true);
+      }, 0);
+      toast.success(`Conta criada com sucesso!`, {
+        description: `Agora conclua o pagamento para ativar o Premium.`,
+      });
+    } else {
+      setIsAuthModalOpen(false);
+      setSignupIntent(null);
+      toast.success(`Conta criada com sucesso!`, {
+        description: `Bem-vindo ao HomeFinder AI, ${mockUser.name}!`,
+      });
+    }
   };
 
   const handleLogout = () => {
@@ -260,13 +322,15 @@ export default function App() {
       sortBy: 'price'
     });
     window.location.hash = '';
-    toast.success('Sessão terminada com sucesso!', {
+    toast.success('Sess��o terminada com sucesso!', {
       description: 'Até logo! Esperamos vê-lo em breve.',
     });
   };
 
   // Modal handlers
-  const openAuthModal = () => {
+  const openAuthModal = (tab: 'signin' | 'signup' = 'signin', intent: 'free' | 'premium' | null = null) => {
+    setAuthDefaultTab(tab);
+    setSignupIntent(intent);
     setIsAuthModalOpen(true);
   };
 
@@ -315,7 +379,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header 
+      <Header
         searchQuery={searchQuery}
         setSearchQuery={handleSearchQueryChange}
         viewMode={viewMode}
@@ -327,67 +391,103 @@ export default function App() {
         onNavigateToHome={navigateToHome}
         currentView={currentView}
         onOpenUpgradeModal={openUpgradeModal}
+        onSubmitSearch={async (q) => {
+          setAiLoading(true);
+          setAiError(null);
+          try {
+            const { searchProperties } = await import('./api/properties.service');
+            const res = await searchProperties({ searchQuery: q });
+            const props = res.properties || [];
+            setSearchResults(props);
+            setAiText(res.aiResponse || '');
+            setSearchQuery(q);
+            if (currentView !== 'home') setCurrentView('home');
+            if (window.location.hash) window.location.hash = '';
+            if (props.length === 0) {
+              toast.info('Sem resultados', { description: 'A IA responderá com dicas mesmo sem listagens.' });
+            }
+          } catch {
+            setSearchResults([]);
+            setAiText('');
+            setAiError('Não foi possível obter a resposta da IA agora.');
+            setSearchQuery(q);
+            if (currentView !== 'home') setCurrentView('home');
+            if (window.location.hash) window.location.hash = '';
+          } finally {
+            setAiLoading(false);
+          }
+        }}
+        aiText={aiText}
+        aiLoading={aiLoading}
+        aiError={aiError}
       />
       
-      <main className="flex-1 container mx-auto px-4 py-8">
+      <main className="flex-1 site-container py-8">
         {currentView === 'alert-results' && user && selectedAlert ? (
-          /* Alert Results - Full Width */
-          <div className="max-w-6xl mx-auto">
-            <AlertResults
-              alert={selectedAlert}
-              properties={generateAlertProperties(selectedAlert)}
-              onBack={navigateBackFromAlertResults}
-              onPropertySelect={setSelectedProperty}
-            />
+          <div className="site-container">
+            <Suspense fallback={null}>
+              <AlertResults
+                alert={selectedAlert}
+                properties={generateAlertProperties(selectedAlert)}
+                onBack={navigateBackFromAlertResults}
+                onPropertySelect={setSelectedProperty}
+                favorites={favorites}
+                onToggleFavorite={toggleFavorite}
+              />
+            </Suspense>
           </div>
         ) : currentView === 'personal' && user ? (
-          /* Personal Area - Full Width */
-          <PersonalArea 
+          <PersonalArea
             user={user}
             onPropertySelect={setSelectedProperty}
             onOpenUpgradeModal={openUpgradeModal}
             onNavigateToAlertResults={navigateToAlertResults}
+            favorites={favorites}
+            onToggleFavorite={toggleFavorite}
           />
         ) : showWelcomeScreen ? (
-          /* Welcome Screen - Full Width */
-          <div className="max-w-6xl mx-auto">
-            <WelcomeScreen 
-              onExampleSearch={handleExampleSearch}
-              onOpenPremiumFeatures={openPremiumFeaturesModal}
-              user={user}
-            />
+          <div className="site-container">
+            <Suspense fallback={null}>
+              <WelcomeScreen
+                onExampleSearch={handleExampleSearch}
+                onOpenPremiumFeatures={openPremiumFeaturesModal}
+                user={user}
+                onStartFreeSignup={() => openAuthModal('signup', 'free')}
+                onStartPremiumSignup={() => openAuthModal('signup', 'premium')}
+              />
+            </Suspense>
           </div>
         ) : (
-          /* Search Results - With Sidebar - Only for logged users */
           user && (
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-              {/* Sidebar */}
-              <div className="lg:col-span-1 space-y-6">
-                <SearchFilters 
-                  filters={searchFilters}
-                  setFilters={setSearchFilters}
-                />
-                <AISuggestions searchQuery={searchQuery} user={user} />
-              </div>
-              
-              {/* Main Content */}
-              <div className="lg:col-span-3">
-                {viewMode === 'grid' ? (
-                  <PropertyGrid 
+            <Suspense fallback={null}>
+              <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <div className="lg:col-span-1 space-y-6">
+                  <SearchFilters
+                    filters={searchFilters}
+                    setFilters={setSearchFilters}
+                  />
+                </div>
+                <div className="lg:col-span-3">
+                  {viewMode === 'grid' ? (
+                    <PropertyGrid
                     filters={searchFilters}
                     searchQuery={searchQuery}
+                    serverResults={searchResults || undefined}
                     onPropertySelect={setSelectedProperty}
                     onFiltersUpdate={updateFilters}
+                    favorites={favorites}
+                    onToggleFavorite={toggleFavorite}
                   />
-                ) : (
-                  <MapView 
-                    filters={searchFilters}
-                    searchQuery={searchQuery}
-                    onPropertySelect={setSelectedProperty}
-                  />
-                )}
+                  ) : (
+                    <MapView
+                      filters={searchFilters}
+                      searchQuery={searchQuery}
+                      onPropertySelect={setSelectedProperty}
+                    />
+                  )}
+                </div>
               </div>
-            </div>
+            </Suspense>
           )
         )}
       </main>
@@ -397,31 +497,40 @@ export default function App() {
 
       {/* Modals */}
       {selectedProperty && (
-        <PropertyModal
-          property={selectedProperty}
-          onClose={() => setSelectedProperty(null)}
-        />
+        <Suspense fallback={null}>
+          <PropertyModal
+            property={selectedProperty}
+            onClose={() => setSelectedProperty(null)}
+          />
+        </Suspense>
       )}
 
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-        onSignIn={handleSignIn}
-        onSignUp={handleSignUp}
-      />
+      <Suspense fallback={null}>
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          onClose={() => setIsAuthModalOpen(false)}
+          onSignIn={handleSignIn}
+          onSignUp={handleSignUp}
+          defaultTab={authDefaultTab}
+        />
+      </Suspense>
 
-      <PremiumFeaturesModal
-        isOpen={isPremiumFeaturesModalOpen}
-        onClose={() => setIsPremiumFeaturesModalOpen(false)}
-        onUpgrade={openUpgradeModal}
-      />
+      <Suspense fallback={null}>
+        <PremiumFeaturesModal
+          isOpen={isPremiumFeaturesModalOpen}
+          onClose={() => setIsPremiumFeaturesModalOpen(false)}
+          onUpgrade={openUpgradeModal}
+        />
+      </Suspense>
 
-      <UpgradeModal
-        isOpen={isUpgradeModalOpen}
-        onClose={() => setIsUpgradeModalOpen(false)}
-        onBack={handleBackToPremiumFeatures}
-        onUpgradeComplete={handleUpgradeComplete}
-      />
+      <Suspense fallback={null}>
+        <UpgradeModal
+          isOpen={isUpgradeModalOpen}
+          onClose={() => setIsUpgradeModalOpen(false)}
+          onBack={handleBackToPremiumFeatures}
+          onUpgradeComplete={handleUpgradeComplete}
+        />
+      </Suspense>
 
       {/* Toast Notifications */}
       <Toaster richColors position="top-right" />

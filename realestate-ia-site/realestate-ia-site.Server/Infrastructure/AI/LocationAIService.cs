@@ -1,6 +1,6 @@
 using OpenAI.Chat;
-using realestate_ia_site.Server.Infrastructure.AI.Interfaces;
-using realestate_ia_site.Server.Infrastructure.AI.Core; // ADDED
+using realestate_ia_site.Server.Application.AI.Interfaces;
+using realestate_ia_site.Server.Infrastructure.AI.Core;
 using System.Text.Json;
 
 namespace realestate_ia_site.Server.Infrastructure.AI
@@ -19,8 +19,6 @@ namespace realestate_ia_site.Server.Infrastructure.AI
         public async Task<List<string>> GetNearbyLocationsAsync(string location, CancellationToken cancellationToken = default)
         {
             _logger.LogInformation("Obtendo localizações próximas para: {Location}", location);
-
-            // Usar o PromptBuilder em vez de prompts inline
             var messages = PromptBuilder.BuildForLocationExpansion(location);
 
             var options = new ChatCompletionOptions

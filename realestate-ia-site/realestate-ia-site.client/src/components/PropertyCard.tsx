@@ -5,14 +5,17 @@ import { Button } from './ui/button';
 import { Heart, MapPin, Bed, Bath, Square, Calendar } from 'lucide-react';
 import { type Property } from '../types/property';
 import { ImageWithFallback } from './figma/ImageWithFallback';
+import { memo } from 'react';
 
 interface PropertyCardProps {
   property: Property;
   onClick: () => void;
   isWhiteBackground?: boolean;
+  isFavorite?: boolean;
+  onToggleFavorite?: (property: Property) => void;
 }
 
-export function PropertyCard({ property, onClick, isWhiteBackground = false }: PropertyCardProps) {
+function PropertyCardComponent({ property, onClick, isWhiteBackground = false, isFavorite = false, onToggleFavorite }: PropertyCardProps) {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -46,6 +49,15 @@ export function PropertyCard({ property, onClick, isWhiteBackground = false }: P
     return names[type as keyof typeof names] || type;
   };
 
+  // Função para obter a primeira imagem disponível ou usar fallback
+  const getMainImage = () => {
+    if (property.images && property.images.length > 0) {
+      return property.images[0];
+    }
+    // Fallback para uma imagem padrão de propriedade
+    return 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop';
+  };
+
   return (
     <Card 
       className={`overflow-hidden hover:shadow-clay-medium transition-all duration-300 cursor-pointer group border border-clay-medium hover:border-clay-strong ${isWhiteBackground ? 'property-card-white' : ''}`} 
@@ -57,7 +69,7 @@ export function PropertyCard({ property, onClick, isWhiteBackground = false }: P
     >
       <div className="relative">
         <ImageWithFallback
-          src={property.images[0]}
+          src={getMainImage()}
           alt={property.title}
           className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500"
         />
@@ -72,13 +84,15 @@ export function PropertyCard({ property, onClick, isWhiteBackground = false }: P
         <Button
           variant="ghost"
           size="sm"
+          aria-pressed={isFavorite}
+          aria-label={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
           className="absolute top-3 right-3 h-9 w-9 p-0 bg-warm-white/95 hover:bg-warm-white shadow-clay-soft backdrop-blur-sm hover:scale-105 transition-all duration-200"
           onClick={(e) => {
             e.stopPropagation();
-            // Add to favorites logic here
+            if (onToggleFavorite) onToggleFavorite(property);
           }}
         >
-          <Heart className="h-4 w-4 text-clay-secondary hover:text-burnt-primary transition-all duration-200" />
+          <Heart className={`h-4 w-4 transition-all duration-200 ${isFavorite ? 'text-burnt-primary' : 'text-clay-secondary'}`} />
         </Button>
 
 
@@ -152,12 +166,12 @@ export function PropertyCard({ property, onClick, isWhiteBackground = false }: P
           </div>
           
           <div className="flex flex-wrap gap-1">
-            {property.features.slice(0, 3).map((feature, index) => (
+            {property.features && property.features.slice(0, 3).map((feature, index) => (
               <Badge key={feature} className="text-xs border bg-pure-white text-title border-clay-medium">
                 {feature}
               </Badge>
             ))}
-            {property.features.length > 3 && (
+            {property.features && property.features.length > 3 && (
               <Badge variant="outline" className="text-xs bg-pure-white text-clay-secondary border-clay-medium">
                 +{property.features.length - 3} mais
               </Badge>
@@ -168,3 +182,5 @@ export function PropertyCard({ property, onClick, isWhiteBackground = false }: P
     </Card>
   );
 }
+
+export const PropertyCard = memo(PropertyCardComponent);

@@ -9,9 +9,11 @@ interface WelcomeScreenProps {
   onExampleSearch: (query: string) => void;
   onOpenPremiumFeatures: () => void;
   user: any;
+  onStartFreeSignup: () => void;
+  onStartPremiumSignup: () => void;
 }
 
-export function WelcomeScreen({ onExampleSearch, onOpenPremiumFeatures, user }: WelcomeScreenProps) {
+export function WelcomeScreen({ onExampleSearch, onOpenPremiumFeatures, user, onStartFreeSignup, onStartPremiumSignup }: WelcomeScreenProps) {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
   const [hoveredPlan, setHoveredPlan] = useState<number | null>(null);
@@ -501,12 +503,13 @@ export function WelcomeScreen({ onExampleSearch, onOpenPremiumFeatures, user }: 
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
-                      <Button 
+                      <Button
                         className={`w-full border-0 ${
-                          plan.name === 'Premium' 
-                            ? 'bg-burnt-peach text-white hover:bg-burnt-peach-light shadow-burnt-peach' 
+                          plan.name === 'Premium'
+                            ? 'bg-burnt-peach text-white hover:bg-burnt-peach-light shadow-burnt-peach'
                             : 'bg-primary text-white hover:bg-burnt-peach-deep shadow-burnt-peach'
                         }`}
+                        onClick={plan.name === 'Free' ? onStartFreeSignup : onStartPremiumSignup}
                       >
                         {plan.name === 'Free' ? 'Começar Grátis' : 'Assinar Premium'}
                       </Button>

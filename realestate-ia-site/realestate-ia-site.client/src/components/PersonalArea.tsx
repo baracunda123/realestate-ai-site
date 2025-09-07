@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { 
   BarChart3, 
@@ -156,11 +156,13 @@ interface PersonalAreaProps {
   onPropertySelect: (property: Property) => void;
   onOpenUpgradeModal?: () => void;
   onNavigateToAlertResults?: (alert: PropertyAlert) => void;
+  favorites: Property[];
+  onToggleFavorite: (property: Property) => void;
 }
 
-export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNavigateToAlertResults }: PersonalAreaProps) {
+export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNavigateToAlertResults, favorites, onToggleFavorite }: PersonalAreaProps) {
   const [activeTab, setActiveTab] = useState('dashboard');
-  
+
   // Modal state
   const [isNewAlertModalOpen, setIsNewAlertModalOpen] = useState(false);
   const [editingAlert, setEditingAlert] = useState<string | null>(null);
@@ -168,15 +170,46 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
   
   // Data state
   const [userAlerts, setUserAlerts] = useState<NewAlert[]>([]);
-  const [savedSearches, setSavedSearches] = useState(mockSavedSearches);
-  
+  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
+
   // Get current limits for user
   const currentLimits = getCurrentLimits(user);
-  
-  // Filter saved searches based on user plan limits
-  const filteredSavedSearches = user.isPremium 
-    ? savedSearches 
-    : savedSearches.slice(0, currentLimits.maxSavedSearches);
+
+  // Initialize saved searches from localStorage (fallback to mocks), and clamp to plan limits for Free users
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('hf_saved_searches');
+      if (raw) {
+        const parsed: any[] = JSON.parse(raw);
+        const withDates: SavedSearch[] = parsed.map(s => ({
+          ...s,
+          createdAt: new Date(s.createdAt)
+        }));
+        const initial = user.isPremium ? withDates : withDates.slice(0, currentLimits.maxSavedSearches);
+        setSavedSearches(initial);
+      } else {
+        const initial = user.isPremium ? mockSavedSearches : mockSavedSearches.slice(0, currentLimits.maxSavedSearches);
+        setSavedSearches(initial);
+      }
+    } catch {
+      const fallback = user.isPremium ? mockSavedSearches : mockSavedSearches.slice(0, currentLimits.maxSavedSearches);
+      setSavedSearches(fallback);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Persist saved searches
+  useEffect(() => {
+    localStorage.setItem('hf_saved_searches', JSON.stringify(savedSearches));
+  }, [savedSearches]);
+
+  // Clamp saved searches when on Free plan (e.g., after downgrade)
+  useEffect(() => {
+    if (!user.isPremium && savedSearches.length > currentLimits.maxSavedSearches) {
+      setSavedSearches(prev => prev.slice(0, currentLimits.maxSavedSearches));
+    }
+  }, [user.isPremium, currentLimits.maxSavedSearches, savedSearches.length]);
+
   const [mockAlertsStatus, setMockAlertsStatus] = useState<Record<string, boolean>>({
     '1': true // Default status for mock alert
   });
@@ -306,12 +339,9 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
   // Search management
   const handleDeleteSavedSearch = (searchId: string) => {
     const searchToDelete = savedSearches.find(search => search.id === searchId);
-    
+
     setTimeout(() => {
-      setSavedSearches(prevSearches => 
-        prevSearches.filter(search => search.id !== searchId)
-      );
-      
+      setSavedSearches(prevSearches => prevSearches.filter(search => search.id !== searchId));
       if (searchToDelete) {
         toast.success('Pesquisa excluída com sucesso!', {
           description: `"${searchToDelete.name}" foi removida das suas pesquisas salvas.`,
@@ -355,7 +385,7 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="site-container space-y-6 py-6">
       {/* Header */}
       <PersonalAreaHeader 
         user={user} 
@@ -364,32 +394,32 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
 
       {/* Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2 lg:grid-cols-7 bg-pale-clay-light border border-pale-clay-deep">
-          <TabsTrigger value="dashboard" className="flex items-center space-x-2">
+        <TabsList className="grid w-full grid-cols-7 gap-2 bg-pale-clay-light border border-pale-clay-deep">
+          <TabsTrigger value="dashboard" className="w-full flex items-center space-x-2">
             <BarChart3 className="h-4 w-4" />
             <span className="hidden sm:inline">Dashboard</span>
           </TabsTrigger>
-          <TabsTrigger value="favorites" className="flex items-center space-x-2">
+          <TabsTrigger value="favorites" className="w-full flex items-center space-x-2">
             <Heart className="h-4 w-4" />
             <span className="hidden sm:inline">Favoritos</span>
           </TabsTrigger>
-          <TabsTrigger value="searches" className="flex items-center space-x-2">
+          <TabsTrigger value="searches" className="w-full flex items-center space-x-2">
             <Bookmark className="h-4 w-4" />
             <span className="hidden sm:inline">Pesquisas</span>
           </TabsTrigger>
-          <TabsTrigger value="alerts" className="flex items-center space-x-2">
+          <TabsTrigger value="alerts" className="w-full flex items-center space-x-2">
             <Bell className="h-4 w-4" />
             <span className="hidden sm:inline">Alertas</span>
           </TabsTrigger>
-          <TabsTrigger value="history" className="flex items-center space-x-2">
+          <TabsTrigger value="history" className="w-full flex items-center space-x-2">
             <Clock className="h-4 w-4" />
             <span className="hidden sm:inline">Histórico</span>
           </TabsTrigger>
-          <TabsTrigger value="plans" className="flex items-center space-x-2">
+          <TabsTrigger value="plans" className="w-full flex items-center space-x-2">
             <Crown className="h-4 w-4" />
             <span className="hidden sm:inline">Planos</span>
           </TabsTrigger>
-          <TabsTrigger value="settings" className="flex items-center space-x-2">
+          <TabsTrigger value="settings" className="w-full flex items-center space-x-2">
             <Settings className="h-4 w-4" />
             <span className="hidden sm:inline">Perfil</span>
           </TabsTrigger>
@@ -399,8 +429,8 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
         <TabsContent value="dashboard" className="space-y-6">
           <PersonalAreaDashboard
             user={user}
-            favoritesCount={mockFavoriteProperties.length}
-            savedSearchesCount={filteredSavedSearches.length}
+            favoritesCount={favorites.length}
+            savedSearchesCount={savedSearches.length}
             alertsCount={allAlerts.filter(alert => alert.isActive).length}
             onCardClick={handleCardClick}
             onOpenUpgradeModal={onOpenUpgradeModal}
@@ -410,17 +440,18 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
         <TabsContent value="favorites">
           <PersonalAreaFavorites
             user={user}
-            favorites={mockFavoriteProperties}
+            favorites={favorites}
             onPropertySelect={onPropertySelect}
             onOpenUpgradeModal={onOpenUpgradeModal}
             onGoToHome={handleGoToHome}
+            onToggleFavorite={onToggleFavorite}
           />
         </TabsContent>
 
         <TabsContent value="searches">
           <PersonalAreaSearches
             user={user}
-            savedSearches={filteredSavedSearches}
+            savedSearches={savedSearches}
             onDeleteSearch={handleDeleteSavedSearch}
             onOpenUpgradeModal={onOpenUpgradeModal}
             onGoToHome={handleGoToHome}

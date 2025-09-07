@@ -1,8 +1,10 @@
 import React from 'react';
-import { Search, Map, Grid3X3, Home, Crown, User } from 'lucide-react';
+import { useState } from 'react';
+import { Search, Map, Grid3X3, Home, Crown, User, ArrowUp } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { UserProfileDropdown } from './UserProfileDropdown';
+import { AIResponseBox } from './AIResponseBox';
 
 interface User {
   id: string;
@@ -25,24 +27,48 @@ interface HeaderProps {
   onNavigateToHome: () => void;
   currentView: 'home' | 'personal';
   onOpenUpgradeModal?: () => void;
+  onSubmitSearch?: (query: string) => void;
+  aiText?: string;
+  aiLoading?: boolean;
+  aiError?: string | null;
 }
 
-export function Header({ 
-  searchQuery, 
-  setSearchQuery, 
-  viewMode, 
-  setViewMode, 
-  user, 
-  onOpenAuth, 
+export function Header({
+  searchQuery,
+  setSearchQuery,
+  viewMode,
+  setViewMode,
+  user,
+  onOpenAuth,
   onLogout,
   onNavigateToPersonal,
   onNavigateToHome,
   currentView,
-  onOpenUpgradeModal
+  onOpenUpgradeModal,
+  onSubmitSearch,
+  aiText,
+  aiLoading,
+  aiError
 }: HeaderProps) {
+  const [aiOpen, setAiOpen] = useState(false);
+  const [aiQuery, setAiQuery] = useState('');
+  const [localInput, setLocalInput] = useState(searchQuery);
+
+  // removed openAIBox - arrow will submit the search
+
+  const submitSearch = () => {
+    if (!user) { onOpenAuth(); return; }
+    const q = (localInput || '').trim();
+    if (!q) return;
+    // Open AI box to show reasoning/answer
+    setAiQuery(q);
+    setAiOpen(true);
+    onSubmitSearch?.(q);
+  };
+
   return (
     <header className="bg-card/95 backdrop-blur-lg border-b border-clay-medium sticky top-0 z-50 shadow-clay-soft">
-      <div className="container mx-auto px-4 relative">
+      <div className="site-container relative">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center space-x-3">
@@ -72,18 +98,36 @@ export function Header({
                 }`} />
                 <Input
                   placeholder={user ? "Conte-me que tipo de casa está à procura..." : "Crie a sua conta para começar a pesquisar..."}
-                  value={user ? searchQuery : ''}
-                  onChange={(e) => user && setSearchQuery(e.target.value)}
+                  value={user ? localInput : ''}
+                  onChange={(e) => user && setLocalInput(e.target.value)}
+                  onKeyDown={(e) => { if (user && e.key === 'Enter') submitSearch(); }}
                   disabled={!user}
-                  className={`pl-12 pr-4 h-12 text-base border-clay-medium focus:border-primary rounded-xl bg-input-background shadow-sm ${
+                  className={`pl-12 pr-28 h-12 text-base border-clay-medium focus:border-primary rounded-xl bg-input-background shadow-sm ${
                     !user ? 'opacity-60 cursor-not-allowed' : ''
                   }`}
                 />
+                {user && (
+                  <Button
+                    size="icon"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-burnt-peach hover:bg-burnt-peach-deep text-white border-0 shadow-clay-soft"
+                    onClick={submitSearch}
+                    disabled={!user || !(localInput || '').trim().length}
+                    aria-label="Abrir resposta IA"
+                    title="Perguntar IA"
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
-              
+
+              {/* AI response box under search (only when explicitly opened) */}
+              {user && (
+                <AIResponseBox query={aiQuery} open={aiOpen} text={aiText} loading={aiLoading} error={aiError || null} onClose={() => setAiOpen(false)} />
+              )}
+
               {/* Overlay for non-logged users */}
               {!user && (
-                <div 
+                <div
                   className="absolute inset-0 bg-transparent cursor-pointer rounded-xl"
                   onClick={onOpenAuth}
                   title="Crie a sua conta para aceder à pesquisa"

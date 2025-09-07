@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Data;
-using realestate_ia_site.Server.DTOs;
-using realestate_ia_site.Server.Infrastructure.Persistence.Filters;
-using realestate_ia_site.Server.Infrastructure.Persistence.Interfaces;
+using realestate_ia_site.Server.Application.DTOs.PropertySearch;
+using realestate_ia_site.Server.Application.PropertySearch.Filters;
+using realestate_ia_site.Server.Application.PropertySearch;
 
 namespace realestate_ia_site.Server.Infrastructure.Persistence
 {
@@ -27,87 +27,68 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(filtros, nameof(filtros));
-            
-            _logger.LogInformation("Iniciando pesquisa de propriedades com {FilterCount} filtros", filtros.Count);
-            _logger.LogDebug("Filtros recebidos: {@Filters}", filtros);
-
-            // Se não há filtros, retornar lista vazia
-            if (filtros.Count == 0)
-            {
-                _logger.LogInformation("Nenhum filtro fornecido - retornando lista vazia");
-                return new List<PropertySearchDto>();
-            }
+            _logger.LogInformation("[Search] Início pesquisa filtros={FilterCount}", filtros.Count);
+            _logger.LogDebug("[Search] Filtros recebidos {@Filters}", filtros);
+            if (filtros.Count == 0) return new List<PropertySearchDto>();
 
             cancellationToken.ThrowIfCancellationRequested();
-
             var query = _context.Properties.AsQueryable();
-            var filtersApplied = new List<string>();
 
-            // Aplicar todos os filtros dinamicamente
             foreach (var filtroKey in filtros.Keys)
             {
-                var applicableFilter = _filters.FirstOrDefault(f => f.CanHandle(filtroKey));
-                if (applicableFilter == null)
+                var applicable = _filters.FirstOrDefault(f => f.CanHandle(filtroKey));
+                if (applicable == null)
                 {
-                    _logger.LogWarning("Filtro não reconhecido: {FilterKey}", filtroKey);
+                    _logger.LogWarning("[Search] Filtro desconhecido key={Key}", filtroKey);
                     continue;
                 }
-                query = await applicableFilter.ApplyAsync(query, filtros, cancellationToken);
-                filtersApplied.Add($"{applicableFilter.GetFilterName()}({filtroKey})");
+                query = await applicable.ApplyAsync(query, filtros, cancellationToken);
+                _logger.LogDebug("[Search] Filtro aplicado filter={Filter} key={Key}", applicable.GetFilterName(), filtroKey);
             }
-
-            _logger.LogInformation("Filtros aplicados: {AppliedFilters}", string.Join(", ", filtersApplied));
 
             try
             {
                 var properties = await query.Take(10).ToListAsync(cancellationToken);
                 var result = properties.Select(PropertySearchDto.FromDomain).ToList();
-
-                _logger.LogInformation("Pesquisa concluída. Encontradas {PropertyCount} propriedades", result.Count);
+                _logger.LogInformation("[Search] Concluída propriedades={Count}", result.Count);
                 return result;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao executar query na base de dados. Filtros: {@Filters}", filtros);
+                _logger.LogError(ex, "[Search] Erro execução query filtros={@Filters}", filtros);
                 throw;
             }
         }
 
         public async Task<List<PropertySearchDto>> GetTopPicksAsync(
-            Dictionary<string, object> filtros, 
+            Dictionary<string, object> filtros,
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(filtros, nameof(filtros));
-            
-            _logger.LogInformation("Gerando Top Picks com scoring heurístico");
-            
+            _logger.LogInformation("[Search] Gerando Top Picks");
             var topPicksFilters = new Dictionary<string, object>(filtros)
             {
                 ["generate_top_picks"] = "true"
             };
-            
+
             var query = _context.Properties.AsQueryable();
-            
             foreach (var filtroKey in filtros.Keys.Where(k => k != "sort" && k != "cheaper_hint"))
             {
-                var applicableFilters = _filters.Where(f => f.CanHandle(filtroKey));
-                
-                foreach (var filter in applicableFilters)
+                foreach (var filter in _filters.Where(f => f.CanHandle(filtroKey)))
                 {
                     query = await filter.ApplyAsync(query, filtros, cancellationToken);
                 }
             }
-            
+
             var topPicksFilter = _filters.FirstOrDefault(f => f.CanHandle("generate_top_picks"));
             if (topPicksFilter != null)
             {
                 query = await topPicksFilter.ApplyAsync(query, topPicksFilters, cancellationToken);
             }
-            
+
             var properties = await query.ToListAsync(cancellationToken);
             var result = properties.Select(PropertySearchDto.FromDomain).ToList();
-            
-            _logger.LogInformation("Top Picks gerados: {Count} propriedades", result.Count);
+            _logger.LogInformation("[Search] Top Picks gerados count={Count}", result.Count);
             return result;
         }
     }

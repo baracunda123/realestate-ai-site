@@ -156,8 +156,11 @@ const mockProperties: Property[] = [
 interface PropertyGridProps {
   filters: SearchFilters;
   searchQuery: string;
+  serverResults?: Property[];
   onPropertySelect: (property: Property) => void;
   onFiltersUpdate: (filters: Partial<SearchFilters>) => void;
+  favorites?: Property[];
+  onToggleFavorite?: (property: Property) => void;
 }
 
 // Calculate simple text relevance score for ranking
@@ -165,7 +168,7 @@ const calculateRelevanceScore = (property: Property, query: string): number => {
   let score = 0;
   
   const queryLower = query.toLowerCase();
-  const searchableText = `${property.title} ${property.description} ${property.location} ${property.features.join(' ')}`.toLowerCase();
+  const searchableText = `${property.title} ${property.description} ${property.location} ${(property.features || []).join(' ')}`.toLowerCase();
   
   // Exact phrase match gets highest score
   if (searchableText.includes(queryLower)) {
@@ -193,9 +196,10 @@ const calculateRelevanceScore = (property: Property, query: string): number => {
   return score;
 };
 
-export function PropertyGrid({ filters, searchQuery, onPropertySelect, onFiltersUpdate }: PropertyGridProps) {
+export function PropertyGrid({ filters, searchQuery, serverResults, onPropertySelect, onFiltersUpdate, favorites = [], onToggleFavorite }: PropertyGridProps) {
+  const source = serverResults && serverResults.length > 0 ? serverResults : mockProperties;
   const filteredAndRankedProperties = useMemo(() => {
-    let filtered = mockProperties.filter(property => {
+    let filtered = source.filter(property => {
       // Price filter
       if (property.price < filters.priceRange[0] || property.price > filters.priceRange[1]) {
         return false;
@@ -221,10 +225,10 @@ export function PropertyGrid({ filters, searchQuery, onPropertySelect, onFilters
         return false;
       }
       
-      // Search query filter
-      if (searchQuery) {
+      // Search query filter (skip if using server-provided results)
+      if (searchQuery && !serverResults) {
         const searchLower = searchQuery.toLowerCase();
-        const searchableText = `${property.title} ${property.description} ${property.location} ${property.features.join(' ')}`.toLowerCase();
+        const searchableText = `${property.title} ${property.description} ${property.location} ${(property.features || []).join(' ')}`.toLowerCase();
         if (!searchableText.includes(searchLower)) {
           return false;
         }
@@ -233,8 +237,8 @@ export function PropertyGrid({ filters, searchQuery, onPropertySelect, onFilters
       return true;
     });
 
-    // Text-based ranking if there's a search query
-    if (searchQuery.trim()) {
+    // Text-based ranking if there's a search query and not using server results
+    if (searchQuery.trim() && !serverResults) {
       filtered = filtered.map(property => ({
         ...property,
         aiRelevanceScore: calculateRelevanceScore(property, searchQuery)
@@ -256,7 +260,7 @@ export function PropertyGrid({ filters, searchQuery, onPropertySelect, onFilters
     }
 
     return filtered;
-  }, [filters, searchQuery]);
+  }, [filters, searchQuery, serverResults]);
 
   const hasAIRanking = searchQuery.trim().length > 0;
 
@@ -268,12 +272,6 @@ export function PropertyGrid({ filters, searchQuery, onPropertySelect, onFilters
           <h2 className="text-xl font-medium text-foreground">
             {filteredAndRankedProperties.length} {filteredAndRankedProperties.length === 1 ? 'Propriedade Encontrada' : 'Propriedades Encontradas'}
           </h2>
-          {hasAIRanking && (
-            <Badge className="bg-burnt-peach text-pure-white border-0">
-              <Sparkles className="h-3 w-3 mr-1" />
-              Ranking Inteligente
-            </Badge>
-          )}
         </div>
         
         {hasAIRanking && (
@@ -292,22 +290,9 @@ export function PropertyGrid({ filters, searchQuery, onPropertySelect, onFilters
               property={property}
               onClick={() => onPropertySelect(property)}
               isWhiteBackground={index < 3}
+              isFavorite={favorites.some(f => f.id === property.id)}
+              onToggleFavorite={onToggleFavorite}
             />
-            {hasAIRanking && index < 3 && (
-              <div className="absolute top-3 left-3 z-10">
-                <Badge 
-                  className={`
-                    ${index === 0 ? 'bg-burnt-peach' : ''}
-                    ${index === 1 ? 'bg-cocoa-taupe' : ''}
-                    ${index === 2 ? 'bg-warm-taupe' : ''}
-                    text-pure-white border-0 shadow-clay-medium font-semibold
-                  `}
-                >
-                  <Sparkles className="h-3 w-3 mr-1" />
-                  #{index + 1} Match
-                </Badge>
-              </div>
-            )}
           </div>
         ))}
       </div>

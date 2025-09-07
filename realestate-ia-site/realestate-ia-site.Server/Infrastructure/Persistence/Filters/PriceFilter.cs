@@ -1,50 +1,26 @@
 using realestate_ia_site.Server.Domain.Entities;
+using realestate_ia_site.Server.Application.PropertySearch.Filters;
 
 namespace realestate_ia_site.Server.Infrastructure.Persistence.Filters
 {
     public class PriceFilter : IPropertyFilter
     {
         private readonly ILogger<PriceFilter> _logger;
-
-        public PriceFilter(ILogger<PriceFilter> logger)
-        {
-            _logger = logger;
-        }
-
-        public bool CanHandle(string filterKey) => filterKey == "max_price" || filterKey == "min_price";
-
-        public string GetFilterName() => "PriceFilter";
-
+        public PriceFilter(ILogger<PriceFilter> logger) => _logger = logger;
+        public bool CanHandle(string filterKey) => filterKey is "max_price" or "min_price" or "price";
+        public string GetFilterName() => nameof(PriceFilter);
         public Task<IQueryable<Property>> ApplyAsync(IQueryable<Property> query, Dictionary<string, object> filters, CancellationToken cancellationToken = default)
         {
-            // Aplicar filtro de preço máximo
-            if (filters.ContainsKey("max_price") && filters["max_price"] != null)
+            if (filters.TryGetValue("max_price", out var maxObj) && decimal.TryParse(maxObj?.ToString(), out var max))
             {
-                if (decimal.TryParse(filters["max_price"].ToString(), out var maxPrice))
-                {
-                    query = query.Where(p => p.Price <= maxPrice);
-                    _logger.LogDebug("Filtro 'max_price' aplicado: {MaxPrice:C}", maxPrice);
-                }
-                else
-                {
-                    _logger.LogWarning("Valor inválido para 'max_price': {Value}", filters["max_price"]);
-                }
+                query = query.Where(p => !p.Price.HasValue || p.Price.Value <= max);
+                _logger.LogDebug("[SearchFilter] max_price<={Max}", max);
             }
-
-            // Aplicar filtro de preço mínimo (se necessário no futuro)
-            if (filters.ContainsKey("min_price") && filters["min_price"] != null)
+            if (filters.TryGetValue("min_price", out var minObj) && decimal.TryParse(minObj?.ToString(), out var min))
             {
-                if (decimal.TryParse(filters["min_price"].ToString(), out var minPrice))
-                {
-                    query = query.Where(p => p.Price >= minPrice);
-                    _logger.LogDebug("Filtro 'min_price' aplicado: {MinPrice:C}", minPrice);
-                }
-                else
-                {
-                    _logger.LogWarning("Valor inválido para 'min_price': {Value}", filters["min_price"]);
-                }
+                query = query.Where(p => p.Price.HasValue && p.Price.Value >= min);
+                _logger.LogDebug("[SearchFilter] min_price>={Min}", min);
             }
-
             return Task.FromResult(query);
         }
     }

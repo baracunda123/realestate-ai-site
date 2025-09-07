@@ -1,12 +1,9 @@
 ﻿using OpenAI.Chat;
-using realestate_ia_site.Server.Infrastructure.AI.Interfaces;
+using realestate_ia_site.Server.Application.AI.Interfaces;
 using realestate_ia_site.Server.Infrastructure.AI.Prompts;
-using realestate_ia_site.Server.Infrastructure.AI.Core; // ADDED
-using realestate_ia_site.Server.Domain.Models;
+using realestate_ia_site.Server.Infrastructure.AI.Core;
 using System.Text.Json;
-using System.Linq;
-using System.Collections.Generic;
-using System;
+using realestate_ia_site.Server.Application.AI.Conversation;
 
 namespace realestate_ia_site.Server.Infrastructure.AI
 {
@@ -35,7 +32,6 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                 ? await _contextService.GetOrCreateContextAsync(sessionId, cancellationToken)
                 : null;
 
-            // Usar o PromptBuilder
             var messages = PromptBuilder.BuildForFilterExtraction(userQuery, context?.LastFilters);
 
             var options = new ChatCompletionOptions
@@ -48,8 +44,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             {
                 var response = await _openAIService.CompleteChatAsync(messages, options, cancellationToken);
                 var filters = ParseFiltersFromResponse(response);
-                
-                // Salvar no contexto
+
                 if (context != null && filters.Any())
                 {
                     context.LastFilters = MergeFilters(context.LastFilters, filters);
@@ -82,137 +77,71 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             }
             catch (JsonException)
             {
-                // Se não conseguir fazer parse, retorna vazio
             }
 
             return new Dictionary<string, object>();
         }
 
-        private static Dictionary<string, object> MergeFilters(
-            Dictionary<string, object>? previous,
-            Dictionary<string, object> current)
+        private static string? ExtractFirstJsonObject(string input)
         {
-            // Se não há filtros novos, retorna os anteriores (ou vazio)
-            if (current.Count == 0)
-                return previous != null
-                    ? new Dictionary<string, object>(previous)
-                    : new Dictionary<string, object>();
-
-            // Se não há filtros anteriores, retorna os novos
-            if (previous == null || previous.Count == 0)
-                return current;
-
-            // Filtros que substituem completamente quando especificados
-            var replacingKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
-                { "type", "location", "max_price", "rooms" };
-
-            // Se algum filtro estrutural foi especificado, começa com base limpa
-            bool hasStructuralChange = current.Keys.Any(k => replacingKeys.Contains(k));
-            
-            var result = hasStructuralChange 
-                ? new Dictionary<string, object>() 
-                : new Dictionary<string, object>(previous);
-
-            // Se houve mudança estrutural, preserva apenas tags dos filtros anteriores (podem ser cumulativas)
-            if (hasStructuralChange && previous.ContainsKey("tags"))
+            var start = input.IndexOf('{');
+            if (start < 0) return null;
+            var depth = 0;
+            for (int i = start; i < input.Length; i++)
             {
-                result["tags"] = previous["tags"];
-            }
+                if (input[i] == '{') depth++;
+                else if (input[i] == '}') depth--;
 
-            // Aplica todos os filtros novos
-            foreach (var kv in current)
-            {
-                if (kv.Key.Equals("tags", StringComparison.OrdinalIgnoreCase))
+                if (depth == 0)
                 {
-                    // Tags podem ser cumulativas se não houver mudança estrutural major
-                    if (!hasStructuralChange && result.ContainsKey("tags"))
-                    {
-                        var existingTags = ExtractStringList(result["tags"]);
-                        var newTags = ExtractStringList(kv.Value);
-                        var combined = existingTags.Union(newTags, StringComparer.OrdinalIgnoreCase).ToList();
-                        result[kv.Key] = combined;
-                    }
-                    else
-                    {
-                        result[kv.Key] = kv.Value;
-                    }
-                }
-                else
-                {
-                    result[kv.Key] = kv.Value;
+                    return input[start..(i + 1)];
                 }
             }
-
-            return result;
-        }
-
-        private static List<string> ExtractStringList(object value)
-        {
-            var result = new List<string>();
-
-            switch (value)
-            {
-                case JsonElement je when je.ValueKind == JsonValueKind.Array:
-                    foreach (var item in je.EnumerateArray())
-                        if (item.ValueKind == JsonValueKind.String)
-                            result.Add(item.GetString()!);
-                    break;
-                case IEnumerable<object> objEnum:
-                    foreach (var item in objEnum)
-                    {
-                        var s = item?.ToString();
-                        if (!string.IsNullOrWhiteSpace(s))
-                            result.Add(s);
-                    }
-                    break;
-            }
-
-            return result;
+            return null;
         }
 
         private static void NormalizeFilterValues(Dictionary<string, object> filters)
         {
             var keys = filters.Keys.ToList();
-
             foreach (var key in keys)
             {
-                var val = filters[key];
-                if (val is JsonElement je)
+                if (filters[key] is JsonElement element)
                 {
-                    filters[key] = je.ValueKind switch
+                    filters[key] = element.ValueKind switch
                     {
-                        JsonValueKind.String => je.GetString()!,
-                        JsonValueKind.Number => je.TryGetInt64(out var l) ? l : je.GetDouble(),
+                        JsonValueKind.String => element.GetString()!,
+                        JsonValueKind.Number => element.TryGetInt64(out var l) ? l : element.GetDouble(),
                         JsonValueKind.True => true,
                         JsonValueKind.False => false,
-                        JsonValueKind.Array => ExtractStringList(je),
-                        _ => val
+                        JsonValueKind.Array => element.EnumerateArray().Select(e => e.ToString()).Where(s => s != null).ToList(),
+                        _ => element.ToString() ?? string.Empty
                     };
                 }
             }
         }
 
-        private static string? ExtractFirstJsonObject(string input)
+        private static Dictionary<string, object> MergeFilters(Dictionary<string, object> existing, Dictionary<string, object> incoming)
         {
-            if (string.IsNullOrWhiteSpace(input))
-                return null;
-
-            int start = input.IndexOf('{');
-            if (start < 0) return null;
-
-            int depth = 0;
-            for (int i = start; i < input.Length; i++)
+            var result = new Dictionary<string, object>(existing);
+            foreach (var kv in incoming)
             {
-                var c = input[i];
-                if (c == '{') depth++;
-                else if (c == '}')
+                if (!result.ContainsKey(kv.Key) || IsEmpty(result[kv.Key]))
                 {
-                    depth--;
-                    if (depth == 0)
-                        return input.Substring(start, i - start + 1);
+                    result[kv.Key] = kv.Value;
                 }
             }
-            return null;
+            return result;
+        }
+
+        private static bool IsEmpty(object value)
+        {
+            return value switch
+            {
+                null => true,
+                string s when string.IsNullOrWhiteSpace(s) => true,
+                IEnumerable<object> e => !e.Any(),
+                _ => false
+            };
         }
     }
 }

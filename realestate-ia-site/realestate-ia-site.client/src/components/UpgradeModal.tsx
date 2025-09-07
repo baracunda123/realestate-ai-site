@@ -207,20 +207,20 @@ export function UpgradeModal({ isOpen, onClose, onBack, onUpgradeComplete }: Upg
             </div>
             
             {/* Premium Benefits Summary - Right Side - More Horizontal */}
-            <div className="hidden xl:flex items-center space-x-8">
+            <div className="hidden xl:flex flex-1 items-center justify-between gap-8 w-full">
               {premiumBenefits.map((benefit, index) => (
                 <motion.div
                   key={benefit.title}
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: index * 0.1 }}
-                  className="text-center min-w-[100px]"
+                  className="text-center px-2 flex-1"
                 >
                   <div className="w-14 h-14 bg-burnt-peach-light rounded-xl flex items-center justify-center mb-3 mx-auto">
                     <benefit.icon className="h-7 w-7 text-deep-mocha" />
                   </div>
-                  <div className="text-sm font-medium text-foreground leading-tight">{benefit.title}</div>
-                  <div className="text-xs text-muted-foreground leading-tight mt-1">{benefit.description}</div>
+                  <div className="text-sm font-medium text-foreground leading-snug break-words whitespace-normal text-balance">{benefit.title}</div>
+                  <div className="text-xs text-muted-foreground leading-snug mt-1 break-words whitespace-normal text-balance">{benefit.description}</div>
                 </motion.div>
               ))}
             </div>
@@ -292,8 +292,8 @@ export function UpgradeModal({ isOpen, onClose, onBack, onUpgradeComplete }: Upg
                     <div className="w-12 h-12 bg-burnt-peach-light rounded-lg flex items-center justify-center mb-3 mx-auto">
                       <benefit.icon className="h-6 w-6 text-deep-mocha" />
                     </div>
-                    <div className="text-sm font-medium text-foreground leading-tight">{benefit.title}</div>
-                    <div className="text-xs text-muted-foreground leading-tight mt-1">{benefit.description}</div>
+                    <div className="text-sm font-medium text-foreground leading-snug break-words whitespace-normal text-balance">{benefit.title}</div>
+                    <div className="text-xs text-muted-foreground leading-snug mt-1 break-words whitespace-normal text-balance">{benefit.description}</div>
                   </CardContent>
                 </Card>
               ))}

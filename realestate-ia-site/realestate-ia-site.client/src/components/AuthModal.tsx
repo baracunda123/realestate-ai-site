@@ -15,20 +15,29 @@ import {
   Sparkles,
   Chrome,
   Facebook,
-  Apple
+  Apple,
+  AlertCircle,
+  CheckCircle,
+  Loader2,
+  MailCheck
 } from 'lucide-react';
-import { Badge } from './ui/badge';
+import { login, register, type LoginPayload, type RegisterPayload } from '../api/auth.service';
 
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSignIn: (email: string, password: string) => void;
-  onSignUp: (name: string, email: string, phone: string, password: string) => void;
+  onSuccess?: () => void;
+  defaultTab?: 'signin' | 'signup';
 }
 
-export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProps) {
-  const [activeTab, setActiveTab] = useState('signin');
+export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }: AuthModalProps) {
+  const [activeTab, setActiveTab] = useState(defaultTab);
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -39,22 +48,146 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    // Limpar mensagens quando o usuário começar a digitar
+    if (error) setError(null);
+    if (success) setSuccess(null);
+    if (showEmailConfirmation) setShowEmailConfirmation(false);
   };
 
-  const handleSignIn = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSignIn(formData.email, formData.password);
-    resetForm();
+  // Função para extrair mensagens de erro do backend
+  const extractErrorMessage = (error: any): string => {
+    
+    if (error.response?.data) {
+      const data = error.response.data;
+      
+      // Se há uma mensagem direta
+      if (data.message) {
+        return data.message;
+      }
+      
+      // Se há erros de validação específicos (formato ModelState do ASP.NET Core)
+      if (data.errors) {
+        const errorMessages: string[] = [];
+        
+        // Se errors é um objeto com campos específicos
+        if (typeof data.errors === 'object' && !Array.isArray(data.errors)) {
+          Object.keys(data.errors).forEach(field => {
+            const fieldErrors = data.errors[field];
+            if (Array.isArray(fieldErrors)) {
+              errorMessages.push(...fieldErrors);
+            } else {
+              errorMessages.push(fieldErrors);
+            }
+          });
+        }
+        // Se errors é um array
+        else if (Array.isArray(data.errors)) {
+          errorMessages.push(...data.errors);
+        }
+        
+        if (errorMessages.length > 0) {
+          return errorMessages.join('. ');
+        }
+      }
+      
+      // Se há title (como no ModelState validation)
+      if (data.title && data.title !== 'One or more validation errors occurred.') {
+        return data.title;
+      }
+    }
+    
+    return 'Erro interno do servidor. Tente novamente.';
   };
 
-  const handleSignUp = (e: React.FormEvent) => {
+  // Ensure correct initial tab when opening or when parent intent changes
+  React.useEffect(() => {
+    if (isOpen) {
+      setActiveTab(defaultTab);
+      resetForm();
+    }
+  }, [isOpen, defaultTab]);
+
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.password !== formData.confirmPassword) {
-      alert('As palavras-passe não coincidem');
+    setIsLoading(true);
+    setError(null);
+    setSuccess(null);
+    setShowEmailConfirmation(false);
+
+    try {
+      const loginData: LoginPayload = {
+        email: formData.email,
+        password: formData.password
+      };
+
+      const result = await login(loginData);
+
+      if (result.success) {
+        setSuccess(result.message || 'Login realizado com sucesso!');
+        resetForm();
+        
+        // Aguardar um pouco para mostrar a mensagem de sucesso
+        setTimeout(() => {
+          onSuccess?.();
+          onClose();
+        }, 1500);
+      } else {
+        setError(result.message || 'Erro no login. Verifique suas credenciais.');
+      }
+    } catch (error: any) {
+      console.error('Erro no login:', error);
+      setError(extractErrorMessage(error));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
+    setSuccess(null);
+    setShowEmailConfirmation(false);
+
+    if (!acceptTerms) {
+      setError('Deve aceitar os termos de uso para prosseguir');
+      setIsLoading(false);
       return;
     }
-    onSignUp(formData.name, formData.email, formData.phone, formData.password);
-    resetForm();
+
+    try {
+      const registerData: RegisterPayload = {
+        fullName: formData.name,
+        email: formData.email,
+        phoneNumber: formData.phone || undefined,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+        acceptTerms: acceptTerms
+      };
+
+      const result = await register(registerData);
+
+        if (result.success) {
+            resetForm();
+            // Mostrar aviso específico para confirmação de email
+            setShowEmailConfirmation(true);
+            setSuccess(result.message || 'Conta criada com sucesso!');
+            
+            
+            // Para registro, aguardar mais tempo para ler a mensagem
+            /*setTimeout(() => {
+              onSuccess?.();
+              onClose();
+            }, 5000); // Aumentado para 5 segundos para dar tempo de ler*/
+      } else {
+        setError(result.message || 'Erro no registro. Tente novamente.');
+      }
+    } catch (error: any) {
+      console.error('Erro no registro:', error);
+      setError(extractErrorMessage(error));
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const resetForm = () => {
@@ -66,16 +199,22 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
       confirmPassword: ''
     });
     setShowPassword(false);
+    setError(null);
+    setSuccess(null);
+    setShowEmailConfirmation(false);
+    setAcceptTerms(false);
   };
 
   const handleClose = () => {
-    resetForm();
-    onClose();
+    if (!isLoading) {
+      resetForm();
+      onClose();
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md border border-border bg-card shadow-mocha-lg">
+      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto scrollbar-hide border border-border bg-card shadow-mocha-lg">
         <DialogHeader className="text-center pb-2">
           <div className="mx-auto w-12 h-12 gradient-mocha rounded-xl flex items-center justify-center mb-3">
             <Sparkles className="h-6 w-6 text-white" />
@@ -88,17 +227,65 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
           </DialogDescription>
         </DialogHeader>
 
+        {/* Exibir mensagens de erro */}
+        {error && (
+          <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 mb-4">
+            <div className="flex items-start space-x-2">
+              <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-destructive">
+                {error.split('. ').map((errorMsg, index) => (
+                  <div key={index} className={index > 0 ? 'mt-1' : ''}>
+                        {errorMsg}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Exibir mensagens de sucesso */}
+        {success && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3 mb-4">
+            <div className="flex items-start space-x-2">
+              <CheckCircle className="h-4 w-4 text-green-600 mt-0.5 flex-shrink-0" />
+              <p className="text-sm text-green-700">{success}</p>
+            </div>
+          </div>
+        )}
+
+        {/* Aviso específico para confirmação de email */}
+        {showEmailConfirmation && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+            <div className="flex items-start space-x-3">
+              <MailCheck className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-blue-700">
+                <h4 className="font-semibold mb-2">Confirme o seu email</h4>
+                <p className="mb-2">
+                  Foi enviado um email de confirmação para <strong>{formData.email}</strong>
+                </p>
+                <p className="text-xs text-blue-600">
+                  • Verifique a sua caixa de entrada (e pasta de spam)<br/>
+                  • Clique no link de confirmação no email<br/>
+                  • Depois poderá fazer login na sua conta
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-secondary rounded-xl p-1">
             <TabsTrigger 
               value="signin" 
               className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              disabled={isLoading}
             >
               Iniciar Sessão
             </TabsTrigger>
             <TabsTrigger 
               value="signup"
               className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              disabled={isLoading}
             >
               Registar
             </TabsTrigger>
@@ -117,7 +304,7 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
                     className="pl-10 border-border focus:border-primary"
-                    required
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -133,7 +320,7 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
                     value={formData.password}
                     onChange={(e) => handleInputChange('password', e.target.value)}
                     className="pl-10 pr-10 border-border focus:border-primary"
-                    required
+                    disabled={isLoading}
                   />
                   <Button
                     type="button"
@@ -141,6 +328,7 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
                     size="sm"
                     className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={isLoading}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
@@ -150,14 +338,28 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
               <Button 
                 type="submit" 
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground border-0 shadow-sm"
+                disabled={isLoading}
               >
-                <Sparkles className="h-4 w-4 mr-2" />
-                Iniciar Sessão
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    A iniciar sessão...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Iniciar Sessão
+                  </>
+                )}
               </Button>
             </form>
 
             <div className="text-center">
-              <Button variant="ghost" className="text-sm text-muted-foreground hover:bg-accent">
+              <Button 
+                variant="ghost" 
+                className="text-sm text-muted-foreground hover:bg-accent"
+                disabled={isLoading}
+              >
                 Esqueceu-se da palavra-passe?
               </Button>
             </div>
@@ -176,7 +378,7 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
                     value={formData.name}
                     onChange={(e) => handleInputChange('name', e.target.value)}
                     className="pl-10 border-border focus:border-primary"
-                    required
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -192,13 +394,13 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
                     value={formData.email}
                     onChange={(e) => handleInputChange('email', e.target.value)}
                     className="pl-10 border-border focus:border-primary"
-                    required
+                    disabled={isLoading}
                   />
                 </div>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="signup-phone">Telemóvel</Label>
+                <Label htmlFor="signup-phone">Telemóvel (opcional)</Label>
                 <div className="relative">
                   <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
@@ -208,7 +410,7 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
                     value={formData.phone}
                     onChange={(e) => handleInputChange('phone', e.target.value)}
                     className="pl-10 border-border focus:border-primary"
-                    required
+                    disabled={isLoading}
                   />
                 </div>
               </div>
@@ -224,8 +426,7 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
                     value={formData.password}
                     onChange={(e) => handleInputChange('password', e.target.value)}
                     className="pl-10 pr-10 border-border focus:border-primary"
-                    required
-                    minLength={8}
+                    disabled={isLoading}
                   />
                   <Button
                     type="button"
@@ -233,10 +434,14 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
                     size="sm"
                     className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
                     onClick={() => setShowPassword(!showPassword)}
+                    disabled={isLoading}
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </Button>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Deve conter: 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial
+                </p>
               </div>
 
               <div className="space-y-2">
@@ -250,17 +455,59 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
                     value={formData.confirmPassword}
                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
                     className="pl-10 border-border focus:border-primary"
-                    required
+                    disabled={isLoading}
                   />
                 </div>
+              </div>
+
+              {/* Checkbox para aceitar termos */}
+              <div className="flex items-start space-x-2">
+                <input
+                  type="checkbox"
+                  id="accept-terms"
+                  checked={acceptTerms}
+                  onChange={(e) => setAcceptTerms(e.target.checked)}
+                  className="mt-1"
+                  disabled={isLoading}
+                />
+                <Label htmlFor="accept-terms" className="text-xs text-muted-foreground leading-relaxed">
+                  Aceito os{' '}
+                  <Button 
+                    variant="link" 
+                    className="p-0 h-auto text-xs text-primary" 
+                    disabled={isLoading}
+                    type="button"
+                  >
+                    Termos de Uso
+                  </Button>{' '}
+                  e{' '}
+                  <Button 
+                    variant="link" 
+                    className="p-0 h-auto text-xs text-primary" 
+                    disabled={isLoading}
+                    type="button"
+                  >
+                    Política de Privacidade
+                  </Button>
+                </Label>
               </div>
 
               <Button 
                 type="submit" 
                 className="w-full bg-primary hover:bg-primary/90 text-primary-foreground border-0 shadow-sm"
+                disabled={isLoading || !acceptTerms}
               >
-                <Sparkles className="h-4 w-4 mr-2" />
-                Criar Conta
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    A criar conta...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-2" />
+                    Criar Conta
+                  </>
+                )}
               </Button>
             </form>
           </TabsContent>
@@ -276,13 +523,25 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
         </div>
 
         <div className="grid grid-cols-3 gap-3">
-          <Button variant="outline" className="border-border hover:border-primary/50 hover:bg-accent">
+          <Button 
+            variant="outline" 
+            className="border-border hover:border-primary/50 hover:bg-accent" 
+            disabled={isLoading}
+          >
             <Chrome className="h-4 w-4" />
           </Button>
-          <Button variant="outline" className="border-border hover:border-primary/50 hover:bg-accent">
+          <Button 
+            variant="outline" 
+            className="border-border hover:border-primary/50 hover:bg-accent" 
+            disabled={isLoading}
+          >
             <Facebook className="h-4 w-4" />
           </Button>
-          <Button variant="outline" className="border-border hover:border-primary/50 hover:bg-accent">
+          <Button 
+            variant="outline" 
+            className="border-border hover:border-primary/50 hover:bg-accent" 
+            disabled={isLoading}
+          >
             <Apple className="h-4 w-4" />
           </Button>
         </div>
@@ -290,11 +549,19 @@ export function AuthModal({ isOpen, onClose, onSignIn, onSignUp }: AuthModalProp
         <div className="text-center">
           <p className="text-xs text-muted-foreground">
             Ao continuar, você concorda com nossos{' '}
-            <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
+            <Button 
+              variant="link" 
+              className="p-0 h-auto text-xs text-muted-foreground" 
+              disabled={isLoading}
+            >
               Termos de Uso
             </Button>{' '}
             e{' '}
-            <Button variant="link" className="p-0 h-auto text-xs text-muted-foreground">
+            <Button 
+              variant="link" 
+              className="p-0 h-auto text-xs text-muted-foreground" 
+              disabled={isLoading}
+            >
               Política de Privacidade
             </Button>
           </p>
