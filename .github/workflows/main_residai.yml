@@ -31,14 +31,14 @@ jobs:
       - name: Build with dotnet
         run: dotnet build "realestate-ia-site/realestate-ia-site.Server/realestate-ia-site.Server.csproj" --configuration Release --no-restore
 
-      - name: dotnet publish
-        run: dotnet publish "realestate-ia-site/realestate-ia-site.Server/realestate-ia-site.Server.csproj" -c Release -o ${{env.DOTNET_ROOT}}/myapp --no-build
+      -  name: dotnet publish
+         run: dotnet publish "realestate-ia-site/realestate-ia-site.Server/realestate-ia-site.Server.csproj" -c Release -o "${{ github.workspace }}\publish" --no-build
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: .net-app
-          path: ${{env.DOTNET_ROOT}}/myapp
+          path: ${{ github.workspace }}\publish
 
   deploy:
     runs-on: windows-latest
@@ -67,3 +67,4 @@ jobs:
           app-name: 'residai'
           slot-name: 'Production'
           package: .
+
