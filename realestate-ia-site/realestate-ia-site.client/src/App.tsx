@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { Header } from './components/Header';
 import { PersonalArea } from './components/PersonalArea';
 import { Footer } from './components/Footer';
@@ -7,8 +7,11 @@ import { Toaster } from './components/ui/sonner';
 import { type PropertyAlert } from './types/PersonalArea';
 import { type SearchFilters as SearchFiltersType } from './types/SearchFilters';
 import { type Property } from './types/property';
-import { getCurrentLimits } from './utils/PersonalArea';
+import { getCurrentUser, logout, authUtils } from './api/auth.service';
+import { createSafeDate } from './utils/PersonalArea';
+import type { UserProfile } from './api/client';
 
+// Lazy load components for better performance
 const SearchFilters = lazy(() => import('./components/SearchFilters').then(m => ({ default: m.SearchFilters })));
 const PropertyGrid = lazy(() => import('./components/PropertyGrid').then(m => ({ default: m.PropertyGrid })));
 const PropertyModal = lazy(() => import('./components/PropertyModal').then(m => ({ default: m.PropertyModal })));
@@ -19,46 +22,97 @@ const PremiumFeaturesModal = lazy(() => import('./components/PremiumFeaturesModa
 const UpgradeModal = lazy(() => import('./components/UpgradeModal').then(m => ({ default: m.UpgradeModal })));
 const AlertResults = lazy(() => import('./components/AlertResults').then(m => ({ default: m.AlertResults })));
 
+// Default search filters
+const DEFAULT_FILTERS: SearchFiltersType = {
+  priceRange: [0, 2000000],
+  bedrooms: null,
+  bathrooms: null,
+  propertyType: '',
+  location: '',
+  sortBy: 'price'
+};
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  avatar?: string;
+// View types
+type ViewType = 'home' | 'personal' | 'alert-results';
+type ViewMode = 'grid' | 'map';
+type AuthTab = 'signin' | 'signup';
+type SignupIntent = 'free' | 'premium' | null;
+
+// Extended user interface for internal use
+interface ExtendedUserProfile extends UserProfile {
+  name?: string;
+  phone?: string;
   isPremium?: boolean;
-  createdAt: Date;
 }
 
 export default function App() {
+  // Property-related state
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
-  const [searchFilters, setSearchFilters] = useState<SearchFiltersType>({
-    priceRange: [0, 2000000],
-    bedrooms: null,
-    bathrooms: null,
-    propertyType: '',
-    location: '',
-    sortBy: 'price'
-  });
-  const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   const [favorites, setFavorites] = useState<Property[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentView, setCurrentView] = useState<'home' | 'personal' | 'alert-results'>('home');
-  const [selectedAlert, setSelectedAlert] = useState<PropertyAlert | null>(null);
   const [searchResults, setSearchResults] = useState<Property[] | null>(null);
+  
+  // Search and filter state
+  const [searchFilters, setSearchFilters] = useState<SearchFiltersType>(DEFAULT_FILTERS);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  
+  // Navigation state
+  const [currentView, setCurrentView] = useState<ViewType>('home');
+  const [selectedAlert, setSelectedAlert] = useState<PropertyAlert | null>(null);
+  
+  // AI state
   const [aiText, setAiText] = useState<string>('');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   
   // Authentication state
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<ExtendedUserProfile | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authDefaultTab, setAuthDefaultTab] = useState<'signin' | 'signup'>('signin');
-  const [signupIntent, setSignupIntent] = useState<'free' | 'premium' | null>(null);
+  const [authDefaultTab, setAuthDefaultTab] = useState<AuthTab>('signin');
+  const [signupIntent, setSignupIntent] = useState<SignupIntent>(null);
   
-  // Premium upgrade modals state
+  // Modal state
   const [isPremiumFeaturesModalOpen, setIsPremiumFeaturesModalOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+
+  // Initialize authentication and favorites
+  useEffect(() => {
+    const initializeApp = async () => {
+      // Check authentication
+      try {
+        const currentUser = await getCurrentUser();
+        if (currentUser) {
+          // Extend user profile with missing properties
+          const extendedUser: ExtendedUserProfile = {
+            ...currentUser,
+            name: currentUser.fullName || '',
+            phone: '',
+            isPremium: false // Default value, should come from backend
+          };
+          setUser(extendedUser);
+        }
+      } catch {
+        authUtils.clearTokens();
+      }
+
+      // Load favorites from localStorage
+      try {
+        const savedFavorites = localStorage.getItem('hf_favorites');
+        if (savedFavorites) {
+          setFavorites(JSON.parse(savedFavorites));
+        }
+      } catch {
+        setFavorites([]);
+      }
+    };
+
+    initializeApp();
+  }, []);
+
+  // Persist favorites to localStorage
+  useEffect(() => {
+    localStorage.setItem('hf_favorites', JSON.stringify(favorites));
+  }, [favorites]);
 
   // Handle URL navigation
   useEffect(() => {
@@ -70,10 +124,10 @@ export default function App() {
       } else if (hash === '#alert-results' && user && selectedAlert) {
         setCurrentView('alert-results');
       } else if (hash === '#alert-results' && user && !selectedAlert) {
-        // If trying to access alert results but no alert selected, go to personal
+        // Redirect to personal if trying to access alert results without selected alert
         setCurrentView('personal');
         window.location.hash = '#personal';
-      } else if (!hash || hash === '#' || !user) {
+      } else {
         setCurrentView('home');
         if (hash && hash !== '#') {
           window.location.hash = '';
@@ -87,7 +141,7 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, [user, selectedAlert]);
 
-  // Redirect to home if user logs out while in personal area or alert results
+  // Redirect to home if user logs out while in protected views
   useEffect(() => {
     if (!user && (currentView === 'personal' || currentView === 'alert-results')) {
       setCurrentView('home');
@@ -96,20 +150,8 @@ export default function App() {
     }
   }, [user, currentView]);
 
-  // Function to update filters (can be used by AI)
-  const updateFilters = (newFilters: Partial<SearchFiltersType>) => {
-    if (!user) {
-      openAuthModal();
-      return;
-    }
-    setSearchFilters(prevFilters => ({
-      ...prevFilters,
-      ...newFilters
-    }));
-  };
-
-  // Check if we should show welcome screen - always show for non-logged users
-  const isDefaultState = () => {
+  // Helper functions
+  const isDefaultState = (): boolean => {
     const isDefaultFilters = 
       searchFilters.priceRange[0] === 0 &&
       searchFilters.priceRange[1] === 2000000 &&
@@ -122,52 +164,15 @@ export default function App() {
     return searchQuery.trim() === '' && isDefaultFilters;
   };
 
-  // Persist favorites in localStorage
-  useEffect(() => {
-    const raw = localStorage.getItem('hf_favorites');
-    if (raw) {
-      try { setFavorites(JSON.parse(raw)); } catch {}
-    }
-  }, []);
-
-  useEffect(() => {
-    localStorage.setItem('hf_favorites', JSON.stringify(favorites));
-  }, [favorites]);
-
-  const toggleFavorite = (property: Property) => {
-    // Limits only enforce on add
-    const exists = favorites.some(p => p.id === property.id);
-    if (!exists) {
-      if (!user) {
-        openAuthModal();
-        return;
-      }
-      const limits = getCurrentLimits(user as any);
-      if (!user.isPremium && favorites.length >= limits.maxFavorites) {
-        toast.error('Limite de favoritos atingido', {
-          description: `Plano Free permite até ${limits.maxFavorites}. Faça upgrade para ilimitados.`,
-        });
-        return;
-      }
-    }
-    setFavorites(prev => exists ? prev.filter(p => p.id !== property.id) : [...prev, property]);
+  const resetToDefaults = () => {
+    setSearchQuery('');
+    setSearchFilters(DEFAULT_FILTERS);
+    setSearchResults(null);
+    setAiText('');
+    setAiError(null);
   };
 
-  // Handle example search from welcome screen
-  const handleExampleSearch = (query: string) => {
-    if (!user) {
-      openAuthModal();
-      return;
-    }
-    setSearchQuery(query);
-    setCurrentView('home');
-    window.location.hash = '';
-    toast.success('Pesquisa iniciada!', {
-      description: `A pesquisar: "${query}"`,
-    });
-  };
-
-  // Navigation handler
+  // Navigation handlers
   const navigateToPersonalArea = () => {
     if (user) {
       setCurrentView('personal');
@@ -194,141 +199,128 @@ export default function App() {
     window.location.hash = '#personal';
   };
 
-  // Generate mock properties for alert results
-  const generateAlertProperties = (alert: PropertyAlert): Property[] => {
-    const mockProperties: Property[] = [
-      {
-        id: 'alert-1',
-        title: `Apartamento Moderno em ${alert.location}`,
-        price: alert.priceRange[0] + (alert.priceRange[1] - alert.priceRange[0]) * 0.3,
-        bedrooms: alert.bedrooms || 2,
-        bathrooms: alert.bathrooms || 2,
-        area: 1200,
-        location: alert.location,
-        address: `123 Rua Principal, ${alert.location}`,
-        images: [
-          'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
-          'https://images.unsplash.com/photo-1562663474-6cbb3eaa4d14?w=800&h=600&fit=crop'
-        ],
-        description: `Propriedade encontrada através do seu alerta "${alert.name}". Corresponde perfeitamente aos seus critérios!`,
-        features: ['Corresponde ao Alerta', 'Recém Listado', 'Vista Panorâmica', 'Garagem'],
-        yearBuilt: 2020,
-        propertyType: alert.propertyType as any,
-        listingAgent: {
-          name: 'Ana Silva',
-          phone: '(11) 99999-1111',
-          email: 'ana@alertaimoveis.com'
-        }
-      },
-      {
-        id: 'alert-2',
-        title: `${alert.propertyType === 'house' ? 'Casa' : 'Apartamento'} Premium ${alert.location}`,
-        price: alert.priceRange[0] + (alert.priceRange[1] - alert.priceRange[0]) * 0.7,
-        bedrooms: (alert.bedrooms || 2) + 1,
-        bathrooms: (alert.bathrooms || 2),
-        area: 1600,
-        location: alert.location,
-        address: `456 Av. Central, ${alert.location}`,
-        images: [
-          'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop',
-          'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&h=600&fit=crop'
-        ],
-        description: `Exclusiva propriedade que atende todos os critérios do seu alerta "${alert.name}". Nova no mercado!`,
-        features: ['Match Perfeito', 'Acabamento Premium', 'Localização Privilegiada', 'Piscina'],
-        yearBuilt: 2021,
-        propertyType: alert.propertyType as any,
-        listingAgent: {
-          name: 'Carlos Santos',
-          phone: '(11) 99999-2222',
-          email: 'carlos@alertaimoveis.com'
-        }
+  // Property handlers
+  const toggleFavorite = (property: Property) => {
+    const exists = favorites.some(p => p.id === property.id);
+    
+    if (!exists) {
+      if (!user) {
+        openAuthModal();
+        return;
       }
-    ];
+      
+      // Simple limit check for favorites
+      const maxFavorites = user.isPremium ? Infinity : 5;
+      if (favorites.length >= maxFavorites) {
+        toast.error('Favorite limit reached', {
+          description: `Free plan allows up to ${maxFavorites} favorites. Upgrade for unlimited.`,
+        });
+        return;
+      }
+    }
+    
+    setFavorites(prev => 
+      exists 
+        ? prev.filter(p => p.id !== property.id) 
+        : [...prev, property]
+    );
+  };
 
-    return mockProperties.slice(0, alert.newMatches || 2);
+  // Search handlers
+  const handleExampleSearch = (query: string) => {
+    if (!user) {
+      openAuthModal();
+      return;
+    }
+    setSearchQuery(query);
+    setCurrentView('home');
+    window.location.hash = '';
+    toast.success('Search started!', {
+      description: `Searching: "${query}"`,
+    });
+  };
+
+  const handleSubmitSearch = async (query: string) => {
+    setAiLoading(true);
+    setAiError(null);
+    
+    try {
+      const { searchProperties } = await import('./api/properties.service');
+      const result = await searchProperties({ searchQuery: query });
+      
+      setSearchResults(result.properties || []);
+      setAiText(result.aiResponse || '');
+      setSearchQuery(query);
+      
+      if (currentView !== 'home') setCurrentView('home');
+      if (window.location.hash) window.location.hash = '';
+      
+      if (result.properties?.length === 0) {
+        toast.info('No results found', { 
+          description: 'AI will provide suggestions even without listings.' 
+        });
+      }
+    } catch {
+      setSearchResults([]);
+      setAiText('');
+      setAiError('Unable to get AI response right now.');
+      setSearchQuery(query);
+      
+      if (currentView !== 'home') setCurrentView('home');
+      if (window.location.hash) window.location.hash = '';
+    } finally {
+      setAiLoading(false);
+    }
   };
 
   // Authentication handlers
-  const handleSignIn = (email: string, password: string) => {
-    // Mock authentication
-    const mockUser: User = {
-      id: '1',
-      name: 'João Silva',
-      email: email,
-      phone: '(11) 99999-9999',
-      isPremium: false,  // Set to Free to test limitations
-      createdAt: new Date()
-    };
+  const handleAuthSuccess = async () => {
+    try {
+      const currentUser = await getCurrentUser();
+      if (currentUser) {
+        const extendedUser: ExtendedUserProfile = {
+          ...currentUser,
+          name: currentUser.fullName || '',
+          phone: '',
+          isPremium: false
+        };
+        setUser(extendedUser);
+        
+        // Handle premium signup intent
+        if (signupIntent === 'premium' && !extendedUser.isPremium) {
+          setSignupIntent(null);
+          setTimeout(() => setIsUpgradeModalOpen(true), 0);
+        }
 
-    setUser(mockUser);
-    setIsAuthModalOpen(false);
-
-    // If the user clicked "Assinar Premium" and chose to sign in instead, open upgrade flow
-    if (signupIntent === 'premium' && !mockUser.isPremium) {
-      setSignupIntent(null);
-      setTimeout(() => {
-        setIsUpgradeModalOpen(true);
-      }, 0);
-    }
-
-    toast.success(`Bem-vindo de volta, ${mockUser.name}!`, {
-      description: 'Sessão iniciada com sucesso.',
-    });
-  };
-
-  const handleSignUp = (name: string, email: string, phone: string, password: string) => {
-    // Mock registration
-    const mockUser: User = {
-      id: Date.now().toString(),
-      name: name,
-      email: email,
-      phone: phone,
-      isPremium: false,
-      createdAt: new Date()
-    };
-
-    setUser(mockUser);
-
-    // Decide post-signup flow based on intent
-    if (signupIntent === 'premium') {
-      setIsAuthModalOpen(false);
-      setSignupIntent(null);
-      setTimeout(() => {
-        setIsUpgradeModalOpen(true);
-      }, 0);
-      toast.success(`Conta criada com sucesso!`, {
-        description: `Agora conclua o pagamento para ativar o Premium.`,
-      });
-    } else {
-      setIsAuthModalOpen(false);
-      setSignupIntent(null);
-      toast.success(`Conta criada com sucesso!`, {
-        description: `Bem-vindo ao HomeFinder AI, ${mockUser.name}!`,
-      });
+        toast.success(`Welcome, ${currentUser.fullName}!`, {
+          description: 'Successfully authenticated.',
+        });
+      }
+    } catch {
+      toast.error('Failed to load user data');
     }
   };
 
-  const handleLogout = () => {
-    setUser(null);
-    setCurrentView('home');
-    setSearchQuery(''); // Clear search when logging out
-    // Reset filters to default
-    setSearchFilters({
-      priceRange: [0, 2000000],
-      bedrooms: null,
-      bathrooms: null,
-      propertyType: '',
-      location: '',
-      sortBy: 'price'
-    });
-    window.location.hash = '';
-    toast.success('Sess��o terminada com sucesso!', {
-      description: 'Até logo! Esperamos vê-lo em breve.',
-    });
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setUser(null);
+      setCurrentView('home');
+      resetToDefaults();
+      window.location.hash = '';
+      
+      toast.success('Successfully logged out!', {
+        description: 'See you soon!',
+      });
+    } catch {
+      authUtils.clearTokens();
+      setUser(null);
+      toast.error('Logout error, but disconnected locally.');
+    }
   };
 
   // Modal handlers
-  const openAuthModal = (tab: 'signin' | 'signup' = 'signin', intent: 'free' | 'premium' | null = null) => {
+  const openAuthModal = (tab: AuthTab = 'signin', intent: SignupIntent = null) => {
     setAuthDefaultTab(tab);
     setSignupIntent(intent);
     setIsAuthModalOpen(true);
@@ -349,15 +341,10 @@ export default function App() {
   };
 
   const handleUpgradeComplete = () => {
-    // Update user to premium
     if (user) {
-      setUser({
-        ...user,
-        isPremium: true
-      });
-      
-      toast.success('Upgrade realizado com sucesso!', {
-        description: 'Bem-vindo ao Premium! Todas as funcionalidades foram desbloqueadas.',
+      setUser({ ...user, isPremium: true });
+      toast.success('Upgrade successful!', {
+        description: 'Welcome to Premium! All features unlocked.',
       });
     }
     
@@ -365,23 +352,72 @@ export default function App() {
     setIsPremiumFeaturesModalOpen(false);
   };
 
-  // Show welcome screen for non-logged users OR logged users with default state
-  const showWelcomeScreen = !user || (user && isDefaultState() && currentView === 'home');
+  // Generate mock properties for alert results
+  const generateAlertProperties = (alert: PropertyAlert): Property[] => {
+    const mockProperties: Property[] = [
+      {
+        id: 'alert-1',
+        title: `Modern Apartment in ${alert.location}`,
+        price: alert.priceRange[0] + (alert.priceRange[1] - alert.priceRange[0]) * 0.3,
+        bedrooms: alert.bedrooms || 2,
+        bathrooms: alert.bathrooms || 2,
+        area: 1200,
+        location: alert.location,
+        address: `123 Main Street, ${alert.location}`,
+        images: ['https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop'],
+        description: `Property found through your alert "${alert.name}". Perfectly matches your criteria!`,
+        features: ['Matches Alert', 'Newly Listed', 'Panoramic View', 'Garage'],
+        yearBuilt: 2020,
+        propertyType: alert.propertyType as 'apartment' | 'house' | 'condo',
+        listingAgent: {
+          name: 'Ana Silva',
+          phone: '(11) 99999-1111',
+          email: 'ana@alertproperties.com'
+        }
+      },
+      {
+        id: 'alert-2',
+        title: `Premium ${alert.propertyType === 'house' ? 'House' : 'Apartment'} ${alert.location}`,
+        price: alert.priceRange[0] + (alert.priceRange[1] - alert.priceRange[0]) * 0.7,
+        bedrooms: (alert.bedrooms || 2) + 1,
+        bathrooms: (alert.bathrooms || 2),
+        area: 1600,
+        location: alert.location,
+        address: `456 Central Ave, ${alert.location}`,
+        images: ['https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop'],
+        description: `Exclusive property that meets all criteria of your alert "${alert.name}". New to market!`,
+        features: ['Perfect Match', 'Premium Finishes', 'Prime Location', 'Pool'],
+        yearBuilt: 2021,
+        propertyType: alert.propertyType as 'apartment' | 'house' | 'condo',
+        listingAgent: {
+          name: 'Carlos Santos',
+          phone: '(11) 99999-2222',
+          email: 'carlos@alertproperties.com'
+        }
+      }
+    ];
 
-  // Block search functionality for non-logged users
-  const handleSearchQueryChange = (query: string) => {
-    if (!user) {
-      openAuthModal();
-      return;
-    }
-    setSearchQuery(query);
+    return mockProperties.slice(0, alert.newMatches || 2);
   };
+
+  // Convert extended user to regular user for components that need it
+  const convertToUser = (extendedUser: ExtendedUserProfile) => ({
+    id: extendedUser.id,
+    name: extendedUser.name || extendedUser.fullName || '',
+    email: extendedUser.email,
+    phone: extendedUser.phone || '',
+    avatar: extendedUser.avatarUrl,
+    isPremium: extendedUser.isPremium || false,
+    createdAt: createSafeDate(extendedUser.createdAt)
+  });
+
+  // Determine if welcome screen should be shown
+  const showWelcomeScreen = !user || (user && isDefaultState() && currentView === 'home');
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header
         searchQuery={searchQuery}
-        setSearchQuery={handleSearchQueryChange}
         viewMode={viewMode}
         setViewMode={setViewMode}
         user={user}
@@ -391,32 +427,7 @@ export default function App() {
         onNavigateToHome={navigateToHome}
         currentView={currentView}
         onOpenUpgradeModal={openUpgradeModal}
-        onSubmitSearch={async (q) => {
-          setAiLoading(true);
-          setAiError(null);
-          try {
-            const { searchProperties } = await import('./api/properties.service');
-            const res = await searchProperties({ searchQuery: q });
-            const props = res.properties || [];
-            setSearchResults(props);
-            setAiText(res.aiResponse || '');
-            setSearchQuery(q);
-            if (currentView !== 'home') setCurrentView('home');
-            if (window.location.hash) window.location.hash = '';
-            if (props.length === 0) {
-              toast.info('Sem resultados', { description: 'A IA responderá com dicas mesmo sem listagens.' });
-            }
-          } catch {
-            setSearchResults([]);
-            setAiText('');
-            setAiError('Não foi possível obter a resposta da IA agora.');
-            setSearchQuery(q);
-            if (currentView !== 'home') setCurrentView('home');
-            if (window.location.hash) window.location.hash = '';
-          } finally {
-            setAiLoading(false);
-          }
-        }}
+        onSubmitSearch={handleSubmitSearch}
         aiText={aiText}
         aiLoading={aiLoading}
         aiError={aiError}
@@ -424,21 +435,19 @@ export default function App() {
       
       <main className="flex-1 site-container py-8">
         {currentView === 'alert-results' && user && selectedAlert ? (
-          <div className="site-container">
-            <Suspense fallback={null}>
-              <AlertResults
-                alert={selectedAlert}
-                properties={generateAlertProperties(selectedAlert)}
-                onBack={navigateBackFromAlertResults}
-                onPropertySelect={setSelectedProperty}
-                favorites={favorites}
-                onToggleFavorite={toggleFavorite}
-              />
-            </Suspense>
-          </div>
+          <Suspense fallback={null}>
+            <AlertResults
+              alert={selectedAlert}
+              properties={generateAlertProperties(selectedAlert)}
+              onBack={navigateBackFromAlertResults}
+              onPropertySelect={setSelectedProperty}
+              favorites={favorites}
+              onToggleFavorite={toggleFavorite}
+            />
+          </Suspense>
         ) : currentView === 'personal' && user ? (
           <PersonalArea
-            user={user}
+            user={convertToUser(user)}
             onPropertySelect={setSelectedProperty}
             onOpenUpgradeModal={openUpgradeModal}
             onNavigateToAlertResults={navigateToAlertResults}
@@ -446,17 +455,15 @@ export default function App() {
             onToggleFavorite={toggleFavorite}
           />
         ) : showWelcomeScreen ? (
-          <div className="site-container">
-            <Suspense fallback={null}>
-              <WelcomeScreen
-                onExampleSearch={handleExampleSearch}
-                onOpenPremiumFeatures={openPremiumFeaturesModal}
-                user={user}
-                onStartFreeSignup={() => openAuthModal('signup', 'free')}
-                onStartPremiumSignup={() => openAuthModal('signup', 'premium')}
-              />
-            </Suspense>
-          </div>
+          <Suspense fallback={null}>
+            <WelcomeScreen
+              onExampleSearch={handleExampleSearch}
+              onOpenPremiumFeatures={openPremiumFeaturesModal}
+              user={user}
+              onStartFreeSignup={() => openAuthModal('signup', 'free')}
+              onStartPremiumSignup={() => openAuthModal('signup', 'premium')}
+            />
+          </Suspense>
         ) : (
           user && (
             <Suspense fallback={null}>
@@ -470,14 +477,13 @@ export default function App() {
                 <div className="lg:col-span-3">
                   {viewMode === 'grid' ? (
                     <PropertyGrid
-                    filters={searchFilters}
-                    searchQuery={searchQuery}
-                    serverResults={searchResults || undefined}
-                    onPropertySelect={setSelectedProperty}
-                    onFiltersUpdate={updateFilters}
-                    favorites={favorites}
-                    onToggleFavorite={toggleFavorite}
-                  />
+                      filters={searchFilters}
+                      searchQuery={searchQuery}
+                      serverResults={searchResults || undefined}
+                      onPropertySelect={setSelectedProperty}
+                      favorites={favorites}
+                      onToggleFavorite={toggleFavorite}
+                    />
                   ) : (
                     <MapView
                       filters={searchFilters}
@@ -492,7 +498,6 @@ export default function App() {
         )}
       </main>
 
-      {/* Footer Fixo */}
       <Footer />
 
       {/* Modals */}
@@ -509,8 +514,7 @@ export default function App() {
         <AuthModal
           isOpen={isAuthModalOpen}
           onClose={() => setIsAuthModalOpen(false)}
-          onSignIn={handleSignIn}
-          onSignUp={handleSignUp}
+          onSuccess={handleAuthSuccess}
           defaultTab={authDefaultTab}
         />
       </Suspense>
@@ -532,7 +536,6 @@ export default function App() {
         />
       </Suspense>
 
-      {/* Toast Notifications */}
       <Toaster richColors position="top-right" />
     </div>
   );

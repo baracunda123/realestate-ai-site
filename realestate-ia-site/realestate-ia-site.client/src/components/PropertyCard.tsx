@@ -1,11 +1,10 @@
-import React from 'react';
+import { memo } from 'react';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Heart, MapPin, Bed, Bath, Square, Calendar } from 'lucide-react';
 import { type Property } from '../types/property';
 import { ImageWithFallback } from './figma/ImageWithFallback';
-import { memo } from 'react';
 
 interface PropertyCardProps {
   property: Property;
@@ -17,15 +16,15 @@ interface PropertyCardProps {
 
 function PropertyCardComponent({ property, onClick, isWhiteBackground = false, isFavorite = false, onToggleFavorite }: PropertyCardProps) {
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('pt-BR', {
+    return new Intl.NumberFormat('pt-PT', {
       style: 'currency',
-      currency: 'BRL',
+      currency: 'EUR',
       maximumFractionDigits: 0,
-    }).format(price * 5.5); // Conversão mock para Real
+    }).format(price);
   };
 
-  const formatSqft = (sqft: number) => {
-    return new Intl.NumberFormat('pt-BR').format(Math.round(sqft * 0.092903)); // Conversão para m²
+  const formatArea = (area: number) => {
+    return new Intl.NumberFormat('pt-PT').format(Math.round(area));
   };
 
   const getPropertyTypeColor = (type: string) => {
@@ -95,8 +94,6 @@ function PropertyCardComponent({ property, onClick, isWhiteBackground = false, i
           <Heart className={`h-4 w-4 transition-all duration-200 ${isFavorite ? 'text-burnt-primary' : 'text-clay-secondary'}`} />
         </Button>
 
-
-
         {/* Price overlay */}
         <div className="absolute bottom-3 right-3">
           <div className="bg-warm-white/95 backdrop-blur-sm px-3 py-1 rounded-full shadow-clay-soft border border-clay-medium">
@@ -140,7 +137,7 @@ function PropertyCardComponent({ property, onClick, isWhiteBackground = false, i
               </div>
               <div>
                 <div className="font-medium text-title">{property.bathrooms}</div>
-                <div className="text-xs text-clay-secondary">banheiros</div>
+                <div className="text-xs text-clay-secondary">wc</div>
               </div>
             </div>
             
@@ -149,7 +146,7 @@ function PropertyCardComponent({ property, onClick, isWhiteBackground = false, i
                 <Square className="h-4 w-4 text-cocoa-primary" />
               </div>
               <div>
-                <div className="font-medium text-title">{formatSqft(property.area)}</div>
+                <div className="font-medium text-title">{formatArea(property.area)}</div>
                 <div className="text-xs text-clay-secondary">m²</div>
               </div>
             </div>
@@ -161,13 +158,13 @@ function PropertyCardComponent({ property, onClick, isWhiteBackground = false, i
               Construído em {property.yearBuilt}
             </div>
             <div className="text-sm text-burnt-primary font-medium">
-              R$ {Math.round(property.price * 5.5 / property.area)}/m²
+              €{Math.round(property.price / property.area)}/m²
             </div>
           </div>
           
           <div className="flex flex-wrap gap-1">
             {property.features && property.features.slice(0, 3).map((feature, index) => (
-              <Badge key={feature} className="text-xs border bg-pure-white text-title border-clay-medium">
+              <Badge key={`${feature}-${index}`} className="text-xs border bg-pure-white text-title border-clay-medium">
                 {feature}
               </Badge>
             ))}

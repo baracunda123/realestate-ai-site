@@ -57,15 +57,23 @@ export async function logout(): Promise<void> {
 }
 
 export async function getCurrentUser(): Promise<UserProfile | null> {
+  // Primeiro verificar se há dados em cache e se está autenticado
   const cachedUser = apiClient.getCurrentUser();
   if (cachedUser && apiClient.isAuthenticated()) {
     return cachedUser;
   }
 
+  // Se não está autenticado, não tentar fazer a chamada API
+  if (!apiClient.isAuthenticated()) {
+    return null;
+  }
+
   try {
     const userData = await apiClient.get<UserProfile>('/api/auth/profile');
     return userData;
-  } catch {
+  } catch (error) {
+    // Se falhar ao obter perfil, limpar tokens
+    apiClient.clearAuthTokens();
     return null;
   }
 }

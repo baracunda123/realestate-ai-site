@@ -2,163 +2,12 @@ import React, { useMemo } from 'react';
 import { PropertyCard } from './PropertyCard';
 import { type SearchFilters } from '../types/SearchFilters';
 import { type Property } from '../types/property';
-import { Badge } from './ui/badge';
 import { Sparkles, TrendingUp } from 'lucide-react';
-
-// Mock property data
-const mockProperties: Property[] = [
-  {
-    id: '1',
-    title: 'Loft Moderno no Centro',
-    price: 850000,
-    bedrooms: 2,
-    bathrooms: 2,
-    area: 1200,
-    location: 'Centro de São Paulo',
-    address: '123 Rua Augusta, São Paulo, SP 01234-567',
-    images: [
-      'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
-      'https://images.unsplash.com/photo-1562663474-6cbb3eaa4d14?w=800&h=600&fit=crop',
-      'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800&h=600&fit=crop'
-    ],
-    description: 'Loft moderno com janelas do chão ao teto e vista da cidade. Recentemente renovado com acabamentos de alta qualidade.',
-    features: ['Vista da Cidade', 'Cozinha Moderna', 'Piso de Madeira', 'Lavanderia', 'Garagem'],
-    yearBuilt: 2018,
-    propertyType: 'apartment',
-    listingAgent: {
-      name: 'Sarah Silva',
-      phone: '(11) 99999-0123',
-      email: 'sarah@imobiliaria.com'
-    }
-  },
-  {
-    id: '2',
-    title: 'Casa Vitoriana Charmosa',
-    price: 1200000,
-    bedrooms: 4,
-    bathrooms: 3,
-    area: 2400,
-    location: 'Vila Madalena',
-    address: '456 Rua Harmonia, São Paulo, SP 05435-000',
-    images: [
-      'https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop',
-      'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?w=800&h=600&fit=crop',
-      'https://images.unsplash.com/photo-1600607687939-ce8a6c25118c?w=800&h=600&fit=crop'
-    ],
-    description: 'Linda casa vitoriana com caráter original e atualizações modernas. Grande quintal perfeito para entretenimento.',
-    features: ['Piso de Madeira Original', 'Cozinha Atualizada', 'Jardim', 'Lareira', 'Charme Histórico'],
-    yearBuilt: 1925,
-    propertyType: 'house',
-    listingAgent: {
-      name: 'Miguel Santos',
-      phone: '(11) 99999-0456',
-      email: 'miguel@imobiliaria.com'
-    }
-  },
-  {
-    id: '3',
-    title: 'Cobertura de Luxo com Vista',
-    price: 1800000,
-    bedrooms: 3,
-    bathrooms: 2,
-    area: 1800,
-    location: 'Jardins',
-    address: '789 Rua Oscar Freire, São Paulo, SP 01426-001',
-    images: [
-      'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop',
-      'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&h=600&fit=crop',
-      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop'
-    ],
-    description: 'Cobertura de luxo com vista panorâmica. Amenidades premium do prédio e serviço de concierge.',
-    features: ['Vista Panorâmica', 'Concierge', 'Academia', 'Piscina', 'Varanda'],
-    yearBuilt: 2020,
-    propertyType: 'condo',
-    listingAgent: {
-      name: 'Emily Rodriguez',
-      phone: '(11) 99999-0789',
-      email: 'emily@imobiliaria.com'
-    }
-  },
-  {
-    id: '4',
-    title: 'Sobrado Aconchegante',
-    price: 750000,
-    bedrooms: 3,
-    bathrooms: 2,
-    area: 1500,
-    location: 'Moema',
-    address: '321 Rua Iraí, São Paulo, SP 04082-000',
-    images: [
-      'https://images.unsplash.com/photo-1568605114967-8130f3a36994?w=800&h=600&fit=crop',
-      'https://images.unsplash.com/photo-1600047509807-ba8f99d2cdde?w=800&h=600&fit=crop',
-      'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?w=800&h=600&fit=crop'
-    ],
-    description: 'Sobrado charmoso em bairro tranquilo. Perfeito para compradores de primeira viagem ou quem quer diminuir de tamanho.',
-    features: ['Varanda Coberta', 'Cozinha Atualizada', 'Quintal Fechado', 'Perto do Metrô', 'Detalhes Originais'],
-    yearBuilt: 1920,
-    propertyType: 'house',
-    listingAgent: {
-      name: 'David Kim',
-      phone: '(11) 99999-0321',
-      email: 'david@imobiliaria.com'
-    }
-  },
-  {
-    id: '5',
-    title: 'Apartamento Moderno',
-    price: 950000,
-    bedrooms: 3,
-    bathrooms: 2.5,
-    area: 1600,
-    location: 'Pinheiros',
-    address: '654 Rua Teodoro Sampaio, São Paulo, SP 05405-000',
-    images: [
-      'https://images.unsplash.com/photo-1600585154526-990dced4db0d?w=800&h=600&fit=crop',
-      'https://images.unsplash.com/photo-1600607687644-aac4c3eac7f4?w=800&h=600&fit=crop',
-      'https://images.unsplash.com/photo-1600566752355-35792bedcfea?w=800&h=600&fit=crop'
-    ],
-    description: 'Apartamento contemporâneo em corredor tecnológico. Distância para caminhar dos escritórios da Amazon e Google.',
-    features: ['Terraço', 'Casa Inteligente', 'Garagem', 'Design Moderno', 'Bairro Tech'],
-    yearBuilt: 2019,
-    propertyType: 'townhouse',
-    listingAgent: {
-      name: 'Lisa Park',
-      phone: '(11) 99999-0654',
-      email: 'lisa@imobiliaria.com'
-    }
-  },
-  {
-    id: '6',
-    title: 'Casa Familiar Espaçosa',
-    price: 1350000,
-    bedrooms: 5,
-    bathrooms: 4,
-    area: 3200,
-    location: 'Brooklin',
-    address: '987 Rua Engenheiro Luis Carlos Berrini, São Paulo, SP 04571-000',
-    images: [
-      'https://images.unsplash.com/photo-1600047509358-9dc75507daeb?w=800&h=600&fit=crop',
-      'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?w=800&h=600&fit=crop',
-      'https://images.unsplash.com/photo-1600566752734-eb55ef6c8e19?w=800&h=600&fit=crop'
-    ],
-    description: 'Casa familiar espaçosa com grande quintal e atualizada por toda parte. Perfeita para famílias em crescimento.',
-    features: ['Quintal Grande', 'Sala Familiar', 'Escritório', 'Banheiros Atualizados', 'Rua Tranquila'],
-    yearBuilt: 2005,
-    propertyType: 'house',
-    listingAgent: {
-      name: 'Roberto Taylor',
-      phone: '(11) 99999-0987',
-      email: 'roberto@imobiliaria.com'
-    }
-  }
-];
-
 interface PropertyGridProps {
   filters: SearchFilters;
   searchQuery: string;
   serverResults?: Property[];
   onPropertySelect: (property: Property) => void;
-  onFiltersUpdate: (filters: Partial<SearchFilters>) => void;
   favorites?: Property[];
   onToggleFavorite?: (property: Property) => void;
 }
@@ -196,8 +45,8 @@ const calculateRelevanceScore = (property: Property, query: string): number => {
   return score;
 };
 
-export function PropertyGrid({ filters, searchQuery, serverResults, onPropertySelect, onFiltersUpdate, favorites = [], onToggleFavorite }: PropertyGridProps) {
-  const source = serverResults && serverResults.length > 0 ? serverResults : mockProperties;
+export function PropertyGrid({ filters, searchQuery, serverResults, onPropertySelect, favorites = [], onToggleFavorite }: PropertyGridProps) {
+  const source = serverResults && serverResults.length > 0 ? serverResults : undefined;
   const filteredAndRankedProperties = useMemo(() => {
     let filtered = source.filter(property => {
       // Price filter

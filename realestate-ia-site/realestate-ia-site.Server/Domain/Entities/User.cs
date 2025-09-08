@@ -45,6 +45,13 @@ namespace realestate_ia_site.Server.Domain.Entities
         [Column("full_name")]
         public string? FullName { get; set; }
 
+        // Propriedades que agora serão mapeadas para a base de dados
+        [Column("refresh_token")]
+        public string? RefreshToken { get; set; }
+        
+        [Column("refresh_token_expires")]
+        public DateTime? RefreshTokenExpires { get; set; }
+
         // Propriedades adicionais que não estão no schema mas podem ser úteis
         // Estas não serão mapeadas para colunas específicas
         [NotMapped]
@@ -67,12 +74,6 @@ namespace realestate_ia_site.Server.Domain.Entities
 
         [NotMapped]
         public DateTime? LockedUntil { get; set; }
-
-        [NotMapped]
-        public string? RefreshToken { get; set; }
-        
-        [NotMapped]
-        public DateTime? RefreshTokenExpires { get; set; }
 
         // Navegação
         public virtual ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();

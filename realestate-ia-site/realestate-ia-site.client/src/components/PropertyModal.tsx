@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from './ui/dialog';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
@@ -30,24 +30,32 @@ export function PropertyModal({ property, onClose }: PropertyModalProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('pt-PT', {
       style: 'currency',
-      currency: 'USD',
+      currency: 'EUR',
       maximumFractionDigits: 0,
     }).format(price);
   };
 
-  const formatSqft = (sqft: number) => {
-    return new Intl.NumberFormat('en-US').format(sqft);
+  const formatArea = (area: number) => {
+    return new Intl.NumberFormat('pt-PT').format(area);
   };
 
+  // Safe access to images array
+  const images = property.images && property.images.length > 0 
+    ? property.images 
+    : ['https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop'];
+
   const nextImage = () => {
-    setCurrentImageIndex((prev) => (prev + 1) % property.images.length);
+    setCurrentImageIndex((prev) => (prev + 1) % images.length);
   };
 
   const prevImage = () => {
-    setCurrentImageIndex((prev) => (prev - 1 + property.images.length) % property.images.length);
+    setCurrentImageIndex((prev) => (prev - 1 + images.length) % images.length);
   };
+
+  // Safe access to features array
+  const features = property.features || [];
 
   return (
     <Dialog open={true} onOpenChange={onClose}>
@@ -74,13 +82,13 @@ export function PropertyModal({ property, onClose }: PropertyModalProps) {
               {/* Images */}
               <div className="relative bg-muted min-h-0">
                 <ImageWithFallback
-                  src={property.images[currentImageIndex]}
-                  alt={`${property.title} - Image ${currentImageIndex + 1}`}
+                  src={images[currentImageIndex]}
+                  alt={`${property.title} - Imagem ${currentImageIndex + 1}`}
                   className="w-full h-full object-cover"
                 />
                 
                 {/* Image Navigation */}
-                {property.images.length > 1 && (
+                {images.length > 1 && (
                   <>
                     <Button
                       variant="ghost"
@@ -101,7 +109,7 @@ export function PropertyModal({ property, onClose }: PropertyModalProps) {
                     
                     {/* Image Indicators */}
                     <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex space-x-1">
-                      {property.images.map((_, index) => (
+                      {images.map((_, index) => (
                         <button
                           key={index}
                           className={`w-2 h-2 rounded-full transition-colors ${
@@ -120,7 +128,7 @@ export function PropertyModal({ property, onClose }: PropertyModalProps) {
                   size="sm"
                 >
                   <Play className="h-3 w-3 mr-1" />
-                  Virtual Tour
+                  Tour Virtual
                 </Button>
               </div>
 
@@ -139,19 +147,19 @@ export function PropertyModal({ property, onClose }: PropertyModalProps) {
                   <div className="flex items-center space-x-6 text-sm">
                     <div className="flex items-center">
                       <Bed className="h-4 w-4 mr-1" />
-                      {property.bedrooms} Bedrooms
+                      {property.bedrooms} Quartos
                     </div>
                     <div className="flex items-center">
                       <Bath className="h-4 w-4 mr-1" />
-                      {property.bathrooms} Bathrooms
+                      {property.bathrooms} Casas de banho
                     </div>
                     <div className="flex items-center">
                       <Square className="h-4 w-4 mr-1" />
-                      {formatSqft(property.area)} m²
+                      {formatArea(property.area)} m²
                     </div>
                     <div className="flex items-center">
                       <Calendar className="h-4 w-4 mr-1" />
-                      Built {property.yearBuilt}
+                      Construído em {property.yearBuilt}
                     </div>
                   </div>
                 </div>
@@ -160,7 +168,7 @@ export function PropertyModal({ property, onClose }: PropertyModalProps) {
 
                 {/* Description */}
                 <div>
-                  <h3 className="font-medium mb-2">Description</h3>
+                  <h3 className="font-medium mb-2">Descrição</h3>
                   <p className="text-sm text-muted-foreground leading-relaxed">
                     {property.description}
                   </p>
@@ -169,31 +177,34 @@ export function PropertyModal({ property, onClose }: PropertyModalProps) {
                 <Separator />
 
                 {/* Features */}
-                <div>
-                  <h3 className="font-medium mb-3">Features</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {property.features.map((feature) => (
-                      <Badge key={feature} variant="secondary">
-                        {feature}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-
-                <Separator />
+                {features.length > 0 && (
+                  <>
+                    <div>
+                      <h3 className="font-medium mb-3">Características</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {features.map((feature, index) => (
+                          <Badge key={`${feature}-${index}`} variant="secondary">
+                            {feature}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                    <Separator />
+                  </>
+                )}
 
                 {/* Property Type */}
                 <div className="flex items-center justify-between">
                   <div>
-                    <span className="text-sm text-muted-foreground">Property Type</span>
+                    <span className="text-sm text-muted-foreground">Tipo de Propriedade</span>
                     <div className="font-medium">
                       {property.propertyType.charAt(0).toUpperCase() + property.propertyType.slice(1)}
                     </div>
                   </div>
                   <div>
-                    <span className="text-sm text-muted-foreground">Price per m²</span>
+                    <span className="text-sm text-muted-foreground">Preço por m²</span>
                     <div className="font-medium">
-                      ${Math.round(property.price / property.area)}
+                      €{Math.round(property.price / property.area)}
                     </div>
                   </div>
                 </div>
@@ -201,27 +212,33 @@ export function PropertyModal({ property, onClose }: PropertyModalProps) {
                 <Separator />
 
                 {/* Listing Agent */}
-                <div>
-                  <h3 className="font-medium mb-3">Listing Agent</h3>
-                  <div className="space-y-2">
-                    <div className="font-medium">{property.listingAgent.name}</div>
-                    <div className="flex items-center space-x-4">
-                      <Button variant="outline" size="sm">
-                        <Phone className="h-3 w-3 mr-1" />
-                        {property.listingAgent.phone}
-                      </Button>
-                      <Button variant="outline" size="sm">
-                        <Mail className="h-3 w-3 mr-1" />
-                        Email
-                      </Button>
+                {property.listingAgent && (
+                  <>
+                    <div>
+                      <h3 className="font-medium mb-3">Agente Imobiliário</h3>
+                      <div className="space-y-2">
+                        <div className="font-medium">{property.listingAgent.name}</div>
+                        <div className="flex items-center space-x-4">
+                          <Button variant="outline" size="sm">
+                            <Phone className="h-3 w-3 mr-1" />
+                            {property.listingAgent.phone}
+                          </Button>
+                          <Button variant="outline" size="sm">
+                            <Mail className="h-3 w-3 mr-1" />
+                            Email
+                          </Button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
+
+                    <Separator />
+                  </>
+                )}
 
                 {/* Action Buttons */}
                 <div className="space-y-2 pt-4">
-                  <Button className="w-full">Schedule a Tour</Button>
-                  <Button variant="outline" className="w-full">Request More Info</Button>
+                  <Button className="w-full">Agendar Visita</Button>
+                  <Button variant="outline" className="w-full">Solicitar Mais Informações</Button>
                 </div>
               </div>
             </div>

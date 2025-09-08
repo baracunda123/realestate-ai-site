@@ -25,68 +25,6 @@ import { PersonalAreaSettings } from './PersonalArea/PersonalAreaSettings';
 import { toast } from 'sonner';
 
 // Mock data - in a real app, this would come from API/database
-const mockFavoriteProperties: Property[] = [
-  {
-    id: '1',
-    title: 'Loft Moderno no Centro',
-    price: 850000,
-    bedrooms: 2,
-    bathrooms: 2,
-    area: 1200,
-    location: 'Centro de São Paulo',
-    address: '123 Rua Augusta, São Paulo, SP 01234-567',
-    images: ['https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop'],
-    description: 'Loft moderno com janelas do chão ao teto e vista da cidade.',
-    features: ['Vista da Cidade', 'Cozinha Moderna', 'Piso de Madeira'],
-    yearBuilt: 2018,
-    propertyType: 'apartment',
-    listingAgent: {
-      name: 'Sarah Silva',
-      phone: '(11) 99999-0123',
-      email: 'sarah@imobiliaria.com'
-    }
-  },
-  {
-    id: '3',
-    title: 'Cobertura de Luxo com Vista',
-    price: 1800000,
-    bedrooms: 3,
-    bathrooms: 2,
-    area: 1800,
-    location: 'Jardins',
-    address: '789 Rua Oscar Freire, São Paulo, SP 01426-001',
-    images: ['https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop'],
-    description: 'Cobertura de luxo com vista panorâmica.',
-    features: ['Vista Panorâmica', 'Concierge', 'Academia'],
-    yearBuilt: 2020,
-    propertyType: 'condo',
-    listingAgent: {
-      name: 'Emily Rodriguez',
-      phone: '(11) 99999-0789',
-      email: 'emily@imobiliaria.com'
-    }
-  },
-  {
-    id: '4',
-    title: 'Casa de Campo Aconchegante',
-    price: 1250000,
-    bedrooms: 4,
-    bathrooms: 3,
-    area: 2200,
-    location: 'Morumbi',
-    address: '456 Rua das Palmeiras, São Paulo, SP 05678-901',
-    images: ['https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=800&h=600&fit=crop'],
-    description: 'Casa espaçosa com jardim e área gourmet.',
-    features: ['Jardim Amplo', 'Área Gourmet', 'Lareira', 'Garagem 3 Vagas'],
-    yearBuilt: 2015,
-    propertyType: 'house',
-    listingAgent: {
-      name: 'Carlos Mendes',
-      phone: '(11) 99999-0456',
-      email: 'carlos@imobiliaria.com'
-    }
-  }
-];
 
 const mockSavedSearches: SavedSearch[] = [
   {

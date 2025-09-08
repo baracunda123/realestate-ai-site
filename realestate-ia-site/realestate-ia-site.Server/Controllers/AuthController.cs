@@ -13,7 +13,7 @@ namespace realestate_ia_site.Server.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [EnableRateLimiting("AuthPolicy")]
-    public class AuthController : ControllerBase
+    public class AuthController : BaseController
     {
         private readonly UserManager<User> _userManager;
         private readonly AuthService _authService;
