@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense, useCallback, useMemo } from 'react';
 import { Header } from './components/Header';
 import { PersonalArea } from './components/PersonalArea';
 import { Footer } from './components/Footer';
@@ -9,6 +9,7 @@ import { type SearchFilters as SearchFiltersType, DEFAULT_SEARCH_FILTERS } from 
 import { type Property } from './types/property';
 import { getCurrentUser, logout, authUtils } from './api/auth.service';
 import { createSafeDate } from './utils/PersonalArea';
+import { useDebounce } from './hooks/useOptimizedCallbacks';
 import type { UserProfile } from './api/client';
 
 // Lazy load components for better performance
@@ -21,6 +22,13 @@ const WelcomeScreen = lazy(() => import('./components/WelcomeScreen').then(m => 
 const PremiumFeaturesModal = lazy(() => import('./components/PremiumFeaturesModal').then(m => ({ default: m.PremiumFeaturesModal })));
 const UpgradeModal = lazy(() => import('./components/UpgradeModal').then(m => ({ default: m.UpgradeModal })));
 const AlertResults = lazy(() => import('./components/AlertResults').then(m => ({ default: m.AlertResults })));
+
+// Loading components otimizados
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center p-8">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-burnt-peach"></div>
+  </div>
+);
 
 // View types
 type ViewType = 'home' | 'personal' | 'alert-results';
@@ -67,6 +75,32 @@ export default function App() {
   const [isPremiumFeaturesModalOpen, setIsPremiumFeaturesModalOpen] = useState(false);
   const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
 
+  // Memoized values para evitar recálculos
+  const isDefaultState = useMemo((): boolean => {
+    const isDefaultFilters = 
+      searchFilters.location === '' &&
+      searchFilters.priceRange[0] === 0 &&
+      searchFilters.priceRange[1] === 2000000 &&
+      searchFilters.bedrooms === null &&
+      searchFilters.bathrooms === null &&
+      searchFilters.propertyType === 'any' &&
+      searchFilters.sortBy === 'price';
+    
+    return searchQuery.trim() === '' && isDefaultFilters;
+  }, [searchFilters, searchQuery]);
+
+  const showWelcomeScreen = useMemo(() => 
+    !user || (user && isDefaultState && currentView === 'home'), 
+    [user, isDefaultState, currentView]
+  );
+
+  // Helper function para determinar se usuário é premium - memoizada
+  const determineIfPremium = useCallback((subscription: string | undefined): boolean => {
+    if (!subscription) return false;
+    const sub = subscription.toLowerCase();
+    return sub === 'premium' || sub === 'pro' || sub.includes('paid');
+  }, []);
+
   // Initialize authentication and favorites
   useEffect(() => {
     const initializeApp = async () => {
@@ -106,23 +140,20 @@ export default function App() {
     };
 
     initializeApp();
-  }, []);
+  }, [determineIfPremium]);
 
-  // Helper function para determinar se usuário é premium
-  const determineIfPremium = (subscription: string | undefined): boolean => {
-    if (!subscription) return false;
-    const sub = subscription.toLowerCase();
-    return sub === 'premium' || sub === 'pro' || sub.includes('paid');
-  };
-
-  // Persist favorites to localStorage
-  useEffect(() => {
+  // Persist favorites to localStorage - debounced para performance
+  const debouncedSaveFavorites = useDebounce((favs: Property[]) => {
     try {
-      localStorage.setItem('hf_favorites', JSON.stringify(favorites));
+      localStorage.setItem('hf_favorites', JSON.stringify(favs));
     } catch {
       // Silenciar erro de localStorage
     }
-  }, [favorites]);
+  }, 500);
+
+  useEffect(() => {
+    debouncedSaveFavorites(favorites);
+  }, [favorites, debouncedSaveFavorites]);
 
   // Handle URL navigation
   useEffect(() => {
@@ -160,62 +191,53 @@ export default function App() {
     }
   }, [user, currentView]);
 
-  // Helper functions
-  const isDefaultState = (): boolean => {
-    const isDefaultFilters = 
-      searchFilters.location === '' &&
-      searchFilters.priceRange[0] === 0 &&
-      searchFilters.priceRange[1] === 2000000 &&
-      searchFilters.bedrooms === null &&
-      searchFilters.bathrooms === null &&
-      searchFilters.propertyType === 'any' &&
-      searchFilters.sortBy === 'price';
-    
-    return searchQuery.trim() === '' && isDefaultFilters;
-  };
-
-  const resetToDefaults = () => {
+  // Optimized callbacks
+  const resetToDefaults = useCallback(() => {
     setSearchQuery('');
     setSearchFilters(DEFAULT_SEARCH_FILTERS);
     setSearchResults(null);
     setAiText('');
     setAiError(null);
-  };
+  }, []);
 
-  // Navigation handlers
-  const navigateToPersonalArea = () => {
+  // Navigation handlers - memoizados
+  const navigateToPersonalArea = useCallback(() => {
     if (user) {
       setCurrentView('personal');
       window.location.hash = '#personal';
     } else {
-      openAuthModal();
+      setAuthDefaultTab('signin');
+      setSignupIntent(null);
+      setIsAuthModalOpen(true);
     }
-  };
+  }, [user]);
 
-  const navigateToHome = () => {
+  const navigateToHome = useCallback(() => {
     setCurrentView('home');
     window.location.hash = '';
-  };
+  }, []);
 
-  const navigateToAlertResults = (alert: PropertyAlert) => {
+  const navigateToAlertResults = useCallback((alert: PropertyAlert) => {
     setSelectedAlert(alert);
     setCurrentView('alert-results');
     window.location.hash = '#alert-results';
-  };
+  }, []);
 
-  const navigateBackFromAlertResults = () => {
+  const navigateBackFromAlertResults = useCallback(() => {
     setSelectedAlert(null);
     setCurrentView('personal');
     window.location.hash = '#personal';
-  };
+  }, []);
 
-  // Property handlers
-  const toggleFavorite = (property: Property) => {
+  // Property handlers - otimizados
+  const toggleFavorite = useCallback((property: Property) => {
     const exists = favorites.some(p => p.id === property.id);
     
     if (!exists) {
       if (!user) {
-        openAuthModal();
+        setAuthDefaultTab('signin');
+        setSignupIntent(null);
+        setIsAuthModalOpen(true);
         return;
       }
       
@@ -238,12 +260,14 @@ export default function App() {
     toast.success(exists ? 'Removido dos favoritos' : 'Adicionado aos favoritos', {
       description: property.title || 'Propriedade atualizada',
     });
-  };
+  }, [favorites, user]);
 
-  // Search handlers
-  const handleExampleSearch = (query: string) => {
+  // Search handlers - otimizados
+  const handleExampleSearch = useCallback((query: string) => {
     if (!user) {
-      openAuthModal();
+      setAuthDefaultTab('signin');
+      setSignupIntent(null);
+      setIsAuthModalOpen(true);
       return;
     }
     setSearchQuery(query);
@@ -252,9 +276,9 @@ export default function App() {
     toast.success('Pesquisa iniciada!', {
       description: `Pesquisando: "${query}"`,
     });
-  };
+  }, [user]);
 
-  const handleSubmitSearch = async (query: string) => {
+  const handleSubmitSearch = useCallback(async (query: string) => {
     setAiLoading(true);
     setAiError(null);
     
@@ -297,10 +321,10 @@ export default function App() {
     } finally {
       setAiLoading(false);
     }
-  };
+  }, [user, currentView]);
 
-  // Authentication handlers
-  const handleAuthSuccess = async () => {
+  // Authentication handlers - otimizados
+  const handleAuthSuccess = useCallback(async () => {
     try {
       const currentUser = await getCurrentUser();
       if (currentUser) {
@@ -326,9 +350,9 @@ export default function App() {
     } catch {
       toast.error('Erro ao carregar dados do usuário');
     }
-  };
+  }, [signupIntent, determineIfPremium]);
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     try {
       await logout();
       setUser(null);
@@ -344,30 +368,30 @@ export default function App() {
       setUser(null);
       toast.error('Erro no logout, mas desconectado localmente.');
     }
-  };
+  }, [resetToDefaults]);
 
-  // Modal handlers
-  const openAuthModal = (tab: AuthTab = 'signin', intent: SignupIntent = null) => {
+  // Modal handlers - otimizados
+  const openAuthModal = useCallback((tab: AuthTab = 'signin', intent: SignupIntent = null) => {
     setAuthDefaultTab(tab);
     setSignupIntent(intent);
     setIsAuthModalOpen(true);
-  };
+  }, []);
 
-  const openPremiumFeaturesModal = () => {
+  const openPremiumFeaturesModal = useCallback(() => {
     setIsPremiumFeaturesModalOpen(true);
-  };
+  }, []);
 
-  const openUpgradeModal = () => {
+  const openUpgradeModal = useCallback(() => {
     setIsPremiumFeaturesModalOpen(false);
     setIsUpgradeModalOpen(true);
-  };
+  }, []);
 
-  const handleBackToPremiumFeatures = () => {
+  const handleBackToPremiumFeatures = useCallback(() => {
     setIsUpgradeModalOpen(false);
     setIsPremiumFeaturesModalOpen(true);
-  };
+  }, []);
 
-  const handleUpgradeComplete = () => {
+  const handleUpgradeComplete = useCallback(() => {
     if (user) {
       setUser({ ...user, isPremium: true });
       toast.success('Upgrade realizado com sucesso!', {
@@ -377,10 +401,10 @@ export default function App() {
     
     setIsUpgradeModalOpen(false);
     setIsPremiumFeaturesModalOpen(false);
-  };
+  }, [user]);
 
-  // Generate mock properties for alert results
-  const generateAlertProperties = (alert: PropertyAlert): Property[] => {
+  // Generate mock properties for alert results - memoizado
+  const generateAlertProperties = useCallback((alert: PropertyAlert): Property[] => {
     const mockProperties: Property[] = [
       {
         id: 'alert-1',
@@ -451,10 +475,10 @@ export default function App() {
     ];
 
     return mockProperties.slice(0, alert.newMatches || 2);
-  };
+  }, []);
 
-  // Convert extended user to regular user for components that need it
-  const convertToUser = (extendedUser: ExtendedUserProfile) => ({
+  // Convert extended user to regular user for components that need it - memoizado
+  const convertToUser = useCallback((extendedUser: ExtendedUserProfile) => ({
     id: extendedUser.id,
     email: extendedUser.email,
     fullName: extendedUser.fullName,
@@ -469,10 +493,7 @@ export default function App() {
     isEmailVerified: extendedUser.isEmailVerified,
     createdAt: createSafeDate(extendedUser.createdAt),
     updatedAt: extendedUser.updatedAt ? createSafeDate(extendedUser.updatedAt) : undefined
-  });
-
-  // Determine if welcome screen should be shown
-  const showWelcomeScreen = !user || (user && isDefaultState() && currentView === 'home');
+  }), []);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -495,7 +516,7 @@ export default function App() {
       
       <main className="flex-1 site-container py-8">
         {currentView === 'alert-results' && user && selectedAlert ? (
-          <Suspense fallback={<div>Carregando resultados...</div>}>
+          <Suspense fallback={<LoadingSpinner />}>
             <AlertResults
               alert={selectedAlert}
               properties={generateAlertProperties(selectedAlert)}
@@ -515,7 +536,7 @@ export default function App() {
             onToggleFavorite={toggleFavorite}
           />
         ) : showWelcomeScreen ? (
-          <Suspense fallback={<div>Carregando...</div>}>
+          <Suspense fallback={<LoadingSpinner />}>
             <WelcomeScreen
               onExampleSearch={handleExampleSearch}
               onOpenPremiumFeatures={openPremiumFeaturesModal}
@@ -526,7 +547,7 @@ export default function App() {
           </Suspense>
         ) : (
           user && (
-            <Suspense fallback={<div>Carregando propriedades...</div>}>
+            <Suspense fallback={<LoadingSpinner />}>
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 <div className="lg:col-span-1 space-y-6">
                   <SearchFilters

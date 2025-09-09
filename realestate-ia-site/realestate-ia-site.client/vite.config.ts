@@ -1,5 +1,4 @@
 import { fileURLToPath, URL } from 'node:url';
-
 import { defineConfig } from 'vite';
 import plugin from '@vitejs/plugin-react';
 import fs from 'fs';
@@ -45,11 +44,27 @@ export default defineConfig({
             '@': fileURLToPath(new URL('./src', import.meta.url))
         }
     },
+    build: {
+        // Otimizações básicas de build
+        target: 'es2020',
+        minify: 'terser',
+        rollupOptions: {
+            output: {
+                // Chunk splitting simples
+                manualChunks: {
+                    'react-vendor': ['react', 'react-dom'],
+                    'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-dropdown-menu', '@radix-ui/react-tabs'],
+                    'utils-vendor': ['axios', 'clsx', 'tailwind-merge', 'sonner']
+                }
+            }
+        }
+    },
     server: {
         proxy: {
-            '^/api': {     // Tudo que começa com /api vai para o backend
+            '^/api': {
                 target,
-                secure: false
+                secure: false,
+                changeOrigin: true
             }
         },
         port: parseInt(env.DEV_SERVER_PORT || '64222'),

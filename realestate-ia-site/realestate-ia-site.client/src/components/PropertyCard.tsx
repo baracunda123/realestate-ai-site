@@ -1,4 +1,4 @@
-import { memo } from 'react';
+import React, { memo, useCallback } from 'react';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
@@ -14,20 +14,28 @@ interface PropertyCardProps {
   onToggleFavorite?: (property: Property) => void;
 }
 
-function PropertyCardComponent({ property, onClick, isWhiteBackground = false, isFavorite = false, onToggleFavorite }: PropertyCardProps) {
-  const formatPrice = (price: number) => {
+function PropertyCardComponent({ 
+  property, 
+  onClick, 
+  isWhiteBackground = false, 
+  isFavorite = false, 
+  onToggleFavorite 
+}: PropertyCardProps) {
+  // Memoized formatters
+  const formatPrice = useCallback((price: number) => {
     return new Intl.NumberFormat('pt-PT', {
       style: 'currency',
       currency: 'EUR',
       maximumFractionDigits: 0,
     }).format(price);
-  };
+  }, []);
 
-  const formatArea = (area: number) => {
+  const formatArea = useCallback((area: number) => {
     return new Intl.NumberFormat('pt-PT').format(Math.round(area));
-  };
+  }, []);
 
-  const getPropertyTypeColor = (type: string) => {
+  // Memoized helpers
+  const getPropertyTypeColor = useCallback((type: string) => {
     // Background branco para todos os badges com texto escuro e border colorida por tipo
     const colors = {
       house: 'bg-pure-white text-title border-burnt-soft',
@@ -36,9 +44,9 @@ function PropertyCardComponent({ property, onClick, isWhiteBackground = false, i
       townhouse: 'bg-pure-white text-title border-clay-medium'
     };
     return colors[type as keyof typeof colors] || 'bg-pure-white text-title border-clay-medium';
-  };
+  }, []);
 
-  const getPropertyTypeName = (type: string) => {
+  const getPropertyTypeName = useCallback((type: string) => {
     const names = {
       house: 'Casa',
       apartment: 'Apartamento',
@@ -46,16 +54,28 @@ function PropertyCardComponent({ property, onClick, isWhiteBackground = false, i
       townhouse: 'Sobrado'
     };
     return names[type as keyof typeof names] || type;
-  };
+  }, []);
 
   // Função para obter a primeira imagem disponível ou usar fallback
-  const getMainImage = () => {
+  const getMainImage = useCallback(() => {
     if (property.images && property.images.length > 0) {
       return property.images[0];
     }
     // Fallback para uma imagem padrão de propriedade
     return 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop';
-  };
+  }, [property.images]);
+
+  const handleFavoriteClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onToggleFavorite) onToggleFavorite(property);
+  }, [onToggleFavorite, property]);
+
+  // Safe calculations with null checks
+  const pricePerSqm = property.price && property.area ? Math.round(property.price / property.area) : 0;
+  const safePrice = property.price || 0;
+  const safeArea = property.area || 0;
+  const safeTitle = property.title || 'Propriedade';
+  const safePropertyType = property.propertyType || 'apartment';
 
   return (
     <Card 
@@ -69,14 +89,15 @@ function PropertyCardComponent({ property, onClick, isWhiteBackground = false, i
       <div className="relative">
         <ImageWithFallback
           src={getMainImage()}
-          alt={property.title}
+          alt={safeTitle}
           className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500"
+          loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
         
         <div className="absolute top-3 left-3">
-          <Badge className={`${getPropertyTypeColor(property.propertyType)} font-medium border shadow-clay-soft`}>
-            {getPropertyTypeName(property.propertyType)}
+          <Badge className={`${getPropertyTypeColor(safePropertyType)} font-medium border shadow-clay-soft`}>
+            {getPropertyTypeName(safePropertyType)}
           </Badge>
         </div>
         
@@ -86,10 +107,7 @@ function PropertyCardComponent({ property, onClick, isWhiteBackground = false, i
           aria-pressed={isFavorite}
           aria-label={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
           className="absolute top-3 right-3 h-9 w-9 p-0 bg-warm-white/95 hover:bg-warm-white shadow-clay-soft backdrop-blur-sm hover:scale-105 transition-all duration-200"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (onToggleFavorite) onToggleFavorite(property);
-          }}
+          onClick={handleFavoriteClick}
         >
           <Heart className={`h-4 w-4 transition-all duration-200 ${isFavorite ? 'text-burnt-primary' : 'text-clay-secondary'}`} />
         </Button>
@@ -98,7 +116,7 @@ function PropertyCardComponent({ property, onClick, isWhiteBackground = false, i
         <div className="absolute bottom-3 right-3">
           <div className="bg-warm-white/95 backdrop-blur-sm px-3 py-1 rounded-full shadow-clay-soft border border-clay-medium">
             <span className="text-sm font-semibold text-metric">
-              {formatPrice(property.price)}
+              {formatPrice(safePrice)}
             </span>
           </div>
         </div>
@@ -113,7 +131,7 @@ function PropertyCardComponent({ property, onClick, isWhiteBackground = false, i
       >
         <div className="space-y-4">
           <div>
-            <h3 className="font-semibold line-clamp-1 text-lg text-title">{property.title}</h3>
+            <h3 className="font-semibold line-clamp-1 text-lg text-title">{safeTitle}</h3>
             <div className="flex items-center text-sm text-clay-secondary mt-1">
               <MapPin className="h-3 w-3 mr-1 text-clay-secondary" />
               {property.location}
@@ -146,7 +164,7 @@ function PropertyCardComponent({ property, onClick, isWhiteBackground = false, i
                 <Square className="h-4 w-4 text-cocoa-primary" />
               </div>
               <div>
-                <div className="font-medium text-title">{formatArea(property.area)}</div>
+                <div className="font-medium text-title">{formatArea(safeArea)}</div>
                 <div className="text-xs text-clay-secondary">m²</div>
               </div>
             </div>
@@ -158,7 +176,7 @@ function PropertyCardComponent({ property, onClick, isWhiteBackground = false, i
               Construído em {property.yearBuilt}
             </div>
             <div className="text-sm text-burnt-primary font-medium">
-              €{Math.round(property.price / property.area)}/m²
+              €{pricePerSqm}/m²
             </div>
           </div>
           
