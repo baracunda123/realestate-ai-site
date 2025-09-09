@@ -5,7 +5,7 @@ import { Footer } from './components/Footer';
 import { toast } from 'sonner';
 import { Toaster } from './components/ui/sonner';
 import { type PropertyAlert } from './types/PersonalArea';
-import { type SearchFilters as SearchFiltersType } from './types/SearchFilters';
+import { type SearchFilters as SearchFiltersType, DEFAULT_SEARCH_FILTERS } from './types/SearchFilters';
 import { type Property } from './types/property';
 import { getCurrentUser, logout, authUtils } from './api/auth.service';
 import { createSafeDate } from './utils/PersonalArea';
@@ -22,26 +22,18 @@ const PremiumFeaturesModal = lazy(() => import('./components/PremiumFeaturesModa
 const UpgradeModal = lazy(() => import('./components/UpgradeModal').then(m => ({ default: m.UpgradeModal })));
 const AlertResults = lazy(() => import('./components/AlertResults').then(m => ({ default: m.AlertResults })));
 
-// Default search filters
-const DEFAULT_FILTERS: SearchFiltersType = {
-  priceRange: [0, 2000000],
-  bedrooms: null,
-  bathrooms: null,
-  propertyType: '',
-  location: '',
-  sortBy: 'price'
-};
-
 // View types
 type ViewType = 'home' | 'personal' | 'alert-results';
 type ViewMode = 'grid' | 'map';
 type AuthTab = 'signin' | 'signup';
 type SignupIntent = 'free' | 'premium' | null;
 
-// Extended user interface for internal use
+// Extended user interface para uso interno com BD UserProfile
 interface ExtendedUserProfile extends UserProfile {
+  // Campos adicionais calculados para compatibilidade
   name?: string;
   phone?: string;
+  avatar?: string;
   isPremium?: boolean;
 }
 
@@ -51,8 +43,8 @@ export default function App() {
   const [favorites, setFavorites] = useState<Property[]>([]);
   const [searchResults, setSearchResults] = useState<Property[] | null>(null);
   
-  // Search and filter state
-  const [searchFilters, setSearchFilters] = useState<SearchFiltersType>(DEFAULT_FILTERS);
+  // Search and filter state - usando novos tipos
+  const [searchFilters, setSearchFilters] = useState<SearchFiltersType>(DEFAULT_SEARCH_FILTERS);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   
@@ -65,7 +57,7 @@ export default function App() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   
-  // Authentication state
+  // Authentication state - usando novos tipos
   const [user, setUser] = useState<ExtendedUserProfile | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authDefaultTab, setAuthDefaultTab] = useState<AuthTab>('signin');
@@ -82,16 +74,18 @@ export default function App() {
       try {
         const currentUser = await getCurrentUser();
         if (currentUser) {
-          // Extend user profile with missing properties
+          // Extend user profile com campos calculados para compatibilidade
           const extendedUser: ExtendedUserProfile = {
             ...currentUser,
-            name: currentUser.fullName || '',
-            phone: '',
-            isPremium: false // Default value, should come from backend
+            name: currentUser.fullName || currentUser.name || '',
+            phone: currentUser.phoneNumber || '',
+            avatar: currentUser.avatarUrl,
+            isPremium: determineIfPremium(currentUser.subscription) // Função helper
           };
           setUser(extendedUser);
         }
       } catch {
+        // Silenciar erro de inicialização
         authUtils.clearTokens();
       }
 
@@ -99,9 +93,14 @@ export default function App() {
       try {
         const savedFavorites = localStorage.getItem('hf_favorites');
         if (savedFavorites) {
-          setFavorites(JSON.parse(savedFavorites));
+          const parsed = JSON.parse(savedFavorites);
+          // Validar estrutura dos favoritos
+          if (Array.isArray(parsed)) {
+            setFavorites(parsed.filter(fav => fav && fav.id));
+          }
         }
       } catch {
+        // Silenciar erro de favoritos
         setFavorites([]);
       }
     };
@@ -109,9 +108,20 @@ export default function App() {
     initializeApp();
   }, []);
 
+  // Helper function para determinar se usuário é premium
+  const determineIfPremium = (subscription: string | undefined): boolean => {
+    if (!subscription) return false;
+    const sub = subscription.toLowerCase();
+    return sub === 'premium' || sub === 'pro' || sub.includes('paid');
+  };
+
   // Persist favorites to localStorage
   useEffect(() => {
-    localStorage.setItem('hf_favorites', JSON.stringify(favorites));
+    try {
+      localStorage.setItem('hf_favorites', JSON.stringify(favorites));
+    } catch {
+      // Silenciar erro de localStorage
+    }
   }, [favorites]);
 
   // Handle URL navigation
@@ -153,12 +163,12 @@ export default function App() {
   // Helper functions
   const isDefaultState = (): boolean => {
     const isDefaultFilters = 
+      searchFilters.location === '' &&
       searchFilters.priceRange[0] === 0 &&
       searchFilters.priceRange[1] === 2000000 &&
       searchFilters.bedrooms === null &&
       searchFilters.bathrooms === null &&
-      searchFilters.propertyType === '' &&
-      searchFilters.location === '' &&
+      searchFilters.propertyType === 'any' &&
       searchFilters.sortBy === 'price';
     
     return searchQuery.trim() === '' && isDefaultFilters;
@@ -166,7 +176,7 @@ export default function App() {
 
   const resetToDefaults = () => {
     setSearchQuery('');
-    setSearchFilters(DEFAULT_FILTERS);
+    setSearchFilters(DEFAULT_SEARCH_FILTERS);
     setSearchResults(null);
     setAiText('');
     setAiError(null);
@@ -212,8 +222,8 @@ export default function App() {
       // Simple limit check for favorites
       const maxFavorites = user.isPremium ? Infinity : 5;
       if (favorites.length >= maxFavorites) {
-        toast.error('Favorite limit reached', {
-          description: `Free plan allows up to ${maxFavorites} favorites. Upgrade for unlimited.`,
+        toast.error('Limite de favoritos atingido', {
+          description: `Plano gratuito permite até ${maxFavorites} favoritos. Faça upgrade para favoritos ilimitados.`,
         });
         return;
       }
@@ -224,6 +234,10 @@ export default function App() {
         ? prev.filter(p => p.id !== property.id) 
         : [...prev, property]
     );
+
+    toast.success(exists ? 'Removido dos favoritos' : 'Adicionado aos favoritos', {
+      description: property.title || 'Propriedade atualizada',
+    });
   };
 
   // Search handlers
@@ -235,8 +249,8 @@ export default function App() {
     setSearchQuery(query);
     setCurrentView('home');
     window.location.hash = '';
-    toast.success('Search started!', {
-      description: `Searching: "${query}"`,
+    toast.success('Pesquisa iniciada!', {
+      description: `Pesquisando: "${query}"`,
     });
   };
 
@@ -246,7 +260,11 @@ export default function App() {
     
     try {
       const { searchProperties } = await import('./api/properties.service');
-      const result = await searchProperties({ searchQuery: query });
+      const result = await searchProperties({ 
+        searchQuery: query,
+        includeAiAnalysis: true,
+        includeMarketData: user?.isPremium || false
+      });
       
       setSearchResults(result.properties || []);
       setAiText(result.aiResponse || '');
@@ -256,18 +274,26 @@ export default function App() {
       if (window.location.hash) window.location.hash = '';
       
       if (result.properties?.length === 0) {
-        toast.info('No results found', { 
-          description: 'AI will provide suggestions even without listings.' 
+        toast.info('Nenhum resultado encontrado', { 
+          description: 'IA fornecerá sugestões mesmo sem listagens.' 
+        });
+      } else {
+        toast.success(`${result.properties.length} propriedades encontradas`, {
+          description: 'Resultados carregados com análise da IA',
         });
       }
     } catch {
       setSearchResults([]);
       setAiText('');
-      setAiError('Unable to get AI response right now.');
+      setAiError('Não foi possível obter resposta da IA no momento.');
       setSearchQuery(query);
       
       if (currentView !== 'home') setCurrentView('home');
       if (window.location.hash) window.location.hash = '';
+      
+      toast.error('Erro na pesquisa', {
+        description: 'Tente novamente em alguns instantes.',
+      });
     } finally {
       setAiLoading(false);
     }
@@ -280,24 +306,25 @@ export default function App() {
       if (currentUser) {
         const extendedUser: ExtendedUserProfile = {
           ...currentUser,
-          name: currentUser.fullName || '',
-          phone: '',
-          isPremium: false
+          name: currentUser.fullName || currentUser.name || '',
+          phone: currentUser.phoneNumber || '',
+          avatar: currentUser.avatarUrl,
+          isPremium: determineIfPremium(currentUser.subscription)
         };
         setUser(extendedUser);
         
         // Handle premium signup intent
         if (signupIntent === 'premium' && !extendedUser.isPremium) {
           setSignupIntent(null);
-          setTimeout(() => setIsUpgradeModalOpen(true), 0);
+          setTimeout(() => setIsUpgradeModalOpen(true), 500);
         }
 
-        toast.success(`Welcome, ${currentUser.fullName}!`, {
-          description: 'Successfully authenticated.',
+        toast.success(`Bem-vindo, ${currentUser.fullName || currentUser.name || 'usuário'}!`, {
+            description: 'Inicio de sessão efetuado com sucesso.',
         });
       }
     } catch {
-      toast.error('Failed to load user data');
+      toast.error('Erro ao carregar dados do usuário');
     }
   };
 
@@ -309,13 +336,13 @@ export default function App() {
       resetToDefaults();
       window.location.hash = '';
       
-      toast.success('Successfully logged out!', {
-        description: 'See you soon!',
+      toast.success('Logout realizado com sucesso!', {
+        description: 'Até breve!',
       });
     } catch {
       authUtils.clearTokens();
       setUser(null);
-      toast.error('Logout error, but disconnected locally.');
+      toast.error('Erro no logout, mas desconectado localmente.');
     }
   };
 
@@ -343,8 +370,8 @@ export default function App() {
   const handleUpgradeComplete = () => {
     if (user) {
       setUser({ ...user, isPremium: true });
-      toast.success('Upgrade successful!', {
-        description: 'Welcome to Premium! All features unlocked.',
+      toast.success('Upgrade realizado com sucesso!', {
+        description: 'Bem-vindo ao Premium! Todas as funcionalidades desbloqueadas.',
       });
     }
     
@@ -357,41 +384,67 @@ export default function App() {
     const mockProperties: Property[] = [
       {
         id: 'alert-1',
-        title: `Modern Apartment in ${alert.location}`,
-        price: alert.priceRange[0] + (alert.priceRange[1] - alert.priceRange[0]) * 0.3,
+        title: `Apartamento Moderno em ${alert.location}`,
+        description: `Propriedade encontrada através do seu alerta "${alert.name}". Corresponde perfeitamente aos seus critérios!`,
+        type: alert.propertyType,
+        price: alert.minPrice ? alert.minPrice + ((alert.maxPrice || alert.minPrice) - alert.minPrice) * 0.3 : 950000,
+        address: `123 Rua Principal, ${alert.location}`,
+        city: alert.location || 'Lisboa',
+        state: 'Portugal',
+        county: null,
+        civilParish: null,
+        zipCode: '1000-001',
+        area: 120,
+        usableArea: 100,
         bedrooms: alert.bedrooms || 2,
         bathrooms: alert.bathrooms || 2,
-        area: 1200,
-        location: alert.location,
-        address: `123 Main Street, ${alert.location}`,
+        garage: true,
+        imageUrl: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
+        link: '#',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        // Campos calculados
+        location: alert.location || 'Lisboa',
         images: ['https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop'],
-        description: `Property found through your alert "${alert.name}". Perfectly matches your criteria!`,
-        features: ['Matches Alert', 'Newly Listed', 'Panoramic View', 'Garage'],
+        features: ['Corresponde ao Alerta', 'Recém Listado', 'Vista Panorâmica', 'Garagem'],
         yearBuilt: 2020,
-        propertyType: alert.propertyType as 'apartment' | 'house' | 'condo',
+        propertyType: (alert.propertyType as 'apartment' | 'house' | 'condo') || 'apartment',
         listingAgent: {
           name: 'Ana Silva',
-          phone: '(11) 99999-1111',
+          phone: '(+351) 91 234 5678',
           email: 'ana@alertproperties.com'
         }
       },
       {
         id: 'alert-2',
-        title: `Premium ${alert.propertyType === 'house' ? 'House' : 'Apartment'} ${alert.location}`,
-        price: alert.priceRange[0] + (alert.priceRange[1] - alert.priceRange[0]) * 0.7,
+        title: `Casa Premium em ${alert.location}`,
+        description: `Propriedade exclusiva que atende todos os critérios do seu alerta "${alert.name}". Nova no mercado!`,
+        type: alert.propertyType,
+        price: alert.maxPrice ? alert.maxPrice * 0.7 : 1350000,
+        address: `456 Avenida Central, ${alert.location}`,
+        city: alert.location || 'Lisboa',
+        state: 'Portugal',
+        county: null,
+        civilParish: null,
+        zipCode: '1000-002',
+        area: 160,
+        usableArea: 140,
         bedrooms: (alert.bedrooms || 2) + 1,
-        bathrooms: (alert.bathrooms || 2),
-        area: 1600,
-        location: alert.location,
-        address: `456 Central Ave, ${alert.location}`,
+        bathrooms: alert.bathrooms || 2,
+        garage: true,
+        imageUrl: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop',
+        link: '#',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        // Campos calculados
+        location: alert.location || 'Lisboa',
         images: ['https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop'],
-        description: `Exclusive property that meets all criteria of your alert "${alert.name}". New to market!`,
-        features: ['Perfect Match', 'Premium Finishes', 'Prime Location', 'Pool'],
+        features: ['Correspondência Perfeita', 'Acabamentos Premium', 'Localização Prime', 'Piscina'],
         yearBuilt: 2021,
-        propertyType: alert.propertyType as 'apartment' | 'house' | 'condo',
+        propertyType: (alert.propertyType as 'apartment' | 'house' | 'condo') || 'house',
         listingAgent: {
           name: 'Carlos Santos',
-          phone: '(11) 99999-2222',
+          phone: '(+351) 92 345 6789',
           email: 'carlos@alertproperties.com'
         }
       }
@@ -403,12 +456,19 @@ export default function App() {
   // Convert extended user to regular user for components that need it
   const convertToUser = (extendedUser: ExtendedUserProfile) => ({
     id: extendedUser.id,
-    name: extendedUser.name || extendedUser.fullName || '',
     email: extendedUser.email,
-    phone: extendedUser.phone || '',
-    avatar: extendedUser.avatarUrl,
+    fullName: extendedUser.fullName,
+    name: extendedUser.name || extendedUser.fullName || '',
+    phone: extendedUser.phone || extendedUser.phoneNumber || '',
+    avatar: extendedUser.avatar || extendedUser.avatarUrl,
+    avatarUrl: extendedUser.avatarUrl,
+    phoneNumber: extendedUser.phoneNumber,
+    subscription: extendedUser.subscription,
+    credits: extendedUser.credits,
     isPremium: extendedUser.isPremium || false,
-    createdAt: createSafeDate(extendedUser.createdAt)
+    isEmailVerified: extendedUser.isEmailVerified,
+    createdAt: createSafeDate(extendedUser.createdAt),
+    updatedAt: extendedUser.updatedAt ? createSafeDate(extendedUser.updatedAt) : undefined
   });
 
   // Determine if welcome screen should be shown
@@ -435,7 +495,7 @@ export default function App() {
       
       <main className="flex-1 site-container py-8">
         {currentView === 'alert-results' && user && selectedAlert ? (
-          <Suspense fallback={null}>
+          <Suspense fallback={<div>Carregando resultados...</div>}>
             <AlertResults
               alert={selectedAlert}
               properties={generateAlertProperties(selectedAlert)}
@@ -455,7 +515,7 @@ export default function App() {
             onToggleFavorite={toggleFavorite}
           />
         ) : showWelcomeScreen ? (
-          <Suspense fallback={null}>
+          <Suspense fallback={<div>Carregando...</div>}>
             <WelcomeScreen
               onExampleSearch={handleExampleSearch}
               onOpenPremiumFeatures={openPremiumFeaturesModal}
@@ -466,7 +526,7 @@ export default function App() {
           </Suspense>
         ) : (
           user && (
-            <Suspense fallback={null}>
+            <Suspense fallback={<div>Carregando propriedades...</div>}>
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 <div className="lg:col-span-1 space-y-6">
                   <SearchFilters

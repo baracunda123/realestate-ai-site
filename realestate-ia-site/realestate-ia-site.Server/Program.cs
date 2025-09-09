@@ -25,33 +25,61 @@ using realestate_ia_site.Server.Infrastructure.Notifications;
 using realestate_ia_site.Server.Infrastructure.Events;
 using realestate_ia_site.Server.Infrastructure.Payments;
 using realestate_ia_site.Server.Infrastructure.Configurations;
+using realestate_ia_site.Server.Infrastructure.RealTime;
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Application.Auth;
 using realestate_ia_site.Server.Application.PropertySearch.Filters;
+using realestate_ia_site.Server.Application.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Identity
+// SECURITY: Load environment variables for production
+if (builder.Environment.IsProduction())
+{
+    builder.Configuration.AddEnvironmentVariables();
+}
+
+// SECURITY: Get JWT secret from environment or configuration
+var jwtSecretKey = Environment.GetEnvironmentVariable("JWT_SECRET_KEY") 
+                   ?? builder.Configuration["Jwt:SecretKey"] 
+                   ?? throw new InvalidOperationException("JWT Secret Key must be configured via environment variable JWT_SECRET_KEY or appsettings");
+
+var jwtIssuer = Environment.GetEnvironmentVariable("JWT_ISSUER") 
+                ?? builder.Configuration["Jwt:Issuer"] 
+                ?? "RealEstateAI";
+
+var jwtAudience = Environment.GetEnvironmentVariable("JWT_AUDIENCE") 
+                  ?? builder.Configuration["Jwt:Audience"] 
+                  ?? "RealEstateAI-Client";
+
+// Identity with enhanced security
 builder.Services.AddIdentity<User, IdentityRole>(options =>
 {
+    // Password Policy - Enhanced
     options.Password.RequireDigit = true;
     options.Password.RequireLowercase = true;
     options.Password.RequireUppercase = true;
     options.Password.RequireNonAlphanumeric = true;
     options.Password.RequiredLength = 8;
     options.Password.RequiredUniqueChars = 4;
+    
+    // Lockout Policy - Enhanced
     options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
     options.Lockout.MaxFailedAccessAttempts = 5;
     options.Lockout.AllowedForNewUsers = true;
+    
+    // User Policy
     options.User.RequireUniqueEmail = true;
     options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+";
+    
+    // Sign In Policy
     options.SignIn.RequireConfirmedEmail = true;
     options.SignIn.RequireConfirmedPhoneNumber = false;
 })
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
-// Authentication / JWT
+// Authentication / JWT with enhanced security
 builder.Services.AddAuthentication(o =>
 {
     o.DefaultAuthenticateScheme = "Bearer";
@@ -65,31 +93,103 @@ builder.Services.AddAuthentication(o =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:SecretKey"]!)),
-        ClockSkew = TimeSpan.Zero
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
+        ClockSkew = TimeSpan.Zero,
+        // Enhanced security settings
+        RequireExpirationTime = true,
+        RequireSignedTokens = true
+    };
+    
+    o.Events = new Microsoft.AspNetCore.Authentication.JwtBearer.JwtBearerEvents
+    {
+        OnAuthenticationFailed = context =>
+        {
+            // Use built-in logging without trying to resolve scoped service
+            var loggerFactory = context.HttpContext.RequestServices.GetService<ILoggerFactory>();
+            var logger = loggerFactory?.CreateLogger("JwtAuthentication");
+            logger?.LogWarning("JWT Authentication failed: {Message}", context.Exception.Message);
+            return Task.CompletedTask;
+        }
     };
 });
 
-// Rate Limiter
+// Enhanced Rate Limiter with different policies
 builder.Services.AddRateLimiter(options =>
 {
-    options.AddPolicy("JwtPolicy", ctx => RateLimitPartition.GetFixedWindowLimiter(
+    // General API rate limiting
+    options.AddPolicy("ApiPolicy", ctx => RateLimitPartition.GetFixedWindowLimiter(
         partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        factory: _ => new FixedWindowRateLimiterOptions { PermitLimit = 100, Window = TimeSpan.FromMinutes(1) }));
+        factory: _ => new FixedWindowRateLimiterOptions 
+        { 
+            PermitLimit = 100, 
+            Window = TimeSpan.FromMinutes(1),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 10
+        }));
+    
+    // Strict auth rate limiting
     options.AddPolicy("AuthPolicy", ctx => RateLimitPartition.GetFixedWindowLimiter(
         partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        factory: _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromMinutes(1) }));
+        factory: _ => new FixedWindowRateLimiterOptions 
+        { 
+            PermitLimit = 10, 
+            Window = TimeSpan.FromMinutes(1),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+            QueueLimit = 0 // No queuing for auth
+        }));
+    
+    // Payment rate limiting
     options.AddPolicy("PaymentPolicy", ctx => RateLimitPartition.GetFixedWindowLimiter(
         partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-        factory: _ => new FixedWindowRateLimiterOptions { PermitLimit = 20, Window = TimeSpan.FromMinutes(1) }));
+        factory: _ => new FixedWindowRateLimiterOptions 
+        { 
+            PermitLimit = 20, 
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 5
+        }));
+    
+    // Search rate limiting
+    options.AddPolicy("SearchPolicy", ctx => RateLimitPartition.GetFixedWindowLimiter(
+        partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        factory: _ => new FixedWindowRateLimiterOptions 
+        { 
+            PermitLimit = 30, 
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 10
+        }));
+        
+    options.OnRejected = async (context, token) =>
+    {
+        // Use built-in logging without trying to resolve services from root provider
+        var loggerFactory = context.HttpContext.RequestServices.GetService<ILoggerFactory>();
+        var logger = loggerFactory?.CreateLogger("RateLimiter");
+        logger?.LogWarning("Rate limit exceeded for {Path} from IP {IP}", 
+            context.HttpContext.Request.Path, 
+            context.HttpContext.Connection.RemoteIpAddress);
+        
+        context.HttpContext.Response.StatusCode = 429;
+        await context.HttpContext.Response.WriteAsync("Rate limit exceeded. Please try again later.", token);
+    };
 });
 
-// DbContext
+// DbContext with secure connection string
+var connectionString = Environment.GetEnvironmentVariable("DATABASE_CONNECTION_STRING") 
+                      ?? builder.Configuration.GetConnectionString("DefaultConnection")
+                      ?? throw new InvalidOperationException("Database connection string must be configured");
+
 builder.Services.AddDbContext<ApplicationDbContext>(opt =>
-    opt.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    opt.UseNpgsql(connectionString, options =>
+    {
+        options.EnableRetryOnFailure(maxRetryCount: 3);
+        options.CommandTimeout(30);
+    }));
 builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
+
+// Security Services - Move HttpContextAccessor before SecurityAuditService
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddSingleton<SecurityAuditService>(); 
 
 // Application services
 builder.Services.AddScoped<SearchAIOrchestrator>();
@@ -141,53 +241,71 @@ builder.Services.AddScoped<ISmsService, TwilioSmsService>();
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 builder.Services.AddScoped<IDomainEventHandler<PropertyCreatedEvent>, PropertyAlertEventHandler>();
 builder.Services.AddScoped<IDomainEventHandler<PropertyPriceChangedEvent>, PropertyAlertEventHandler>();
+builder.Services.AddScoped<IDomainEventHandler<PropertyCreatedEvent>, RealTimePropertyEventHandler>();
+builder.Services.AddScoped<IDomainEventHandler<PropertyPriceChangedEvent>, RealTimePropertyEventHandler>();
+
+// Real-time notifications
+builder.Services.AddSignalRNotifications();
+builder.Services.AddScoped<ISystemNotificationService, SystemNotificationService>();
 
 // API basics
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// Enhanced CORS with environment-based origins
+var allowedOrigins = Environment.GetEnvironmentVariable("ALLOWED_ORIGINS")?.Split(',') 
+                    ?? (builder.Environment.IsDevelopment() 
+                        ? new[] { "https://localhost:64222" }
+                        : new[] { "https://yourdomain.com" });
+
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
     {
-        if (builder.Environment.IsDevelopment())
-        {
-            policy.WithOrigins("https://localhost:64222")
-                  .AllowCredentials()
-                  .AllowAnyMethod()
-                  .WithHeaders("Content-Type", "Authorization", "X-Session-ID");
-        }
-        else
-        {
-            policy.WithOrigins("https://yourdomain.com")
-                  .AllowCredentials()
-                  .AllowAnyMethod()
-                  .WithHeaders("Content-Type", "Authorization", "X-Session-ID");
-        }
+        policy.WithOrigins(allowedOrigins)
+              .AllowCredentials()
+              .AllowAnyMethod()
+              .WithHeaders("Content-Type", "Authorization", "X-Session-ID")
+              .WithExposedHeaders("X-Total-Count", "X-Page-Count");
     });
 });
 
 var app = builder.Build();
 
-// Security headers / CSP
+// Enhanced Security headers / CSP
 app.Use(async (context, next) =>
 {
-    if (app.Environment.IsDevelopment())
+    var enableSecurityHeaders = Environment.GetEnvironmentVariable("ENABLE_SECURITY_HEADERS") != "false";
+    
+    if (enableSecurityHeaders)
     {
-        context.Response.Headers["Content-Security-Policy"] =
-            "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src 'self' https: http:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';";
-    }
-    else
-    {
-        context.Response.Headers["Content-Security-Policy"] =
-            "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self';";
-    }
+        if (app.Environment.IsDevelopment())
+        {
+            // Relaxed CSP for development
+            context.Response.Headers["Content-Security-Policy"] =
+                "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src 'self' https: http: ws: wss:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;";
+        }
+        else
+        {
+            // Strict CSP for production
+            context.Response.Headers["Content-Security-Policy"] =
+                "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https:; img-src 'self' data: https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none';";
+        }
 
-    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
-    context.Response.Headers["X-Frame-Options"] = "DENY";
-    context.Response.Headers["X-XSS-Protection"] = "1; mode=block";
-    context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+        // Security headers
+        context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+        context.Response.Headers["X-Frame-Options"] = "DENY";
+        context.Response.Headers["X-XSS-Protection"] = "1; mode=block";
+        context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+        context.Response.Headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=(), payment=()";
+        
+        if (!app.Environment.IsDevelopment())
+        {
+            context.Response.Headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains; preload";
+        }
+    }
+    
     await next();
 });
 
@@ -201,12 +319,20 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+// Global exception handling should be early in the pipeline
+app.UseGlobalExceptionHandling();
+
+// Security Middleware order is important
 app.UseMiddleware<SessionMiddleware>();
+app.UseMiddleware<SecurityMiddleware>(); // Add security middleware
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseCors();
+
 app.MapControllers();
+app.MapSignalRHubs();
 
 if (!app.Environment.IsDevelopment())
 {

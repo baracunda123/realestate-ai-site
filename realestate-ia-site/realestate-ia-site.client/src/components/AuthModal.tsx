@@ -150,7 +150,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
           onClose();
         }, 1500);
       } else {
-        setError(result.message || 'Login failed. Please check your credentials.');
+          setError(result.message || result.errors?.join('. ') || 'Erro inesperado no login.');
       }
     } catch (error) {
       console.error('Login error:', error);

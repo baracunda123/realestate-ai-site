@@ -13,6 +13,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.8" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.8" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.2.0" />
     <PackageReference Include="Microsoft.AspNetCore.SpaProxy">
       <Version>8.*-*</Version>
     </PackageReference>
@@ -33,8 +34,7 @@
   </ItemGroup>
 
     <ItemGroup>
-	    <ProjectReference Include="..\realestate-ia-site.client\realestate-ia-site.client.esproj"
-						    Condition="'$(Configuration)'=='Debug'">
+	    <ProjectReference Include="..\realestate-ia-site.client\realestate-ia-site.client.esproj" Condition="'$(Configuration)'=='Debug'">
 		    <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
 	    </ProjectReference>
     </ItemGroup>

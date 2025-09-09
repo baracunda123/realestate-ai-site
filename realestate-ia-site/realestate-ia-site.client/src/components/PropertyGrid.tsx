@@ -3,6 +3,7 @@ import { PropertyCard } from './PropertyCard';
 import { type SearchFilters } from '../types/SearchFilters';
 import { type Property } from '../types/property';
 import { Sparkles, TrendingUp } from 'lucide-react';
+
 interface PropertyGridProps {
   filters: SearchFilters;
   searchQuery: string;
@@ -46,7 +47,9 @@ const calculateRelevanceScore = (property: Property, query: string): number => {
 };
 
 export function PropertyGrid({ filters, searchQuery, serverResults, onPropertySelect, favorites = [], onToggleFavorite }: PropertyGridProps) {
-  const source = serverResults && serverResults.length > 0 ? serverResults : undefined;
+  // Use server results if available, otherwise fall back to empty array since we removed the old properties endpoint
+  const source = serverResults || [];
+  
   const filteredAndRankedProperties = useMemo(() => {
     let filtered = source.filter(property => {
       // Price filter
