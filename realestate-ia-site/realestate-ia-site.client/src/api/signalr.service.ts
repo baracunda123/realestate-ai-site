@@ -12,7 +12,7 @@ interface PropertyAlertNotification {
   propertyImageUrl: string;
   createdAt: string;
   message: string;
-  metadata: Record<string, any>;
+  metadata: Record<string, unknown>;
 }
 
 interface PriceChangeNotification {
@@ -37,7 +37,7 @@ interface SystemNotification {
   requiresAction: boolean;
   actionUrl?: string;
   actionText?: string;
-  data: Record<string, any>;
+  data: Record<string, unknown>;
 }
 
 interface PropertyUpdateNotification {
@@ -47,10 +47,9 @@ interface PropertyUpdateNotification {
   propertyLocation: string;
   price?: number;
   updatedAt: string;
-  changes: Record<string, any>;
+  changes: Record<string, unknown>;
 }
 
-// Tipos de event listeners
 type NotificationCallback<T> = (notification: T) => void;
 
 interface NotificationListeners {
@@ -61,6 +60,33 @@ interface NotificationListeners {
   connectionStateChanged: Array<(connected: boolean) => void>;
 }
 
+// Adicionar uma interface para o authUtils com os métodos necessários
+interface AuthUtils {
+  clearTokens: () => void;
+  isAuthenticated: () => boolean;
+  getCurrentUser: () => { id: string; email: string; [key: string]: unknown } | null;
+  getSessionId: () => string;
+  getAccessToken?: () => string | null;
+}
+
+// Extend authUtils para incluir o método necessário
+const extendedAuthUtils = {
+  ...authUtils,
+  getAccessToken: (): string | null => {
+    // Implementar uma forma de obter o token - pode ser via localStorage ou cookie
+    try {
+      const storedData = localStorage.getItem('auth_tokens');
+      if (storedData) {
+        const parsed = JSON.parse(storedData);
+        return parsed.accessToken || null;
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+} as AuthUtils & { getAccessToken: () => string | null };
+
 class SignalRService {
   private connection: HubConnection | null = null;
   private listeners: NotificationListeners = {
@@ -70,61 +96,54 @@ class SignalRService {
     propertyUpdate: [],
     connectionStateChanged: []
   };
-  private connectionAttempts = 0;
-  private maxRetryAttempts = 5;
-  private retryDelay = 1000; // 1 segundo inicial
-  private isIntentionallyDisconnected = false;
+  private pingInterval?: NodeJS.Timeout;
 
   constructor() {
     this.setupConnection();
   }
 
   private setupConnection() {
-    const apiUrl = import.meta.env.VITE_API_BASE_URL || '';
+    const apiUrl = (import.meta as { env: { VITE_API_BASE_URL?: string; DEV?: boolean } }).env.VITE_API_BASE_URL || '';
     const hubUrl = `${apiUrl}/notificationHub`;
 
     this.connection = new HubConnectionBuilder()
       .withUrl(hubUrl, {
-        accessTokenFactory: () => {
-          const token = authUtils.getStoredTokens()?.accessToken;
-          return token || '';
-        },
+        accessTokenFactory: () => extendedAuthUtils.getAccessToken() || '',
         withCredentials: true
       })
-      .withAutomaticReconnect({
-        nextRetryDelayInMilliseconds: (retryContext) => {
-          // Exponential backoff: 1s, 2s, 4s, 8s, 16s
-          const delay = Math.min(1000 * Math.pow(2, retryContext.previousRetryCount), 16000);
-          console.log(`?? SignalR: Tentativa de reconexão ${retryContext.previousRetryCount + 1} em ${delay}ms`);
-          return delay;
-        }
-      })
-      .configureLogging(import.meta.env.DEV ? LogLevel.Information : LogLevel.Warning)
+      .withAutomaticReconnect()
+      .configureLogging((import.meta as { env: { DEV?: boolean } }).env.DEV ? LogLevel.Information : LogLevel.Warning)
       .build();
 
-    // Event handlers para conexão
-    this.connection.onclose((error) => {
-      console.log('? SignalR: Conexão fechada', error);
+    this.setupEventHandlers();
+    this.setupNotificationHandlers();
+  }
+
+  private setupEventHandlers() {
+    if (!this.connection) return;
+
+    this.connection.onclose((error?: Error) => {
+      console.log('?? SignalR: Conexão fechada', error);
       this.notifyConnectionStateChanged(false);
-      
-      if (!this.isIntentionallyDisconnected && this.connectionAttempts < this.maxRetryAttempts) {
-        this.scheduleReconnect();
-      }
+      this.stopPing();
     });
 
-    this.connection.onreconnecting((error) => {
-      console.log('?? SignalR: Tentando reconectar...', error);
+    this.connection.onreconnecting((error?: Error) => {
+      console.log('?? SignalR: Reconectando...', error);
       this.notifyConnectionStateChanged(false);
     });
 
     this.connection.onreconnected(() => {
-      console.log('? SignalR: Reconectado com sucesso');
-      this.connectionAttempts = 0;
+      console.log('? SignalR: Reconectado');
       this.notifyConnectionStateChanged(true);
+      this.startPing();
       this.rejoinGroups();
     });
+  }
 
-    // Event handlers para notificações
+  private setupNotificationHandlers() {
+    if (!this.connection) return;
+
     this.connection.on('PropertyAlert', (notification: PropertyAlertNotification) => {
       console.log('?? Nova propriedade encontrada:', notification);
       this.notifyListeners('propertyAlert', notification);
@@ -145,8 +164,8 @@ class SignalRService {
       this.notifyListeners('propertyUpdate', notification);
     });
 
-    this.connection.on('Pong', (timestamp: string) => {
-      console.log('?? SignalR: Pong recebido', timestamp);
+    this.connection.on('Pong', () => {
+      // Ping recebido - conexão ativa
     });
   }
 
@@ -160,53 +179,32 @@ class SignalRService {
     }
 
     try {
-      this.isIntentionallyDisconnected = false;
       await this.connection!.start();
       
-      console.log('? SignalR: Conectado com sucesso');
-      this.connectionAttempts = 0;
+      console.log('? SignalR: Conectado');
       this.notifyConnectionStateChanged(true);
-      
-      // Enviar ping inicial
-      this.startPingInterval();
-      
-      // Juntar-se aos grupos necessários
+      this.startPing();
       await this.joinPropertyAlertsGroup();
       
       return true;
     } catch (error) {
       console.error('? SignalR: Erro ao conectar', error);
       this.notifyConnectionStateChanged(false);
-      this.scheduleReconnect();
       return false;
     }
   }
 
   async disconnect(): Promise<void> {
     if (this.connection) {
-      this.isIntentionallyDisconnected = true;
+      this.stopPing();
       await this.connection.stop();
-      console.log('?? SignalR: Desconectado intencionalmente');
+      console.log('?? SignalR: Desconectado');
     }
   }
 
-  private scheduleReconnect() {
-    if (this.connectionAttempts >= this.maxRetryAttempts) {
-      console.error('? SignalR: Máximo de tentativas de reconexão atingido');
-      return;
-    }
-
-    this.connectionAttempts++;
-    const delay = this.retryDelay * Math.pow(2, this.connectionAttempts - 1);
-    
-    setTimeout(async () => {
-      console.log(`?? SignalR: Tentativa de reconexão ${this.connectionAttempts}/${this.maxRetryAttempts}`);
-      await this.connect();
-    }, delay);
-  }
-
-  private startPingInterval() {
-    setInterval(async () => {
+  private startPing() {
+    this.stopPing();
+    this.pingInterval = setInterval(async () => {
       if (this.connection?.state === 'Connected') {
         try {
           await this.connection.invoke('Ping');
@@ -214,7 +212,14 @@ class SignalRService {
           console.error('? SignalR: Erro no ping', error);
         }
       }
-    }, 30000); // Ping a cada 30 segundos
+    }, 30000);
+  }
+
+  private stopPing() {
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+      this.pingInterval = undefined;
+    }
   }
 
   private async rejoinGroups() {
@@ -230,9 +235,9 @@ class SignalRService {
     if (this.connection?.state === 'Connected') {
       try {
         await this.connection.invoke('JoinPropertyAlertsGroup');
-        console.log('? SignalR: Entrou no grupo de alertas de propriedades');
+        console.log('? SignalR: Entrou no grupo de alertas');
       } catch (error) {
-        console.error('? SignalR: Erro ao entrar no grupo de alertas', error);
+        console.error('? SignalR: Erro ao entrar no grupo', error);
       }
     }
   }
@@ -241,9 +246,9 @@ class SignalRService {
     if (this.connection?.state === 'Connected') {
       try {
         await this.connection.invoke('LeavePropertyAlertsGroup');
-        console.log('?? SignalR: Saiu do grupo de alertas de propriedades');
+        console.log('?? SignalR: Saiu do grupo de alertas');
       } catch (error) {
-        console.error('? SignalR: Erro ao sair do grupo de alertas', error);
+        console.error('? SignalR: Erro ao sair do grupo', error);
       }
     }
   }
@@ -278,18 +283,26 @@ class SignalRService {
     type: K, 
     callback: NotificationListeners[K][number]
   ) {
-    const index = this.listeners[type].indexOf(callback);
+    const listeners = this.listeners[type] as unknown[];
+    const index = listeners.indexOf(callback);
     if (index > -1) {
-      this.listeners[type].splice(index, 1);
+      listeners.splice(index, 1);
     }
   }
 
   private notifyListeners<K extends keyof NotificationListeners>(
     type: K,
-    data: K extends 'connectionStateChanged' ? boolean : any
+    data: K extends 'connectionStateChanged' ? boolean : 
+          K extends 'propertyAlert' ? PropertyAlertNotification :
+          K extends 'priceChange' ? PriceChangeNotification :
+          K extends 'systemNotification' ? SystemNotification :
+          K extends 'propertyUpdate' ? PropertyUpdateNotification :
+          never
   ) {
-    this.listeners[type].forEach(callback => {
+    const listeners = this.listeners[type];
+    listeners.forEach(callback => {
       try {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (callback as any)(data);
       } catch (error) {
         console.error(`? SignalR: Erro no listener ${type}:`, error);
@@ -310,36 +323,21 @@ class SignalRService {
     return this.connection?.state || 'Disconnected';
   }
 
-  // Utilitários para notificações
+  // Utilitário para notificações (simplificado)
   static formatNotificationForToast(notification: SystemNotification | PropertyAlertNotification) {
-    if ('alertName' in notification) {
-      // PropertyAlertNotification
-      return {
-        title: `?? ${notification.alertName}`,
-        description: notification.message,
-        action: {
-          label: 'Ver Propriedade',
-          onClick: () => window.location.href = `/property/${notification.propertyId}`
-        }
-      };
-    } else {
-      // SystemNotification
-      const emoji = {
-        info: '??',
-        warning: '??',
-        error: '?',
-        success: '?'
-      }[notification.type] || '??';
-
-      return {
-        title: `${emoji} ${notification.title}`,
-        description: notification.message,
-        action: notification.requiresAction && notification.actionUrl ? {
-          label: notification.actionText || 'Ver Mais',
-          onClick: () => window.location.href = notification.actionUrl!
-        } : undefined
-      };
-    }
+    const isPropertyAlert = 'alertName' in notification;
+    
+    return {
+      title: isPropertyAlert ? `?? ${notification.alertName}` : `?? ${notification.title}`,
+      description: isPropertyAlert ? notification.message : notification.message,
+      action: isPropertyAlert ? {
+        label: 'Ver Propriedade',
+        onClick: () => window.location.href = `/property/${notification.propertyId}`
+      } : notification.requiresAction && notification.actionUrl ? {
+        label: notification.actionText || 'Ver Mais',
+        onClick: () => window.location.href = notification.actionUrl!
+      } : undefined
+    };
   }
 }
 
@@ -354,12 +352,7 @@ export type {
   PropertyUpdateNotification
 };
 
-// Auto-conectar quando o usuário estiver autenticado
-if (authUtils.isAuthenticated()) {
+// Auto-conectar quando autenticado
+if (extendedAuthUtils.isAuthenticated()) {
   signalRService.connect().catch(console.error);
-}
-
-// Log apenas quando carrega em desenvolvimento
-if (import.meta.env.DEV) {
-  console.log('?? SignalR Service carregado');
 }

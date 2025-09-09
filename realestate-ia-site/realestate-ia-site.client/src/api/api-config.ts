@@ -4,93 +4,94 @@ export const API_CONFIG = {
   BASE_URL: import.meta.env.VITE_API_BASE_URL || '',
   TIMEOUT: 30000,
   
-  // API Endpoints
-  ENDPOINTS: {
-    // Authentication
-    AUTH: {
-      LOGIN: '/api/auth/login',
-      REGISTER: '/api/auth/register',
-      LOGOUT: '/api/auth/logout',
-      REFRESH_TOKEN: '/api/auth/refresh-token',
-      USER: '/api/auth/user',
-      CONFIRM_EMAIL: '/api/auth/confirm-email',
-      FORGOT_PASSWORD: '/api/auth/forgot-password',
-      RESET_PASSWORD: '/api/auth/reset-password',
-      CHANGE_PASSWORD: '/api/auth/change-password',
-      UPDATE_PROFILE: '/api/auth/profile',
-      RESEND_CONFIRMATION: '/api/auth/resend-confirmation',
-      SESSIONS: '/api/auth/sessions',
-      REVOKE_SESSION: (sessionId: string) => `/api/auth/sessions/${sessionId}`,
-      REVOKE_ALL_SESSIONS: '/api/auth/revoke-all-sessions',
-      DELETE_ACCOUNT: '/api/auth/account'
-    },
+  // API Endpoints - Minificados para produção
+  ENDPOINTS: (() => {
+    const isDev = import.meta.env.DEV;
     
-    // Search (the remaining property-related endpoints)
-    SEARCH: {
-      AI: '/api/SearchAI'
-    },
+    // Em produção, usar apenas as rotas necessárias
+    const baseEndpoints = {
+      // Authentication (sempre visível)
+      AUTH: {
+        LOGIN: '/api/auth/login',
+        REGISTER: '/api/auth/register',
+        LOGOUT: '/api/auth/logout',
+        REFRESH_TOKEN: '/api/auth/refresh-token',
+        USER: '/api/auth/user',
+        CONFIRM_EMAIL: '/api/auth/confirm-email',
+        FORGOT_PASSWORD: '/api/auth/forgot-password',
+        RESET_PASSWORD: '/api/auth/reset-password'
+      },
+      
+      // Search (público)
+      SEARCH: {
+        AI: '/api/SearchAI'
+      },
 
-    // Favorites (FavoritesController)
-    FAVORITES: {
-      LIST: '/api/favorites',
-      ADD: '/api/favorites',
-      REMOVE: (id: string) => `/api/favorites/${id}`,
-      STATUS: (id: string) => `/api/favorites/${id}/status`,
-      CLEAR_ALL: '/api/favorites'
-    },
-    
-    // Property Alerts
-    ALERTS: {
-      LIST: '/api/alerts',
-      DETAILS: (id: string) => `/api/alerts/${id}`,
-      CREATE: '/api/alerts',
-      UPDATE: (id: string) => `/api/alerts/${id}`,
-      TOGGLE: (id: string) => `/api/alerts/${id}/toggle`,
-      DELETE: (id: string) => `/api/alerts/${id}`,
-      TEST: '/api/alerts/test',
-      MATCHES: (id: string) => `/api/alerts/${id}/matches`,
-      MARK_VIEWED: (id: string) => `/api/alerts/${id}/mark-viewed`,
-      STATS: '/api/alerts/stats',
-      EXPORT: '/api/alerts/export'
-    },
+      // Core features (descobertos dinamicamente)
+      FAVORITES: {
+        LIST: '/api/favorites',
+        ADD: '/api/favorites',
+        REMOVE: (id: string) => `/api/favorites/${id}`
+      }
+    };
 
-    // Saved Searches
-    SAVED_SEARCHES: {
-      LIST: '/api/saved-searches',
-      DETAILS: (id: string) => `/api/saved-searches/${id}`,
-      CREATE: '/api/saved-searches',
-      UPDATE: (id: string) => `/api/saved-searches/${id}`,
-      DELETE: (id: string) => `/api/saved-searches/${id}`,
-      EXPORT: '/api/saved-searches/export'
-    },
+    // Em desenvolvimento, expor todos os endpoints para facilitar debug
+    if (isDev) {
+      return {
+        ...baseEndpoints,
+        
+        // Desenvolvimento - endpoints completos
+        ALERTS: {
+          LIST: '/api/alerts',
+          DETAILS: (id: string) => `/api/alerts/${id}`,
+          CREATE: '/api/alerts',
+          UPDATE: (id: string) => `/api/alerts/${id}`,
+          TOGGLE: (id: string) => `/api/alerts/${id}/toggle`,
+          DELETE: (id: string) => `/api/alerts/${id}`,
+          TEST: '/api/alerts/test',
+          MATCHES: (id: string) => `/api/alerts/${id}/matches`,
+          MARK_VIEWED: (id: string) => `/api/alerts/${id}/mark-viewed`,
+          STATS: '/api/alerts/stats',
+          EXPORT: '/api/alerts/export'
+        },
 
-    // Notifications
-    NOTIFICATIONS: {
-      LIST: '/api/notifications',
-      MARK_READ: (id: string) => `/api/notifications/${id}/read`,
-      MARK_ALL_READ: '/api/notifications/mark-all-read',
-      DELETE: (id: string) => `/api/notifications/${id}`,
-      SETTINGS: '/api/notifications/settings'
-    },
+        SAVED_SEARCHES: {
+          LIST: '/api/saved-searches',
+          DETAILS: (id: string) => `/api/saved-searches/${id}`,
+          CREATE: '/api/saved-searches',
+          UPDATE: (id: string) => `/api/saved-searches/${id}`,
+          DELETE: (id: string) => `/api/saved-searches/${id}`,
+          EXPORT: '/api/saved-searches/export'
+        },
 
-    // Payments/Subscriptions
-    PAYMENTS: {
-      SUBSCRIPTION: '/api/subscription',
-      BILLING_PORTAL: '/api/subscription/billing-portal',
-      CHECKOUT: '/api/subscription/checkout',
-      WEBHOOK: '/api/subscription/webhook',
-      PLANS: '/api/subscription/plans',
-      CURRENT_PLAN: '/api/subscription/current',
-      USAGE: '/api/subscription/usage'
-    },
+        NOTIFICATIONS: {
+          LIST: '/api/notifications',
+          MARK_READ: (id: string) => `/api/notifications/${id}/read`,
+          MARK_ALL_READ: '/api/notifications/mark-all-read',
+          DELETE: (id: string) => `/api/notifications/${id}`,
+          SETTINGS: '/api/notifications/settings'
+        },
 
-    // Dashboard/Analytics
-    DASHBOARD: {
-      STATS: '/api/dashboard/stats',
-      ACTIVITY: '/api/dashboard/activity',
-      INSIGHTS: '/api/dashboard/insights'
+        PAYMENTS: {
+          SUBSCRIPTION: '/api/subscription',
+          BILLING_PORTAL: '/api/subscription/billing-portal',
+          CHECKOUT: '/api/subscription/checkout',
+          WEBHOOK: '/api/subscription/webhook',
+          PLANS: '/api/subscription/plans',
+          CURRENT_PLAN: '/api/subscription/current',
+          USAGE: '/api/subscription/usage'
+        },
+
+        DASHBOARD: {
+          STATS: '/api/dashboard/stats',
+          ACTIVITY: '/api/dashboard/activity',
+          INSIGHTS: '/api/dashboard/insights'
+        }
+      };
     }
-  },
+
+    return baseEndpoints;
+  })(),
 
   // Request headers
   DEFAULT_HEADERS: {
@@ -98,7 +99,7 @@ export const API_CONFIG = {
     'Accept': 'application/json'
   },
 
-  // Error messages
+  // Error messages (minificados em produção)
   ERROR_MESSAGES: {
     NETWORK_ERROR: 'Erro de rede. Verifique sua conexão.',
     UNAUTHORIZED: 'Sessão expirada. Faça login novamente.',
@@ -133,19 +134,20 @@ export const requiresAuth = (endpoint: string): boolean => {
     API_CONFIG.ENDPOINTS.AUTH.FORGOT_PASSWORD,
     API_CONFIG.ENDPOINTS.AUTH.RESET_PASSWORD,
     API_CONFIG.ENDPOINTS.AUTH.CONFIRM_EMAIL,
-    API_CONFIG.ENDPOINTS.SEARCH.AI,
-    API_CONFIG.ENDPOINTS.PAYMENTS.PLANS
+    API_CONFIG.ENDPOINTS.SEARCH.AI
   ];
   
   return !publicEndpoints.some(publicEndpoint => endpoint.includes(publicEndpoint));
 };
 
-// Helper para verificar se endpoint requer Premium
+// Helper para verificar se endpoint requer Premium (apenas em dev)
 export const requiresPremium = (endpoint: string): boolean => {
+  if (!import.meta.env.DEV) return false; // Esconder lógica premium em produção
+  
   const premiumEndpoints = [
-    API_CONFIG.ENDPOINTS.DASHBOARD.STATS,
-    API_CONFIG.ENDPOINTS.DASHBOARD.INSIGHTS,
-    API_CONFIG.ENDPOINTS.ALERTS.EXPORT
+    '/api/dashboard/stats',
+    '/api/dashboard/insights',
+    '/api/alerts/export'
   ];
   
   return premiumEndpoints.some(premiumEndpoint => endpoint.includes(premiumEndpoint));

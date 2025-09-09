@@ -102,15 +102,17 @@ export const authUtils = {
 /**
  * Função simples para extrair erro
  */
-function getErrorMessage(error: any): string {
+function getErrorMessage(error: unknown): string {
+  const errorObj = error as { response?: { data?: { message?: string; errors?: string[] | Record<string, string[]> } } };
+  
   // 1. Se tem response.data.message (objeto simples)
-  if (error.response?.data?.message) {
-    return error.response.data.message;
+  if (errorObj.response?.data?.message) {
+    return errorObj.response.data.message;
   }
   
   // 2. Se tem response.data.errors (array ou objeto)
-  if (error.response?.data?.errors) {
-    const errors = error.response.data.errors;
+  if (errorObj.response?.data?.errors) {
+    const errors = errorObj.response.data.errors;
     if (Array.isArray(errors)) {
       return errors.join('. ');
     }
@@ -142,7 +144,7 @@ export async function login(credentials: LoginPayload): Promise<AuthResult> {
     }
      
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Erro no login:', error);
     
     return {
@@ -358,6 +360,6 @@ export async function deleteAccount(password: string): Promise<{ success: boolea
 }
 
 // Log quando o serviço carrega
-if (import.meta.env.DEV) {
+if ((import.meta as { env: { DEV?: boolean } }).env.DEV) {
   console.log('[AUTH SERVICE] Serviço de autenticação carregado e atualizado');
 }
