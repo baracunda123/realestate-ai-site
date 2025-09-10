@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo } from 'react';
 import { PropertyCard } from './PropertyCard';
 import { type SearchFilters } from '../types/SearchFilters';
 import { type Property } from '../types/property';
@@ -33,12 +33,12 @@ const calculateRelevanceScore = (property: Property, query: string): number => {
     }
     
     // Title matches get extra points
-    if (property.title.toLowerCase().includes(word)) {
+    if (property.title?.toLowerCase().includes(word)) {
       score += 10;
     }
     
     // Location matches get extra points
-    if (property.location.toLowerCase().includes(word)) {
+    if (property.location?.toLowerCase().includes(word)) {
       score += 15;
     }
   });
@@ -134,8 +134,8 @@ export function PropertyGrid({ filters, searchQuery, serverResults, onPropertySe
         )}
       </div>
       
-      {/* Properties Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      {/* Properties List */}
+      <div className="space-y-4">
         {filteredAndRankedProperties.map((property, index) => (
           <div key={property.id} className="relative">
             <PropertyCard

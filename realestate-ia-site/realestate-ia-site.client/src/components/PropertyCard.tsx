@@ -4,7 +4,6 @@ import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Heart, MapPin, Bed, Bath, Square, Calendar } from 'lucide-react';
 import { type Property } from '../types/property';
-import { ImageWithFallback } from './figma/ImageWithFallback';
 
 interface PropertyCardProps {
   property: Property;
@@ -56,15 +55,6 @@ function PropertyCardComponent({
     return names[type as keyof typeof names] || type;
   }, []);
 
-  // Função para obter a primeira imagem disponível ou usar fallback
-  const getMainImage = useCallback(() => {
-    if (property.images && property.images.length > 0) {
-      return property.images[0];
-    }
-    // Fallback para uma imagem padrão de propriedade
-    return 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop';
-  }, [property.images]);
-
   const handleFavoriteClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     if (onToggleFavorite) onToggleFavorite(property);
@@ -86,112 +76,108 @@ function PropertyCardComponent({
       } : undefined}
       onClick={onClick}
     >
-      <div className="relative">
-        <ImageWithFallback
-          src={getMainImage()}
-          alt={safeTitle}
-          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500"
-          loading="lazy"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        
-        <div className="absolute top-3 left-3">
-          <Badge className={`${getPropertyTypeColor(safePropertyType)} font-medium border shadow-clay-soft`}>
-            {getPropertyTypeName(safePropertyType)}
-          </Badge>
-        </div>
-        
-        <Button
-          variant="ghost"
-          size="sm"
-          aria-pressed={isFavorite}
-          aria-label={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
-          className="absolute top-3 right-3 h-9 w-9 p-0 bg-warm-white/95 hover:bg-warm-white shadow-clay-soft backdrop-blur-sm hover:scale-105 transition-all duration-200"
-          onClick={handleFavoriteClick}
-        >
-          <Heart className={`h-4 w-4 transition-all duration-200 ${isFavorite ? 'text-burnt-primary' : 'text-clay-secondary'}`} />
-        </Button>
-
-        {/* Price overlay */}
-        <div className="absolute bottom-3 right-3">
-          <div className="bg-warm-white/95 backdrop-blur-sm px-3 py-1 rounded-full shadow-clay-soft border border-clay-medium">
-            <span className="text-sm font-semibold text-metric">
-              {formatPrice(safePrice)}
-            </span>
-          </div>
-        </div>
-      </div>
-      
       <CardContent 
-        className={`p-5 ${isWhiteBackground ? 'property-card-white' : ''}`}
+        className={`p-3 ${isWhiteBackground ? 'property-card-white' : ''}`}
         style={isWhiteBackground ? { 
           backgroundColor: '#FFFFFF',
           background: '#FFFFFF'
         } : undefined}
       >
-        <div className="space-y-4">
-          <div>
-            <h3 className="font-semibold line-clamp-1 text-lg text-title">{safeTitle}</h3>
-            <div className="flex items-center text-sm text-clay-secondary mt-1">
-              <MapPin className="h-3 w-3 mr-1 text-clay-secondary" />
-              {property.location}
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-3 gap-4 text-sm">
-            <div className="flex items-center space-x-1 text-clay-secondary">
-              <div className="w-8 h-8 bg-pale-clay rounded-lg flex items-center justify-center">
-                <Bed className="h-4 w-4 text-cocoa-primary" />
+        <div className="space-y-2">
+          {/* Header section with title, type, price and favorite button */}
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <Badge className={`${getPropertyTypeColor(safePropertyType)} text-xs font-medium border shadow-clay-soft py-0.5 px-1.5`}>
+                  {getPropertyTypeName(safePropertyType)}
+                </Badge>
+                <div className="bg-warm-white/95 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-clay-soft border border-clay-medium">
+                  <span className="text-sm font-bold text-burnt-primary">
+                    {formatPrice(safePrice)}
+                  </span>
+                </div>
               </div>
-              <div>
-                <div className="font-medium text-title">{property.bedrooms}</div>
-                <div className="text-xs text-clay-secondary">quartos</div>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-1 text-clay-secondary">
-              <div className="w-8 h-8 bg-pale-clay rounded-lg flex items-center justify-center">
-                <Bath className="h-4 w-4 text-cocoa-primary" />
-              </div>
-              <div>
-                <div className="font-medium text-title">{property.bathrooms}</div>
-                <div className="text-xs text-clay-secondary">wc</div>
+              <h3 className="font-semibold text-base text-title line-clamp-1 mb-0.5">{safeTitle}</h3>
+              <div className="flex items-center text-xs text-clay-secondary">
+                <MapPin className="h-3 w-3 mr-1 text-clay-secondary" />
+                {property.location}
               </div>
             </div>
             
-            <div className="flex items-center space-x-1 text-clay-secondary">
-              <div className="w-8 h-8 bg-pale-clay rounded-lg flex items-center justify-center">
-                <Square className="h-4 w-4 text-cocoa-primary" />
-              </div>
-              <div>
-                <div className="font-medium text-title">{formatArea(safeArea)}</div>
-                <div className="text-xs text-clay-secondary">m²</div>
-              </div>
-            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-pressed={isFavorite}
+              aria-label={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+              className="h-7 w-7 p-0 bg-warm-white/95 hover:bg-warm-white shadow-clay-soft backdrop-blur-sm hover:scale-105 transition-all duration-200 flex-shrink-0"
+              onClick={handleFavoriteClick}
+            >
+              <Heart className={`h-3.5 w-3.5 transition-all duration-200 ${isFavorite ? 'text-burnt-primary fill-current' : 'text-clay-secondary'}`} />
+            </Button>
           </div>
           
+          {/* Property details and footer in one row */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center text-xs text-clay-secondary">
-              <Calendar className="h-3 w-3 mr-1" />
-              Construído em {property.yearBuilt}
+            {/* Property details section */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center space-x-1.5 text-clay-secondary">
+                <div className="w-6 h-6 bg-pale-clay rounded flex items-center justify-center">
+                  <Bed className="h-3 w-3 text-cocoa-primary" />
+                </div>
+                <div>
+                  <span className="font-semibold text-title text-sm">{property.bedrooms}</span>
+                  <span className="text-xs text-clay-secondary ml-0.5">qts</span>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-1.5 text-clay-secondary">
+                <div className="w-6 h-6 bg-pale-clay rounded flex items-center justify-center">
+                  <Bath className="h-3 w-3 text-cocoa-primary" />
+                </div>
+                <div>
+                  <span className="font-semibold text-title text-sm">{property.bathrooms}</span>
+                  <span className="text-xs text-clay-secondary ml-0.5">wc</span>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-1.5 text-clay-secondary">
+                <div className="w-6 h-6 bg-pale-clay rounded flex items-center justify-center">
+                  <Square className="h-3 w-3 text-cocoa-primary" />
+                </div>
+                <div>
+                  <span className="font-semibold text-title text-sm">{formatArea(safeArea)}</span>
+                  <span className="text-xs text-clay-secondary ml-0.5">m²</span>
+                </div>
+              </div>
             </div>
-            <div className="text-sm text-burnt-primary font-medium">
-              €{pricePerSqm}/m²
+            
+            {/* Footer section */}
+            <div className="flex items-center gap-3 text-xs text-clay-secondary">
+              <div className="flex items-center">
+                <Calendar className="h-3 w-3 mr-1" />
+                {property.yearBuilt}
+              </div>
+              <div className="text-sm text-burnt-primary font-semibold">
+                €{pricePerSqm}/m²
+              </div>
             </div>
           </div>
           
-          <div className="flex flex-wrap gap-1">
-            {property.features && property.features.slice(0, 3).map((feature, index) => (
-              <Badge key={`${feature}-${index}`} className="text-xs border bg-pure-white text-title border-clay-medium">
-                {feature}
-              </Badge>
-            ))}
-            {property.features && property.features.length > 3 && (
-              <Badge variant="outline" className="text-xs bg-pure-white text-clay-secondary border-clay-medium">
-                +{property.features.length - 3} mais
-              </Badge>
-            )}
-          </div>
+          {/* Features section - only if there are features */}
+          {property.features && property.features.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {property.features.slice(0, 3).map((feature, index) => (
+                <Badge key={`${feature}-${index}`} className="text-xs border bg-pure-white text-title border-clay-medium py-0 px-1.5 leading-tight">
+                  {feature}
+                </Badge>
+              ))}
+              {property.features.length > 3 && (
+                <Badge variant="outline" className="text-xs bg-pure-white text-clay-secondary border-clay-medium py-0 px-1.5 leading-tight">
+                  +{property.features.length - 3}
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>
