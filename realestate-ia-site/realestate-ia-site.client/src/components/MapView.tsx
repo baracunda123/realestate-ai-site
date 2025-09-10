@@ -71,7 +71,7 @@ export function MapView({ filters, searchQuery, onPropertySelect }: MapViewProps
               }}
               onClick={() => {
                 // Mock property selection - in real app would map to actual property
-                console.log('Selected property:', property.title);
+                // Property selected - handled by onPropertySelect
               }}
             >
               <div className="bg-primary text-primary-foreground px-2 py-1 rounded-lg shadow-lg text-xs font-medium group-hover:scale-110 transition-transform">

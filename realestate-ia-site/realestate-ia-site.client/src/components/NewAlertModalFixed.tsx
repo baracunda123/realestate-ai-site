@@ -7,7 +7,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Slider } from './ui/slider';
 import { Switch } from './ui/switch';
 import { Separator } from './ui/separator';
-import { Badge } from './ui/badge';
 import { Card, CardContent } from './ui/card';
 import { 
   Bell, 
@@ -19,8 +18,7 @@ import {
   DollarSign,
   Bed,
   Bath,
-  TrendingDown,
-  TrendingUp,
+  TrendingDown, 
   Mail,
   Smartphone,
   Plus
@@ -31,8 +29,7 @@ interface NewAlertModalProps {
   isOpen: boolean;
   onClose: () => void;
   onCreateAlert: (alert: NewAlert) => void;
-  isPremium: boolean;
-  editingAlert?: any;
+  editingAlert?: NewAlert;
 }
 
 export interface NewAlert {
@@ -44,7 +41,11 @@ export interface NewAlert {
   bedrooms?: number;
   bathrooms?: number;
   priceDropPercentage?: number;
-  notifications: {
+  emailNotifications?: boolean;
+  smsNotifications?: boolean;
+  priceDropAlerts?: boolean;
+  newListingAlerts?: boolean;
+  notifications?: {
     email: boolean;
     sms: boolean;
   };
@@ -65,7 +66,7 @@ const popularLocations = [
   'Centro', 'Liberdade', 'Bela Vista', 'Higienópolis', 'Perdizes'
 ];
 
-export function NewAlertModal({ isOpen, onClose, onCreateAlert, isPremium, editingAlert }: NewAlertModalProps) {
+export function NewAlertModal({ isOpen, onClose, onCreateAlert, editingAlert }: NewAlertModalProps) {
   const [alertName, setAlertName] = useState(editingAlert?.name || '');
   const [location, setLocation] = useState(editingAlert?.location || '');
   const [propertyType, setPropertyType] = useState<string>(editingAlert?.propertyType || 'any');
@@ -73,8 +74,8 @@ export function NewAlertModal({ isOpen, onClose, onCreateAlert, isPremium, editi
   const [bedrooms, setBedrooms] = useState<number | undefined>(editingAlert?.bedrooms);
   const [bathrooms, setBathrooms] = useState<number | undefined>(editingAlert?.bathrooms);
   const [priceDropPercentage, setPriceDropPercentage] = useState<number>(editingAlert?.priceDropPercentage || 10);
-  const [emailNotifications, setEmailNotifications] = useState(editingAlert?.notifications?.email ?? true);
-  const [smsNotifications, setSmsNotifications] = useState(editingAlert?.notifications?.sms ?? false);
+  const [emailNotifications, setEmailNotifications] = useState(editingAlert?.emailNotifications ?? editingAlert?.notifications?.email ?? true);
+  const [smsNotifications, setSmsNotifications] = useState(editingAlert?.smsNotifications ?? editingAlert?.notifications?.sms ?? false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Detect if we're editing based on editingAlert presence
@@ -90,8 +91,8 @@ export function NewAlertModal({ isOpen, onClose, onCreateAlert, isPremium, editi
       setBedrooms(editingAlert.bedrooms);
       setBathrooms(editingAlert.bathrooms);
       setPriceDropPercentage(editingAlert.priceDropPercentage || 10);
-      setEmailNotifications(editingAlert.notifications?.email ?? true);
-      setSmsNotifications(editingAlert.notifications?.sms ?? false);
+      setEmailNotifications(editingAlert.emailNotifications ?? editingAlert.notifications?.email ?? true);
+      setSmsNotifications(editingAlert.smsNotifications ?? editingAlert.notifications?.sms ?? false);
     } else if (!isEditing) {
       // Reset form for new alert
       setAlertName('');
@@ -141,6 +142,10 @@ export function NewAlertModal({ isOpen, onClose, onCreateAlert, isPremium, editi
       bedrooms,
       bathrooms,
       priceDropPercentage,
+      emailNotifications,
+      smsNotifications,
+      priceDropAlerts: true,
+      newListingAlerts: true,
       notifications: {
         email: emailNotifications,
         sms: smsNotifications,
@@ -388,15 +393,12 @@ export function NewAlertModal({ isOpen, onClose, onCreateAlert, isPremium, editi
           </div>
 
           {/* Price Drop Alert */}
-          {isPremium && (
+          {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <Label className="text-warm-taupe">
                   Alerta de Redução de Preço
                 </Label>
-                <Badge className="bg-burnt-peach text-white border-0 text-xs">
-                  Premium
-                </Badge>
               </div>
               <Card className="border border-pale-clay-deep bg-pale-clay-light">
                 <CardContent className="p-4 space-y-3">
@@ -420,7 +422,7 @@ export function NewAlertModal({ isOpen, onClose, onCreateAlert, isPremium, editi
                 </CardContent>
               </Card>
             </div>
-          )}
+          }
 
           <Separator className="bg-pale-clay-medium" />
 
@@ -456,18 +458,13 @@ export function NewAlertModal({ isOpen, onClose, onCreateAlert, isPremium, editi
                     <p className="text-sm font-medium text-deep-mocha">Notificações por SMS</p>
                     <p className="text-xs text-warm-taupe">
                       Receba alertas por mensagem de texto
-                      {!isPremium && (
-                        <Badge className="ml-2 bg-pale-clay text-warm-taupe border border-pale-clay-deep text-xs">
-                          Premium
-                        </Badge>
-                      )}
                     </p>
                   </div>
                 </div>
                 <Switch
                   checked={smsNotifications}
                   onCheckedChange={setSmsNotifications}
-                  disabled={!isPremium}
+disabled={false}
                 />
               </div>
             </div>

@@ -65,7 +65,7 @@ function PropertyCardComponent({
   const safePrice = property.price || 0;
   const safeArea = property.area || 0;
   const safeTitle = property.title || 'Propriedade';
-  const safePropertyType = property.propertyType || 'apartment';
+  const safePropertyType = property.propertyType || property.type || 'apartment';
 
   return (
     <Card 

@@ -18,7 +18,7 @@ const calculateRelevanceScore = (property: Property, query: string): number => {
   let score = 0;
   
   const queryLower = query.toLowerCase();
-  const searchableText = `${property.title} ${property.description} ${property.location} ${(property.features || []).join(' ')}`.toLowerCase();
+  const searchableText = `${property.title || ''} ${property.description || ''} ${property.location || ''} ${(property.features || []).join(' ')}`.toLowerCase();
   
   // Exact phrase match gets highest score
   if (searchableText.includes(queryLower)) {
@@ -53,27 +53,30 @@ export function PropertyGrid({ filters, searchQuery, serverResults, onPropertySe
   const filteredAndRankedProperties = useMemo(() => {
     let filtered = source.filter(property => {
       // Price filter
-      if (property.price < filters.priceRange[0] || property.price > filters.priceRange[1]) {
+      if (property.price && (property.price < filters.priceRange[0] || property.price > filters.priceRange[1])) {
         return false;
       }
       
       // Bedrooms filter
-      if (filters.bedrooms && property.bedrooms < filters.bedrooms) {
+      if (filters.bedrooms && property.bedrooms && property.bedrooms < filters.bedrooms) {
         return false;
       }
       
       // Bathrooms filter
-      if (filters.bathrooms && property.bathrooms < filters.bathrooms) {
+      if (filters.bathrooms && property.bathrooms && property.bathrooms < filters.bathrooms) {
         return false;
       }
       
       // Property type filter - handle both empty string and 'any' values
-      if (filters.propertyType && filters.propertyType !== 'any' && property.propertyType !== filters.propertyType) {
+      const propType = property.propertyType || property.type;
+      if (filters.propertyType && filters.propertyType !== 'any' && propType !== filters.propertyType) {
         return false;
       }
       
       // Location filter
-      if (filters.location && !property.location.toLowerCase().includes(filters.location.toLowerCase()) && !property.address.toLowerCase().includes(filters.location.toLowerCase())) {
+      if (filters.location && property.location && property.address && 
+          !property.location.toLowerCase().includes(filters.location.toLowerCase()) && 
+          !property.address.toLowerCase().includes(filters.location.toLowerCase())) {
         return false;
       }
       
@@ -100,11 +103,11 @@ export function PropertyGrid({ filters, searchQuery, serverResults, onPropertySe
       filtered.sort((a, b) => {
         switch (filters.sortBy) {
           case 'price':
-            return a.price - b.price;
+            return (a.price || 0) - (b.price || 0);
           case 'date':
             return Math.random() - 0.5; // Mock random sorting for "newest"
           case 'size':
-            return b.area - a.area;
+            return (b.area || 0) - (a.area || 0);
           default:
             return 0;
         }

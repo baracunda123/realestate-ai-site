@@ -2,7 +2,7 @@
 import type { Property } from './property';
 
 export interface SearchFilters {
-  // Localização - alinhado com campos da BD Property
+  // Localizaï¿½ï¿½o - alinhado com campos da BD Property
   location: string;
   city?: string;
   county?: string;
@@ -10,17 +10,17 @@ export interface SearchFilters {
   civilParish?: string;
   zipCode?: string;
   
-  // Preço
+  // Preï¿½o
   priceRange: [number, number];
   priceMin?: number;
   priceMax?: number;
   
-  // Características da propriedade
+  // Caracterï¿½sticas da propriedade
   bedrooms: number | null;
   bathrooms: number | null;
   propertyType: string; // 'any' | 'house' | 'apartment' | 'condo' | 'townhouse'
   
-  // Área
+  // ï¿½rea
   minArea?: number;
   maxArea?: number;
   minUsableArea?: number;
@@ -29,7 +29,7 @@ export interface SearchFilters {
   // Features
   hasGarage?: boolean;
   
-  // Ordenação
+  // Ordenaï¿½ï¿½o
   sortBy: 'price' | 'area' | 'bedrooms' | 'date' | 'relevance';
   sortOrder?: 'asc' | 'desc';
   
@@ -46,7 +46,7 @@ export interface SearchRequest {
   // Filtros estruturados
   filters?: Partial<SearchFilters>;
   
-  // Paginação
+  // Paginaï¿½ï¿½o
   page?: number;
   pageSize?: number;
   
@@ -69,7 +69,7 @@ export interface SearchResponse {
   aiResponse?: string;
   aiSummary?: string;
   
-  // Dados de mercado (premium)
+  // Dados de mercado
   marketInsights?: {
     averagePrice: number;
     priceRange: [number, number];
@@ -84,7 +84,7 @@ export interface SearchResponse {
   // Filtros aplicados (para debugging)
   appliedFilters?: SearchFilters;
   
-  // Sugestões de refinamento
+  // Sugestï¿½es de refinamento
   suggestions?: {
     locations: string[];
     priceRanges: Array<[number, number]>;
@@ -92,7 +92,7 @@ export interface SearchResponse {
   };
 }
 
-// Para autocomplete e sugestões
+// Para autocomplete e sugestï¿½es
 export interface LocationSuggestion {
   id: string;
   name: string;
@@ -121,10 +121,10 @@ export interface SavedFilter {
   lastUsed?: Date;
 }
 
-// Export para compatibilidade com código existente
+// Export para compatibilidade com cï¿½digo existente
 export type { SearchFilters as SearchFiltersType };
 
-// Constantes para valores padrão
+// Constantes para valores padrï¿½o
 export const DEFAULT_SEARCH_FILTERS: SearchFilters = {
   location: '',
   priceRange: [0, 2000000],
@@ -141,14 +141,14 @@ export const PROPERTY_TYPES: PropertyTypeSuggestion[] = [
   { value: 'any', label: 'Qualquer Tipo', icon: '??' },
   { value: 'house', label: 'Casa', icon: '??' },
   { value: 'apartment', label: 'Apartamento', icon: '??' },
-  { value: 'condo', label: 'Condomínio', icon: '???' },
+  { value: 'condo', label: 'Condomï¿½nio', icon: '???' },
   { value: 'townhouse', label: 'Sobrado', icon: '??' }
 ];
 
 export const SORT_OPTIONS = [
-  { value: 'price', label: 'Preço' },
-  { value: 'area', label: 'Área' },
+  { value: 'price', label: 'Preï¿½o' },
+  { value: 'area', label: 'ï¿½rea' },
   { value: 'bedrooms', label: 'Quartos' },
   { value: 'date', label: 'Data' },
-  { value: 'relevance', label: 'Relevância' }
+  { value: 'relevance', label: 'Relevï¿½ncia' }
 ] as const;

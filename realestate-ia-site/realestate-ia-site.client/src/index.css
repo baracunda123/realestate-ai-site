@@ -117,8 +117,6 @@
     /* Cores Especiais Clay */
     --luxury: var(--cocoa-taupe-dark);
     --luxury-foreground: var(--pure-white);
-    --premium: var(--burnt-peach-dark);
-    --premium-foreground: var(--pure-white);
     /* Estados Hover/Active Harmonizados */
     --hover-porcelain: var(--porcelain-soft);
     --hover-pale: var(--pale-clay-light);
@@ -273,8 +271,6 @@
     /* Cores Especiais */
     --color-luxury: var(--luxury);
     --color-luxury-foreground: var(--luxury-foreground);
-    --color-premium: var(--premium);
-    --color-premium-foreground: var(--premium-foreground);
     /* Estados Hover/Active */
     --color-hover-porcelain: var(--hover-porcelain);
     --color-hover-pale: var(--hover-pale);

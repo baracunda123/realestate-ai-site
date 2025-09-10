@@ -6,12 +6,10 @@ import {
   Bookmark, 
   Bell, 
   Clock, 
-  Crown, 
   Settings 
 } from 'lucide-react';
 import type { Property } from '../types/property';
 import type { User, SavedSearch, PropertyAlert, ViewHistoryItem, NotificationSettings } from '../types/PersonalArea';
-import { getCurrentLimits } from '../utils/PersonalArea';
 import type { NewAlert } from './NewAlertModalFixed';
 import { NewAlertModal } from './NewAlertModalFixed';
 import { PersonalAreaHeader } from './PersonalArea/PersonalAreaHeader';
@@ -20,7 +18,6 @@ import { PersonalAreaFavorites } from './PersonalArea/PersonalAreaFavorites';
 import { PersonalAreaSearches } from './PersonalArea/PersonalAreaSearches';
 import { PersonalAreaAlerts } from './PersonalArea/PersonalAreaAlerts';
 import { PersonalAreaHistory } from './PersonalArea/PersonalAreaHistory';
-import { PersonalAreaPlans } from './PersonalArea/PersonalAreaPlans';
 import { PersonalAreaSettings } from './PersonalArea/PersonalAreaSettings';
 import { toast } from 'sonner';
 
@@ -29,20 +26,32 @@ import { toast } from 'sonner';
 const mockSavedSearches: SavedSearch[] = [
   {
     id: '1',
-    name: 'Apartamentos Vila Madalena',
-    query: 'apartamento moderno Vila Madalena 2 quartos',
-    filters: { location: 'Vila Madalena', bedrooms: 2, propertyType: 'apartment' },
-    createdAt: new Date('2024-12-15'),
-    results: 23,
+    userId: 'user-1',
+    name: 'Casas T3 em Lisboa',
+    query: 'casas com 3 quartos em Lisboa',
+    filters: {
+      location: 'Lisboa',
+      propertyType: 'house',
+      bedrooms: 3,
+      priceRange: [300000, 800000]
+    },
+    createdAt: new Date('2024-01-15'),
+    results: 24,
     newResults: 3
   },
   {
     id: '2',
-    name: 'Casas Jardins Luxo',
-    query: 'casa luxuosa Jardins 3 quartos piscina',
-    filters: { location: 'Jardins', bedrooms: 3, propertyType: 'house' },
-    createdAt: new Date('2024-12-18'),
-    results: 15,
+    userId: 'user-1',
+    name: 'Apartamentos T2 no Porto',
+    query: 'apartamentos T2 no Porto até 400k',
+    filters: {
+      location: 'Porto',
+      propertyType: 'apartment',
+      bedrooms: 2,
+      priceRange: [250000, 400000]
+    },
+    createdAt: new Date('2024-01-10'),
+    results: 18,
     newResults: 1
   }
 ];
@@ -50,70 +59,73 @@ const mockSavedSearches: SavedSearch[] = [
 const mockPropertyAlerts: PropertyAlert[] = [
   {
     id: '1',
-    name: 'Apartamentos Centro até R$ 4M',
-    location: 'Centro de São Paulo',
-    propertyType: 'apartment',
-    priceRange: [0, 4000000],
-    bedrooms: 2,
-    bathrooms: null,
-    notifications: {
-      email: true,
-      sms: false,
-      priceDrops: true,
-      newListings: true
-    },
-    createdAt: new Date('2024-12-15'),
+    userId: 'user-1',
+    name: 'Casas baratas em Sintra',
+    location: 'Sintra',
+    propertyType: 'house',
+    minPrice: null,
+    maxPrice: 500000,
+    bedrooms: 3,
+    bathrooms: 2,
+    emailNotifications: true,
+    smsNotifications: false,
+    priceDropAlerts: true,
+    newListingAlerts: true,
     isActive: true,
-    matchCount: 5,
-    newMatches: 2,
-    lastTriggered: new Date('2024-12-20')
+    createdAt: new Date('2024-01-10'),
+    lastTriggered: new Date('2024-01-12'),
+    matchCount: 12,
+    newMatches: 2
   }
 ];
 
 const mockViewHistory: ViewHistoryItem[] = [
   {
     id: '1',
-    propertyTitle: 'Apartamento Moderno',
-    location: 'Pinheiros',
-    price: 950000,
-    viewedAt: new Date('2024-12-21'),
-    viewCount: 3
+    userId: 'user-1',
+    propertyId: 'prop-123',
+    propertyTitle: 'Casa T3 em Cascais',
+    location: 'Cascais',
+    price: 650000,
+    viewedAt: new Date('2024-01-15T10:30:00'),
+    viewCount: 3,
+    propertyType: 'house',
+    bedrooms: 3,
+    bathrooms: 2
   },
   {
     id: '2',
-    propertyTitle: 'Casa Familiar Espaçosa',
-    location: 'Brooklin',
-    price: 1350000,
-    viewedAt: new Date('2024-12-20'),
-    viewCount: 1
+    userId: 'user-1',
+    propertyId: 'prop-456',
+    propertyTitle: 'Apartamento T2 no Centro do Porto',
+    location: 'Porto Centro',
+    price: 380000,
+    viewedAt: new Date('2024-01-14T16:45:00'),
+    viewCount: 1,
+    propertyType: 'apartment',
+    bedrooms: 2,
+    bathrooms: 1
   }
 ];
 
 interface PersonalAreaProps {
   user: User;
   onPropertySelect: (property: Property) => void;
-  onOpenUpgradeModal?: () => void;
   onNavigateToAlertResults?: (alert: PropertyAlert) => void;
   favorites: Property[];
   onToggleFavorite: (property: Property) => void;
 }
 
-export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNavigateToAlertResults, favorites, onToggleFavorite }: PersonalAreaProps) {
+export function PersonalArea({ user, onPropertySelect, onNavigateToAlertResults, favorites, onToggleFavorite }: PersonalAreaProps) {
+  // UI state
   const [activeTab, setActiveTab] = useState('dashboard');
-
-  // Modal state
   const [isNewAlertModalOpen, setIsNewAlertModalOpen] = useState(false);
-  const [editingAlert, setEditingAlert] = useState<string | null>(null);
-  const [editingAlertData, setEditingAlertData] = useState<any>(null);
   
   // Data state
   const [userAlerts, setUserAlerts] = useState<NewAlert[]>([]);
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
 
-  // Get current limits for user
-  const currentLimits = getCurrentLimits(user);
-
-  // Initialize saved searches from localStorage (fallback to mocks), and clamp to plan limits for Free users
+  // Initialize saved searches from localStorage (fallback to mocks)
   useEffect(() => {
     try {
       const raw = localStorage.getItem('hf_saved_searches');
@@ -123,41 +135,31 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
           ...s,
           createdAt: new Date(s.createdAt)
         }));
-        const initial = user.isPremium ? withDates : withDates.slice(0, currentLimits.maxSavedSearches);
-        setSavedSearches(initial);
+        setSavedSearches(withDates);
       } else {
-        const initial = user.isPremium ? mockSavedSearches : mockSavedSearches.slice(0, currentLimits.maxSavedSearches);
-        setSavedSearches(initial);
+        setSavedSearches(mockSavedSearches);
       }
     } catch {
-      const fallback = user.isPremium ? mockSavedSearches : mockSavedSearches.slice(0, currentLimits.maxSavedSearches);
-      setSavedSearches(fallback);
+      setSavedSearches(mockSavedSearches);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  // Persist saved searches
+  
+  // Save searches to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('hf_saved_searches', JSON.stringify(savedSearches));
   }, [savedSearches]);
 
-  // Clamp saved searches when on Free plan (e.g., after downgrade)
-  useEffect(() => {
-    if (!user.isPremium && savedSearches.length > currentLimits.maxSavedSearches) {
-      setSavedSearches(prev => prev.slice(0, currentLimits.maxSavedSearches));
-    }
-  }, [user.isPremium, currentLimits.maxSavedSearches, savedSearches.length]);
-
   const [mockAlertsStatus, setMockAlertsStatus] = useState<Record<string, boolean>>({
     '1': true // Default status for mock alert
   });
-  const [currentPlan, setCurrentPlan] = useState(user.isPremium ? 'premium' : 'free');
   const [notifications, setNotifications] = useState<NotificationSettings>({
     email: true,
     sms: false,
     priceAlerts: true,
     newListings: true,
-    marketInsights: user.isPremium || false
+    marketInsights: true,
+    weeklyDigest: true,
+    alertFrequency: 'immediate'
   });
 
   // Combined alerts (mock + user created) with current status
@@ -165,174 +167,90 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
     ...mockPropertyAlerts.map(alert => ({
       ...alert,
       isActive: mockAlertsStatus[alert.id] ?? alert.isActive
-    })), 
-    ...userAlerts
+    })),
+    ...userAlerts.map(userAlert => ({
+      id: userAlert.id,
+      userId: user.id,
+      name: userAlert.name,
+      location: userAlert.location || null,
+      propertyType: userAlert.propertyType || null,
+      minPrice: userAlert.priceRange ? userAlert.priceRange[0] : null,
+      maxPrice: userAlert.priceRange ? userAlert.priceRange[1] : null,
+      bedrooms: userAlert.bedrooms || null,
+      bathrooms: userAlert.bathrooms || null,
+      emailNotifications: userAlert.emailNotifications ?? true,
+      smsNotifications: userAlert.smsNotifications ?? false,
+      priceDropAlerts: userAlert.priceDropAlerts ?? true,
+      newListingAlerts: userAlert.newListingAlerts ?? true,
+      isActive: userAlert.isActive ?? true,
+      createdAt: new Date(),
+      lastTriggered: null,
+      matchCount: Math.floor(Math.random() * 20) + 1,
+      newMatches: Math.floor(Math.random() * 5)
+    }))
   ];
 
-  // Navigation functions
-  const handleCardClick = (tabName: string) => {
-    setActiveTab(tabName);
-  };
-
-  const handleGoToHome = () => {
-    window.location.hash = '';
-  };
-
-  // Alert management
-  const handleCreateNewAlert = () => {
-    setEditingAlert(null);
-    setEditingAlertData(null);
-    setIsNewAlertModalOpen(true);
-  };
-
-  const handleToggleAlert = (alertId: string) => {
-    const isUserAlert = userAlerts.find(alert => alert.id === alertId);
-    
-    if (isUserAlert) {
-      // Toggle user-created alert
-      setUserAlerts(prevAlerts => 
-        prevAlerts.map(alert => 
-          alert.id === alertId 
-            ? { ...alert, isActive: !alert.isActive }
-            : alert
-        )
-      );
-      
-      const alertData = userAlerts.find(alert => alert.id === alertId);
-      if (alertData) {
-        const newStatus = !alertData.isActive;
-        toast.success(`Alerta ${newStatus ? 'ativado' : 'desativado'}!`, {
-          description: `"${alertData.name}" foi ${newStatus ? 'ativado' : 'desativado'} com sucesso.`,
-        });
-      }
-    } else {
-      // Handle mock alerts status
-      const mockAlert = mockPropertyAlerts.find(alert => alert.id === alertId);
-      if (mockAlert) {
-        setMockAlertsStatus(prevStatus => {
-          const currentStatus = prevStatus[alertId] ?? mockAlert.isActive;
-          const newStatus = !currentStatus;
-          
-          toast.success(`Alerta ${newStatus ? 'ativado' : 'desativado'}!`, {
-            description: `"${mockAlert.name}" foi ${newStatus ? 'ativado' : 'desativado'} com sucesso.`,
-          });
-          
-          return {
-            ...prevStatus,
-            [alertId]: newStatus
-          };
-        });
-      }
-    }
-  };
-
-  const handleCreateAlert = (alertData: NewAlert) => {
-    if (editingAlert) {
-      // Update existing alert
-      setUserAlerts(prevAlerts => 
-        prevAlerts.map(alert => 
-          alert.id === editingAlert ? { ...alertData, id: editingAlert } : alert
-        )
-      );
-      toast.success('Alerta atualizado com sucesso!', {
-        description: `"${alertData.name}" foi atualizado com seus novos critérios.`,
-      });
-    } else {
-      // Create new alert
-      setUserAlerts(prevAlerts => [...prevAlerts, alertData]);
-      toast.success('Alerta criado com sucesso!', {
-        description: `"${alertData.name}" foi criado e está ativo.`,
-      });
-    }
-    // Clear editing state
-    setEditingAlert(null);
-    setEditingAlertData(null);
-  };
-
-  const handleEditAlert = (alertId: string) => {
-    const alertToEdit = allAlerts.find(alert => alert.id === alertId);
-    if (alertToEdit) {
-      setEditingAlert(alertId);
-      setEditingAlertData(alertToEdit);
-      setIsNewAlertModalOpen(true);
-    }
+  // Handlers
+  const handleCreateAlert = (alert: NewAlert) => {
+    setUserAlerts(prev => [...prev, alert]);
+    setIsNewAlertModalOpen(false);
+    toast.success('Alerta criado com sucesso!', {
+      description: `Você será notificado sobre propriedades que correspondem aos critérios definidos.`
+    });
   };
 
   const handleDeleteAlert = (alertId: string) => {
-    const alertToDelete = allAlerts.find(alert => alert.id === alertId);
-    
-    setTimeout(() => {
-      setUserAlerts(prevAlerts => 
-        prevAlerts.filter(alert => alert.id !== alertId)
-      );
-      
-      if (alertToDelete) {
-        toast.success('Alerta excluído com sucesso!', {
-          description: `"${alertToDelete.name}" foi removido dos seus alertas.`,
-        });
-      }
-    }, 150);
-  };
-
-  // Search management
-  const handleDeleteSavedSearch = (searchId: string) => {
-    const searchToDelete = savedSearches.find(search => search.id === searchId);
-
-    setTimeout(() => {
-      setSavedSearches(prevSearches => prevSearches.filter(search => search.id !== searchId));
-      if (searchToDelete) {
-        toast.success('Pesquisa excluída com sucesso!', {
-          description: `"${searchToDelete.name}" foi removida das suas pesquisas salvas.`,
-        });
-      }
-    }, 150);
-  };
-
-  // Plan management
-  const handleReactivateFreePlan = () => {
-    setCurrentPlan('free');
-    toast.success('Plano Free reativado!', {
-      description: 'Você voltou para o plano gratuito. Algumas funcionalidades podem ser limitadas.',
-    });
-  };
-
-  const handleCancelCurrentPlan = () => {
-    if (user.isPremium) {
-      toast.success('Plano Premium cancelado!', {
-        description: 'Seu plano será downgraded para Free no final do período atual.',
-      });
+    // Check if it's a user-created alert
+    const userAlertIndex = userAlerts.findIndex(alert => alert.id === alertId);
+    if (userAlertIndex !== -1) {
+      setUserAlerts(prev => prev.filter(alert => alert.id !== alertId));
+    } else {
+      // It's a mock alert, just hide it by setting isActive to false
+      setMockAlertsStatus(prev => ({
+        ...prev,
+        [alertId]: false
+      }));
     }
+    
+    toast.success('Alerta removido!');
   };
 
-  // Modal handlers
-  const handleModalClose = () => {
-    setIsNewAlertModalOpen(false);
-    setEditingAlert(null);
-    setEditingAlertData(null);
+  const handleToggleAlert = (alertId: string) => {
+    // Check if it's a user-created alert
+    const userAlertIndex = userAlerts.findIndex(alert => alert.id === alertId);
+    if (userAlertIndex !== -1) {
+      setUserAlerts(prev => prev.map(alert => 
+        alert.id === alertId 
+          ? { ...alert, isActive: !alert.isActive }
+          : alert
+      ));
+    } else {
+      // It's a mock alert
+      setMockAlertsStatus(prev => ({
+        ...prev,
+        [alertId]: !prev[alertId]
+      }));
+    }
+    
+    const isActive = userAlertIndex !== -1 
+      ? !userAlerts[userAlertIndex].isActive
+      : !mockAlertsStatus[alertId];
+      
+    toast.success(isActive ? 'Alerta ativado!' : 'Alerta pausado!');
   };
 
-  // Settings handlers
-  const handleUpdateNotifications = (newSettings: NotificationSettings) => {
-    setNotifications(newSettings);
+  const handleDeleteSearch = (searchId: string) => {
+    setSavedSearches(prev => prev.filter(search => search.id !== searchId));
+    toast.success('Pesquisa removida!');
   };
 
-  const handleDeleteAccount = () => {
-    toast.error('Conta excluída!', {
-      description: 'Sua conta foi excluída permanentemente.',
-    });
-  };
 
   return (
-    <div className="site-container space-y-6 py-6">
-      {/* Header */}
-      <PersonalAreaHeader 
-        user={user} 
-        onOpenUpgradeModal={onOpenUpgradeModal} 
-      />
-
-      {/* Tabs Navigation */}
+    <div className="max-w-7xl mx-auto p-6 space-y-6">
+      <PersonalAreaHeader user={user} />
+      
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-7 gap-2 bg-pale-clay-light border border-pale-clay-deep">
+        <TabsList className="grid w-full grid-cols-6 h-14">
           <TabsTrigger value="dashboard" className="w-full flex items-center space-x-2">
             <BarChart3 className="h-4 w-4" />
             <span className="hidden sm:inline">Dashboard</span>
@@ -353,25 +271,23 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
             <Clock className="h-4 w-4" />
             <span className="hidden sm:inline">Histórico</span>
           </TabsTrigger>
-          <TabsTrigger value="plans" className="w-full flex items-center space-x-2">
-            <Crown className="h-4 w-4" />
-            <span className="hidden sm:inline">Planos</span>
-          </TabsTrigger>
           <TabsTrigger value="settings" className="w-full flex items-center space-x-2">
             <Settings className="h-4 w-4" />
-            <span className="hidden sm:inline">Perfil</span>
+            <span className="hidden sm:inline">Configurações</span>
           </TabsTrigger>
         </TabsList>
 
-        {/* Tab Contents */}
-        <TabsContent value="dashboard" className="space-y-6">
+        <TabsContent value="dashboard">
           <PersonalAreaDashboard
             user={user}
             favoritesCount={favorites.length}
             savedSearchesCount={savedSearches.length}
             alertsCount={allAlerts.filter(alert => alert.isActive).length}
-            onCardClick={handleCardClick}
-            onOpenUpgradeModal={onOpenUpgradeModal}
+            onCardClick={(cardType) => {
+              if (cardType === 'favorites') setActiveTab('favorites');
+              if (cardType === 'searches') setActiveTab('searches');
+              if (cardType === 'alerts') setActiveTab('alerts');
+            }}
           />
         </TabsContent>
 
@@ -380,8 +296,6 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
             user={user}
             favorites={favorites}
             onPropertySelect={onPropertySelect}
-            onOpenUpgradeModal={onOpenUpgradeModal}
-            onGoToHome={handleGoToHome}
             onToggleFavorite={onToggleFavorite}
           />
         </TabsContent>
@@ -390,9 +304,8 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
           <PersonalAreaSearches
             user={user}
             savedSearches={savedSearches}
-            onDeleteSearch={handleDeleteSavedSearch}
-            onOpenUpgradeModal={onOpenUpgradeModal}
-            onGoToHome={handleGoToHome}
+            onDeleteSearch={handleDeleteSearch}
+            onPropertySelect={onPropertySelect}
           />
         </TabsContent>
 
@@ -400,11 +313,9 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
           <PersonalAreaAlerts
             user={user}
             alerts={allAlerts}
-            onCreateAlert={handleCreateNewAlert}
-            onEditAlert={handleEditAlert}
+            onCreateAlert={() => setIsNewAlertModalOpen(true)}
             onDeleteAlert={handleDeleteAlert}
             onToggleAlert={handleToggleAlert}
-            onOpenUpgradeModal={onOpenUpgradeModal}
             onNavigateToAlertResults={onNavigateToAlertResults}
           />
         </TabsContent>
@@ -413,17 +324,7 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
           <PersonalAreaHistory
             user={user}
             viewHistory={mockViewHistory}
-            onGoToHome={handleGoToHome}
-          />
-        </TabsContent>
-
-        <TabsContent value="plans">
-          <PersonalAreaPlans
-            user={user}
-            currentPlan={currentPlan}
-            onReactivateFreePlan={handleReactivateFreePlan}
-            onCancelCurrentPlan={handleCancelCurrentPlan}
-            onOpenUpgradeModal={onOpenUpgradeModal}
+            onGoToHome={() => setActiveTab('dashboard')}
           />
         </TabsContent>
 
@@ -431,18 +332,18 @@ export function PersonalArea({ user, onPropertySelect, onOpenUpgradeModal, onNav
           <PersonalAreaSettings
             user={user}
             notifications={notifications}
-            onUpdateNotifications={handleUpdateNotifications}
-            onDeleteAccount={handleDeleteAccount}
+            onUpdateNotifications={(settings) => {
+              setNotifications(settings);
+              toast.success('Configurações atualizadas!');
+            }}
           />
         </TabsContent>
       </Tabs>
 
-      {/* Alert Modal */}
       <NewAlertModal
         isOpen={isNewAlertModalOpen}
-        onClose={handleModalClose}
+        onClose={() => setIsNewAlertModalOpen(false)}
         onCreateAlert={handleCreateAlert}
-        editingAlert={editingAlertData}
       />
     </div>
   );

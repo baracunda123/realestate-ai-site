@@ -130,17 +130,17 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
             </Button>
           </div>
 
-          {/* Current Range Display */}
-          {(filters.priceRange[0] > 0 || filters.priceRange[1] < 2000000) && (
-            <div className="bg-pale-clay-light border border-pale-clay-deep rounded-lg p-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-warm-taupe">Faixa atual:</span>
-                <span className="font-medium text-burnt-peach-dark">
-                  {formatPrice(filters.priceRange[0])} - {formatPrice(filters.priceRange[1])}
-                </span>
-              </div>
+        {/* Current Range Display */}
+        {filters.priceRange && (filters.priceRange[0] > 0 || filters.priceRange[1] < 2000000) && (
+          <div className="bg-pale-clay-light border border-pale-clay-deep rounded-lg p-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-warm-taupe">Faixa atual:</span>
+              <span className="font-medium text-burnt-peach-dark">
+                {formatPrice(filters.priceRange[0])} - {formatPrice(filters.priceRange[1])}
+              </span>
             </div>
-          )}
+          </div>
+        )}
         </div>
 
         {/* Property Type */}
@@ -209,7 +209,7 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
           <Label className="text-sm font-semibold text-deep-mocha">Localização</Label>
           <Input
             placeholder="Digite cidade, bairro ou CEP"
-            value={filters.location}
+            value={filters.location || ''}
             onChange={(e) => updateFilter('location', e.target.value)}
             className="border border-pale-clay-deep bg-pure-white text-deep-mocha placeholder:text-warm-taupe-light hover:border-burnt-peach focus:border-burnt-peach transition-colors"
           />
@@ -218,7 +218,7 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
         {/* Sort By */}
         <div className="space-y-2">
           <Label className="text-sm font-semibold text-deep-mocha">Ordenar Por</Label>
-          <Select value={filters.sortBy} onValueChange={(value) => updateFilter('sortBy', value)}>
+          <Select value={filters.sortBy || 'price'} onValueChange={(value) => updateFilter('sortBy', value)}>
             <SelectTrigger className="border border-pale-clay-deep bg-pure-white text-deep-mocha hover:border-burnt-peach transition-colors">
               <SelectValue />
             </SelectTrigger>

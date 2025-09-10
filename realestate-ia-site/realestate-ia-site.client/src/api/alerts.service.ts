@@ -1,4 +1,4 @@
-// alerts.service.ts - Serviço para alertas de propriedades alinhado com BD
+// alerts.service.ts - Serviï¿½o para alertas de propriedades alinhado com BD
 import apiClient from "./client";
 import type { 
   PropertyAlert, 
@@ -8,7 +8,7 @@ import type {
 } from "../types/PersonalArea";
 import type { Property } from "../types/property";
 
-// Response types específicas para alertas
+// Response types especï¿½ficas para alertas
 interface AlertDetailsResponse extends PropertyAlert {
   matchingProperties?: Property[];
   lastMatchedProperties?: Property[];
@@ -29,7 +29,7 @@ interface AlertTestResponse {
   recommendations: string[];
 }
 
-// Função simples para logs
+// Funï¿½ï¿½o simples para logs
 function logToTerminal(message: string, level: 'info' | 'warn' | 'error' = 'info') {
   const timestamp = new Date().toLocaleTimeString();
   const prefix = level === 'error' ? '?' : level === 'warn' ? '??' : '??';
@@ -37,12 +37,12 @@ function logToTerminal(message: string, level: 'info' | 'warn' | 'error' = 'info
 }
 
 /**
- * Obter todos os alertas do usuário
+ * Obter todos os alertas do usuï¿½rio
  */
 export async function getUserAlerts(
   includeInactive: boolean = false
 ): Promise<AlertsResponse> {
-  logToTerminal(`Buscando alertas do usuário (incluir inativos: ${includeInactive})`);
+  logToTerminal(`Buscando alertas do usuï¿½rio (incluir inativos: ${includeInactive})`);
 
   const params = new URLSearchParams();
   if (includeInactive) params.append('includeInactive', 'true');
@@ -60,7 +60,7 @@ export async function getUserAlerts(
 }
 
 /**
- * Obter detalhes de um alerta específico
+ * Obter detalhes de um alerta especï¿½fico
  */
 export async function getAlertById(
   alertId: string,
@@ -160,7 +160,7 @@ export async function deleteAlert(alertId: string): Promise<{ success: boolean; 
       `/api/alerts/${alertId}`
     );
     
-    logToTerminal(`Alerta excluído`);
+    logToTerminal(`Alerta excluï¿½do`);
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
@@ -173,7 +173,7 @@ export async function deleteAlert(alertId: string): Promise<{ success: boolean; 
  * Testar alerta (ver quantas propriedades ele encontraria)
  */
 export async function testAlert(alertData: CreateAlertRequest): Promise<AlertTestResponse> {
-  logToTerminal(`Testando critérios do alerta: ${alertData.name}`);
+  logToTerminal(`Testando critï¿½rios do alerta: ${alertData.name}`);
 
   try {
     const response = await apiClient.post<AlertTestResponse>('/api/alerts/test', alertData);
@@ -188,7 +188,7 @@ export async function testAlert(alertData: CreateAlertRequest): Promise<AlertTes
 }
 
 /**
- * Obter propriedades que atendem aos critérios de um alerta
+ * Obter propriedades que atendem aos critï¿½rios de um alerta
  */
 export async function getAlertMatches(
   alertId: string,
@@ -203,7 +203,7 @@ export async function getAlertMatches(
   pageSize: number;
   hasNextPage: boolean;
 }> {
-  logToTerminal(`Buscando propriedades do alerta: ${alertId} (página ${page})`);
+  logToTerminal(`Buscando propriedades do alerta: ${alertId} (pï¿½gina ${page})`);
 
   const params = new URLSearchParams();
   params.append('page', page.toString());
@@ -250,7 +250,7 @@ export async function markAlertAsViewed(alertId: string): Promise<{ success: boo
 }
 
 /**
- * Obter estatísticas dos alertas do usuário
+ * Obter estatï¿½sticas dos alertas do usuï¿½rio
  */
 export async function getAlertsStats(): Promise<{
   totalAlerts: number;
@@ -264,7 +264,7 @@ export async function getAlertsStats(): Promise<{
     matchCount: number;
   };
 }> {
-  logToTerminal('Buscando estatísticas dos alertas');
+  logToTerminal('Buscando estatï¿½sticas dos alertas');
 
   try {
     const stats = await apiClient.get<{
@@ -280,11 +280,11 @@ export async function getAlertsStats(): Promise<{
       };
     }>('/api/alerts/stats');
     
-    logToTerminal(`Estatísticas: ${stats.activeAlerts}/${stats.totalAlerts} alertas ativos, ${stats.newMatches} novos matches`);
+    logToTerminal(`Estatï¿½sticas: ${stats.activeAlerts}/${stats.totalAlerts} alertas ativos, ${stats.newMatches} novos matches`);
     return stats;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao buscar estatísticas: ${errorMsg}`, 'error');
+    logToTerminal(`Erro ao buscar estatï¿½sticas: ${errorMsg}`, 'error');
     throw error;
   }
 }
@@ -313,7 +313,7 @@ export async function duplicateAlert(
 }
 
 /**
- * Obter sugestões de melhorias para um alerta
+ * Obter sugestï¿½es de melhorias para um alerta
  */
 export async function getAlertOptimizationSuggestions(alertId: string): Promise<{
   suggestions: Array<{
@@ -329,7 +329,7 @@ export async function getAlertOptimizationSuggestions(alertId: string): Promise<
     lastMatch?: string;
   };
 }> {
-  logToTerminal(`Buscando sugestões de otimização para alerta: ${alertId}`);
+  logToTerminal(`Buscando sugestï¿½es de otimizaï¿½ï¿½o para alerta: ${alertId}`);
 
   try {
     const suggestions = await apiClient.get<{
@@ -347,11 +347,11 @@ export async function getAlertOptimizationSuggestions(alertId: string): Promise<
       };
     }>(`/api/alerts/${alertId}/optimize`);
     
-    logToTerminal(`${suggestions.suggestions.length} sugestões de otimização encontradas`);
+    logToTerminal(`${suggestions.suggestions.length} sugestï¿½es de otimizaï¿½ï¿½o encontradas`);
     return suggestions;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao buscar sugestões: ${errorMsg}`, 'error');
+    logToTerminal(`Erro ao buscar sugestï¿½es: ${errorMsg}`, 'error');
     throw error;
   }
 }
@@ -359,7 +359,7 @@ export async function getAlertOptimizationSuggestions(alertId: string): Promise<
 // Utils para alertas
 export const alertUtils = {
   /**
-   * Formatar critérios do alerta em texto legível
+   * Formatar critï¿½rios do alerta em texto legï¿½vel
    */
   formatCriteria: (alert: PropertyAlert): string => {
     const criteria = [];
@@ -371,12 +371,12 @@ export const alertUtils = {
     if (alert.bedrooms) criteria.push(`??? ${alert.bedrooms}+ quartos`);
     if (alert.bathrooms) criteria.push(`?? ${alert.bathrooms}+ banheiros`);
     if (alert.minPrice || alert.maxPrice) {
-      const min = alert.minPrice ? `€${alert.minPrice.toLocaleString()}` : '0';
-      const max = alert.maxPrice ? `€${alert.maxPrice.toLocaleString()}` : '?';
+      const min = alert.minPrice ? `ï¿½${alert.minPrice.toLocaleString()}` : '0';
+      const max = alert.maxPrice ? `ï¿½${alert.maxPrice.toLocaleString()}` : '?';
       criteria.push(`?? ${min} - ${max}`);
     }
     
-    return criteria.join(' • ');
+    return criteria.join(' ï¿½ ');
   },
 
   /**
@@ -397,10 +397,10 @@ export const alertUtils = {
   },
 
   /**
-   * Verificar se alerta pode receber SMS (baseado em plano)
+   * Verificar se alerta pode receber SMS
    */
-  canReceiveSms: (alert: PropertyAlert, userIsPremium: boolean): boolean => {
-    return userIsPremium && alert.smsNotifications;
+  canReceiveSms: (alert: PropertyAlert): boolean => {
+    return alert.smsNotifications;
   }
 };
 

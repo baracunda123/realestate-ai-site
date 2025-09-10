@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, lazy, Suspense, useCallback, useMemo } from 'react';
 import { Header } from './components/Header';
 import { PersonalArea } from './components/PersonalArea';
 import { Footer } from './components/Footer';
@@ -19,8 +19,6 @@ const PropertyModal = lazy(() => import('./components/PropertyModal').then(m => 
 const MapView = lazy(() => import('./components/MapView').then(m => ({ default: m.MapView })));
 const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
 const WelcomeScreen = lazy(() => import('./components/WelcomeScreen').then(m => ({ default: m.WelcomeScreen })));
-const PremiumFeaturesModal = lazy(() => import('./components/PremiumFeaturesModal').then(m => ({ default: m.PremiumFeaturesModal })));
-const UpgradeModal = lazy(() => import('./components/UpgradeModal').then(m => ({ default: m.UpgradeModal })));
 const AlertResults = lazy(() => import('./components/AlertResults').then(m => ({ default: m.AlertResults })));
 
 // Loading components otimizados
@@ -34,7 +32,6 @@ const LoadingSpinner = () => (
 type ViewType = 'home' | 'personal' | 'alert-results';
 type ViewMode = 'grid' | 'map';
 type AuthTab = 'signin' | 'signup';
-type SignupIntent = 'free' | 'premium' | null;
 
 // Extended user interface para uso interno com BD UserProfile
 interface ExtendedUserProfile extends UserProfile {
@@ -42,7 +39,6 @@ interface ExtendedUserProfile extends UserProfile {
   name?: string;
   phone?: string;
   avatar?: string;
-  isPremium?: boolean;
 }
 
 export default function App() {
@@ -69,13 +65,8 @@ export default function App() {
   const [user, setUser] = useState<ExtendedUserProfile | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authDefaultTab, setAuthDefaultTab] = useState<AuthTab>('signin');
-  const [signupIntent, setSignupIntent] = useState<SignupIntent>(null);
   
-  // Modal state
-  const [isPremiumFeaturesModalOpen, setIsPremiumFeaturesModalOpen] = useState(false);
-  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
-
-  // Memoized values para evitar recálculos
+  // Memoized values para evitar recÃ¡lculos
   const isDefaultState = useMemo((): boolean => {
     const isDefaultFilters = 
       searchFilters.location === '' &&
@@ -94,13 +85,6 @@ export default function App() {
     [user, isDefaultState, currentView]
   );
 
-  // Helper function para determinar se usuário é premium - memoizada
-  const determineIfPremium = useCallback((subscription: string | undefined): boolean => {
-    if (!subscription) return false;
-    const sub = subscription.toLowerCase();
-    return sub === 'premium' || sub === 'pro' || sub.includes('paid');
-  }, []);
-
   // Initialize authentication and favorites
   useEffect(() => {
     const initializeApp = async () => {
@@ -114,12 +98,11 @@ export default function App() {
             name: currentUser.fullName || currentUser.name || '',
             phone: currentUser.phoneNumber || '',
             avatar: currentUser.avatarUrl,
-            isPremium: determineIfPremium(currentUser.subscription) // Função helper
           };
           setUser(extendedUser);
         }
       } catch {
-        // Silenciar erro de inicialização
+        // Silenciar erro de inicializaÃ§Ã£o
         authUtils.clearTokens();
       }
 
@@ -140,7 +123,7 @@ export default function App() {
     };
 
     initializeApp();
-  }, [determineIfPremium]);
+  }, []);
 
   // Persist favorites to localStorage - debounced para performance
   const debouncedSaveFavorites = useDebounce((favs: Property[]) => {
@@ -207,7 +190,6 @@ export default function App() {
       window.location.hash = '#personal';
     } else {
       setAuthDefaultTab('signin');
-      setSignupIntent(null);
       setIsAuthModalOpen(true);
     }
   }, [user]);
@@ -236,19 +218,10 @@ export default function App() {
     if (!exists) {
       if (!user) {
         setAuthDefaultTab('signin');
-        setSignupIntent(null);
         setIsAuthModalOpen(true);
         return;
       }
       
-      // Simple limit check for favorites
-      const maxFavorites = user.isPremium ? Infinity : 5;
-      if (favorites.length >= maxFavorites) {
-        toast.error('Limite de favoritos atingido', {
-          description: `Plano gratuito permite até ${maxFavorites} favoritos. Faça upgrade para favoritos ilimitados.`,
-        });
-        return;
-      }
     }
     
     setFavorites(prev => 
@@ -266,7 +239,6 @@ export default function App() {
   const handleExampleSearch = useCallback((query: string) => {
     if (!user) {
       setAuthDefaultTab('signin');
-      setSignupIntent(null);
       setIsAuthModalOpen(true);
       return;
     }
@@ -287,7 +259,7 @@ export default function App() {
       const result = await searchProperties({ 
         searchQuery: query,
         includeAiAnalysis: true,
-        includeMarketData: user?.isPremium || false
+        includeMarketData: true
       });
       
       setSearchResults(result.properties || []);
@@ -299,17 +271,17 @@ export default function App() {
       
       if (result.properties?.length === 0) {
         toast.info('Nenhum resultado encontrado', { 
-          description: 'IA fornecerá sugestões mesmo sem listagens.' 
+          description: 'IA fornecerÃ¡ sugestÃµes mesmo sem listagens.' 
         });
       } else {
         toast.success(`${result.properties.length} propriedades encontradas`, {
-          description: 'Resultados carregados com análise da IA',
+          description: 'Resultados carregados com anÃ¡lise da IA',
         });
       }
     } catch {
       setSearchResults([]);
       setAiText('');
-      setAiError('Não foi possível obter resposta da IA no momento.');
+      setAiError('NÃ£o foi possÃ­vel obter resposta da IA no momento.');
       setSearchQuery(query);
       
       if (currentView !== 'home') setCurrentView('home');
@@ -332,25 +304,19 @@ export default function App() {
           ...currentUser,
           name: currentUser.fullName || currentUser.name || '',
           phone: currentUser.phoneNumber || '',
-          avatar: currentUser.avatarUrl,
-          isPremium: determineIfPremium(currentUser.subscription)
+          avatar: currentUser.avatarUrl
         };
         setUser(extendedUser);
         
-        // Handle premium signup intent
-        if (signupIntent === 'premium' && !extendedUser.isPremium) {
-          setSignupIntent(null);
-          setTimeout(() => setIsUpgradeModalOpen(true), 500);
-        }
 
-        toast.success(`Bem-vindo, ${currentUser.fullName || currentUser.name || 'usuário'}!`, {
-            description: 'Inicio de sessão efetuado com sucesso.',
+        toast.success(`Bem-vindo, ${currentUser.fullName || currentUser.name || 'utilizador'}!`, {
+            description: 'Inicio de sessÃ£o efetuado com sucesso.',
         });
       }
     } catch {
-      toast.error('Erro ao carregar dados do usuário');
+      toast.error('Erro ao carregar dados do utilizador');
     }
-  }, [signupIntent, determineIfPremium]);
+  }, []);
 
   const handleLogout = useCallback(async () => {
     try {
@@ -361,7 +327,7 @@ export default function App() {
       window.location.hash = '';
       
       toast.success('Logout realizado com sucesso!', {
-        description: 'Até breve!',
+        description: 'AtÃ© breve!',
       });
     } catch {
       authUtils.clearTokens();
@@ -371,37 +337,10 @@ export default function App() {
   }, [resetToDefaults]);
 
   // Modal handlers - otimizados
-  const openAuthModal = useCallback((tab: AuthTab = 'signin', intent: SignupIntent = null) => {
+  const openAuthModal = useCallback((tab: AuthTab = 'signin') => {
     setAuthDefaultTab(tab);
-    setSignupIntent(intent);
     setIsAuthModalOpen(true);
   }, []);
-
-  const openPremiumFeaturesModal = useCallback(() => {
-    setIsPremiumFeaturesModalOpen(true);
-  }, []);
-
-  const openUpgradeModal = useCallback(() => {
-    setIsPremiumFeaturesModalOpen(false);
-    setIsUpgradeModalOpen(true);
-  }, []);
-
-  const handleBackToPremiumFeatures = useCallback(() => {
-    setIsUpgradeModalOpen(false);
-    setIsPremiumFeaturesModalOpen(true);
-  }, []);
-
-  const handleUpgradeComplete = useCallback(() => {
-    if (user) {
-      setUser({ ...user, isPremium: true });
-      toast.success('Upgrade realizado com sucesso!', {
-        description: 'Bem-vindo ao Premium! Todas as funcionalidades desbloqueadas.',
-      });
-    }
-    
-    setIsUpgradeModalOpen(false);
-    setIsPremiumFeaturesModalOpen(false);
-  }, [user]);
 
   // Generate mock properties for alert results - memoizado
   const generateAlertProperties = useCallback((alert: PropertyAlert): Property[] => {
@@ -409,7 +348,7 @@ export default function App() {
       {
         id: 'alert-1',
         title: `Apartamento Moderno em ${alert.location}`,
-        description: `Propriedade encontrada através do seu alerta "${alert.name}". Corresponde perfeitamente aos seus critérios!`,
+        description: `Propriedade encontrada atravÃ©s do seu alerta "${alert.name}". Corresponde perfeitamente aos seus critÃ©rios!`,
         type: alert.propertyType,
         price: alert.minPrice ? alert.minPrice + ((alert.maxPrice || alert.minPrice) - alert.minPrice) * 0.3 : 950000,
         address: `123 Rua Principal, ${alert.location}`,
@@ -430,7 +369,7 @@ export default function App() {
         // Campos calculados
         location: alert.location || 'Lisboa',
         images: ['https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop'],
-        features: ['Corresponde ao Alerta', 'Recém Listado', 'Vista Panorâmica', 'Garagem'],
+        features: ['Corresponde ao Alerta', 'RecÃ©m Listado', 'Vista PanorÃ¢mica', 'Garagem'],
         yearBuilt: 2020,
         propertyType: (alert.propertyType as 'apartment' | 'house' | 'condo') || 'apartment',
         listingAgent: {
@@ -441,8 +380,8 @@ export default function App() {
       },
       {
         id: 'alert-2',
-        title: `Casa Premium em ${alert.location}`,
-        description: `Propriedade exclusiva que atende todos os critérios do seu alerta "${alert.name}". Nova no mercado!`,
+        title: `Casa em ${alert.location}`,
+        description: `Propriedade exclusiva que atende todos os critÃ©rios do seu alerta "${alert.name}". Nova no mercado!`,
         type: alert.propertyType,
         price: alert.maxPrice ? alert.maxPrice * 0.7 : 1350000,
         address: `456 Avenida Central, ${alert.location}`,
@@ -463,7 +402,7 @@ export default function App() {
         // Campos calculados
         location: alert.location || 'Lisboa',
         images: ['https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop'],
-        features: ['Correspondência Perfeita', 'Acabamentos Premium', 'Localização Prime', 'Piscina'],
+        features: ['CorrespondÃªncia Perfeita', 'Acabamentos Modernos', 'LocalizaÃ§Ã£o Prime', 'Piscina'],
         yearBuilt: 2021,
         propertyType: (alert.propertyType as 'apartment' | 'house' | 'condo') || 'house',
         listingAgent: {
@@ -487,9 +426,7 @@ export default function App() {
     avatar: extendedUser.avatar || extendedUser.avatarUrl,
     avatarUrl: extendedUser.avatarUrl,
     phoneNumber: extendedUser.phoneNumber,
-    subscription: extendedUser.subscription,
     credits: extendedUser.credits,
-    isPremium: extendedUser.isPremium || false,
     isEmailVerified: extendedUser.isEmailVerified,
     createdAt: createSafeDate(extendedUser.createdAt),
     updatedAt: extendedUser.updatedAt ? createSafeDate(extendedUser.updatedAt) : undefined
@@ -507,7 +444,6 @@ export default function App() {
         onNavigateToPersonal={navigateToPersonalArea}
         onNavigateToHome={navigateToHome}
         currentView={currentView}
-        onOpenUpgradeModal={openUpgradeModal}
         onSubmitSearch={handleSubmitSearch}
         aiText={aiText}
         aiLoading={aiLoading}
@@ -530,7 +466,6 @@ export default function App() {
           <PersonalArea
             user={convertToUser(user)}
             onPropertySelect={setSelectedProperty}
-            onOpenUpgradeModal={openUpgradeModal}
             onNavigateToAlertResults={navigateToAlertResults}
             favorites={favorites}
             onToggleFavorite={toggleFavorite}
@@ -539,10 +474,8 @@ export default function App() {
           <Suspense fallback={<LoadingSpinner />}>
             <WelcomeScreen
               onExampleSearch={handleExampleSearch}
-              onOpenPremiumFeatures={openPremiumFeaturesModal}
-              user={user}
-              onStartFreeSignup={() => openAuthModal('signup', 'free')}
-              onStartPremiumSignup={() => openAuthModal('signup', 'premium')}
+              user={user ? convertToUser(user) : null}
+              onStartSignup={() => openAuthModal('signup')}
             />
           </Suspense>
         ) : (
@@ -597,23 +530,6 @@ export default function App() {
           onClose={() => setIsAuthModalOpen(false)}
           onSuccess={handleAuthSuccess}
           defaultTab={authDefaultTab}
-        />
-      </Suspense>
-
-      <Suspense fallback={null}>
-        <PremiumFeaturesModal
-          isOpen={isPremiumFeaturesModalOpen}
-          onClose={() => setIsPremiumFeaturesModalOpen(false)}
-          onUpgrade={openUpgradeModal}
-        />
-      </Suspense>
-
-      <Suspense fallback={null}>
-        <UpgradeModal
-          isOpen={isUpgradeModalOpen}
-          onClose={() => setIsUpgradeModalOpen(false)}
-          onBack={handleBackToPremiumFeatures}
-          onUpgradeComplete={handleUpgradeComplete}
         />
       </Suspense>
 

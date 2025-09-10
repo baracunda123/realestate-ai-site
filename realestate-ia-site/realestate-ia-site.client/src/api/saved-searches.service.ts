@@ -1,4 +1,4 @@
-// saved-searches.service.ts - Serviço para pesquisas salvas
+// saved-searches.service.ts - Serviï¿½o para pesquisas salvas
 import apiClient from "./client";
 import type { 
   SavedSearch, 
@@ -7,7 +7,7 @@ import type {
 } from "../types/PersonalArea";
 import type { Property } from "../types/property";
 
-// Response types específicas para pesquisas salvas
+// Response types especï¿½ficas para pesquisas salvas
 interface SavedSearchDetailsResponse extends SavedSearch {
   recentResults?: Property[];
   resultHistory?: Array<{
@@ -25,7 +25,7 @@ interface SavedSearchExecuteResponse {
   executedAt: string;
 }
 
-// Função simples para logs
+// Funï¿½ï¿½o simples para logs
 function logToTerminal(message: string, level: 'info' | 'warn' | 'error' = 'info') {
   const timestamp = new Date().toLocaleTimeString();
   const prefix = level === 'error' ? '?' : level === 'warn' ? '??' : '??';
@@ -33,10 +33,10 @@ function logToTerminal(message: string, level: 'info' | 'warn' | 'error' = 'info
 }
 
 /**
- * Obter todas as pesquisas salvas do usuário
+ * Obter todas as pesquisas salvas do usuï¿½rio
  */
 export async function getSavedSearches(): Promise<SavedSearchesResponse> {
-  logToTerminal('Buscando pesquisas salvas do usuário');
+  logToTerminal('Buscando pesquisas salvas do usuï¿½rio');
 
   try {
     const response = await apiClient.get<SavedSearchesResponse>('/api/saved-searches');
@@ -51,7 +51,7 @@ export async function getSavedSearches(): Promise<SavedSearchesResponse> {
 }
 
 /**
- * Obter detalhes de uma pesquisa salva específica
+ * Obter detalhes de uma pesquisa salva especï¿½fica
  */
 export async function getSavedSearchById(
   searchId: string,
@@ -128,7 +128,7 @@ export async function deleteSavedSearch(searchId: string): Promise<{ success: bo
       `/api/saved-searches/${searchId}`
     );
     
-    logToTerminal(`Pesquisa salva excluída`);
+    logToTerminal(`Pesquisa salva excluï¿½da`);
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
@@ -207,7 +207,7 @@ export async function markSavedSearchAsViewed(searchId: string): Promise<{ succe
 }
 
 /**
- * Obter estatísticas das pesquisas salvas do usuário
+ * Obter estatï¿½sticas das pesquisas salvas do usuï¿½rio
  */
 export async function getSavedSearchesStats(): Promise<{
   totalSearches: number;
@@ -226,7 +226,7 @@ export async function getSavedSearchesStats(): Promise<{
     newResults: number;
   }>;
 }> {
-  logToTerminal('Buscando estatísticas das pesquisas salvas');
+  logToTerminal('Buscando estatï¿½sticas das pesquisas salvas');
 
   try {
     const stats = await apiClient.get<{
@@ -247,11 +247,11 @@ export async function getSavedSearchesStats(): Promise<{
       }>;
     }>('/api/saved-searches/stats');
     
-    logToTerminal(`Estatísticas: ${stats.totalSearches} pesquisas, ${stats.newResults} novos resultados`);
+    logToTerminal(`Estatï¿½sticas: ${stats.totalSearches} pesquisas, ${stats.newResults} novos resultados`);
     return stats;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao buscar estatísticas: ${errorMsg}`, 'error');
+    logToTerminal(`Erro ao buscar estatï¿½sticas: ${errorMsg}`, 'error');
     throw error;
   }
 }
@@ -289,7 +289,7 @@ export async function convertSearchToAlert(
 // Utils para pesquisas salvas
 export const savedSearchUtils = {
   /**
-   * Formatar filtros da pesquisa em texto legível
+   * Formatar filtros da pesquisa em texto legï¿½vel
    */
   formatFilters: (search: SavedSearch): string => {
     const filters = [];
@@ -301,11 +301,11 @@ export const savedSearchUtils = {
     if (search.filters.bedrooms) filters.push(`??? ${search.filters.bedrooms}+ quartos`);
     if (search.filters.priceRange) {
       const [min, max] = search.filters.priceRange;
-      filters.push(`?? €${min.toLocaleString()} - €${max.toLocaleString()}`);
+      filters.push(`?? ï¿½${min.toLocaleString()} - ï¿½${max.toLocaleString()}`);
     }
     if (search.filters.hasGarage) filters.push(`?? Com garagem`);
     
-    return filters.join(' • ') || 'Sem filtros específicos';
+    return filters.join(' ï¿½ ') || 'Sem filtros especï¿½ficos';
   },
 
   /**
@@ -326,7 +326,7 @@ export const savedSearchUtils = {
   },
 
   /**
-   * Gerar sugestão de nome baseado na query e filtros
+   * Gerar sugestï¿½o de nome baseado na query e filtros
    */
   generateName: (query: string, filters: SavedSearch['filters']): string => {
     const parts = [];
@@ -355,11 +355,8 @@ export const savedSearchUtils = {
   /**
    * Verificar se pesquisa pode ser convertida em alerta
    */
-  canConvertToAlert: (search: SavedSearch, userIsPremium: boolean): boolean => {
-    // Premium users têm alertas ilimitados
-    if (userIsPremium) return true;
-    
-    // Free users precisam ter critérios bem definidos
+  canConvertToAlert: (search: SavedSearch): boolean => {
+    // Verificar se pesquisa tem critÃ©rios bem definidos
     return !!(search.filters.location || search.filters.propertyType !== 'any');
   }
 };

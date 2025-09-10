@@ -150,13 +150,6 @@ export const propertyUtils = {
     return parts.join(', ');
   },
 
-  /**
-   * Calcular se propriedade é considerada premium baseado no preço
-   */
-  isPremiumProperty: (property: Property): boolean => {
-    if (!property.price) return false;
-    return property.price > 1000000; // > 1M EUR/BRL
-  },
 
   /**
    * Obter imagens da propriedade como array

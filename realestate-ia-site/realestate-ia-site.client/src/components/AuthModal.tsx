@@ -106,12 +106,12 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
             const fieldErrors = data.errors![field];
             if (Array.isArray(fieldErrors)) {
               errorMessages.push(...fieldErrors);
-            } else {
+            } else if (typeof fieldErrors === 'string') {
               errorMessages.push(fieldErrors);
             }
           });
         } else if (Array.isArray(data.errors)) {
-          errorMessages.push(...data.errors);
+          errorMessages.push(...data.errors.filter(e => typeof e === 'string'));
         }
         
         if (errorMessages.length > 0) {
@@ -124,7 +124,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
       }
     }
     
-    return 'Internal server error. Please try again.';
+    return error.message || 'Internal server error. Please try again.';
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -218,7 +218,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
             <AlertCircle className="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
             <div className="text-sm text-destructive">
               {error.split('. ').map((errorMsg, index) => (
-                <div key={index} className={index > 0 ? 'mt-1' : ''}>
+                <div key={`error-${index}-${errorMsg.slice(0, 10)}`} className={index > 0 ? 'mt-1' : ''}>
                   {errorMsg}
                 </div>
               ))}

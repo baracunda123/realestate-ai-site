@@ -2,7 +2,7 @@ import type { Property } from './property';
 
 // User interface alinhada com Entity User da BD
 export interface User {
-  // Campos obrigatórios da BD
+  // Campos obrigatï¿½rios da BD
   id: string;
   email: string;
   
@@ -11,19 +11,17 @@ export interface User {
   name?: string;
   avatarUrl?: string;
   phoneNumber?: string;
-  subscription?: string;
   credits?: string;
   
   // Campos calculados
   phone?: string; // Derivado de phoneNumber
   avatar?: string; // Derivado de avatarUrl
-  isPremium?: boolean; // Calculado baseado em subscription
   
   // Timestamps
   createdAt: Date;
   updatedAt?: Date;
   
-  // Campos de autenticação (não expostos diretamente)
+  // Campos de autenticaï¿½ï¿½o (nï¿½o expostos diretamente)
   isEmailVerified?: boolean;
   
   // Status da conta
@@ -33,7 +31,7 @@ export interface User {
 // SavedSearch - estrutura para pesquisas salvas (localStorage ou futura BD)
 export interface SavedSearch {
   id: string;
-  userId?: string; // Para futura associação com BD
+  userId?: string; // Para futura associaï¿½ï¿½o com BD
   name: string;
   query: string;
   filters: {
@@ -82,7 +80,7 @@ export interface PropertyAlert {
   };
 }
 
-// ViewHistory - estrutura para histórico de visualizações
+// ViewHistory - estrutura para histï¿½rico de visualizaï¿½ï¿½es
 export interface ViewHistoryItem {
   id: string;
   userId?: string;
@@ -112,47 +110,8 @@ export interface UserLoginSession {
   isActive: boolean;
 }
 
-// Subscription alinhado com BD Entity
-export interface Subscription {
-  id: string;
-  userId: string | null;
-  stripeId: string | null;
-  customerId: string | null;
-  priceId: string | null;
-  stripePriceId: string | null;
-  status: string | null;
-  amount: number | null;
-  currency: string | null;
-  interval: string | null;
-  currentPeriodStart: number | null;
-  currentPeriodEnd: number | null;
-  cancelAtPeriodEnd: boolean | null;
-  canceledAt: number | null;
-  endedAt: number | null;
-  endsAt: number | null;
-  startedAt: number | null;
-  createdAt: Date;
-  updatedAt: Date;
-  metadata?: Record<string, string | number | boolean>;
-  customFieldData?: Record<string, string | number | boolean>;
-  customerCancellationReason?: string;
-  customerCancellationComment?: string;
-}
 
-// Plan limits baseados no tipo de subscription
-export interface PlanLimits {
-  maxFavorites: number;
-  maxSavedSearches: number;
-  maxPriceAlerts: number;
-  hasAdvancedAnalytics: boolean;
-  hasMarketInsights: boolean;
-  hasPrioritySupport: boolean;
-  hasSmsNotifications: boolean;
-  hasPriceDropAlerts: boolean;
-  hasCustomAlerts: boolean;
-}
-
-// Notification settings para usuário
+// Notification settings para usuï¿½rio
 export interface NotificationSettings {
   email: boolean;
   sms: boolean;
@@ -181,7 +140,6 @@ export interface ActivityItem {
 export interface PersonalAreaProps {
   user: User;
   onPropertySelect: (property: Property) => void;
-  onOpenUpgradeModal?: () => void;
   onNavigateToAlertResults?: (alert: PropertyAlert) => void;
   favorites: Property[];
   onToggleFavorite: (property: Property) => void;
@@ -190,9 +148,7 @@ export interface PersonalAreaProps {
 // API response types
 export interface UserProfileResponse {
   user: User;
-  subscription?: Subscription;
   activeSessions: UserLoginSession[];
-  planLimits: PlanLimits;
 }
 
 export interface AlertsResponse {

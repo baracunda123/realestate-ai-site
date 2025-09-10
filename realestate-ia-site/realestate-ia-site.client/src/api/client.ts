@@ -17,12 +17,10 @@ interface UserProfile {
   name?: string;
   avatarUrl?: string;
   phoneNumber?: string;
-  subscription?: string;
   credits?: string;
   isEmailVerified: boolean;
   createdAt: string;
   updatedAt?: string;
-  isPremium?: boolean;
 }
 
 interface ApiError {
@@ -423,8 +421,12 @@ class ApiClient {
 const apiClient = new ApiClient();
 
 // LOG: Quando o client carrega
-if (import.meta.env.DEV) {
-  logClient('ApiClient carregado e simplificado - sem extractResponseData');
+try {
+  if (process.env.NODE_ENV === 'development') {
+    logClient('ApiClient carregado e simplificado - sem extractResponseData');
+  }
+} catch {
+  // Silently ignore if environment check fails
 }
 
 export default apiClient;

@@ -13,7 +13,6 @@ interface ExtendedUserProfile {
   avatarUrl?: string;
   name?: string;
   phone?: string;
-  isPremium?: boolean;
 }
 
 interface HeaderProps {
@@ -26,7 +25,6 @@ interface HeaderProps {
   onNavigateToPersonal: () => void;
   onNavigateToHome: () => void;
   currentView: 'home' | 'personal' | 'alert-results';
-  onOpenUpgradeModal?: () => void;
   onSubmitSearch?: (query: string) => void;
   aiText?: string;
   aiLoading?: boolean;
@@ -43,7 +41,6 @@ export function Header({
   onNavigateToPersonal,
   onNavigateToHome,
   currentView,
-  onOpenUpgradeModal,
   onSubmitSearch,
   aiText,
   aiLoading,
@@ -189,7 +186,6 @@ export function Header({
         email: user.email,
         phone: user.phone || '',
         avatar: user.avatarUrl,
-        isPremium: user.isPremium
       };
 
       return (
@@ -209,7 +205,6 @@ export function Header({
             user={userForDropdown} 
             onLogout={onLogout} 
             onNavigateToPersonal={onNavigateToPersonal}
-            onOpenUpgradeModal={onOpenUpgradeModal}
           />
         </div>
       );
@@ -256,17 +251,6 @@ export function Header({
 
           {/* Right Side Controls */}
           <div className="flex items-center space-x-3">
-            {/* Premium Badge for Free Users */}
-            {user && !user.isPremium && (
-              <Button 
-                size="sm" 
-                className="hidden md:flex bg-secondary hover:bg-secondary/90 text-white shadow-cocoa-taupe border-0"
-                onClick={onOpenUpgradeModal}
-              >
-                <Crown className="h-3 w-3 mr-1" />
-                Premium
-              </Button>
-            )}
 
             {/* View Mode Toggle */}
             {renderViewModeToggle()}

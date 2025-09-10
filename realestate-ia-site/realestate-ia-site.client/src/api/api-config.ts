@@ -1,16 +1,16 @@
-// api-config.ts - Configuração centralizada dos endpoints da API
+// api-config.ts - Configuraï¿½ï¿½o centralizada dos endpoints da API
 export const API_CONFIG = {
   // Base configuration
   BASE_URL: import.meta.env.VITE_API_BASE_URL || '',
   TIMEOUT: 30000,
   
-  // API Endpoints - Minificados para produção
+  // API Endpoints - Minificados para produï¿½ï¿½o
   ENDPOINTS: (() => {
     const isDev = import.meta.env.DEV;
     
-    // Em produção, usar apenas as rotas necessárias
+    // Em produï¿½ï¿½o, usar apenas as rotas necessï¿½rias
     const baseEndpoints = {
-      // Authentication (sempre visível)
+      // Authentication (sempre visï¿½vel)
       AUTH: {
         LOGIN: '/api/auth/login',
         REGISTER: '/api/auth/register',
@@ -22,7 +22,7 @@ export const API_CONFIG = {
         RESET_PASSWORD: '/api/auth/reset-password'
       },
       
-      // Search (público)
+      // Search (pï¿½blico)
       SEARCH: {
         AI: '/api/SearchAI'
       },
@@ -72,15 +72,6 @@ export const API_CONFIG = {
           SETTINGS: '/api/notifications/settings'
         },
 
-        PAYMENTS: {
-          SUBSCRIPTION: '/api/subscription',
-          BILLING_PORTAL: '/api/subscription/billing-portal',
-          CHECKOUT: '/api/subscription/checkout',
-          WEBHOOK: '/api/subscription/webhook',
-          PLANS: '/api/subscription/plans',
-          CURRENT_PLAN: '/api/subscription/current',
-          USAGE: '/api/subscription/usage'
-        },
 
         DASHBOARD: {
           STATS: '/api/dashboard/stats',
@@ -99,14 +90,14 @@ export const API_CONFIG = {
     'Accept': 'application/json'
   },
 
-  // Error messages (minificados em produção)
+  // Error messages (minificados em produï¿½ï¿½o)
   ERROR_MESSAGES: {
-    NETWORK_ERROR: 'Erro de rede. Verifique sua conexão.',
-    UNAUTHORIZED: 'Sessão expirada. Faça login novamente.',
+    NETWORK_ERROR: 'Erro de rede. Verifique sua conexï¿½o.',
+    UNAUTHORIZED: 'Sessï¿½o expirada. Faï¿½a login novamente.',
     FORBIDDEN: 'Acesso negado.',
-    NOT_FOUND: 'Recurso não encontrado.',
+    NOT_FOUND: 'Recurso nï¿½o encontrado.',
     SERVER_ERROR: 'Erro interno do servidor.',
-    TIMEOUT: 'Timeout na requisição.',
+    TIMEOUT: 'Timeout na requisiï¿½ï¿½o.',
     UNKNOWN: 'Erro desconhecido.'
   }
 } as const;
@@ -126,7 +117,7 @@ export const buildUrl = (endpoint: string, params?: Record<string, string | numb
   return url.toString();
 };
 
-// Helper para verificar se endpoint requer autenticação
+// Helper para verificar se endpoint requer autenticaï¿½ï¿½o
 export const requiresAuth = (endpoint: string): boolean => {
   const publicEndpoints = [
     API_CONFIG.ENDPOINTS.AUTH.LOGIN,
@@ -140,20 +131,8 @@ export const requiresAuth = (endpoint: string): boolean => {
   return !publicEndpoints.some(publicEndpoint => endpoint.includes(publicEndpoint));
 };
 
-// Helper para verificar se endpoint requer Premium (apenas em dev)
-export const requiresPremium = (endpoint: string): boolean => {
-  if (!import.meta.env.DEV) return false; // Esconder lógica premium em produção
-  
-  const premiumEndpoints = [
-    '/api/dashboard/stats',
-    '/api/dashboard/insights',
-    '/api/alerts/export'
-  ];
-  
-  return premiumEndpoints.some(premiumEndpoint => endpoint.includes(premiumEndpoint));
-};
 
-// Configurações de ambiente
+// Configuraï¿½ï¿½es de ambiente
 export const ENV_CONFIG = {
   isDevelopment: import.meta.env.DEV,
   isProduction: import.meta.env.PROD,

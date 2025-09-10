@@ -1,19 +1,18 @@
 // types/index.ts - Export central de todos os tipos
-export type { 
+import { InputValidationService } from '../utils/input-validation.service';
+import type { 
   Property, 
   PropertyType, 
   PropertyFilters, 
   CreatePropertyRequest 
 } from './property';
 
-export type {
+import type {
   User,
   SavedSearch,
   PropertyAlert,
   ViewHistoryItem,
   UserLoginSession,
-  Subscription,
-  PlanLimits,
   NotificationSettings,
   ActivityItem,
   PersonalAreaProps,
@@ -27,6 +26,49 @@ export type {
   UpdateNotificationSettingsRequest
 } from './PersonalArea';
 
+import type {
+  SearchFilters,
+  SearchFiltersType,
+  SearchRequest,
+  SearchResponse,
+  LocationSuggestion,
+  PropertyTypeSuggestion,
+  SavedFilter
+} from './SearchFilters';
+
+import type {
+  TokenResponse,
+  UserProfile,
+  ApiError
+} from '../api/client';
+
+// Re-export all types
+export type { 
+  Property, 
+  PropertyType, 
+  PropertyFilters, 
+  CreatePropertyRequest 
+};
+
+export type {
+  User,
+  SavedSearch,
+  PropertyAlert,
+  ViewHistoryItem,
+  UserLoginSession,
+  NotificationSettings,
+  ActivityItem,
+  PersonalAreaProps,
+  UserProfileResponse,
+  AlertsResponse,
+  SavedSearchesResponse,
+  CreateAlertRequest,
+  UpdateAlertRequest,
+  CreateSavedSearchRequest,
+  UpdateUserProfileRequest,
+  UpdateNotificationSettingsRequest
+};
+
 export type {
   SearchFilters,
   SearchFiltersType,
@@ -34,62 +76,37 @@ export type {
   SearchResponse,
   LocationSuggestion,
   PropertyTypeSuggestion,
-  SavedFilter,
-  DEFAULT_SEARCH_FILTERS,
-  PROPERTY_TYPES,
-  SORT_OPTIONS
-} from './SearchFilters';
+  SavedFilter
+};
 
-// Re-export client types
 export type {
   TokenResponse,
   UserProfile,
-  ApiResponse,
   ApiError
-} from '../api/client';
+};
 
 // Re-export API config
-export { API_CONFIG, ENV_CONFIG, buildUrl, requiresAuth, requiresPremium } from '../api/api-config';
+export { API_CONFIG, ENV_CONFIG, buildUrl, requiresAuth } from '../api/api-config';
 
-// Type guards úteis
+// Type guards ï¿½teis
 export const isProperty = (obj: unknown): obj is Property => {
-  return obj && typeof obj === 'object' && typeof (obj as Property).id === 'string';
+  return !!(obj && typeof obj === 'object' && typeof (obj as Property).id === 'string');
 };
 
 export const isUser = (obj: unknown): obj is User => {
-  return obj && typeof obj === 'object' && typeof (obj as User).id === 'string' && typeof (obj as User).email === 'string';
+  return !!(obj && typeof obj === 'object' && typeof (obj as User).id === 'string' && typeof (obj as User).email === 'string');
 };
 
 export const isPropertyAlert = (obj: unknown): obj is PropertyAlert => {
-  return obj && typeof obj === 'object' && typeof (obj as PropertyAlert).id === 'string' && typeof (obj as PropertyAlert).name === 'string';
+  return !!(obj && typeof obj === 'object' && typeof (obj as PropertyAlert).id === 'string' && typeof (obj as PropertyAlert).name === 'string');
 };
 
 export const isSavedSearch = (obj: unknown): obj is SavedSearch => {
-  return obj && typeof obj === 'object' && typeof (obj as SavedSearch).id === 'string' && typeof (obj as SavedSearch).query === 'string';
+  return !!(obj && typeof obj === 'object' && typeof (obj as SavedSearch).id === 'string' && typeof (obj as SavedSearch).query === 'string');
 };
 
-// Constants úteis
+// Constants ï¿½teis
 export const APP_CONSTANTS = {
-  // Planos
-  PLANS: {
-    FREE: 'free',
-    PREMIUM: 'premium'
-  },
-  
-  // Limites por plano
-  LIMITS: {
-    FREE: {
-      FAVORITES: 5,
-      SAVED_SEARCHES: 3,
-      ALERTS: 1
-    },
-    PREMIUM: {
-      FAVORITES: Infinity,
-      SAVED_SEARCHES: Infinity,
-      ALERTS: Infinity
-    }
-  },
-  
   // Status de propriedades
   PROPERTY_STATUS: {
     ACTIVE: 'active',
@@ -98,7 +115,7 @@ export const APP_CONSTANTS = {
     WITHDRAWN: 'withdrawn'
   },
   
-  // Tipos de notificação
+  // Tipos de notificaï¿½ï¿½o
   NOTIFICATION_TYPES: {
     EMAIL: 'email',
     SMS: 'sms',
@@ -114,9 +131,9 @@ export const APP_CONSTANTS = {
   }
 } as const;
 
-// Constants de segurança
+// Constants de seguranï¿½a
 export const SECURITY_CONSTANTS = {
-  // Tamanhos máximos
+  // Tamanhos mï¿½ximos
   MAX_INPUT_LENGTH: {
     EMAIL: 254,
     PASSWORD: 128,
@@ -161,9 +178,8 @@ export const isSecureEmail = (input: unknown): input is string => {
 export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
 export type ResponseStatus = 'success' | 'error' | 'loading';
 
-// Union types úteis
+// Union types ï¿½teis
 export type PropertySortBy = 'price' | 'area' | 'bedrooms' | 'date' | 'relevance';
-export type UserPlan = 'free' | 'premium';
 export type AlertStatus = 'active' | 'inactive' | 'paused';
 export type SearchStatus = 'saved' | 'executed' | 'expired';
 
@@ -199,7 +215,7 @@ export interface ApiErrorResponse {
 
 // Event types para analytics
 export interface AnalyticsEvent {
-  type: 'property_view' | 'search' | 'favorite_add' | 'alert_create' | 'user_signup' | 'upgrade';
+  type: 'property_view' | 'search' | 'favorite_add' | 'alert_create' | 'user_signup';
   userId?: string;
   sessionId: string;
   timestamp: Date;

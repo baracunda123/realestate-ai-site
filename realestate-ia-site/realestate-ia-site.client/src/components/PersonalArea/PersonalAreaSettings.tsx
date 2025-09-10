@@ -30,7 +30,7 @@ export function PersonalAreaSettings({
 }: PersonalAreaSettingsProps) {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileData, setProfileData] = useState({
-    name: user.name,
+    name: user.name || user.fullName || user.email,
     email: user.email,
     phone: user.phone
   });
@@ -47,7 +47,7 @@ export function PersonalAreaSettings({
 
   const handleCancelEdit = () => {
     setProfileData({
-      name: user.name,
+      name: user.name || user.fullName || user.email,
       email: user.email,
       phone: user.phone
     });
@@ -109,24 +109,14 @@ export function PersonalAreaSettings({
         <CardContent className="space-y-6">
           <div className="flex items-center space-x-4">
             <Avatar className="h-20 w-20 border-2 border-pale-clay-deep">
-              <AvatarImage src={user.avatar} alt={user.name} />
+              <AvatarImage src={user.avatar} alt={user.name || user.fullName || user.email} />
               <AvatarFallback className="bg-pale-clay-light text-deep-mocha text-xl">
-                {user.name.split(' ').map(n => n[0]).join('')}
+                {user.name || user.fullName || user.email.split(' ').map(n => n[0]).join('')}
               </AvatarFallback>
             </Avatar>
             <div>
               <div className="flex items-center space-x-2 mb-2">
-                <h2 className="text-xl font-medium text-foreground">{user.name}</h2>
-                {user.isPremium ? (
-                  <Badge className="bg-burnt-peach text-pure-white border-0">
-                    <Crown className="h-3 w-3 mr-1" />
-                    Premium
-                  </Badge>
-                ) : (
-                  <Badge className="bg-pale-clay-deep text-deep-mocha border-0">
-                    Gratuito
-                  </Badge>
-                )}
+                <h2 className="text-xl font-medium text-foreground">{user.name || user.fullName || user.email}</h2>
               </div>
               <p className="text-sm text-muted-foreground">
                 Membro desde {formatDate(user.createdAt)}
@@ -147,7 +137,7 @@ export function PersonalAreaSettings({
               ) : (
                 <div className="flex items-center space-x-2 p-2 bg-pale-clay-light rounded-lg border border-pale-clay-deep">
                   <User className="h-4 w-4 text-cocoa-taupe" />
-                  <span className="text-deep-mocha">{user.name}</span>
+                  <span className="text-deep-mocha">{user.name || user.fullName || user.email}</span>
                 </div>
               )}
             </div>
@@ -268,17 +258,11 @@ export function PersonalAreaSettings({
                     Análises e tendências do mercado imobiliário
                   </p>
                 </div>
-                {!user.isPremium && (
-                  <Badge className="bg-burnt-peach text-pure-white border-0 text-xs">
-                    <Crown className="h-2 w-2 mr-1" />
-                    Premium
-                  </Badge>
-                )}
               </div>
               <Switch
                 checked={notifications.marketInsights}
                 onCheckedChange={(checked) => handleNotificationChange('marketInsights', checked)}
-                disabled={!user.isPremium}
+disabled={false}
               />
             </div>
           </div>
