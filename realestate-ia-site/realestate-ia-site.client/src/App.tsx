@@ -11,6 +11,7 @@ import { getCurrentUser, logout, authUtils } from './api/auth.service';
 import { createSafeDate } from './utils/PersonalArea';
 import { useDebounce } from './hooks/useOptimizedCallbacks';
 import type { UserProfile } from './api/client';
+import { getAlertMatches } from './api/alerts.service';
 
 // Lazy load components for better performance
 const SearchFilters = lazy(() => import('./components/SearchFilters').then(m => ({ default: m.SearchFilters })));
@@ -55,6 +56,11 @@ export default function App() {
   // Navigation state
   const [currentView, setCurrentView] = useState<ViewType>('home');
   const [selectedAlert, setSelectedAlert] = useState<PropertyAlert | null>(null);
+  
+  // Alert results state (API)
+  const [alertProperties, setAlertProperties] = useState<Property[] | null>(null);
+  const [alertLoading, setAlertLoading] = useState(false);
+  const [alertError, setAlertError] = useState<string | null>(null);
   
   // AI state
   const [aiText, setAiText] = useState<string>('');
@@ -173,6 +179,26 @@ export default function App() {
       window.location.hash = '';
     }
   }, [user, currentView]);
+
+  // Fetch alert results from API when entering alert-results view
+  useEffect(() => {
+    const fetchAlertProperties = async () => {
+      if (currentView !== 'alert-results' || !selectedAlert) return;
+      setAlertLoading(true);
+      setAlertError(null);
+      try {
+        const resp = await getAlertMatches(selectedAlert.id, 1, 50, false);
+        setAlertProperties(resp.properties || []);
+      } catch (e) {
+        setAlertProperties([]);
+        setAlertError('Não foi possível carregar os resultados do alerta.');
+      } finally {
+        setAlertLoading(false);
+      }
+    };
+
+    fetchAlertProperties();
+  }, [currentView, selectedAlert]);
 
   // Optimized callbacks
   const resetToDefaults = useCallback(() => {
@@ -342,80 +368,6 @@ export default function App() {
     setIsAuthModalOpen(true);
   }, []);
 
-  // Generate mock properties for alert results - memoizado
-  const generateAlertProperties = useCallback((alert: PropertyAlert): Property[] => {
-    const mockProperties: Property[] = [
-      {
-        id: 'alert-1',
-        title: `Apartamento Moderno em ${alert.location}`,
-        description: `Propriedade encontrada através do seu alerta "${alert.name}". Corresponde perfeitamente aos seus critérios!`,
-        type: alert.propertyType,
-        price: alert.minPrice ? alert.minPrice + ((alert.maxPrice || alert.minPrice) - alert.minPrice) * 0.3 : 950000,
-        address: `123 Rua Principal, ${alert.location}`,
-        city: alert.location || 'Lisboa',
-        state: 'Portugal',
-        county: null,
-        civilParish: null,
-        zipCode: '1000-001',
-        area: 120,
-        usableArea: 100,
-        bedrooms: alert.bedrooms || 2,
-        bathrooms: alert.bathrooms || 2,
-        garage: true,
-        imageUrl: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
-        link: '#',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        // Campos calculados
-        location: alert.location || 'Lisboa',
-        images: ['https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop'],
-        features: ['Corresponde ao Alerta', 'Recém Listado', 'Vista Panorâmica', 'Garagem'],
-        yearBuilt: 2020,
-        propertyType: (alert.propertyType as 'apartment' | 'house' | 'condo') || 'apartment',
-        listingAgent: {
-          name: 'Ana Silva',
-          phone: '(+351) 91 234 5678',
-          email: 'ana@alertproperties.com'
-        }
-      },
-      {
-        id: 'alert-2',
-        title: `Casa em ${alert.location}`,
-        description: `Propriedade exclusiva que atende todos os critérios do seu alerta "${alert.name}". Nova no mercado!`,
-        type: alert.propertyType,
-        price: alert.maxPrice ? alert.maxPrice * 0.7 : 1350000,
-        address: `456 Avenida Central, ${alert.location}`,
-        city: alert.location || 'Lisboa',
-        state: 'Portugal',
-        county: null,
-        civilParish: null,
-        zipCode: '1000-002',
-        area: 160,
-        usableArea: 140,
-        bedrooms: (alert.bedrooms || 2) + 1,
-        bathrooms: alert.bathrooms || 2,
-        garage: true,
-        imageUrl: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop',
-        link: '#',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        // Campos calculados
-        location: alert.location || 'Lisboa',
-        images: ['https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop'],
-        features: ['Correspondência Perfeita', 'Acabamentos Modernos', 'Localização Prime', 'Piscina'],
-        yearBuilt: 2021,
-        propertyType: (alert.propertyType as 'apartment' | 'house' | 'condo') || 'house',
-        listingAgent: {
-          name: 'Carlos Santos',
-          phone: '(+351) 92 345 6789',
-          email: 'carlos@alertproperties.com'
-        }
-      }
-    ];
-
-    return mockProperties.slice(0, alert.newMatches || 2);
-  }, []);
-
   // Convert extended user to regular user for components that need it - memoizado
   const convertToUser = useCallback((extendedUser: ExtendedUserProfile) => ({
     id: extendedUser.id,
@@ -453,14 +405,18 @@ export default function App() {
       <main className="flex-1 site-container py-8">
         {currentView === 'alert-results' && user && selectedAlert ? (
           <Suspense fallback={<LoadingSpinner />}>
-            <AlertResults
-              alert={selectedAlert}
-              properties={generateAlertProperties(selectedAlert)}
-              onBack={navigateBackFromAlertResults}
-              onPropertySelect={setSelectedProperty}
-              favorites={favorites}
-              onToggleFavorite={toggleFavorite}
-            />
+            {alertLoading ? (
+              <LoadingSpinner />
+            ) : (
+              <AlertResults
+                alert={selectedAlert}
+                properties={alertProperties || []}
+                onBack={navigateBackFromAlertResults}
+                onPropertySelect={setSelectedProperty}
+                favorites={favorites}
+                onToggleFavorite={toggleFavorite}
+              />
+            )}
           </Suspense>
         ) : currentView === 'personal' && user ? (
           <PersonalArea
@@ -471,7 +427,7 @@ export default function App() {
             onToggleFavorite={toggleFavorite}
           />
         ) : showWelcomeScreen ? (
-          <Suspense fallback={<LoadingSpinner />}>
+          <Suspense fallback={< LoadingSpinner />}>
             <WelcomeScreen
               onExampleSearch={handleExampleSearch}
               user={user ? convertToUser(user) : null}
@@ -480,7 +436,7 @@ export default function App() {
           </Suspense>
         ) : (
           user && (
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={< LoadingSpinner />}>
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 <div className="lg:col-span-1 space-y-6">
                   <SearchFilters

@@ -1,4 +1,4 @@
-// saved-searches.service.ts - Servi�o para pesquisas salvas
+// saved-searches.service.ts - Serviço para pesquisas salvas
 import apiClient from "./client";
 import type { 
   SavedSearch, 
@@ -7,7 +7,7 @@ import type {
 } from "../types/PersonalArea";
 import type { Property } from "../types/property";
 
-// Response types espec�ficas para pesquisas salvas
+// Response types especificas para pesquisas salvas
 interface SavedSearchDetailsResponse extends SavedSearch {
   recentResults?: Property[];
   resultHistory?: Array<{
@@ -51,7 +51,7 @@ export async function getSavedSearches(): Promise<SavedSearchesResponse> {
 }
 
 /**
- * Obter detalhes de uma pesquisa salva espec�fica
+ * Obter detalhes de uma pesquisa salva especifica
  */
 export async function getSavedSearchById(
   searchId: string,

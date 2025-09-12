@@ -21,7 +21,7 @@ export interface User {
   createdAt: Date;
   updatedAt?: Date;
   
-  // Campos de autentica��o (n�o expostos diretamente)
+  // Campos de autenticação (não expostos diretamente)
   isEmailVerified?: boolean;
   
   // Status da conta
@@ -31,7 +31,7 @@ export interface User {
 // SavedSearch - estrutura para pesquisas salvas (localStorage ou futura BD)
 export interface SavedSearch {
   id: string;
-  userId?: string; // Para futura associa��o com BD
+  userId?: string; // Para futura associação com BD
   name: string;
   query: string;
   filters: {
@@ -80,7 +80,7 @@ export interface PropertyAlert {
   };
 }
 
-// ViewHistory - estrutura para hist�rico de visualiza��es
+// ViewHistory - estrutura para histórico de visualizações
 export interface ViewHistoryItem {
   id: string;
   userId?: string;
@@ -111,7 +111,7 @@ export interface UserLoginSession {
 }
 
 
-// Notification settings para usu�rio
+// Notification settings para utilizador
 export interface NotificationSettings {
   email: boolean;
   sms: boolean;
@@ -162,7 +162,7 @@ export interface SavedSearchesResponse {
   totalCount: number;
 }
 
-// Create/Update request types
+// Create/Update request types para alertas
 export interface CreateAlertRequest {
   name: string;
   location?: string;
@@ -188,12 +188,14 @@ export interface CreateSavedSearchRequest {
   filters: SavedSearch['filters'];
 }
 
+// Create/Update request types para perfil de utilizador
 export interface UpdateUserProfileRequest {
   fullName?: string;
   phoneNumber?: string;
   avatarUrl?: string;
 }
 
+// Create/Update request types para definições de notificação
 export interface UpdateNotificationSettingsRequest {
   emailNotifications?: boolean;
   smsNotifications?: boolean;

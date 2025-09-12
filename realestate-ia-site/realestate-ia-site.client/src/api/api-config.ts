@@ -1,16 +1,26 @@
-// api-config.ts - Configura��o centralizada dos endpoints da API
+// api-config.ts - Configuração centralizada dos endpoints da API
+
+// Environment configuration - values will be injected at build time by Vite
+const ENV_VARS = {
+  BASE_URL: '',
+  DEBUG_LOGS: false,
+  MOCK_DATA: false,
+  IS_DEV: process.env.NODE_ENV === 'development',
+  IS_PROD: process.env.NODE_ENV === 'production'
+};
+
 export const API_CONFIG = {
   // Base configuration
-  BASE_URL: import.meta.env.VITE_API_BASE_URL || '',
+  BASE_URL: ENV_VARS.BASE_URL,
   TIMEOUT: 30000,
   
-  // API Endpoints - Minificados para produ��o
+  // API Endpoints - Minificados para produção
   ENDPOINTS: (() => {
-    const isDev = import.meta.env.DEV;
+    const isDev = ENV_VARS.IS_DEV;
     
-    // Em produ��o, usar apenas as rotas necess�rias
+    // Em produção, usar apenas as rotas necessárias
     const baseEndpoints = {
-      // Authentication (sempre vis�vel)
+      // Authentication (sempre visível)
       AUTH: {
         LOGIN: '/api/auth/login',
         REGISTER: '/api/auth/register',
@@ -22,7 +32,7 @@ export const API_CONFIG = {
         RESET_PASSWORD: '/api/auth/reset-password'
       },
       
-      // Search (p�blico)
+      // Search (público)
       SEARCH: {
         AI: '/api/SearchAI'
       },
@@ -72,7 +82,6 @@ export const API_CONFIG = {
           SETTINGS: '/api/notifications/settings'
         },
 
-
         DASHBOARD: {
           STATS: '/api/dashboard/stats',
           ACTIVITY: '/api/dashboard/activity',
@@ -90,14 +99,14 @@ export const API_CONFIG = {
     'Accept': 'application/json'
   },
 
-  // Error messages (minificados em produ��o)
+  // Error messages (minificados em produção)
   ERROR_MESSAGES: {
-    NETWORK_ERROR: 'Erro de rede. Verifique sua conex�o.',
-    UNAUTHORIZED: 'Sess�o expirada. Fa�a login novamente.',
+    NETWORK_ERROR: 'Erro de rede. Verifique sua conexão.',
+    UNAUTHORIZED: 'Sessão expirada. Faça login novamente.',
     FORBIDDEN: 'Acesso negado.',
-    NOT_FOUND: 'Recurso n�o encontrado.',
+    NOT_FOUND: 'Recurso não encontrado.',
     SERVER_ERROR: 'Erro interno do servidor.',
-    TIMEOUT: 'Timeout na requisi��o.',
+    TIMEOUT: 'Timeout na requisição.',
     UNKNOWN: 'Erro desconhecido.'
   }
 } as const;
@@ -108,7 +117,9 @@ export const buildUrl = (endpoint: string, params?: Record<string, string | numb
   
   const url = new URL(endpoint, API_CONFIG.BASE_URL || window.location.origin);
   
-  Object.entries(params).forEach(([key, value]) => {
+  // Use Object.keys for compatibility
+  Object.keys(params).forEach(key => {
+    const value = params[key];
     if (value !== undefined && value !== null) {
       url.searchParams.append(key, String(value));
     }
@@ -117,7 +128,7 @@ export const buildUrl = (endpoint: string, params?: Record<string, string | numb
   return url.toString();
 };
 
-// Helper para verificar se endpoint requer autentica��o
+// Helper para verificar se endpoint requer autenticação
 export const requiresAuth = (endpoint: string): boolean => {
   const publicEndpoints = [
     API_CONFIG.ENDPOINTS.AUTH.LOGIN,
@@ -131,14 +142,13 @@ export const requiresAuth = (endpoint: string): boolean => {
   return !publicEndpoints.some(publicEndpoint => endpoint.includes(publicEndpoint));
 };
 
-
-// Configura��es de ambiente
+// Configurações de ambiente
 export const ENV_CONFIG = {
-  isDevelopment: import.meta.env.DEV,
-  isProduction: import.meta.env.PROD,
-  apiUrl: import.meta.env.VITE_API_BASE_URL || '',
-  enableDebugLogs: import.meta.env.VITE_ENABLE_DEBUG_LOGS === 'true',
-  enableMockData: import.meta.env.VITE_ENABLE_MOCK_DATA === 'true'
+  isDevelopment: ENV_VARS.IS_DEV,
+  isProduction: ENV_VARS.IS_PROD,
+  apiUrl: ENV_VARS.BASE_URL,
+  enableDebugLogs: ENV_VARS.DEBUG_LOGS,
+  enableMockData: ENV_VARS.MOCK_DATA
 } as const;
 
 // Export default

@@ -190,6 +190,6 @@ export const propertyUtils = {
 };
 
 // Log apenas quando carrega em desenvolvimento
-if (import.meta.env.DEV) {
+if ((import.meta as any).env?.DEV) {
   logToTerminal('Properties Service carregado e atualizado (sem controller properties)');
 }

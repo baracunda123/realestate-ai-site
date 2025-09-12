@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { 
   BarChart3, 
@@ -9,7 +9,7 @@ import {
   Settings 
 } from 'lucide-react';
 import type { Property } from '../types/property';
-import type { User, SavedSearch, PropertyAlert, ViewHistoryItem, NotificationSettings } from '../types/PersonalArea';
+import type { User, SavedSearch, PropertyAlert, ViewHistoryItem, NotificationSettings, CreateAlertRequest } from '../types/PersonalArea';
 import type { NewAlert } from './NewAlertModalFixed';
 import { NewAlertModal } from './NewAlertModalFixed';
 import { PersonalAreaHeader } from './PersonalArea/PersonalAreaHeader';
@@ -20,93 +20,16 @@ import { PersonalAreaAlerts } from './PersonalArea/PersonalAreaAlerts';
 import { PersonalAreaHistory } from './PersonalArea/PersonalAreaHistory';
 import { PersonalAreaSettings } from './PersonalArea/PersonalAreaSettings';
 import { toast } from 'sonner';
-
-// Mock data - in a real app, this would come from API/database
-
-const mockSavedSearches: SavedSearch[] = [
-  {
-    id: '1',
-    userId: 'user-1',
-    name: 'Casas T3 em Lisboa',
-    query: 'casas com 3 quartos em Lisboa',
-    filters: {
-      location: 'Lisboa',
-      propertyType: 'house',
-      bedrooms: 3,
-      priceRange: [300000, 800000]
-    },
-    createdAt: new Date('2024-01-15'),
-    results: 24,
-    newResults: 3
-  },
-  {
-    id: '2',
-    userId: 'user-1',
-    name: 'Apartamentos T2 no Porto',
-    query: 'apartamentos T2 no Porto até 400k',
-    filters: {
-      location: 'Porto',
-      propertyType: 'apartment',
-      bedrooms: 2,
-      priceRange: [250000, 400000]
-    },
-    createdAt: new Date('2024-01-10'),
-    results: 18,
-    newResults: 1
-  }
-];
-
-const mockPropertyAlerts: PropertyAlert[] = [
-  {
-    id: '1',
-    userId: 'user-1',
-    name: 'Casas baratas em Sintra',
-    location: 'Sintra',
-    propertyType: 'house',
-    minPrice: null,
-    maxPrice: 500000,
-    bedrooms: 3,
-    bathrooms: 2,
-    emailNotifications: true,
-    smsNotifications: false,
-    priceDropAlerts: true,
-    newListingAlerts: true,
-    isActive: true,
-    createdAt: new Date('2024-01-10'),
-    lastTriggered: new Date('2024-01-12'),
-    matchCount: 12,
-    newMatches: 2
-  }
-];
-
-const mockViewHistory: ViewHistoryItem[] = [
-  {
-    id: '1',
-    userId: 'user-1',
-    propertyId: 'prop-123',
-    propertyTitle: 'Casa T3 em Cascais',
-    location: 'Cascais',
-    price: 650000,
-    viewedAt: new Date('2024-01-15T10:30:00'),
-    viewCount: 3,
-    propertyType: 'house',
-    bedrooms: 3,
-    bathrooms: 2
-  },
-  {
-    id: '2',
-    userId: 'user-1',
-    propertyId: 'prop-456',
-    propertyTitle: 'Apartamento T2 no Centro do Porto',
-    location: 'Porto Centro',
-    price: 380000,
-    viewedAt: new Date('2024-01-14T16:45:00'),
-    viewCount: 1,
-    propertyType: 'apartment',
-    bedrooms: 2,
-    bathrooms: 1
-  }
-];
+import { 
+  getUserAlerts, 
+  createAlert as createAlertService, 
+  deleteAlert as deleteAlertService,
+  toggleAlert as toggleAlertService
+} from '../api/alerts.service';
+import { 
+  getSavedSearches as getSavedSearchesService,
+  deleteSavedSearch as deleteSavedSearchService
+} from '../api/saved-searches.service';
 
 interface PersonalAreaProps {
   user: User;
@@ -122,36 +45,8 @@ export function PersonalArea({ user, onPropertySelect, onNavigateToAlertResults,
   const [isNewAlertModalOpen, setIsNewAlertModalOpen] = useState(false);
   
   // Data state
-  const [userAlerts, setUserAlerts] = useState<NewAlert[]>([]);
+  const [alerts, setAlerts] = useState<PropertyAlert[]>([]);
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
-
-  // Initialize saved searches from localStorage (fallback to mocks)
-  useEffect(() => {
-    try {
-      const raw = localStorage.getItem('hf_saved_searches');
-      if (raw) {
-        const parsed: any[] = JSON.parse(raw);
-        const withDates: SavedSearch[] = parsed.map(s => ({
-          ...s,
-          createdAt: new Date(s.createdAt)
-        }));
-        setSavedSearches(withDates);
-      } else {
-        setSavedSearches(mockSavedSearches);
-      }
-    } catch {
-      setSavedSearches(mockSavedSearches);
-    }
-  }, []);
-  
-  // Save searches to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('hf_saved_searches', JSON.stringify(savedSearches));
-  }, [savedSearches]);
-
-  const [mockAlertsStatus, setMockAlertsStatus] = useState<Record<string, boolean>>({
-    '1': true // Default status for mock alert
-  });
   const [notifications, setNotifications] = useState<NotificationSettings>({
     email: true,
     sms: false,
@@ -162,88 +57,90 @@ export function PersonalArea({ user, onPropertySelect, onNavigateToAlertResults,
     alertFrequency: 'immediate'
   });
 
-  // Combined alerts (mock + user created) with current status
-  const allAlerts = [
-    ...mockPropertyAlerts.map(alert => ({
-      ...alert,
-      isActive: mockAlertsStatus[alert.id] ?? alert.isActive
-    })),
-    ...userAlerts.map(userAlert => ({
-      id: userAlert.id,
-      userId: user.id,
-      name: userAlert.name,
-      location: userAlert.location || null,
-      propertyType: userAlert.propertyType || null,
-      minPrice: userAlert.priceRange ? userAlert.priceRange[0] : null,
-      maxPrice: userAlert.priceRange ? userAlert.priceRange[1] : null,
-      bedrooms: userAlert.bedrooms || null,
-      bathrooms: userAlert.bathrooms || null,
-      emailNotifications: userAlert.emailNotifications ?? true,
-      smsNotifications: userAlert.smsNotifications ?? false,
-      priceDropAlerts: userAlert.priceDropAlerts ?? true,
-      newListingAlerts: userAlert.newListingAlerts ?? true,
-      isActive: userAlert.isActive ?? true,
-      createdAt: new Date(),
-      lastTriggered: null,
-      matchCount: Math.floor(Math.random() * 20) + 1,
-      newMatches: Math.floor(Math.random() * 5)
-    }))
-  ];
+  // Carregar alertas e pesquisas salvas ao montar
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const alertsResp = await getUserAlerts();
+        setAlerts(alertsResp.alerts || []);
+      } catch {
+        setAlerts([]);
+      }
+
+      try {
+        const searchesResp = await getSavedSearchesService();
+        setSavedSearches(searchesResp.searches || []);
+      } catch {
+        setSavedSearches([]);
+      }
+    };
+
+    loadData();
+  }, []);
 
   // Handlers
-  const handleCreateAlert = (alert: NewAlert) => {
-    setUserAlerts(prev => [...prev, alert]);
-    setIsNewAlertModalOpen(false);
-    toast.success('Alerta criado com sucesso!', {
-      description: `Você será notificado sobre propriedades que correspondem aos critérios definidos.`
-    });
-  };
+  const handleCreateAlert = async (alert: NewAlert) => {
+    const payload: CreateAlertRequest = {
+      name: alert.name,
+      location: alert.location,
+      propertyType: alert.propertyType,
+      minPrice: alert.priceRange?.[0],
+      maxPrice: alert.priceRange?.[1],
+      bedrooms: alert.bedrooms,
+      bathrooms: alert.bathrooms,
+      emailNotifications: alert.emailNotifications,
+      smsNotifications: alert.smsNotifications,
+      priceDropAlerts: alert.priceDropAlerts,
+      newListingAlerts: alert.newListingAlerts,
+    };
 
-  const handleDeleteAlert = (alertId: string) => {
-    // Check if it's a user-created alert
-    const userAlertIndex = userAlerts.findIndex(alert => alert.id === alertId);
-    if (userAlertIndex !== -1) {
-      setUserAlerts(prev => prev.filter(alert => alert.id !== alertId));
-    } else {
-      // It's a mock alert, just hide it by setting isActive to false
-      setMockAlertsStatus(prev => ({
-        ...prev,
-        [alertId]: false
-      }));
+    try {
+      const created = await createAlertService(payload);
+      setAlerts(prev => [...prev, created]);
+      setIsNewAlertModalOpen(false);
+      toast.success('Alerta criado com sucesso!', {
+        description: `Você será notificado sobre propriedades que correspondem aos critérios definidos.`
+      });
+    } catch {
+      toast.error('Falha ao criar alerta no servidor.');
     }
-    
-    toast.success('Alerta removido!');
   };
 
-  const handleToggleAlert = (alertId: string) => {
-    // Check if it's a user-created alert
-    const userAlertIndex = userAlerts.findIndex(alert => alert.id === alertId);
-    if (userAlertIndex !== -1) {
-      setUserAlerts(prev => prev.map(alert => 
-        alert.id === alertId 
-          ? { ...alert, isActive: !alert.isActive }
-          : alert
-      ));
-    } else {
-      // It's a mock alert
-      setMockAlertsStatus(prev => ({
-        ...prev,
-        [alertId]: !prev[alertId]
-      }));
+  const handleDeleteAlert = async (alertId: string) => {
+    try {
+      await deleteAlertService(alertId);
+      setAlerts(prev => prev.filter(a => a.id !== alertId));
+      toast.success('Alerta removido!');
+    } catch {
+      toast.error('Falha ao remover alerta no servidor.');
     }
-    
-    const isActive = userAlertIndex !== -1 
-      ? !userAlerts[userAlertIndex].isActive
-      : !mockAlertsStatus[alertId];
-      
-    toast.success(isActive ? 'Alerta ativado!' : 'Alerta pausado!');
   };
 
-  const handleDeleteSearch = (searchId: string) => {
-    setSavedSearches(prev => prev.filter(search => search.id !== searchId));
-    toast.success('Pesquisa removida!');
+  const handleToggleAlert = async (alertId: string) => {
+    const current = alerts.find(a => a.id === alertId);
+    if (!current) return;
+
+    try {
+      const updated = await toggleAlertService(alertId, !current.isActive);
+      setAlerts(prev => prev.map(a => (a.id === alertId ? updated : a)));
+      toast.success(updated.isActive ? 'Alerta ativado!' : 'Alerta pausado!');
+    } catch {
+      toast.error('Falha ao alterar estado do alerta.');
+    }
   };
 
+  const handleDeleteSearch = async (searchId: string) => {
+    try {
+      await deleteSavedSearchService(searchId);
+      setSavedSearches(prev => prev.filter(s => s.id !== searchId));
+      toast.success('Pesquisa removida!');
+    } catch {
+      toast.error('Falha ao remover pesquisa salva.');
+    }
+  };
+
+  // Sem histórico por enquanto (removemos mocks)
+  const viewHistory: ViewHistoryItem[] = [];
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
@@ -282,7 +179,7 @@ export function PersonalArea({ user, onPropertySelect, onNavigateToAlertResults,
             user={user}
             favoritesCount={favorites.length}
             savedSearchesCount={savedSearches.length}
-            alertsCount={allAlerts.filter(alert => alert.isActive).length}
+            alertsCount={alerts.filter(alert => alert.isActive).length}
             onCardClick={(cardType) => {
               if (cardType === 'favorites') setActiveTab('favorites');
               if (cardType === 'searches') setActiveTab('searches');
@@ -312,7 +209,7 @@ export function PersonalArea({ user, onPropertySelect, onNavigateToAlertResults,
         <TabsContent value="alerts">
           <PersonalAreaAlerts
             user={user}
-            alerts={allAlerts}
+            alerts={alerts}
             onCreateAlert={() => setIsNewAlertModalOpen(true)}
             onDeleteAlert={handleDeleteAlert}
             onToggleAlert={handleToggleAlert}
@@ -323,7 +220,7 @@ export function PersonalArea({ user, onPropertySelect, onNavigateToAlertResults,
         <TabsContent value="history">
           <PersonalAreaHistory
             user={user}
-            viewHistory={mockViewHistory}
+            viewHistory={viewHistory}
             onGoToHome={() => setActiveTab('dashboard')}
           />
         </TabsContent>

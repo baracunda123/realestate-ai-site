@@ -47,10 +47,10 @@ const calculateRelevanceScore = (property: Property, query: string): number => {
 };
 
 export function PropertyGrid({ filters, searchQuery, serverResults, onPropertySelect, favorites = [], onToggleFavorite }: PropertyGridProps) {
-  // Use server results if available, otherwise fall back to empty array since we removed the old properties endpoint
-  const source = serverResults || [];
-  
   const filteredAndRankedProperties = useMemo(() => {
+    // Use server results if available, otherwise fall back to empty array
+    const source = serverResults || [];
+    
     let filtered = source.filter(property => {
       // Price filter
       if (property.price && (property.price < filters.priceRange[0] || property.price > filters.priceRange[1])) {
@@ -83,7 +83,7 @@ export function PropertyGrid({ filters, searchQuery, serverResults, onPropertySe
       // Search query filter (skip if using server-provided results)
       if (searchQuery && !serverResults) {
         const searchLower = searchQuery.toLowerCase();
-        const searchableText = `${property.title} ${property.description} ${property.location} ${(property.features || []).join(' ')}`.toLowerCase();
+        const searchableText = `${property.title || ''} ${property.description || ''} ${property.location || ''} ${(property.features || []).join(' ')}`.toLowerCase();
         if (!searchableText.includes(searchLower)) {
           return false;
         }
@@ -106,7 +106,7 @@ export function PropertyGrid({ filters, searchQuery, serverResults, onPropertySe
             return (a.price || 0) - (b.price || 0);
           case 'date':
             return Math.random() - 0.5; // Mock random sorting for "newest"
-          case 'size':
+          case 'area':
             return (b.area || 0) - (a.area || 0);
           default:
             return 0;

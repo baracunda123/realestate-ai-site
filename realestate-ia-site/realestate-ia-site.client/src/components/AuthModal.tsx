@@ -102,8 +102,9 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
         const errorMessages: string[] = [];
         
         if (typeof data.errors === 'object' && !Array.isArray(data.errors)) {
-          Object.keys(data.errors).forEach(field => {
-            const fieldErrors = data.errors![field];
+          const dict = data.errors as Record<string, string[] | string>;
+          Object.keys(dict).forEach(field => {
+            const fieldErrors = dict[field];
             if (Array.isArray(fieldErrors)) {
               errorMessages.push(...fieldErrors);
             } else if (typeof fieldErrors === 'string') {
@@ -263,284 +264,320 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
     return null;
   };
 
-  const renderPasswordInput = (id: string, placeholder: string, value: string, field: keyof FormData) => (
-    <div className="relative">
-      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-      <Input
-        id={id}
-        type={showPassword ? 'text' : 'password'}
-        placeholder={placeholder}
-        value={value}
-        onChange={(e) => handleInputChange(field, e.target.value)}
-        className="pl-10 pr-10 border-border focus:border-primary"
-        disabled={isLoading}
-      />
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
-        onClick={() => setShowPassword(!showPassword)}
-        disabled={isLoading}
-      >
-        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-      </Button>
-    </div>
-  );
+  const renderPasswordInput = (id: string, placeholder: string, value: string, field: keyof FormData) => {
+    const autoCompleteValue = id.includes('signin') ? 'current-password' : 'new-password';
+    return (
+      <div className="relative">
+        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          id={id}
+          type={showPassword ? 'text' : 'password'}
+          placeholder={placeholder}
+          value={value}
+          onChange={(e) => handleInputChange(field, e.target.value)}
+          className="pl-10 pr-10 border-border focus:border-primary no-password-reveal"
+          disabled={isLoading}
+          autoComplete={autoCompleteValue}
+          autoCorrect="off"
+          spellCheck={false}
+          data-lpignore="true"
+          data-1p-ignore="true"
+          data-bwignore="true"
+        />
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+          onClick={() => setShowPassword(!showPassword)}
+          disabled={isLoading}
+        >
+          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </Button>
+      </div>
+    );
+  };
 
   return (
-    <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto scrollbar-hide border border-border bg-card shadow-mocha-lg">
-        <DialogHeader className="text-center pb-2">
-          <div className="mx-auto w-12 h-12 gradient-mocha rounded-xl flex items-center justify-center mb-3">
-            <Sparkles className="h-6 w-6 text-white" />
-          </div>
-          <DialogTitle className="text-xl text-foreground">
-            Welcome to HomeFinder AI
-          </DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">
-            Find your ideal home with cutting-edge technology. Sign in to your account or create a new account to get started.
-          </DialogDescription>
-        </DialogHeader>
-
-        {renderMessage()}
-
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 bg-secondary rounded-xl p-1">
-            <TabsTrigger 
-              value="signin" 
-              className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              disabled={isLoading}
-            >
-              Sign In
-            </TabsTrigger>
-            <TabsTrigger 
-              value="signup"
-              className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              disabled={isLoading}
-            >
-              Sign Up
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="signin" className="space-y-4 mt-4">
-            <form onSubmit={handleSignIn} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="signin-email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="signin-email"
-                    type="email"
-                    placeholder="your.email@example.com"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="pl-10 border-border focus:border-primary"
-                    disabled={isLoading}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="signin-password">Password</Label>
-                {renderPasswordInput('signin-password', 'Your password', formData.password, 'password')}
-              </div>
-
-              <Button 
-                type="submit" 
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground border-0 shadow-sm"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Signing in...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Sign In
-                  </>
-                )}
-              </Button>
-            </form>
-
-            <div className="text-center">
-              <Button 
-                variant="ghost" 
-                className="text-sm text-muted-foreground hover:bg-accent"
-                disabled={isLoading}
-              >
-                Forgot your password?
-              </Button>
+    <>
+      {/* Scoped CSS to hide native password reveal/clear and autofill icons */}
+      <style>
+        {`
+          .no-password-reveal { -webkit-appearance: none; appearance: none; }
+          .no-password-reveal::-ms-reveal,
+          .no-password-reveal::-ms-clear { display: none; }
+          /* Some Chromium builds may expose a reveal decoration - ensure it's hidden */
+          .no-password-reveal::-webkit-textfield-decoration-container { display: none; }
+          /* Safari/iOS autofill and credentials button */
+          .no-password-reveal::-webkit-credentials-auto-fill-button { visibility: hidden; display: none; pointer-events: none; }
+          .no-password-reveal::-webkit-contacts-auto-fill-button { visibility: hidden; display: none; pointer-events: none; }
+        `}
+      </style>
+      <Dialog open={isOpen} onOpenChange={handleClose}>
+        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto scrollbar-hide border border-border bg-card shadow-mocha-lg">
+          <DialogHeader className="text-center pb-2">
+            <div className="mx-auto w-12 h-12 gradient-mocha rounded-xl flex items-center justify-center mb-3">
+              <Sparkles className="h-6 w-6 text-white" />
             </div>
-          </TabsContent>
+            <DialogTitle className="text-xl text-foreground">
+              Welcome to HomeFinder AI
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Find your ideal home with cutting-edge technology. Sign in to your account or create a new account to get started.
+            </DialogDescription>
+          </DialogHeader>
 
-          <TabsContent value="signup" className="space-y-4 mt-4">
-            <form onSubmit={handleSignUp} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="signup-name">Full Name</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="signup-name"
-                    type="text"
-                    placeholder="John Silva"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange('name', e.target.value)}
-                    className="pl-10 border-border focus:border-primary"
-                    disabled={isLoading}
-                  />
+          {renderMessage()}
+
+          <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 bg-secondary rounded-xl p-1">
+              <TabsTrigger 
+                value="signin" 
+                className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                disabled={isLoading}
+              >
+                Sign In
+              </TabsTrigger>
+              <TabsTrigger 
+                value="signup"
+                className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+                disabled={isLoading}
+              >
+                Sign Up
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="signin" className="space-y-4 mt-4">
+              <form onSubmit={handleSignIn} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signin-email">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="signin-email"
+                      type="email"
+                      placeholder="your.email@example.com"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      className="pl-10 border-border focus:border-primary"
+                      disabled={isLoading}
+                      autoComplete="username"
+                      autoCorrect="off"
+                      spellCheck={false}
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="signup-email">Email</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="signup-email"
-                    type="email"
-                    placeholder="your.email@example.com"
-                    value={formData.email}
-                    onChange={(e) => handleInputChange('email', e.target.value)}
-                    className="pl-10 border-border focus:border-primary"
-                    disabled={isLoading}
-                  />
+                <div className="space-y-2">
+                  <Label htmlFor="signin-password">Password</Label>
+                  {renderPasswordInput('signin-password', 'Your password', formData.password, 'password')}
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="signup-phone">Phone (optional)</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="signup-phone"
-                    type="tel"
-                    placeholder="(11) 99999-9999"
-                    value={formData.phone}
-                    onChange={(e) => handleInputChange('phone', e.target.value)}
-                    className="pl-10 border-border focus:border-primary"
-                    disabled={isLoading}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="signup-password">Password</Label>
-                {renderPasswordInput('signup-password', 'Minimum 8 characters', formData.password, 'password')}
-                <p className="text-xs text-muted-foreground">
-                  Must contain: 1 uppercase, 1 lowercase, 1 number and 1 special character
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="signup-confirm-password">Confirm Password</Label>
-                {renderPasswordInput('signup-confirm-password', 'Confirm your password', formData.confirmPassword, 'confirmPassword')}
-              </div>
-
-              <div className="flex items-start space-x-2">
-                <input
-                  type="checkbox"
-                  id="accept-terms"
-                  checked={acceptTerms}
-                  onChange={(e) => setAcceptTerms(e.target.checked)}
-                  className="mt-1"
+                <Button 
+                  type="submit" 
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground border-0 shadow-sm"
                   disabled={isLoading}
-                />
-                <Label htmlFor="accept-terms" className="text-xs text-muted-foreground leading-relaxed">
-                  I accept the{' '}
-                  <Button 
-                    variant="link" 
-                    className="p-0 h-auto text-xs text-primary" 
-                    disabled={isLoading}
-                    type="button"
-                  >
-                    Terms of Use
-                  </Button>{' '}
-                  and{' '}
-                  <Button 
-                    variant="link" 
-                    className="p-0 h-auto text-xs text-primary" 
-                    disabled={isLoading}
-                    type="button"
-                  >
-                    Privacy Policy
-                  </Button>
-                </Label>
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Sign In
+                    </>
+                  )}
+                </Button>
+              </form>
+
+              <div className="text-center">
+                <Button 
+                  variant="ghost" 
+                  className="text-sm text-muted-foreground hover:bg-accent"
+                  disabled={isLoading}
+                >
+                  Forgot your password?
+                </Button>
               </div>
+            </TabsContent>
 
-              <Button 
-                type="submit" 
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground border-0 shadow-sm"
-                disabled={isLoading || !acceptTerms}
-              >
-                {isLoading ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Creating account...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="h-4 w-4 mr-2" />
-                    Create Account
-                  </>
-                )}
-              </Button>
-            </form>
-          </TabsContent>
-        </Tabs>
+            <TabsContent value="signup" className="space-y-4 mt-4">
+              <form onSubmit={handleSignUp} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="signup-name">Full Name</Label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="signup-name"
+                      type="text"
+                      placeholder="John Silva"
+                      value={formData.name}
+                      onChange={(e) => handleInputChange('name', e.target.value)}
+                      className="pl-10 border-border focus:border-primary"
+                      disabled={isLoading}
+                      autoComplete="name"
+                      autoCorrect="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                </div>
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <Separator className="w-full" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">or continue with</span>
-          </div>
-        </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-email">Email</Label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="signup-email"
+                      type="email"
+                      placeholder="your.email@example.com"
+                      value={formData.email}
+                      onChange={(e) => handleInputChange('email', e.target.value)}
+                      className="pl-10 border-border focus:border-primary"
+                      disabled={isLoading}
+                      autoComplete="email"
+                      autoCorrect="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                </div>
 
-        <div className="grid grid-cols-3 gap-3">
-          <Button 
-            variant="outline" 
-            className="border-border hover:border-primary/50 hover:bg-accent" 
-            disabled={isLoading}
-          >
-            <Chrome className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant="outline" 
-            className="border-border hover:border-primary/50 hover:bg-accent" 
-            disabled={isLoading}
-          >
-            <Facebook className="h-4 w-4" />
-          </Button>
-          <Button 
-            variant="outline" 
-            className="border-border hover:border-primary/50 hover:bg-accent" 
-            disabled={isLoading}
-          >
-            <Apple className="h-4 w-4" />
-          </Button>
-        </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-phone">Phone (optional)</Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="signup-phone"
+                      type="tel"
+                      placeholder="(11) 99999-9999"
+                      value={formData.phone}
+                      onChange={(e) => handleInputChange('phone', e.target.value)}
+                      className="pl-10 border-border focus:border-primary"
+                      disabled={isLoading}
+                      autoComplete="tel"
+                      autoCorrect="off"
+                      spellCheck={false}
+                    />
+                  </div>
+                </div>
 
-        {activeTab === 'signup' && (
-          <div className="bg-soft-peach border border-mocha-lighter rounded-lg p-3">
-            <div className="flex items-start space-x-2">
-              <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
-              <div className="text-xs text-foreground">
-                <p className="font-medium mb-1">HomeFinder AI account benefits:</p>
-                <ul className="space-y-1 text-xs">
-                  <li>• Save favorite properties</li>
-                  <li>• Receive personalized alerts</li>
-                  <li>• AI search history</li>
-                  <li>• Exclusive recommendations</li>
-                </ul>
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="signup-password">Password</Label>
+                  {renderPasswordInput('signup-password', 'Minimum 8 characters', formData.password, 'password')}
+                  <p className="text-xs text-muted-foreground">
+                    Must contain: 1 uppercase, 1 lowercase, 1 number and 1 special character
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="signup-confirm-password">Confirm Password</Label>
+                  {renderPasswordInput('signup-confirm-password', 'Confirm your password', formData.confirmPassword, 'confirmPassword')}
+                </div>
+
+                <div className="flex items-start space-x-2">
+                  <input
+                    type="checkbox"
+                    id="accept-terms"
+                    checked={acceptTerms}
+                    onChange={(e) => setAcceptTerms(e.target.checked)}
+                    className="mt-1"
+                    disabled={isLoading}
+                  />
+                  <Label htmlFor="accept-terms" className="text-xs text-muted-foreground leading-relaxed">
+                    I accept the{' '}
+                    <Button 
+                      variant="link" 
+                      className="p-0 h-auto text-xs text-primary" 
+                      disabled={isLoading}
+                      type="button"
+                    >
+                      Terms of Use
+                    </Button>{' '}
+                    and{' '}
+                    <Button 
+                      variant="link" 
+                      className="p-0 h-auto text-xs text-primary" 
+                      disabled={isLoading}
+                      type="button"
+                    >
+                      Privacy Policy
+                    </Button>
+                  </Label>
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground border-0 shadow-sm"
+                  disabled={isLoading || !acceptTerms}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Creating account...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Create Account
+                    </>
+                  )}
+                </Button>
+              </form>
+            </TabsContent>
+          </Tabs>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <Separator className="w-full" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">or continue with</span>
             </div>
           </div>
-        )}
-      </DialogContent>
-    </Dialog>
+
+          <div className="grid grid-cols-3 gap-3">
+            <Button 
+              variant="outline" 
+              className="border-border hover:border-primary/50 hover:bg-accent" 
+              disabled={isLoading}
+            >
+              <Chrome className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="outline" 
+              className="border-border hover:border-primary/50 hover:bg-accent" 
+              disabled={isLoading}
+            >
+              <Facebook className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="outline" 
+              className="border-border hover:border-primary/50 hover:bg-accent" 
+              disabled={isLoading}
+            >
+              <Apple className="h-4 w-4" />
+            </Button>
+          </div>
+
+          {activeTab === 'signup' && (
+            <div className="bg-soft-peach border border-mocha-lighter rounded-lg p-3">
+              <div className="flex items-start space-x-2">
+                <Sparkles className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+                <div className="text-xs text-foreground">
+                  <p className="font-medium mb-1">HomeFinder AI account benefits:</p>
+                  <ul className="space-y-1 text-xs">
+                    <li>• Save favorite properties</li>
+                    <li>• Receive personalized alerts</li>
+                    <li>• AI search history</li>
+                    <li>• Exclusive recommendations</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

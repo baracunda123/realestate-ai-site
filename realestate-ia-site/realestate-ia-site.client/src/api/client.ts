@@ -181,7 +181,7 @@ class SecureTokenManager {
     try {
       localStorage.setItem(this.SESSION_KEY, this.sessionId);
       logClient('Nova sessão gerada');
-    } catch (error) {
+    } catch {
       logClient('Erro ao regenerar sessão', 'warn');
     }
     return this.sessionId;
@@ -247,7 +247,7 @@ async function refreshAccessToken(): Promise<TokenResponse | null> {
       logClient('Resposta de renovação inválida', 'warn');
       return null;
     }
-  } catch (error) {
+  } catch {
     logClient('Falha na renovação do token', 'error');
     return null;
   } finally {
@@ -341,7 +341,7 @@ class ApiClient {
               logClient('Falha na renovação - limpando tokens', 'warn');
               SecureTokenManager.clearTokens();
             }
-          } catch (refreshError) {
+          } catch {
             logClient('Erro na renovação - limpando tokens', 'error');
             SecureTokenManager.clearTokens();
           }
