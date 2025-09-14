@@ -221,9 +221,11 @@ export default function App() {
   }, [user]);
 
   const navigateToHome = useCallback(() => {
+    // Reset everything to default state to ensure WelcomeScreen is shown
+    resetToDefaults();
     setCurrentView('home');
     window.location.hash = '';
-  }, []);
+  }, [resetToDefaults]);
 
   const navigateToAlertResults = useCallback((alert: PropertyAlert) => {
     setSelectedAlert(alert);

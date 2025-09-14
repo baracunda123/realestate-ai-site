@@ -5,7 +5,6 @@ import { Button } from './ui/button';
 import { Sparkles, Loader2, X, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface AIResponseBoxProps {
-  query: string;
   open: boolean;
   text?: string;
   loading?: boolean;
@@ -13,7 +12,7 @@ interface AIResponseBoxProps {
   onClose?: () => void;
 }
 
-export function AIResponseBox({ query, open, text, loading = false, error = null, onClose }: AIResponseBoxProps) {
+export function AIResponseBox({ open, text, loading = false, error = null, onClose }: AIResponseBoxProps) {
   const [minimized, setMinimized] = useState(false);
 
   if (!open) return null;

@@ -63,7 +63,7 @@ export function Footer() {
         {/* Copyright */}
         <div className="mt-6 pt-4 border-t border-cocoa-taupe/10">
           <p className="text-center text-sm text-warm-taupe">
-            © 2024 HomeFinder AI. Todos os direitos reservados.
+            © 2025 HomeFinder AI. Todos os direitos reservados.
           </p>
         </div>
       </div>

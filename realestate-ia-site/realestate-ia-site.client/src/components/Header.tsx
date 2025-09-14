@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Map, Grid3X3, Home, Crown, User, ArrowUp } from 'lucide-react';
+import { Search, Map, Grid3X3, Home, User, ArrowUp } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { UserProfileDropdown } from './UserProfileDropdown';
@@ -47,7 +47,6 @@ export function Header({
   aiError
 }: HeaderProps) {
   const [aiOpen, setAiOpen] = useState(false);
-  const [aiQuery, setAiQuery] = useState('');
   const [localInput, setLocalInput] = useState(searchQuery);
 
   const handleSubmitSearch = () => {
@@ -59,7 +58,6 @@ export function Header({
     const query = localInput.trim();
     if (!query) return;
     
-    setAiQuery(query);
     setAiOpen(true);
     onSubmitSearch?.(query);
   };
@@ -124,7 +122,6 @@ export function Header({
 
         {user && (
           <AIResponseBox 
-            query={aiQuery} 
             open={aiOpen} 
             text={aiText} 
             loading={aiLoading} 
