@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense, useCallback, useMemo } from 'react';
+import { useState, useEffect, lazy, Suspense, useCallback, useMemo } from 'react';
 import { Header } from './components/Header';
 import { PersonalArea } from './components/PersonalArea';
 import { Footer } from './components/Footer';
@@ -278,7 +278,7 @@ export default function App() {
     });
   }, [user]);
 
-  const handleSubmitSearch = useCallback(async (query: string) => {
+  const handleSubmitSearch = useCallback(async (query: string, filters?: SearchFiltersType) => {
     setAiLoading(true);
     setAiError(null);
     
@@ -293,6 +293,11 @@ export default function App() {
       setSearchResults(result.properties || []);
       setAiText(result.aiResponse || '');
       setSearchQuery(query);
+      
+      // Se filters foram fornecidos, aplicá-los
+      if (filters) {
+        setSearchFilters(filters);
+      }
       
       if (currentView !== 'home') setCurrentView('home');
       if (window.location.hash) window.location.hash = '';
@@ -312,6 +317,11 @@ export default function App() {
       setAiError('Não foi possível obter resposta da IA no momento.');
       setSearchQuery(query);
       
+      // Se filters foram fornecidos, aplicá-los mesmo com erro
+      if (filters) {
+        setSearchFilters(filters);
+      }
+      
       if (currentView !== 'home') setCurrentView('home');
       if (window.location.hash) window.location.hash = '';
       
@@ -321,7 +331,7 @@ export default function App() {
     } finally {
       setAiLoading(false);
     }
-  }, [user, currentView]);
+  }, [currentView]);
 
   // Authentication handlers - otimizados
   const handleAuthSuccess = useCallback(async () => {
@@ -425,11 +435,13 @@ export default function App() {
             user={convertToUser(user)}
             onPropertySelect={setSelectedProperty}
             onNavigateToAlertResults={navigateToAlertResults}
+            onNavigateToHome={navigateToHome}
+            onExecuteSearch={handleSubmitSearch}
             favorites={favorites}
             onToggleFavorite={toggleFavorite}
           />
         ) : showWelcomeScreen ? (
-          <Suspense fallback={< LoadingSpinner />}>
+          <Suspense fallback={<LoadingSpinner />}>
             <WelcomeScreen
               onExampleSearch={handleExampleSearch}
               user={user ? convertToUser(user) : null}
@@ -438,7 +450,7 @@ export default function App() {
           </Suspense>
         ) : (
           user && (
-            <Suspense fallback={< LoadingSpinner />}>
+            <Suspense fallback={<LoadingSpinner />}>
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 <div className="lg:col-span-1 space-y-6">
                   <SearchFilters

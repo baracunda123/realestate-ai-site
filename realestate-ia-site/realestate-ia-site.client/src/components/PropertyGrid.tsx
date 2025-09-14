@@ -1,8 +1,16 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { PropertyCard } from './PropertyCard';
 import { type SearchFilters } from '../types/SearchFilters';
 import { type Property } from '../types/property';
-import { Sparkles, TrendingUp } from 'lucide-react';
+import { Button } from './ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
+import { Sparkles, TrendingUp, Bookmark, BookmarkCheck } from 'lucide-react';
+import { toast } from 'sonner';
+import { createSavedSearch } from '../api/saved-searches.service';
+import { type CreateSavedSearchRequest } from '../types/PersonalArea';
+import apiClient from '../api/client';
 
 interface PropertyGridProps {
   filters: SearchFilters;
@@ -47,6 +55,11 @@ const calculateRelevanceScore = (property: Property, query: string): number => {
 };
 
 export function PropertyGrid({ filters, searchQuery, serverResults, onPropertySelect, favorites = [], onToggleFavorite }: PropertyGridProps) {
+  // State for save search dialog
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [saveSearchName, setSaveSearchName] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
   const filteredAndRankedProperties = useMemo(() => {
     // Use server results if available, otherwise fall back to empty array
     const source = serverResults || [];
@@ -118,6 +131,87 @@ export function PropertyGrid({ filters, searchQuery, serverResults, onPropertySe
   }, [filters, searchQuery, serverResults]);
 
   const hasAIRanking = searchQuery.trim().length > 0;
+  const isAuthenticated = apiClient.isAuthenticated();
+  const canSaveSearch = isAuthenticated && (searchQuery.trim() || filters.location || filters.propertyType !== 'any' || filters.bedrooms || filters.bathrooms);
+
+  // Generate search name suggestion
+  const generateSearchName = (): string => {
+    const parts: string[] = [];
+    
+    if (searchQuery.trim()) {
+      // Take first 3 words from search query
+      const queryWords = searchQuery.trim().split(' ').slice(0, 3).join(' ');
+      parts.push(queryWords);
+    }
+    
+    if (filters.location) {
+      parts.push(`em ${filters.location}`);
+    }
+    
+    if (filters.propertyType && filters.propertyType !== 'any') {
+      const typeLabels: Record<string, string> = {
+        house: 'Casas',
+        apartment: 'Apartamentos', 
+        condo: 'Condomínios',
+        townhouse: 'Sobrados'
+      };
+      parts.push(typeLabels[filters.propertyType] || filters.propertyType);
+    }
+    
+    if (filters.bedrooms) {
+      parts.push(`${filters.bedrooms}+ quartos`);
+    }
+
+    if (filters.priceRange[0] > 0 || filters.priceRange[1] < 2000000) {
+      parts.push(`€${filters.priceRange[0].toLocaleString()} - €${filters.priceRange[1].toLocaleString()}`);
+    }
+    
+    return parts.join(' ') || 'Minha Pesquisa';
+  };
+
+  const handleSaveSearch = async () => {
+    if (!saveSearchName.trim()) {
+      toast.error('Por favor, digite um nome para a pesquisa');
+      return;
+    }
+
+    setIsSaving(true);
+    
+    try {
+      const searchData: CreateSavedSearchRequest = {
+        name: saveSearchName.trim(),
+        query: searchQuery.trim(),
+        filters: {
+          location: filters.location || undefined,
+          propertyType: filters.propertyType !== 'any' ? filters.propertyType : undefined,
+          priceRange: filters.priceRange[0] > 0 || filters.priceRange[1] < 2000000 ? filters.priceRange : undefined,
+          bedrooms: filters.bedrooms || undefined,
+          bathrooms: filters.bathrooms || undefined
+        }
+      };
+
+      await createSavedSearch(searchData);
+      
+      toast.success('Pesquisa guardada com sucesso!', {
+        description: `"${saveSearchName}" foi adicionada às suas pesquisas guardadas.`
+      });
+      
+      setIsSaveDialogOpen(false);
+      setSaveSearchName('');
+    } catch (error) {
+      console.error('Erro ao guardar pesquisa:', error);
+      toast.error('Erro ao guardar pesquisa', {
+        description: 'Tente novamente em alguns instantes.'
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const openSaveDialog = () => {
+    setSaveSearchName(generateSearchName());
+    setIsSaveDialogOpen(true);
+  };
 
   return (
     <div className="space-y-6">
@@ -129,12 +223,95 @@ export function PropertyGrid({ filters, searchQuery, serverResults, onPropertySe
           </h2>
         </div>
         
-        {hasAIRanking && (
-          <div className="flex items-center space-x-1 text-xs text-muted-foreground">
-            <TrendingUp className="h-3 w-3" />
-            <span>Ordenado por relevância</span>
-          </div>
-        )}
+        <div className="flex items-center space-x-3">
+          {hasAIRanking && (
+            <div className="flex items-center space-x-1 text-xs text-muted-foreground">
+              <TrendingUp className="h-3 w-3" />
+              <span>Ordenado por relevância</span>
+            </div>
+          )}
+          
+          {canSaveSearch && (
+            <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
+              <DialogTrigger asChild>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  onClick={openSaveDialog}
+                  className="text-xs"
+                >
+                  <Bookmark className="h-3 w-3 mr-1" />
+                  Guardar Pesquisa
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center space-x-2">
+                    <BookmarkCheck className="h-4 w-4" />
+                    <span>Guardar Pesquisa</span>
+                  </DialogTitle>
+                  <DialogDescription>
+                    Guarde esta pesquisa para acompanhar novos resultados e receber notificações.
+                  </DialogDescription>
+                </DialogHeader>
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="searchName">Nome da pesquisa</Label>
+                    <Input
+                      id="searchName"
+                      value={saveSearchName}
+                      onChange={(e) => setSaveSearchName(e.target.value)}
+                      placeholder="Ex: Apartamentos no Porto"
+                      maxLength={100}
+                    />
+                  </div>
+                  
+                  <div className="bg-muted p-3 rounded-lg space-y-1 text-sm">
+                    <p className="font-medium text-foreground">Critérios da pesquisa:</p>
+                    {searchQuery && (
+                      <p className="text-muted-foreground">• Termo: "{searchQuery}"</p>
+                    )}
+                    {filters.location && (
+                      <p className="text-muted-foreground">• Localização: {filters.location}</p>
+                    )}
+                    {filters.propertyType && filters.propertyType !== 'any' && (
+                      <p className="text-muted-foreground">• Tipo: {filters.propertyType}</p>
+                    )}
+                    {filters.bedrooms && (
+                      <p className="text-muted-foreground">• Quartos: {filters.bedrooms}+</p>
+                    )}
+                    {filters.bathrooms && (
+                      <p className="text-muted-foreground">• Casas de banho: {filters.bathrooms}+</p>
+                    )}
+                    {(filters.priceRange[0] > 0 || filters.priceRange[1] < 2000000) && (
+                      <p className="text-muted-foreground">
+                        • Preço: €{filters.priceRange[0].toLocaleString()} - €{filters.priceRange[1].toLocaleString()}
+                      </p>
+                    )}
+                    <p className="text-muted-foreground">• Resultados atuais: {filteredAndRankedProperties.length}</p>
+                  </div>
+                </div>
+                
+                <DialogFooter>
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsSaveDialogOpen(false)}
+                    disabled={isSaving}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    onClick={handleSaveSearch}
+                    disabled={isSaving || !saveSearchName.trim()}
+                  >
+                    {isSaving ? 'A guardar...' : 'Guardar Pesquisa'}
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+          )}
+        </div>
       </div>
       
       {/* Properties List */}

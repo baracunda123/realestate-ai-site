@@ -3,27 +3,50 @@ import { Card, CardContent} from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
-import { Search, Trash2, RefreshCw, ArrowRight } from 'lucide-react';
-import type { SavedSearch, User, Property } from '../../types/PersonalArea';
+import { Search, Trash2, RefreshCw } from 'lucide-react';
+import type { SavedSearch, User } from '../../types/PersonalArea';
+import type { Property } from '../../types/property';
 import { EmptyState } from '../EmptyState';
-import { formatDate, getDaysAgo, getPropertyTypeLabel } from '../../utils/PersonalArea';
+import { formatDate, getPropertyTypeLabel } from '../../utils/PersonalArea';
 
 interface PersonalAreaSearchesProps {
-  user: User;
   savedSearches: SavedSearch[];
   onDeleteSearch: (searchId: string) => void;
-  onPropertySelect: (property: Property) => void;
+  onNavigateToHome?: () => void;
+  onExecuteSearch?: (search: SavedSearch) => void;
 }
 
 export function PersonalAreaSearches({ 
-  user, 
   savedSearches, 
   onDeleteSearch, 
-  onPropertySelect 
+  onNavigateToHome,
+  onExecuteSearch
 }: PersonalAreaSearchesProps) {
 
   const handleDeleteSearch = (searchId: string) => {
     onDeleteSearch(searchId);
+  };
+
+  const handleNewSearch = () => {
+    if (onNavigateToHome) {
+      onNavigateToHome();
+    } else {
+      // Fallback para navegação interna sem refresh
+      window.location.hash = '';
+    }
+  };
+
+  const handleExecuteSearch = (search: SavedSearch) => {
+    if (onExecuteSearch) {
+      onExecuteSearch(search);
+    } else {
+      // Fallback - navegar para home com a query da pesquisa
+      if (onNavigateToHome) {
+        onNavigateToHome();
+      } else {
+        window.location.hash = '';
+      }
+    }
   };
 
   if (savedSearches.length === 0) {
@@ -33,10 +56,7 @@ export function PersonalAreaSearches({
         title="Nenhuma pesquisa guardada"
         description="Ainda não guardou nenhuma pesquisa. Faça uma busca e guarde-a para acompanhar novos resultados!"
         actionLabel="Fazer Nova Pesquisa"
-        onAction={() => {
-          // Navigate to home/search
-          window.location.href = '/';
-        }}
+        onAction={handleNewSearch}
       />
     );
   }
@@ -105,6 +125,7 @@ export function PersonalAreaSearches({
                     size="sm"
                     variant="outline"
                     className="text-xs"
+                    onClick={() => handleExecuteSearch(search)}
                   >
                     <RefreshCw className="h-3 w-3 mr-1" />
                     Executar

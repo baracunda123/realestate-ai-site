@@ -36,7 +36,7 @@ function logToTerminal(message: string, level: 'info' | 'warn' | 'error' = 'info
  * Obter todas as pesquisas salvas do usu�rio
  */
 export async function getSavedSearches(): Promise<SavedSearchesResponse> {
-  logToTerminal('Buscando pesquisas salvas do usu�rio');
+  logToTerminal('Buscando pesquisas salvas do usuário');
 
   try {
     const response = await apiClient.get<SavedSearchesResponse>('/api/saved-searches');

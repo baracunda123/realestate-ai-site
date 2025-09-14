@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import type { Property } from '../types/property';
 import type { User, SavedSearch, PropertyAlert, ViewHistoryItem, NotificationSettings, CreateAlertRequest } from '../types/PersonalArea';
+import type { SearchFilters as SearchFiltersType } from '../types/SearchFilters';
 import type { NewAlert } from './NewAlertModalFixed';
 import { NewAlertModal } from './NewAlertModalFixed';
 import { PersonalAreaHeader } from './PersonalArea/PersonalAreaHeader';
@@ -28,18 +29,29 @@ import {
 } from '../api/alerts.service';
 import { 
   getSavedSearches as getSavedSearchesService,
-  deleteSavedSearch as deleteSavedSearchService
+  deleteSavedSearch as deleteSavedSearchService,
+  executeSavedSearch
 } from '../api/saved-searches.service';
 
 interface PersonalAreaProps {
   user: User;
   onPropertySelect: (property: Property) => void;
   onNavigateToAlertResults?: (alert: PropertyAlert) => void;
+  onNavigateToHome?: () => void;
+  onExecuteSearch?: (query: string, filters?: SearchFiltersType) => void;
   favorites: Property[];
   onToggleFavorite: (property: Property) => void;
 }
 
-export function PersonalArea({ user, onPropertySelect, onNavigateToAlertResults, favorites, onToggleFavorite }: PersonalAreaProps) {
+export function PersonalArea({ 
+  user, 
+  onPropertySelect, 
+  onNavigateToAlertResults, 
+  onNavigateToHome,
+  onExecuteSearch,
+  favorites, 
+  onToggleFavorite 
+}: PersonalAreaProps) {
   // UI state
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isNewAlertModalOpen, setIsNewAlertModalOpen] = useState(false);
@@ -139,6 +151,34 @@ export function PersonalArea({ user, onPropertySelect, onNavigateToAlertResults,
     }
   };
 
+  const handleExecuteSavedSearch = async (search: SavedSearch) => {
+    try {
+      // Primeiro navegar para home
+      if (onNavigateToHome) {
+        onNavigateToHome();
+      }
+      
+      // Depois executar a pesquisa
+      if (onExecuteSearch) {
+        onExecuteSearch(search.query, search.filters);
+        toast.success('Executando pesquisa salva...', {
+          description: `Pesquisando: "${search.query}"`
+        });
+      }
+      
+      // Opcional: executar no backend para atualizar estatísticas
+      try {
+        await executeSavedSearch(search.id, false);
+      } catch {
+        // Ignorar erro silenciosamente - a pesquisa ainda funciona no frontend
+      }
+    } catch {
+      toast.error('Erro ao executar pesquisa', {
+        description: 'Tente novamente em alguns instantes.'
+      });
+    }
+  };
+
   // Sem histórico por enquanto (removemos mocks)
   const viewHistory: ViewHistoryItem[] = [];
 
@@ -199,10 +239,10 @@ export function PersonalArea({ user, onPropertySelect, onNavigateToAlertResults,
 
         <TabsContent value="searches">
           <PersonalAreaSearches
-            user={user}
             savedSearches={savedSearches}
             onDeleteSearch={handleDeleteSearch}
-            onPropertySelect={onPropertySelect}
+            onNavigateToHome={onNavigateToHome}
+            onExecuteSearch={handleExecuteSavedSearch}
           />
         </TabsContent>
 
