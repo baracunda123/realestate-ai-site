@@ -38,14 +38,6 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
-// Console logging with enhanced formatting for Azure
-builder.Logging.AddSimpleConsole(options =>
-{
-    options.IncludeScopes = true;
-    options.TimestampFormat = "[yyyy-MM-dd HH:mm:ss.fff] ";
-    options.UseUtcTimestamp = false;
-});
-
 // Add Application Insights for Azure
 builder.Services.AddApplicationInsightsTelemetry();
 
