@@ -35,10 +35,10 @@ var builder = WebApplication.CreateBuilder(args);
 
 // AZURE: Enhanced logging configuration for Azure App Service
 builder.Logging.ClearProviders();
-builder.Logging.AddConsole(options =>
-{
-    options.FormatterName = "simple";
-});
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+
+// Console logging with enhanced formatting for Azure
 builder.Logging.AddSimpleConsole(options =>
 {
     options.IncludeScopes = true;
@@ -49,10 +49,11 @@ builder.Logging.AddSimpleConsole(options =>
 // Add Application Insights for Azure
 builder.Services.AddApplicationInsightsTelemetry();
 
-// Enhanced logging configuration for .NET 9
+// Enhanced logging configuration
 builder.Logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
 builder.Logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
 builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting", LogLevel.Information);
+builder.Logging.AddFilter("realestate_ia_site.Server", LogLevel.Information);
 builder.Logging.SetMinimumLevel(LogLevel.Information);
 
 // SECURITY: Load environment variables for production
@@ -101,7 +102,7 @@ builder.Services.AddIdentity<User, IdentityRole>(options =>
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
-// Authentication / JWT with enhanced security for .NET 9
+// Authentication / JWT with enhanced security
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = "Bearer";
@@ -144,7 +145,7 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Enhanced Rate Limiter with .NET 9 improvements
+// Enhanced Rate Limiter
 builder.Services.AddRateLimiter(options =>
 {
     // General API rate limiting
@@ -202,7 +203,7 @@ builder.Services.AddRateLimiter(options =>
     };
 });
 
-// DbContext with secure connection string and .NET 9 optimizations
+// DbContext with secure connection string
 var connectionString = Environment.GetEnvironmentVariable("DATABASE_CONNECTION_STRING")
                       ?? builder.Configuration.GetConnectionString("DefaultConnection")
                       ?? throw new InvalidOperationException("Database connection string must be configured");
@@ -215,7 +216,7 @@ builder.Services.AddDbContext<ApplicationDbContext>(opt =>
     }));
 builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
 
-// Security Services - Move HttpContextAccessor before SecurityAuditService
+// Security Services
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<SecurityAuditService>();
 
@@ -281,7 +282,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Enhanced CORS with environment-based origins and .NET 9 security improvements
+// Enhanced CORS
 var allowedOrigins = Environment.GetEnvironmentVariable("ALLOWED_ORIGINS")?.Split(',')
                     ?? (builder.Environment.IsDevelopment()
                         ? new[] { "https://localhost:64222" }
@@ -299,19 +300,30 @@ builder.Services.AddCors(options =>
               .AllowAnyMethod()
               .WithHeaders("Content-Type", "Authorization", "X-Session-ID")
               .WithExposedHeaders("X-Total-Count", "X-Page-Count")
-              .SetPreflightMaxAge(TimeSpan.FromMinutes(10)); // .NET 9 optimization
+              .SetPreflightMaxAge(TimeSpan.FromMinutes(10));
     });
 });
 
 var app = builder.Build();
 
-// AZURE: Add startup logging
-var startupLogger = app.Services.GetRequiredService<ILogger<Program>>();
-startupLogger.LogInformation("Application starting up | Environment: {Environment} | Version: {Version}",
-    app.Environment.EnvironmentName,
-    typeof(Program).Assembly.GetName().Version?.ToString() ?? "Unknown");
+// AZURE: Add startup logging with enhanced console output
+Console.WriteLine("=== APPLICATION STARTUP ===");
+Console.WriteLine($"Environment: {app.Environment.EnvironmentName}");
+Console.WriteLine($"Machine: {Environment.MachineName}");
 
-// Enhanced Security headers / CSP for .NET 9
+try
+{
+    var startupLogger = app.Services.GetRequiredService<ILogger<Program>>();
+    startupLogger.LogInformation("🚀 Application starting up | Environment: {Environment} | Version: {Version}",
+        app.Environment.EnvironmentName,
+        typeof(Program).Assembly.GetName().Version?.ToString() ?? "Unknown");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"Failed to get startup logger: {ex.Message}");
+}
+
+// Enhanced Security headers
 app.Use(async (context, next) =>
 {
     var enableSecurityHeaders = Environment.GetEnvironmentVariable("ENABLE_SECURITY_HEADERS") != "false";
@@ -320,18 +332,15 @@ app.Use(async (context, next) =>
     {
         if (app.Environment.IsDevelopment())
         {
-            // Relaxed CSP for development
             context.Response.Headers.ContentSecurityPolicy =
                 "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src 'self' https: http: ws: wss:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;";
         }
         else
         {
-            // Strict CSP for production
             context.Response.Headers.ContentSecurityPolicy =
                 "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https:; img-src 'self' data: https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none';";
         }
 
-        // Modern security headers for .NET 9
         context.Response.Headers.XContentTypeOptions = "nosniff";
         context.Response.Headers.XFrameOptions = "DENY";
         context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
@@ -363,7 +372,7 @@ app.UseGlobalExceptionHandling();
 
 // Security Middleware order is important
 app.UseMiddleware<SessionMiddleware>();
-app.UseMiddleware<SecurityMiddleware>(); // Add security middleware
+app.UseMiddleware<SecurityMiddleware>();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -377,4 +386,5 @@ if (!app.Environment.IsDevelopment())
     app.MapFallbackToFile("/index.html");
 }
 
+Console.WriteLine("=== APPLICATION READY ===");
 app.Run();
