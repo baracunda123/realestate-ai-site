@@ -33,6 +33,21 @@ using realestate_ia_site.Server.Application.Security;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// AZURE: Enhanced logging configuration for Azure App Service
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole(options =>
+{
+    options.IncludeScopes = true;
+    options.TimestampFormat = "[yyyy-MM-dd HH:mm:ss] ";
+});
+
+// Add Application Insights for Azure
+builder.Services.AddApplicationInsightsTelemetry();
+
+builder.Logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
+builder.Logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
+builder.Logging.SetMinimumLevel(LogLevel.Information);
+
 // SECURITY: Load environment variables for production
 if (builder.Environment.IsProduction())
 {
@@ -106,10 +121,11 @@ builder.Services.AddAuthentication(o =>
     {
         OnAuthenticationFailed = context =>
         {
-            // Use built-in logging without trying to resolve scoped service
-            var loggerFactory = context.HttpContext.RequestServices.GetService<ILoggerFactory>();
-            var logger = loggerFactory?.CreateLogger("JwtAuthentication");
-            logger?.LogWarning("JWT Authentication failed: {Message}", context.Exception.Message);
+            var logger = context.HttpContext.RequestServices.GetService<ILogger<Program>>();
+            logger?.LogWarning("JWT Authentication failed: {Message} | Path: {Path} | IP: {IP}", 
+                context.Exception.Message, 
+                context.HttpContext.Request.Path,
+                context.HttpContext.Connection.RemoteIpAddress);
             return Task.CompletedTask;
         }
     };
@@ -162,12 +178,11 @@ builder.Services.AddRateLimiter(options =>
         
     options.OnRejected = async (context, token) =>
     {
-        // Use built-in logging without trying to resolve services from root provider
-        var loggerFactory = context.HttpContext.RequestServices.GetService<ILoggerFactory>();
-        var logger = loggerFactory?.CreateLogger("RateLimiter");
-        logger?.LogWarning("Rate limit exceeded for {Path} from IP {IP}", 
+        var logger = context.HttpContext.RequestServices.GetService<ILogger<Program>>();
+        logger?.LogWarning("Rate limit exceeded for {Path} from IP {IP} | UserAgent: {UserAgent}", 
             context.HttpContext.Request.Path, 
-            context.HttpContext.Connection.RemoteIpAddress);
+            context.HttpContext.Connection.RemoteIpAddress,
+            context.HttpContext.Request.Headers.UserAgent.FirstOrDefault());
         
         context.HttpContext.Response.StatusCode = 429;
         await context.HttpContext.Response.WriteAsync("Rate limit exceeded. Please try again later.", token);
@@ -272,6 +287,12 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// AZURE: Add startup logging
+var startupLogger = app.Services.GetRequiredService<ILogger<Program>>();
+startupLogger.LogInformation("Application starting up | Environment: {Environment} | Version: {Version}", 
+    app.Environment.EnvironmentName, 
+    typeof(Program).Assembly.GetName().Version?.ToString() ?? "Unknown");
 
 // Enhanced Security headers / CSP
 app.Use(async (context, next) =>

@@ -82,8 +82,6 @@ namespace realestate_ia_site.Server.Infrastructure.Payments
                         },
                     },
                     Mode = "subscription",
-                    SuccessUrl = _stripeOptions.SuccessUrl,
-                    CancelUrl = _stripeOptions.CancelUrl,
                     ClientReferenceId = userId,
                     Metadata = new Dictionary<string, string>
                     {
