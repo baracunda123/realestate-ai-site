@@ -207,13 +207,16 @@ public class AuthService
 
     private async Task CreateLoginSessionAsync(User user, string? ip, CancellationToken ct)
     {
+        var utcNow = DateTime.UtcNow;
         var session = new UserLoginSession
         {
             UserId = user.Id,
             SessionToken = Guid.NewGuid().ToString(),
             IpAddress = ip,
             UserAgent = string.Empty,
-            ExpiresAt = DateTime.UtcNow.AddDays(30)
+            LoginAt = utcNow,
+            LastActivity = utcNow,
+            ExpiresAt = utcNow.AddDays(30)
         };
         _context.UserLoginSessions.Add(session);
         await _context.SaveChangesAsync(ct);

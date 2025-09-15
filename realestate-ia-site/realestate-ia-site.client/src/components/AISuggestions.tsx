@@ -5,9 +5,11 @@ import { Badge } from './ui/badge';
 import { Sparkles, TrendingUp, MapPin, DollarSign, Brain, Target } from 'lucide-react';
 
 
+import type { User } from '../types/PersonalArea';
+
 interface AISuggestionsProps {
   searchQuery: string;
-  user?: any;
+  user?: User | null;
 }
 
 export function AISuggestions({ searchQuery, user }: AISuggestionsProps) {
@@ -84,7 +86,7 @@ export function AISuggestions({ searchQuery, user }: AISuggestionsProps) {
           {activeSuggestions.map((suggestion, index) => {
             const IconComponent = suggestion.icon;
             return (
-              <div key={index} className="space-y-3">
+              <div key={`suggestion-${suggestion.title}-${index}`} className="space-y-3">
                 <div className="flex items-start space-x-3">
                   <div className={`w-10 h-10 ${suggestion.iconBg} rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5 border border-pale-clay-deep shadow-clay-whisper`}>
                     <IconComponent className={`h-5 w-5 ${suggestion.iconColor}`} />

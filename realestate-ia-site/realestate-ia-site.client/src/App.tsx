@@ -1,64 +1,148 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import { useState, useEffect, lazy, Suspense, useCallback, useMemo } from 'react';
 import { Header } from './components/Header';
 import { PersonalArea } from './components/PersonalArea';
 import { Footer } from './components/Footer';
 import { toast } from 'sonner';
 import { Toaster } from './components/ui/sonner';
 import { type PropertyAlert } from './types/PersonalArea';
-import { type SearchFilters as SearchFiltersType } from './types/SearchFilters';
+import { type SearchFilters as SearchFiltersType, DEFAULT_SEARCH_FILTERS } from './types/SearchFilters';
 import { type Property } from './types/property';
-import { getCurrentLimits } from './utils/PersonalArea';
+import { getCurrentUser, logout, authUtils } from './api/auth.service';
+import { createSafeDate } from './utils/PersonalArea';
+import { useDebounce } from './hooks/useOptimizedCallbacks';
+import type { UserProfile } from './api/client';
+import { getAlertMatches } from './api/alerts.service';
 
+// Lazy load components for better performance
 const SearchFilters = lazy(() => import('./components/SearchFilters').then(m => ({ default: m.SearchFilters })));
 const PropertyGrid = lazy(() => import('./components/PropertyGrid').then(m => ({ default: m.PropertyGrid })));
 const PropertyModal = lazy(() => import('./components/PropertyModal').then(m => ({ default: m.PropertyModal })));
 const MapView = lazy(() => import('./components/MapView').then(m => ({ default: m.MapView })));
 const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
 const WelcomeScreen = lazy(() => import('./components/WelcomeScreen').then(m => ({ default: m.WelcomeScreen })));
-const PremiumFeaturesModal = lazy(() => import('./components/PremiumFeaturesModal').then(m => ({ default: m.PremiumFeaturesModal })));
-const UpgradeModal = lazy(() => import('./components/UpgradeModal').then(m => ({ default: m.UpgradeModal })));
 const AlertResults = lazy(() => import('./components/AlertResults').then(m => ({ default: m.AlertResults })));
 
+// Loading components otimizados
+const LoadingSpinner = () => (
+  <div className="flex items-center justify-center p-8">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-burnt-peach"></div>
+  </div>
+);
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
+// View types
+type ViewType = 'home' | 'personal' | 'alert-results';
+type ViewMode = 'grid' | 'map';
+type AuthTab = 'signin' | 'signup';
+
+// Extended user interface para uso interno com BD UserProfile
+interface ExtendedUserProfile extends UserProfile {
+  // Campos adicionais calculados para compatibilidade
+  name?: string;
+  phone?: string;
   avatar?: string;
-  isPremium?: boolean;
-  createdAt: Date;
 }
 
 export default function App() {
+  // Property-related state
   const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
-  const [searchFilters, setSearchFilters] = useState<SearchFiltersType>({
-    priceRange: [0, 2000000],
-    bedrooms: null,
-    bathrooms: null,
-    propertyType: '',
-    location: '',
-    sortBy: 'price'
-  });
-  const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
   const [favorites, setFavorites] = useState<Property[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentView, setCurrentView] = useState<'home' | 'personal' | 'alert-results'>('home');
-  const [selectedAlert, setSelectedAlert] = useState<PropertyAlert | null>(null);
   const [searchResults, setSearchResults] = useState<Property[] | null>(null);
+  
+  // Search and filter state - usando novos tipos
+  const [searchFilters, setSearchFilters] = useState<SearchFiltersType>(DEFAULT_SEARCH_FILTERS);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  
+  // Navigation state
+  const [currentView, setCurrentView] = useState<ViewType>('home');
+  const [selectedAlert, setSelectedAlert] = useState<PropertyAlert | null>(null);
+  
+  // Alert results state (API)
+  const [alertProperties, setAlertProperties] = useState<Property[] | null>(null);
+  const [alertLoading, setAlertLoading] = useState(false);
+  const [alertError, setAlertError] = useState<string | null>(null);
+  
+  // AI state
   const [aiText, setAiText] = useState<string>('');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   
-  // Authentication state
-  const [user, setUser] = useState<User | null>(null);
+  // Authentication state - usando novos tipos
+  const [user, setUser] = useState<ExtendedUserProfile | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authDefaultTab, setAuthDefaultTab] = useState<'signin' | 'signup'>('signin');
-  const [signupIntent, setSignupIntent] = useState<'free' | 'premium' | null>(null);
+  const [authDefaultTab, setAuthDefaultTab] = useState<AuthTab>('signin');
   
-  // Premium upgrade modals state
-  const [isPremiumFeaturesModalOpen, setIsPremiumFeaturesModalOpen] = useState(false);
-  const [isUpgradeModalOpen, setIsUpgradeModalOpen] = useState(false);
+  // Memoized values para evitar recálculos
+  const isDefaultState = useMemo((): boolean => {
+    const isDefaultFilters = 
+      searchFilters.location === '' &&
+      searchFilters.priceRange[0] === 0 &&
+      searchFilters.priceRange[1] === 2000000 &&
+      searchFilters.bedrooms === null &&
+      searchFilters.bathrooms === null &&
+      searchFilters.propertyType === 'any' &&
+      searchFilters.sortBy === 'price';
+    
+    return searchQuery.trim() === '' && isDefaultFilters;
+  }, [searchFilters, searchQuery]);
+
+  const showWelcomeScreen = useMemo(() => 
+    !user || (user && isDefaultState && currentView === 'home'), 
+    [user, isDefaultState, currentView]
+  );
+
+  // Initialize authentication and favorites
+  useEffect(() => {
+    const initializeApp = async () => {
+      // Check authentication
+      try {
+        const currentUser = await getCurrentUser();
+        if (currentUser) {
+          // Extend user profile com campos calculados para compatibilidade
+          const extendedUser: ExtendedUserProfile = {
+            ...currentUser,
+            name: currentUser.fullName || currentUser.name || '',
+            phone: currentUser.phoneNumber || '',
+            avatar: currentUser.avatarUrl,
+          };
+          setUser(extendedUser);
+        }
+      } catch {
+        // Silenciar erro de inicialização
+        authUtils.clearTokens();
+      }
+
+      // Load favorites from localStorage
+      try {
+        const savedFavorites = localStorage.getItem('hf_favorites');
+        if (savedFavorites) {
+          const parsed = JSON.parse(savedFavorites);
+          // Validar estrutura dos favoritos
+          if (Array.isArray(parsed)) {
+            setFavorites(parsed.filter(fav => fav && fav.id));
+          }
+        }
+      } catch {
+        // Silenciar erro de favoritos
+        setFavorites([]);
+      }
+    };
+
+    initializeApp();
+  }, []);
+
+  // Persist favorites to localStorage - debounced para performance
+  const debouncedSaveFavorites = useDebounce((favs: Property[]) => {
+    try {
+      localStorage.setItem('hf_favorites', JSON.stringify(favs));
+    } catch {
+      // Silenciar erro de localStorage
+    }
+  }, 500);
+
+  useEffect(() => {
+    debouncedSaveFavorites(favorites);
+  }, [favorites, debouncedSaveFavorites]);
 
   // Handle URL navigation
   useEffect(() => {
@@ -70,10 +154,10 @@ export default function App() {
       } else if (hash === '#alert-results' && user && selectedAlert) {
         setCurrentView('alert-results');
       } else if (hash === '#alert-results' && user && !selectedAlert) {
-        // If trying to access alert results but no alert selected, go to personal
+        // Redirect to personal if trying to access alert results without selected alert
         setCurrentView('personal');
         window.location.hash = '#personal';
-      } else if (!hash || hash === '#' || !user) {
+      } else {
         setCurrentView('home');
         if (hash && hash !== '#') {
           window.location.hash = '';
@@ -87,7 +171,7 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, [user, selectedAlert]);
 
-  // Redirect to home if user logs out while in personal area or alert results
+  // Redirect to home if user logs out while in protected views
   useEffect(() => {
     if (!user && (currentView === 'personal' || currentView === 'alert-results')) {
       setCurrentView('home');
@@ -96,292 +180,226 @@ export default function App() {
     }
   }, [user, currentView]);
 
-  // Function to update filters (can be used by AI)
-  const updateFilters = (newFilters: Partial<SearchFiltersType>) => {
-    if (!user) {
-      openAuthModal();
-      return;
-    }
-    setSearchFilters(prevFilters => ({
-      ...prevFilters,
-      ...newFilters
-    }));
-  };
-
-  // Check if we should show welcome screen - always show for non-logged users
-  const isDefaultState = () => {
-    const isDefaultFilters = 
-      searchFilters.priceRange[0] === 0 &&
-      searchFilters.priceRange[1] === 2000000 &&
-      searchFilters.bedrooms === null &&
-      searchFilters.bathrooms === null &&
-      searchFilters.propertyType === '' &&
-      searchFilters.location === '' &&
-      searchFilters.sortBy === 'price';
-    
-    return searchQuery.trim() === '' && isDefaultFilters;
-  };
-
-  // Persist favorites in localStorage
+  // Fetch alert results from API when entering alert-results view
   useEffect(() => {
-    const raw = localStorage.getItem('hf_favorites');
-    if (raw) {
-      try { setFavorites(JSON.parse(raw)); } catch {}
-    }
+    const fetchAlertProperties = async () => {
+      if (currentView !== 'alert-results' || !selectedAlert) return;
+      setAlertLoading(true);
+      setAlertError(null);
+      try {
+        const resp = await getAlertMatches(selectedAlert.id, 1, 50, false);
+        setAlertProperties(resp.properties || []);
+      } catch (e) {
+        setAlertProperties([]);
+        setAlertError('Não foi possível carregar os resultados do alerta.');
+      } finally {
+        setAlertLoading(false);
+      }
+    };
+
+    fetchAlertProperties();
+  }, [currentView, selectedAlert]);
+
+  // Optimized callbacks
+  const resetToDefaults = useCallback(() => {
+    setSearchQuery('');
+    setSearchFilters(DEFAULT_SEARCH_FILTERS);
+    setSearchResults(null);
+    setAiText('');
+    setAiError(null);
   }, []);
 
-  useEffect(() => {
-    localStorage.setItem('hf_favorites', JSON.stringify(favorites));
-  }, [favorites]);
+  // Navigation handlers - memoizados
+  const navigateToPersonalArea = useCallback(() => {
+    if (user) {
+      setCurrentView('personal');
+      window.location.hash = '#personal';
+    } else {
+      setAuthDefaultTab('signin');
+      setIsAuthModalOpen(true);
+    }
+  }, [user]);
 
-  const toggleFavorite = (property: Property) => {
-    // Limits only enforce on add
+  const navigateToHome = useCallback(() => {
+    // Reset everything to default state to ensure WelcomeScreen is shown
+    resetToDefaults();
+    setCurrentView('home');
+    window.location.hash = '';
+  }, [resetToDefaults]);
+
+  const navigateToAlertResults = useCallback((alert: PropertyAlert) => {
+    setSelectedAlert(alert);
+    setCurrentView('alert-results');
+    window.location.hash = '#alert-results';
+  }, []);
+
+  const navigateBackFromAlertResults = useCallback(() => {
+    setSelectedAlert(null);
+    setCurrentView('personal');
+    window.location.hash = '#personal';
+  }, []);
+
+  // Property handlers - otimizados
+  const toggleFavorite = useCallback((property: Property) => {
     const exists = favorites.some(p => p.id === property.id);
+    
     if (!exists) {
       if (!user) {
-        openAuthModal();
+        setAuthDefaultTab('signin');
+        setIsAuthModalOpen(true);
         return;
       }
-      const limits = getCurrentLimits(user as any);
-      if (!user.isPremium && favorites.length >= limits.maxFavorites) {
-        toast.error('Limite de favoritos atingido', {
-          description: `Plano Free permite até ${limits.maxFavorites}. Faça upgrade para ilimitados.`,
-        });
-        return;
-      }
+      
     }
-    setFavorites(prev => exists ? prev.filter(p => p.id !== property.id) : [...prev, property]);
-  };
+    
+    setFavorites(prev => 
+      exists 
+        ? prev.filter(p => p.id !== property.id) 
+        : [...prev, property]
+    );
 
-  // Handle example search from welcome screen
-  const handleExampleSearch = (query: string) => {
+    toast.success(exists ? 'Removido dos favoritos' : 'Adicionado aos favoritos', {
+      description: property.title || 'Propriedade atualizada',
+    });
+  }, [favorites, user]);
+
+  // Search handlers - otimizados
+  const handleExampleSearch = useCallback((query: string) => {
     if (!user) {
-      openAuthModal();
+      setAuthDefaultTab('signin');
+      setIsAuthModalOpen(true);
       return;
     }
     setSearchQuery(query);
     setCurrentView('home');
     window.location.hash = '';
     toast.success('Pesquisa iniciada!', {
-      description: `A pesquisar: "${query}"`,
+      description: `Pesquisando: "${query}"`,
     });
-  };
+  }, [user]);
 
-  // Navigation handler
-  const navigateToPersonalArea = () => {
-    if (user) {
-      setCurrentView('personal');
-      window.location.hash = '#personal';
-    } else {
-      openAuthModal();
-    }
-  };
-
-  const navigateToHome = () => {
-    setCurrentView('home');
-    window.location.hash = '';
-  };
-
-  const navigateToAlertResults = (alert: PropertyAlert) => {
-    setSelectedAlert(alert);
-    setCurrentView('alert-results');
-    window.location.hash = '#alert-results';
-  };
-
-  const navigateBackFromAlertResults = () => {
-    setSelectedAlert(null);
-    setCurrentView('personal');
-    window.location.hash = '#personal';
-  };
-
-  // Generate mock properties for alert results
-  const generateAlertProperties = (alert: PropertyAlert): Property[] => {
-    const mockProperties: Property[] = [
-      {
-        id: 'alert-1',
-        title: `Apartamento Moderno em ${alert.location}`,
-        price: alert.priceRange[0] + (alert.priceRange[1] - alert.priceRange[0]) * 0.3,
-        bedrooms: alert.bedrooms || 2,
-        bathrooms: alert.bathrooms || 2,
-        area: 1200,
-        location: alert.location,
-        address: `123 Rua Principal, ${alert.location}`,
-        images: [
-          'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop',
-          'https://images.unsplash.com/photo-1562663474-6cbb3eaa4d14?w=800&h=600&fit=crop'
-        ],
-        description: `Propriedade encontrada através do seu alerta "${alert.name}". Corresponde perfeitamente aos seus critérios!`,
-        features: ['Corresponde ao Alerta', 'Recém Listado', 'Vista Panorâmica', 'Garagem'],
-        yearBuilt: 2020,
-        propertyType: alert.propertyType as any,
-        listingAgent: {
-          name: 'Ana Silva',
-          phone: '(11) 99999-1111',
-          email: 'ana@alertaimoveis.com'
-        }
-      },
-      {
-        id: 'alert-2',
-        title: `${alert.propertyType === 'house' ? 'Casa' : 'Apartamento'} Premium ${alert.location}`,
-        price: alert.priceRange[0] + (alert.priceRange[1] - alert.priceRange[0]) * 0.7,
-        bedrooms: (alert.bedrooms || 2) + 1,
-        bathrooms: (alert.bathrooms || 2),
-        area: 1600,
-        location: alert.location,
-        address: `456 Av. Central, ${alert.location}`,
-        images: [
-          'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=800&h=600&fit=crop',
-          'https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?w=800&h=600&fit=crop'
-        ],
-        description: `Exclusiva propriedade que atende todos os critérios do seu alerta "${alert.name}". Nova no mercado!`,
-        features: ['Match Perfeito', 'Acabamento Premium', 'Localização Privilegiada', 'Piscina'],
-        yearBuilt: 2021,
-        propertyType: alert.propertyType as any,
-        listingAgent: {
-          name: 'Carlos Santos',
-          phone: '(11) 99999-2222',
-          email: 'carlos@alertaimoveis.com'
-        }
-      }
-    ];
-
-    return mockProperties.slice(0, alert.newMatches || 2);
-  };
-
-  // Authentication handlers
-  const handleSignIn = (email: string, password: string) => {
-    // Mock authentication
-    const mockUser: User = {
-      id: '1',
-      name: 'João Silva',
-      email: email,
-      phone: '(11) 99999-9999',
-      isPremium: false,  // Set to Free to test limitations
-      createdAt: new Date()
-    };
-
-    setUser(mockUser);
-    setIsAuthModalOpen(false);
-
-    // If the user clicked "Assinar Premium" and chose to sign in instead, open upgrade flow
-    if (signupIntent === 'premium' && !mockUser.isPremium) {
-      setSignupIntent(null);
-      setTimeout(() => {
-        setIsUpgradeModalOpen(true);
-      }, 0);
-    }
-
-    toast.success(`Bem-vindo de volta, ${mockUser.name}!`, {
-      description: 'Sessão iniciada com sucesso.',
-    });
-  };
-
-  const handleSignUp = (name: string, email: string, phone: string, password: string) => {
-    // Mock registration
-    const mockUser: User = {
-      id: Date.now().toString(),
-      name: name,
-      email: email,
-      phone: phone,
-      isPremium: false,
-      createdAt: new Date()
-    };
-
-    setUser(mockUser);
-
-    // Decide post-signup flow based on intent
-    if (signupIntent === 'premium') {
-      setIsAuthModalOpen(false);
-      setSignupIntent(null);
-      setTimeout(() => {
-        setIsUpgradeModalOpen(true);
-      }, 0);
-      toast.success(`Conta criada com sucesso!`, {
-        description: `Agora conclua o pagamento para ativar o Premium.`,
-      });
-    } else {
-      setIsAuthModalOpen(false);
-      setSignupIntent(null);
-      toast.success(`Conta criada com sucesso!`, {
-        description: `Bem-vindo ao HomeFinder AI, ${mockUser.name}!`,
-      });
-    }
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    setCurrentView('home');
-    setSearchQuery(''); // Clear search when logging out
-    // Reset filters to default
-    setSearchFilters({
-      priceRange: [0, 2000000],
-      bedrooms: null,
-      bathrooms: null,
-      propertyType: '',
-      location: '',
-      sortBy: 'price'
-    });
-    window.location.hash = '';
-    toast.success('Sess��o terminada com sucesso!', {
-      description: 'Até logo! Esperamos vê-lo em breve.',
-    });
-  };
-
-  // Modal handlers
-  const openAuthModal = (tab: 'signin' | 'signup' = 'signin', intent: 'free' | 'premium' | null = null) => {
-    setAuthDefaultTab(tab);
-    setSignupIntent(intent);
-    setIsAuthModalOpen(true);
-  };
-
-  const openPremiumFeaturesModal = () => {
-    setIsPremiumFeaturesModalOpen(true);
-  };
-
-  const openUpgradeModal = () => {
-    setIsPremiumFeaturesModalOpen(false);
-    setIsUpgradeModalOpen(true);
-  };
-
-  const handleBackToPremiumFeatures = () => {
-    setIsUpgradeModalOpen(false);
-    setIsPremiumFeaturesModalOpen(true);
-  };
-
-  const handleUpgradeComplete = () => {
-    // Update user to premium
-    if (user) {
-      setUser({
-        ...user,
-        isPremium: true
+  const handleSubmitSearch = useCallback(async (query: string, filters?: SearchFiltersType) => {
+    setAiLoading(true);
+    setAiError(null);
+    
+    try {
+      const { searchProperties } = await import('./api/properties.service');
+      const result = await searchProperties({ 
+        searchQuery: query,
+        includeAiAnalysis: true,
+        includeMarketData: true
       });
       
-      toast.success('Upgrade realizado com sucesso!', {
-        description: 'Bem-vindo ao Premium! Todas as funcionalidades foram desbloqueadas.',
+      setSearchResults(result.properties || []);
+      setAiText(result.aiResponse || '');
+      setSearchQuery(query);
+      
+      // Se filters foram fornecidos, aplicá-los
+      if (filters) {
+        setSearchFilters(filters);
+      }
+      
+      if (currentView !== 'home') setCurrentView('home');
+      if (window.location.hash) window.location.hash = '';
+      
+      if (result.properties?.length === 0) {
+        toast.info('Nenhum resultado encontrado', { 
+          description: 'IA fornecerá sugestões mesmo sem listagens.' 
+        });
+      } else {
+        toast.success(`${result.properties.length} propriedades encontradas`, {
+          description: 'Resultados carregados com análise da IA',
+        });
+      }
+    } catch {
+      setSearchResults([]);
+      setAiText('');
+      setAiError('Não foi possível obter resposta da IA no momento.');
+      setSearchQuery(query);
+      
+      // Se filters foram fornecidos, aplicá-los mesmo com erro
+      if (filters) {
+        setSearchFilters(filters);
+      }
+      
+      if (currentView !== 'home') setCurrentView('home');
+      if (window.location.hash) window.location.hash = '';
+      
+      toast.error('Erro na pesquisa', {
+        description: 'Tente novamente em alguns instantes.',
       });
+    } finally {
+      setAiLoading(false);
     }
-    
-    setIsUpgradeModalOpen(false);
-    setIsPremiumFeaturesModalOpen(false);
-  };
+  }, [currentView]);
 
-  // Show welcome screen for non-logged users OR logged users with default state
-  const showWelcomeScreen = !user || (user && isDefaultState() && currentView === 'home');
+  // Authentication handlers - otimizados
+  const handleAuthSuccess = useCallback(async () => {
+    try {
+      const currentUser = await getCurrentUser();
+      if (currentUser) {
+        const extendedUser: ExtendedUserProfile = {
+          ...currentUser,
+          name: currentUser.fullName || currentUser.name || '',
+          phone: currentUser.phoneNumber || '',
+          avatar: currentUser.avatarUrl
+        };
+        setUser(extendedUser);
+        
 
-  // Block search functionality for non-logged users
-  const handleSearchQueryChange = (query: string) => {
-    if (!user) {
-      openAuthModal();
-      return;
+        toast.success(`Bem-vindo, ${currentUser.fullName || currentUser.name || 'utilizador'}!`, {
+            description: 'Inicio de sessão efetuado com sucesso.',
+        });
+      }
+    } catch {
+      toast.error('Erro ao carregar dados do utilizador');
     }
-    setSearchQuery(query);
-  };
+  }, []);
+
+  const handleLogout = useCallback(async () => {
+    try {
+      await logout();
+      setUser(null);
+      setCurrentView('home');
+      resetToDefaults();
+      window.location.hash = '';
+      
+      toast.success('Logout realizado com sucesso!', {
+        description: 'Até breve!',
+      });
+    } catch {
+      authUtils.clearTokens();
+      setUser(null);
+      toast.error('Erro no logout, mas desconectado localmente.');
+    }
+  }, [resetToDefaults]);
+
+  // Modal handlers - otimizados
+  const openAuthModal = useCallback((tab: AuthTab = 'signin') => {
+    setAuthDefaultTab(tab);
+    setIsAuthModalOpen(true);
+  }, []);
+
+  // Convert extended user to regular user for components that need it - memoizado
+  const convertToUser = useCallback((extendedUser: ExtendedUserProfile) => ({
+    id: extendedUser.id,
+    email: extendedUser.email,
+    fullName: extendedUser.fullName,
+    name: extendedUser.name || extendedUser.fullName || '',
+    phone: extendedUser.phone || extendedUser.phoneNumber || '',
+    avatar: extendedUser.avatar || extendedUser.avatarUrl,
+    avatarUrl: extendedUser.avatarUrl,
+    phoneNumber: extendedUser.phoneNumber,
+    credits: extendedUser.credits,
+    isEmailVerified: extendedUser.isEmailVerified,
+    createdAt: createSafeDate(extendedUser.createdAt),
+    updatedAt: extendedUser.updatedAt ? createSafeDate(extendedUser.updatedAt) : undefined
+  }), []);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header
         searchQuery={searchQuery}
-        setSearchQuery={handleSearchQueryChange}
         viewMode={viewMode}
         setViewMode={setViewMode}
         user={user}
@@ -390,33 +408,7 @@ export default function App() {
         onNavigateToPersonal={navigateToPersonalArea}
         onNavigateToHome={navigateToHome}
         currentView={currentView}
-        onOpenUpgradeModal={openUpgradeModal}
-        onSubmitSearch={async (q) => {
-          setAiLoading(true);
-          setAiError(null);
-          try {
-            const { searchProperties } = await import('./api/properties.service');
-            const res = await searchProperties({ searchQuery: q });
-            const props = res.properties || [];
-            setSearchResults(props);
-            setAiText(res.aiResponse || '');
-            setSearchQuery(q);
-            if (currentView !== 'home') setCurrentView('home');
-            if (window.location.hash) window.location.hash = '';
-            if (props.length === 0) {
-              toast.info('Sem resultados', { description: 'A IA responderá com dicas mesmo sem listagens.' });
-            }
-          } catch {
-            setSearchResults([]);
-            setAiText('');
-            setAiError('Não foi possível obter a resposta da IA agora.');
-            setSearchQuery(q);
-            if (currentView !== 'home') setCurrentView('home');
-            if (window.location.hash) window.location.hash = '';
-          } finally {
-            setAiLoading(false);
-          }
-        }}
+        onSubmitSearch={handleSubmitSearch}
         aiText={aiText}
         aiLoading={aiLoading}
         aiError={aiError}
@@ -424,42 +416,41 @@ export default function App() {
       
       <main className="flex-1 site-container py-8">
         {currentView === 'alert-results' && user && selectedAlert ? (
-          <div className="site-container">
-            <Suspense fallback={null}>
+          <Suspense fallback={<LoadingSpinner />}>
+            {alertLoading ? (
+              <LoadingSpinner />
+            ) : (
               <AlertResults
                 alert={selectedAlert}
-                properties={generateAlertProperties(selectedAlert)}
+                properties={alertProperties || []}
                 onBack={navigateBackFromAlertResults}
                 onPropertySelect={setSelectedProperty}
                 favorites={favorites}
                 onToggleFavorite={toggleFavorite}
               />
-            </Suspense>
-          </div>
+            )}
+          </Suspense>
         ) : currentView === 'personal' && user ? (
           <PersonalArea
-            user={user}
+            user={convertToUser(user)}
             onPropertySelect={setSelectedProperty}
-            onOpenUpgradeModal={openUpgradeModal}
             onNavigateToAlertResults={navigateToAlertResults}
+            onNavigateToHome={navigateToHome}
+            onExecuteSearch={handleSubmitSearch}
             favorites={favorites}
             onToggleFavorite={toggleFavorite}
           />
         ) : showWelcomeScreen ? (
-          <div className="site-container">
-            <Suspense fallback={null}>
-              <WelcomeScreen
-                onExampleSearch={handleExampleSearch}
-                onOpenPremiumFeatures={openPremiumFeaturesModal}
-                user={user}
-                onStartFreeSignup={() => openAuthModal('signup', 'free')}
-                onStartPremiumSignup={() => openAuthModal('signup', 'premium')}
-              />
-            </Suspense>
-          </div>
+          <Suspense fallback={<LoadingSpinner />}>
+            <WelcomeScreen
+              onExampleSearch={handleExampleSearch}
+              user={user ? convertToUser(user) : null}
+              onStartSignup={() => openAuthModal('signup')}
+            />
+          </Suspense>
         ) : (
           user && (
-            <Suspense fallback={null}>
+            <Suspense fallback={<LoadingSpinner />}>
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 <div className="lg:col-span-1 space-y-6">
                   <SearchFilters
@@ -470,14 +461,13 @@ export default function App() {
                 <div className="lg:col-span-3">
                   {viewMode === 'grid' ? (
                     <PropertyGrid
-                    filters={searchFilters}
-                    searchQuery={searchQuery}
-                    serverResults={searchResults || undefined}
-                    onPropertySelect={setSelectedProperty}
-                    onFiltersUpdate={updateFilters}
-                    favorites={favorites}
-                    onToggleFavorite={toggleFavorite}
-                  />
+                      filters={searchFilters}
+                      searchQuery={searchQuery}
+                      serverResults={searchResults || undefined}
+                      onPropertySelect={setSelectedProperty}
+                      favorites={favorites}
+                      onToggleFavorite={toggleFavorite}
+                    />
                   ) : (
                     <MapView
                       filters={searchFilters}
@@ -492,7 +482,6 @@ export default function App() {
         )}
       </main>
 
-      {/* Footer Fixo */}
       <Footer />
 
       {/* Modals */}
@@ -509,30 +498,11 @@ export default function App() {
         <AuthModal
           isOpen={isAuthModalOpen}
           onClose={() => setIsAuthModalOpen(false)}
-          onSignIn={handleSignIn}
-          onSignUp={handleSignUp}
+          onSuccess={handleAuthSuccess}
           defaultTab={authDefaultTab}
         />
       </Suspense>
 
-      <Suspense fallback={null}>
-        <PremiumFeaturesModal
-          isOpen={isPremiumFeaturesModalOpen}
-          onClose={() => setIsPremiumFeaturesModalOpen(false)}
-          onUpgrade={openUpgradeModal}
-        />
-      </Suspense>
-
-      <Suspense fallback={null}>
-        <UpgradeModal
-          isOpen={isUpgradeModalOpen}
-          onClose={() => setIsUpgradeModalOpen(false)}
-          onBack={handleBackToPremiumFeatures}
-          onUpgradeComplete={handleUpgradeComplete}
-        />
-      </Suspense>
-
-      {/* Toast Notifications */}
       <Toaster richColors position="top-right" />
     </div>
   );

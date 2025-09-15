@@ -348,6 +348,14 @@ namespace realestate_ia_site.Server.Data.Migrations
                     b.Property<bool>("PhoneNumberConfirmed")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("RefreshToken")
+                        .HasColumnType("text")
+                        .HasColumnName("refresh_token");
+
+                    b.Property<DateTime?>("RefreshTokenExpires")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("refresh_token_expires");
+
                     b.Property<string>("SecurityStamp")
                         .HasColumnType("text");
 

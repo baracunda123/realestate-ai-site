@@ -19,19 +19,19 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
   });
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('pt-BR', {
+    return new Intl.NumberFormat('pt-PT', {
       style: 'currency',
-      currency: 'BRL',
+      currency: 'EUR',
       maximumFractionDigits: 0,
-    }).format(price * 5.5); // Conversão mock para Real
+    }).format(price);
   };
 
   const parsePriceInput = (value: string) => {
     const parsed = parseInt(value.replace(/\D/g, ''));
-    return isNaN(parsed) ? 0 : Math.round(parsed / 5.5);
+    return isNaN(parsed) ? 0 : parsed;
   };
 
-  const updateFilter = (key: keyof SearchFiltersType, value: any) => {
+  const updateFilter = <K extends keyof SearchFiltersType>(key: K, value: SearchFiltersType[K]) => {
     setFilters({ ...filters, [key]: value });
   };
 
@@ -79,13 +79,13 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
       <CardContent className="space-y-6">
         {/* Price Range */}
         <div className="space-y-3">
-          <Label className="text-sm font-semibold text-deep-mocha">Faixa de Preço</Label>
+          <Label className="text-sm font-semibold text-deep-mocha">Intervalo de Preços</Label>
           
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
               <Label className="text-xs text-warm-taupe">Preço Mínimo</Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-warm-taupe">R$</span>
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-warm-taupe">€</span>
                 <Input
                   placeholder="0"
                   value={manualPrices.min}
@@ -99,9 +99,9 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
             <div className="space-y-1">
               <Label className="text-xs text-warm-taupe">Preço Máximo</Label>
               <div className="relative">
-                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-warm-taupe">R$</span>
+                <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-warm-taupe">€</span>
                 <Input
-                  placeholder="11.000.000"
+                  placeholder="2.000.000"
                   value={manualPrices.max}
                   onChange={(e) => handleManualPriceChange('max', e.target.value)}
                   onKeyPress={handleManualPriceKeyPress}
@@ -126,15 +126,15 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
               onClick={resetManualPrices}
               className="border border-pale-clay-deep bg-pure-white hover:bg-pale-clay-light text-warm-taupe text-xs px-3 py-1 h-7"
             >
-              Resetar
+              Limpar
             </Button>
           </div>
 
           {/* Current Range Display */}
-          {(filters.priceRange[0] > 0 || filters.priceRange[1] < 2000000) && (
+          {filters.priceRange && (filters.priceRange[0] > 0 || filters.priceRange[1] < 2000000) && (
             <div className="bg-pale-clay-light border border-pale-clay-deep rounded-lg p-3">
               <div className="flex justify-between text-sm">
-                <span className="text-warm-taupe">Faixa atual:</span>
+                <span className="text-warm-taupe">Intervalo atual:</span>
                 <span className="font-medium text-burnt-peach-dark">
                   {formatPrice(filters.priceRange[0])} - {formatPrice(filters.priceRange[1])}
                 </span>
@@ -155,7 +155,7 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
               <SelectItem value="house">Casa</SelectItem>
               <SelectItem value="apartment">Apartamento</SelectItem>
               <SelectItem value="condo">Condomínio</SelectItem>
-              <SelectItem value="townhouse">Sobrado</SelectItem>
+              <SelectItem value="townhouse">Moradia</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -184,7 +184,7 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
 
         {/* Bathrooms */}
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-deep-mocha">Banheiros</Label>
+          <Label className="text-sm font-semibold text-deep-mocha">Casas de Banho</Label>
           <div className="grid grid-cols-5 gap-2">
             {[null, 1, 2, 3, 4].map((num) => (
               <Button
@@ -208,8 +208,8 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
         <div className="space-y-2">
           <Label className="text-sm font-semibold text-deep-mocha">Localização</Label>
           <Input
-            placeholder="Digite cidade, bairro ou CEP"
-            value={filters.location}
+            placeholder="Digite cidade, distrito ou código postal"
+            value={filters.location || ''}
             onChange={(e) => updateFilter('location', e.target.value)}
             className="border border-pale-clay-deep bg-pure-white text-deep-mocha placeholder:text-warm-taupe-light hover:border-burnt-peach focus:border-burnt-peach transition-colors"
           />
@@ -218,14 +218,16 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
         {/* Sort By */}
         <div className="space-y-2">
           <Label className="text-sm font-semibold text-deep-mocha">Ordenar Por</Label>
-          <Select value={filters.sortBy} onValueChange={(value) => updateFilter('sortBy', value)}>
+          <Select value={filters.sortBy || 'price'} onValueChange={(value) => updateFilter('sortBy', value as SearchFiltersType['sortBy'])}>
             <SelectTrigger className="border border-pale-clay-deep bg-pure-white text-deep-mocha hover:border-burnt-peach transition-colors">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="price">Preço: Menor para Maior</SelectItem>
               <SelectItem value="date">Anúncios Mais Recentes</SelectItem>
-              <SelectItem value="size">Tamanho: Maior para Menor</SelectItem>
+              <SelectItem value="area">Área: Maior para Menor</SelectItem>
+              <SelectItem value="bedrooms">Número de Quartos</SelectItem>
+              <SelectItem value="relevance">Relevância</SelectItem>
             </SelectContent>
           </Select>
         </div>

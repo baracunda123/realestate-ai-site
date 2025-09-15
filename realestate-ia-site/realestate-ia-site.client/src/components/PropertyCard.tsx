@@ -1,11 +1,9 @@
-import React from 'react';
+import React, { memo, useCallback } from 'react';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Heart, MapPin, Bed, Bath, Square, Calendar } from 'lucide-react';
 import { type Property } from '../types/property';
-import { ImageWithFallback } from './figma/ImageWithFallback';
-import { memo } from 'react';
 
 interface PropertyCardProps {
   property: Property;
@@ -15,20 +13,28 @@ interface PropertyCardProps {
   onToggleFavorite?: (property: Property) => void;
 }
 
-function PropertyCardComponent({ property, onClick, isWhiteBackground = false, isFavorite = false, onToggleFavorite }: PropertyCardProps) {
-  const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('pt-BR', {
+function PropertyCardComponent({ 
+  property, 
+  onClick, 
+  isWhiteBackground = false, 
+  isFavorite = false, 
+  onToggleFavorite 
+}: PropertyCardProps) {
+  // Memoized formatters
+  const formatPrice = useCallback((price: number) => {
+    return new Intl.NumberFormat('pt-PT', {
       style: 'currency',
-      currency: 'BRL',
+      currency: 'EUR',
       maximumFractionDigits: 0,
-    }).format(price * 5.5); // Conversão mock para Real
-  };
+    }).format(price);
+  }, []);
 
-  const formatSqft = (sqft: number) => {
-    return new Intl.NumberFormat('pt-BR').format(Math.round(sqft * 0.092903)); // Conversão para m²
-  };
+  const formatArea = useCallback((area: number) => {
+    return new Intl.NumberFormat('pt-PT').format(Math.round(area));
+  }, []);
 
-  const getPropertyTypeColor = (type: string) => {
+  // Memoized helpers
+  const getPropertyTypeColor = useCallback((type: string) => {
     // Background branco para todos os badges com texto escuro e border colorida por tipo
     const colors = {
       house: 'bg-pure-white text-title border-burnt-soft',
@@ -37,9 +43,9 @@ function PropertyCardComponent({ property, onClick, isWhiteBackground = false, i
       townhouse: 'bg-pure-white text-title border-clay-medium'
     };
     return colors[type as keyof typeof colors] || 'bg-pure-white text-title border-clay-medium';
-  };
+  }, []);
 
-  const getPropertyTypeName = (type: string) => {
+  const getPropertyTypeName = useCallback((type: string) => {
     const names = {
       house: 'Casa',
       apartment: 'Apartamento',
@@ -47,16 +53,19 @@ function PropertyCardComponent({ property, onClick, isWhiteBackground = false, i
       townhouse: 'Sobrado'
     };
     return names[type as keyof typeof names] || type;
-  };
+  }, []);
 
-  // Função para obter a primeira imagem disponível ou usar fallback
-  const getMainImage = () => {
-    if (property.images && property.images.length > 0) {
-      return property.images[0];
-    }
-    // Fallback para uma imagem padrão de propriedade
-    return 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=800&h=600&fit=crop';
-  };
+  const handleFavoriteClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onToggleFavorite) onToggleFavorite(property);
+  }, [onToggleFavorite, property]);
+
+  // Safe calculations with null checks
+  const pricePerSqm = property.price && property.area ? Math.round(property.price / property.area) : 0;
+  const safePrice = property.price || 0;
+  const safeArea = property.area || 0;
+  const safeTitle = property.title || 'Propriedade';
+  const safePropertyType = property.propertyType || property.type || 'apartment';
 
   return (
     <Card 
@@ -67,116 +76,108 @@ function PropertyCardComponent({ property, onClick, isWhiteBackground = false, i
       } : undefined}
       onClick={onClick}
     >
-      <div className="relative">
-        <ImageWithFallback
-          src={getMainImage()}
-          alt={property.title}
-          className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-500"
-        />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-        
-        <div className="absolute top-3 left-3">
-          <Badge className={`${getPropertyTypeColor(property.propertyType)} font-medium border shadow-clay-soft`}>
-            {getPropertyTypeName(property.propertyType)}
-          </Badge>
-        </div>
-        
-        <Button
-          variant="ghost"
-          size="sm"
-          aria-pressed={isFavorite}
-          aria-label={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
-          className="absolute top-3 right-3 h-9 w-9 p-0 bg-warm-white/95 hover:bg-warm-white shadow-clay-soft backdrop-blur-sm hover:scale-105 transition-all duration-200"
-          onClick={(e) => {
-            e.stopPropagation();
-            if (onToggleFavorite) onToggleFavorite(property);
-          }}
-        >
-          <Heart className={`h-4 w-4 transition-all duration-200 ${isFavorite ? 'text-burnt-primary' : 'text-clay-secondary'}`} />
-        </Button>
-
-
-
-        {/* Price overlay */}
-        <div className="absolute bottom-3 right-3">
-          <div className="bg-warm-white/95 backdrop-blur-sm px-3 py-1 rounded-full shadow-clay-soft border border-clay-medium">
-            <span className="text-sm font-semibold text-metric">
-              {formatPrice(property.price)}
-            </span>
-          </div>
-        </div>
-      </div>
-      
       <CardContent 
-        className={`p-5 ${isWhiteBackground ? 'property-card-white' : ''}`}
+        className={`p-3 ${isWhiteBackground ? 'property-card-white' : ''}`}
         style={isWhiteBackground ? { 
           backgroundColor: '#FFFFFF',
           background: '#FFFFFF'
         } : undefined}
       >
-        <div className="space-y-4">
-          <div>
-            <h3 className="font-semibold line-clamp-1 text-lg text-title">{property.title}</h3>
-            <div className="flex items-center text-sm text-clay-secondary mt-1">
-              <MapPin className="h-3 w-3 mr-1 text-clay-secondary" />
-              {property.location}
-            </div>
-          </div>
-          
-          <div className="grid grid-cols-3 gap-4 text-sm">
-            <div className="flex items-center space-x-1 text-clay-secondary">
-              <div className="w-8 h-8 bg-pale-clay rounded-lg flex items-center justify-center">
-                <Bed className="h-4 w-4 text-cocoa-primary" />
+        <div className="space-y-2">
+          {/* Header section with title, type, price and favorite button */}
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <Badge className={`${getPropertyTypeColor(safePropertyType)} text-xs font-medium border shadow-clay-soft py-0.5 px-1.5`}>
+                  {getPropertyTypeName(safePropertyType)}
+                </Badge>
+                <div className="bg-warm-white/95 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-clay-soft border border-clay-medium">
+                  <span className="text-sm font-bold text-burnt-primary">
+                    {formatPrice(safePrice)}
+                  </span>
+                </div>
               </div>
-              <div>
-                <div className="font-medium text-title">{property.bedrooms}</div>
-                <div className="text-xs text-clay-secondary">quartos</div>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-1 text-clay-secondary">
-              <div className="w-8 h-8 bg-pale-clay rounded-lg flex items-center justify-center">
-                <Bath className="h-4 w-4 text-cocoa-primary" />
-              </div>
-              <div>
-                <div className="font-medium text-title">{property.bathrooms}</div>
-                <div className="text-xs text-clay-secondary">banheiros</div>
+              <h3 className="font-semibold text-base text-title line-clamp-1 mb-0.5">{safeTitle}</h3>
+              <div className="flex items-center text-xs text-clay-secondary">
+                <MapPin className="h-3 w-3 mr-1 text-clay-secondary" />
+                {property.location}
               </div>
             </div>
             
-            <div className="flex items-center space-x-1 text-clay-secondary">
-              <div className="w-8 h-8 bg-pale-clay rounded-lg flex items-center justify-center">
-                <Square className="h-4 w-4 text-cocoa-primary" />
-              </div>
-              <div>
-                <div className="font-medium text-title">{formatSqft(property.area)}</div>
-                <div className="text-xs text-clay-secondary">m²</div>
-              </div>
-            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              aria-pressed={isFavorite}
+              aria-label={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+              className="h-7 w-7 p-0 bg-warm-white/95 hover:bg-warm-white shadow-clay-soft backdrop-blur-sm hover:scale-105 transition-all duration-200 flex-shrink-0"
+              onClick={handleFavoriteClick}
+            >
+              <Heart className={`h-3.5 w-3.5 transition-all duration-200 ${isFavorite ? 'text-burnt-primary fill-current' : 'text-clay-secondary'}`} />
+            </Button>
           </div>
           
+          {/* Property details and footer in one row */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center text-xs text-clay-secondary">
-              <Calendar className="h-3 w-3 mr-1" />
-              Construído em {property.yearBuilt}
+            {/* Property details section */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center space-x-1.5 text-clay-secondary">
+                <div className="w-6 h-6 bg-pale-clay rounded flex items-center justify-center">
+                  <Bed className="h-3 w-3 text-cocoa-primary" />
+                </div>
+                <div>
+                  <span className="font-semibold text-title text-sm">{property.bedrooms}</span>
+                  <span className="text-xs text-clay-secondary ml-0.5">qts</span>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-1.5 text-clay-secondary">
+                <div className="w-6 h-6 bg-pale-clay rounded flex items-center justify-center">
+                  <Bath className="h-3 w-3 text-cocoa-primary" />
+                </div>
+                <div>
+                  <span className="font-semibold text-title text-sm">{property.bathrooms}</span>
+                  <span className="text-xs text-clay-secondary ml-0.5">wc</span>
+                </div>
+              </div>
+              
+              <div className="flex items-center space-x-1.5 text-clay-secondary">
+                <div className="w-6 h-6 bg-pale-clay rounded flex items-center justify-center">
+                  <Square className="h-3 w-3 text-cocoa-primary" />
+                </div>
+                <div>
+                  <span className="font-semibold text-title text-sm">{formatArea(safeArea)}</span>
+                  <span className="text-xs text-clay-secondary ml-0.5">m²</span>
+                </div>
+              </div>
             </div>
-            <div className="text-sm text-burnt-primary font-medium">
-              R$ {Math.round(property.price * 5.5 / property.area)}/m²
+            
+            {/* Footer section */}
+            <div className="flex items-center gap-3 text-xs text-clay-secondary">
+              <div className="flex items-center">
+                <Calendar className="h-3 w-3 mr-1" />
+                {property.yearBuilt}
+              </div>
+              <div className="text-sm text-burnt-primary font-semibold">
+                €{pricePerSqm}/m²
+              </div>
             </div>
           </div>
           
-          <div className="flex flex-wrap gap-1">
-            {property.features && property.features.slice(0, 3).map((feature, index) => (
-              <Badge key={feature} className="text-xs border bg-pure-white text-title border-clay-medium">
-                {feature}
-              </Badge>
-            ))}
-            {property.features && property.features.length > 3 && (
-              <Badge variant="outline" className="text-xs bg-pure-white text-clay-secondary border-clay-medium">
-                +{property.features.length - 3} mais
-              </Badge>
-            )}
-          </div>
+          {/* Features section - only if there are features */}
+          {property.features && property.features.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {property.features.slice(0, 3).map((feature, index) => (
+                <Badge key={`${feature}-${index}`} className="text-xs border bg-pure-white text-title border-clay-medium py-0 px-1.5 leading-tight">
+                  {feature}
+                </Badge>
+              ))}
+              {property.features.length > 3 && (
+                <Badge variant="outline" className="text-xs bg-pure-white text-clay-secondary border-clay-medium py-0 px-1.5 leading-tight">
+                  +{property.features.length - 3}
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

@@ -1,55 +1,195 @@
-// properties.service.ts - VERSÃO LIMPA E FOCADA
-// Service for handling property-related API requests
+// properties.service.ts - Serviço atualizado sem o controller properties que foi removido
 import apiClient from "./client";
 import type { Property } from "../types/property";
 
+// Interfaces específicas para API de pesquisa (sem properties controller)
 interface SearchAIRequest {
-    searchQuery: string;
+  searchQuery: string;
+  includeAiAnalysis?: boolean;
+  includeMarketData?: boolean;
+  filters?: Record<string, string | number | boolean>;
 }
 
 interface SearchAIResponse {
-    properties: Property[];
-    aiResponse: string;
+  properties: Property[];
+  aiResponse: string;
+  aiSummary?: string;
+  totalCount: number;
+  appliedFilters?: Record<string, string | number | boolean>;
+  marketInsights?: {
+    averagePrice: number;
+    priceRange: [number, number];
+    totalListings: number;
+    recommendations: string[];
+  };
+}
+
+interface FavoritePropertiesResponse {
+  favorites: Property[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
 }
 
 // Função simples para logs
 function logToTerminal(message: string, level: 'info' | 'warn' | 'error' = 'info') {
-    const timestamp = new Date().toLocaleTimeString();
-    const prefix = level === 'error' ? '❌' : level === 'warn' ? '⚠️' : '🔍';
-    console.log(`${prefix} [${timestamp}] ${message}`);
+  const timestamp = new Date().toLocaleTimeString();
+  const prefix = level === 'error' ? '❌' : level === 'warn' ? '⚠️' : '🔍';
+  console.log(`${prefix} [${timestamp}] PROPERTIES: ${message}`);
 }
 
 /**
- * Realiza pesquisa de propriedades usando IA
+ * Pesquisa avançada com IA
  */
 export async function searchProperties({
-    searchQuery,
-    signal
+  searchQuery,
+  includeAiAnalysis = true,
+  includeMarketData = false,
+  filters,
+  signal
 }: SearchAIRequest & { signal?: AbortSignal }): Promise<SearchAIResponse> {
-    logToTerminal(`Pesquisa: "${searchQuery}" | Auth: ${apiClient.isAuthenticated()}`);
+  logToTerminal(`Pesquisa IA: "${searchQuery}" | Auth: ${apiClient.isAuthenticated()}`);
 
-    const request = { 
-        query: searchQuery
-    };
+  const request = { 
+    query: searchQuery,
+    includeAiAnalysis,
+    includeMarketData,
+    filters: filters || {}
+  };
 
-    try {
-        const data = await apiClient.post<SearchAIResponse>(
-            "/api/SearchAI",
-            request,
-            { signal }
-        );
+  try {
+    const data = await apiClient.post<SearchAIResponse>(
+      "/api/SearchAI",
+      request,
+      { signal }
+    );
 
-        logToTerminal(`Encontradas ${data.properties?.length || 0} propriedades`);
-        return data;
-
-    } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-        logToTerminal(`Erro: ${errorMsg}`, 'error');
-        throw error;
-    }
+    logToTerminal(`IA encontrou ${data.properties?.length || 0} propriedades`);
+    return data;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
+    logToTerminal(`Erro na pesquisa IA: ${errorMsg}`, 'error');
+    throw error;
+  }
 }
 
+/**
+ * Obter propriedades favoritas do usuário (usa FavoritesController)
+ */
+export async function getFavoriteProperties(): Promise<FavoritePropertiesResponse> {
+  logToTerminal('Buscando propriedades favoritas');
+
+  try {
+    const response = await apiClient.get<FavoritePropertiesResponse>('/api/favorites');
+    
+    logToTerminal(`${response.favorites?.length || 0} propriedades favoritas encontradas`);
+    return response;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
+    logToTerminal(`Erro ao buscar favoritas: ${errorMsg}`, 'error');
+    throw error;
+  }
+}
+
+/**
+ * Adicionar propriedade aos favoritos (usa FavoritesController)
+ */
+export async function addToFavorites(propertyId: string): Promise<{ success: boolean; message: string }> {
+  logToTerminal(`Adicionando aos favoritos: ${propertyId}`);
+
+  try {
+    const response = await apiClient.post<{ success: boolean; message: string }>(
+      '/api/favorites',
+      { propertyId }
+    );
+    
+    logToTerminal(`Propriedade adicionada aos favoritos`);
+    return response;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
+    logToTerminal(`Erro ao adicionar favorita: ${errorMsg}`, 'error');
+    throw error;
+  }
+}
+
+/**
+ * Remover propriedade dos favoritos (usa FavoritesController)
+ */
+export async function removeFromFavorites(propertyId: string): Promise<{ success: boolean; message: string }> {
+  logToTerminal(`Removendo dos favoritos: ${propertyId}`);
+
+  try {
+    const response = await apiClient.delete<{ success: boolean; message: string }>(
+      `/api/favorites/${propertyId}`
+    );
+    
+    logToTerminal(`Propriedade removida dos favoritos`);
+    return response;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
+    logToTerminal(`Erro ao remover favorita: ${errorMsg}`, 'error');
+    throw error;
+  }
+}
+
+// Utils para propriedades
+export const propertyUtils = {
+  /**
+   * Formatar endereço completo da propriedade
+   */
+  formatAddress: (property: Property): string => {
+    const parts = [
+      property.address,
+      property.city,
+      property.county,
+      property.state
+    ].filter(Boolean);
+    
+    return parts.join(', ');
+  },
+
+
+  /**
+   * Obter imagens da propriedade como array
+   */
+  getImages: (property: Property): string[] => {
+    if (property.images && Array.isArray(property.images)) {
+      return property.images;
+    }
+    
+    if (property.imageUrl) {
+      return [property.imageUrl];
+    }
+    
+    return [];
+  },
+
+  /**
+   * Mapear tipo da BD para UI
+   */
+  mapPropertyType: (type: string | null): 'house' | 'apartment' | 'condo' | 'townhouse' => {
+    switch (type?.toLowerCase()) {
+      case 'house':
+      case 'casa':
+        return 'house';
+      case 'apartment':
+      case 'apartamento':
+        return 'apartment';
+      case 'condo':
+      case 'condominio':
+        return 'condo';
+      case 'townhouse':
+      case 'sobrado':
+        return 'townhouse';
+      default:
+        return 'apartment';
+    }
+  }
+};
+
 // Log apenas quando carrega em desenvolvimento
-if (import.meta.env.DEV) {
-    logToTerminal('Properties Service carregado');
+if ((import.meta as any).env?.DEV) {
+  logToTerminal('Properties Service carregado e atualizado (sem controller properties)');
 }

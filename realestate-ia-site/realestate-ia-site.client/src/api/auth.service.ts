@@ -1,11 +1,74 @@
-// auth.service.ts - Fun��es de autentica��o usando ApiClient seguro
+// auth.service.ts - Serviço de autenticação alinhado com BD
 import apiClient from './client';
 import type { TokenResponse, UserProfile } from './client';
 
-// Interfaces para requisi��es
+// Request interfaces para autenticação
+interface LoginRequest {
+  email: string;
+  password: string;
+  rememberMe?: boolean;
+}
+
+interface RegisterRequest {
+  email: string;
+  password: string;
+  confirmPassword: string;
+  fullName: string;
+  acceptTerms: boolean;
+  newsletter?: boolean;
+}
+
+interface ForgotPasswordRequest {
+  email: string;
+}
+
+interface ResetPasswordRequest {
+  token: string;
+  password: string;
+  confirmPassword: string;
+}
+
+interface ConfirmEmailRequest {
+  token: string;
+  userId: string;
+}
+
+interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
+
+interface UpdateProfileRequest {
+  fullName?: string;
+  phoneNumber?: string;
+  avatarUrl?: string;
+}
+
+// Response interfaces alinhadas com o servidor
+interface AuthResult {
+  success: boolean;
+  message?: string;
+  errors?: string[];
+  token?: TokenResponse;
+  user?: UserProfile;
+}
+
+interface ConfirmEmailResponse {
+  success: boolean;
+  message: string;
+}
+
+interface PasswordResetResponse {
+  success: boolean;
+  message: string;
+}
+
+// Interfaces para os payloads (usadas no AuthModal)
 export interface LoginPayload {
   email: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 export interface RegisterPayload {
@@ -17,71 +80,293 @@ export interface RegisterPayload {
   acceptTerms: boolean;
 }
 
-export interface AuthResult {
-  success: boolean;
-  message?: string;
-  errors?: string[];
-  token?: TokenResponse;
-  user?: UserProfile;
-}
-
-export interface RegisterResponse {
-  success: boolean;
-  message: string;
-  userId?: string;
-  errors?: string[];
-}
-
-// Fun��es da API usando apiClient
-export async function register(payload: RegisterPayload): Promise<RegisterResponse> {
-  return await apiClient.post<RegisterResponse>('/api/auth/register', payload);
-}
-
-export async function login(payload: LoginPayload): Promise<AuthResult> {
-  const response = await apiClient.post<AuthResult>('/api/auth/login', payload);
+// Utility functions
+export const authUtils = {
+  clearTokens: () => {
+    apiClient.clearAuthTokens();
+  },
   
-  // Salvar tokens se login bem-sucedido
-  if (response.success && response.token && response.user) {
-    apiClient.saveAuthTokens(response.token, response.user);
+  isAuthenticated: () => {
+    return apiClient.isAuthenticated();
+  },
+  
+  getCurrentUser: () => {
+    return apiClient.getCurrentUser();
+  },
+  
+  getSessionId: () => {
+    return apiClient.getSessionId();
+  }
+};
+
+/**
+ * Função simples para extrair erro
+ */
+function getErrorMessage(error: unknown): string {
+  const errorObj = error as { response?: { data?: { message?: string; errors?: string[] | Record<string, string[]> } } };
+  
+  // 1. Se tem response.data.message (objeto simples)
+  if (errorObj.response?.data?.message) {
+    return errorObj.response.data.message;
+  }
+  
+  // 2. Se tem response.data.errors (array ou objeto)
+  if (errorObj.response?.data?.errors) {
+    const errors = errorObj.response.data.errors;
+    if (Array.isArray(errors)) {
+      return errors.join('. ');
+    }
+    if (typeof errors === 'object') {
+      const errorMessages: string[] = [];
+      for (const key in errors) {
+        const value = errors[key];
+        if (Array.isArray(value)) {
+          errorMessages.push(...value);
+        }
+      }
+      return errorMessages.join('. ');
+    }
+  }
+  
+  // 3. Fallback
+  return 'Erro interno do servidor';
+}
+
+/**
+ * Login do utilizador
+ */
+export async function login(credentials: LoginPayload): Promise<AuthResult> {
+  try {
+    const requestData: LoginRequest = {
+      email: credentials.email,
+      password: credentials.password,
+      rememberMe: credentials.rememberMe
+    };
+
+    const response = await apiClient.post<AuthResult>('/api/auth/login', requestData);
+
+    // Salvar tokens automaticamente se login foi bem-sucedido
+    if (response.success && response.token && response.user) {
+      apiClient.saveAuthTokens(response.token, response.user);
+    }
+     
+    return response;
+  } catch (error: unknown) {
+    console.error('Erro no login:', error);
+    
+    return {
+      success: false,
+      message: getErrorMessage(error),
+      errors: [getErrorMessage(error)]
+    };
+  }
+}
+
+/**
+ * Registo de novo utilizador
+ */
+export async function register(userData: RegisterPayload): Promise<AuthResult> {
+  try {
+    const requestData: RegisterRequest = {
+      email: userData.email,
+      password: userData.password,
+      confirmPassword: userData.confirmPassword,
+      fullName: userData.fullName,
+      acceptTerms: userData.acceptTerms,
+      newsletter: false
+    };
+
+    const response = await apiClient.post<AuthResult>('/api/auth/register', requestData);
+    
+    // Salvar tokens automaticamente se registro incluiu login autom�tico
+    if (response.success && response.token && response.user) {
+      apiClient.saveAuthTokens(response.token, response.user);
+    }
+    
+    return response;
+  } catch (error) {
+    console.error('Erro no registro:', error);
+    
+    return {
+      success: false,
+      message: getErrorMessage(error),
+      errors: [getErrorMessage(error)]
+    };
+  }
+}
+
+/**
+ * Logout do utilizador
+ */
+export async function logout(): Promise<void> {
+  try {
+    await apiClient.post('/api/auth/logout');
+  } catch (error) {
+    // Log do erro mas não falha o logout
+    console.warn('Erro no logout no servidor:', error);
+  } finally {
+    // Sempre limpar tokens localmente
+    apiClient.clearAuthTokens();
+  }
+}
+
+/**
+ * Obter usuário atual (com dados atualizados do servidor)
+ */
+export async function getCurrentUser(): Promise<UserProfile | null> {
+  try {
+    if (!apiClient.isAuthenticated()) {
+      return null;
+    }
+    
+    const user = await apiClient.get<UserProfile>('/api/auth/profile');
+    
+    // Atualizar user no localStorage se mudou
+    const currentUser = apiClient.getCurrentUser();
+    if (currentUser && user) {
+      // Manter os tokens, so atualizar dados do utilizador
+      const fakeToken: TokenResponse = {
+        accessToken: 'current',
+        refreshToken: 'current', 
+        expiresAt: new Date(Date.now() + 3600000).toISOString(),
+        tokenType: 'Bearer'
+      };
+      apiClient.saveAuthTokens(fakeToken, user);
+    }
+    
+    return user;
+  } catch (error) {
+    console.error('Erro ao obter usuário atual:', error);
+    return null;
+  }
+}
+
+/**
+ * Refresh do token de acesso
+ */
+export async function refreshToken(): Promise<TokenResponse | null> {
+  try {
+    const response = await apiClient.post<{ message: string; token: TokenResponse }>('/api/auth/refresh-token');
+    
+    const user = apiClient.getCurrentUser();
+    if (response.token && user) {
+      apiClient.saveAuthTokens(response.token, user);
+    }
+    
+    return response.token;
+  } catch (error) {
+    console.error('Erro ao renovar token:', error);
+    apiClient.clearAuthTokens();
+    return null;
+  }
+}
+
+/**
+ * Confirmar email
+ */
+export async function confirmEmail(data: ConfirmEmailRequest): Promise<ConfirmEmailResponse> {
+  return await apiClient.post<ConfirmEmailResponse>('/api/auth/confirm-email', data);
+}
+
+/**
+ * Solicitar redefinição de senha
+ */
+export async function forgotPassword(data: ForgotPasswordRequest): Promise<PasswordResetResponse> {
+  return await apiClient.post<PasswordResetResponse>('/api/auth/forgot-password', data);
+}
+
+/**
+  * Redefinir senha
+ */
+export async function resetPassword(data: ResetPasswordRequest): Promise<PasswordResetResponse> {
+  return await apiClient.post<PasswordResetResponse>('/api/auth/reset-password', data);
+}
+
+/**
+ * Alterar senha (utilizador logado)
+ */
+export async function changePassword(data: ChangePasswordRequest): Promise<PasswordResetResponse> {
+  return await apiClient.post<PasswordResetResponse>('/api/auth/change-password', data);
+}
+
+/**
+ * Atualizar perfil do utilizador
+ */
+export async function updateProfile(data: UpdateProfileRequest): Promise<UserProfile> {
+  const updatedUser = await apiClient.put<UserProfile>('/api/auth/profile', data);
+  
+  // Atualizar dados locais
+  const currentUser = apiClient.getCurrentUser();
+  if (currentUser) {
+    const fakeToken: TokenResponse = {
+      accessToken: 'current',
+      refreshToken: 'current',
+      expiresAt: new Date(Date.now() + 3600000).toISOString(),
+      tokenType: 'Bearer'
+    };
+    apiClient.saveAuthTokens(fakeToken, updatedUser);
+  }
+  
+  return updatedUser;
+}
+
+/**
+ * Reenviar email de confirmação
+ */
+export async function resendConfirmationEmail(): Promise<{ success: boolean; message: string }> {
+  return await apiClient.post<{ success: boolean; message: string }>('/api/auth/resend-confirmation');
+}
+
+/**
+ * Obter sessões ativas do utilizador
+ */
+export async function getActiveSessions(): Promise<Array<{
+  id: string;
+  deviceInfo: string | null;
+  ipAddress: string | null;
+  lastActivity: string;
+  isCurrentSession: boolean;
+}>> {
+  return await apiClient.get<Array<{
+    id: string;
+    deviceInfo: string | null;
+    ipAddress: string | null;
+    lastActivity: string;
+    isCurrentSession: boolean;
+  }>>('/api/auth/sessions');
+}
+
+/**
+ * Revogar sessão específica
+ */
+export async function revokeSession(sessionId: string): Promise<{ success: boolean; message: string }> {
+  return await apiClient.delete<{ success: boolean; message: string }>(`/api/auth/sessions/${sessionId}`);
+}
+
+/**
+ * Revogar todas as outras sessões (manter apenas a atual)
+ */
+export async function revokeAllOtherSessions(): Promise<{ success: boolean; message: string; revokedCount: number }> {
+  return await apiClient.post<{ success: boolean; message: string; revokedCount: number }>('/api/auth/revoke-all-sessions');
+}
+
+/**
+ * Excluir conta do utilizador
+ */
+export async function deleteAccount(password: string): Promise<{ success: boolean; message: string }> {
+  const response = await apiClient.delete<{ success: boolean; message: string }>('/api/auth/account', {
+    data: { password }
+  });
+  
+  // Limpar tokens após exclusão
+  if (response.success) {
+    apiClient.clearAuthTokens();
   }
   
   return response;
 }
 
-export async function logout(): Promise<void> {
-  try {
-    await apiClient.post('/api/auth/logout');
-  } finally {
-    apiClient.clearAuthTokens();
-  }
+// Log quando o serviço carrega
+if (import.meta.env.DEV) {
+  console.log('[AUTH SERVICE] Serviço de autenticação carregado e atualizado');
 }
-
-export async function getCurrentUser(): Promise<UserProfile | null> {
-  const cachedUser = apiClient.getCurrentUser();
-  if (cachedUser && apiClient.isAuthenticated()) {
-    return cachedUser;
-  }
-
-  try {
-    const userData = await apiClient.get<UserProfile>('/api/auth/profile');
-    return userData;
-  } catch {
-    return null;
-  }
-}
-
-export async function changePassword(currentPassword: string, newPassword: string, confirmPassword: string): Promise<{ success: boolean; message: string; errors?: string[] }> {
-  return await apiClient.post('/api/auth/change-password', {
-    currentPassword,
-    newPassword,
-    confirmPassword
-  });
-}
-
-// Fun��es utilit�rias exportadas
-export const authUtils = {
-  isAuthenticated: () => apiClient.isAuthenticated(),
-  getCurrentUser: () => apiClient.getCurrentUser(),
-  clearTokens: () => apiClient.clearAuthTokens(),
-  getSessionId: () => apiClient.getSessionId()
-};

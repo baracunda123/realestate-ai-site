@@ -19,17 +19,15 @@ interface User {
   email: string;
   phone: string;
   avatar?: string;
-  isPremium?: boolean;
 }
 
 interface UserProfileDropdownProps {
   user: User;
   onLogout: () => void;
   onNavigateToPersonal?: () => void;
-  onOpenUpgradeModal?: () => void;
 }
 
-export function UserProfileDropdown({ user, onLogout, onNavigateToPersonal, onOpenUpgradeModal }: UserProfileDropdownProps) {
+export function UserProfileDropdown({ user, onLogout, onNavigateToPersonal }: UserProfileDropdownProps) {
   const handleNavigation = (section?: string) => {
     if (onNavigateToPersonal) {
       onNavigateToPersonal();
@@ -51,13 +49,13 @@ export function UserProfileDropdown({ user, onLogout, onNavigateToPersonal, onOp
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="flex items-center space-x-2 hover:bg-pale-clay-light">
           <Avatar className="h-8 w-8 border-2 border-pale-clay-deep">
-            <AvatarImage src={user.avatar} alt={user.name} />
+            <AvatarImage src={user.avatar} alt={user.name || user.fullName || user.email} />
             <AvatarFallback className="bg-pale-clay text-deep-mocha text-sm">
-              {user.name.split(' ').map(n => n[0]).join('')}
+              {user.name || user.fullName || user.email.split(' ').map(n => n[0]).join('')}
             </AvatarFallback>
           </Avatar>
           <div className="hidden md:flex items-center space-x-1">
-            <span className="text-deep-mocha">{user.name.split(' ')[0]}</span>
+            <span className="text-deep-mocha">{user.name || user.fullName || user.email.split(' ')[0]}</span>
             <ChevronDown className="h-3 w-3 text-warm-taupe" />
           </div>
         </Button>
@@ -67,27 +65,14 @@ export function UserProfileDropdown({ user, onLogout, onNavigateToPersonal, onOp
         <div className="px-4 py-3 bg-gradient-to-r from-pale-clay-light to-porcelain-soft">
           <div className="flex items-center space-x-3">
             <Avatar className="h-12 w-12 border-2 border-burnt-peach-light">
-              <AvatarImage src={user.avatar} alt={user.name} />
+              <AvatarImage src={user.avatar} alt={user.name || user.fullName || user.email} />
               <AvatarFallback className="bg-burnt-peach-lighter text-deep-mocha font-medium">
-                {user.name.split(' ').map(n => n[0]).join('')}
+                {user.name || user.fullName || user.email.split(' ').map(n => n[0]).join('')}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <p className="font-medium text-deep-mocha">{user.name}</p>
+              <p className="font-medium text-deep-mocha">{user.name || user.fullName || user.email}</p>
               <p className="text-xs text-warm-taupe">{user.email}</p>
-              <div className="flex items-center mt-1.5">
-                {user.isPremium ? (
-                  <Badge className="bg-burnt-peach text-pure-white border-0 text-xs px-2 py-0.5">
-                    <Crown className="h-3 w-3 mr-1" />
-                    Premium
-                  </Badge>
-                ) : (
-                  <Badge className="bg-pale-clay-deep text-warm-taupe border-0 text-xs px-2 py-0.5">
-                    <Shield className="h-3 w-3 mr-1" />
-                    Gratuito
-                  </Badge>
-                )}
-              </div>
             </div>
           </div>
         </div>

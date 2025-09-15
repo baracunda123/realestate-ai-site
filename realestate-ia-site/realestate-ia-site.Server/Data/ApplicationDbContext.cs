@@ -33,6 +33,28 @@ namespace realestate_ia_site.Server.Data
         {
             base.OnModelCreating(builder);
 
+            // Configuração global para converter todos os DateTime para UTC
+            foreach (var entityType in builder.Model.GetEntityTypes())
+            {
+                foreach (var property in entityType.GetProperties())
+                {
+                    if (property.ClrType == typeof(DateTime) || property.ClrType == typeof(DateTime?))
+                    {
+                        property.SetValueConverter(new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTime, DateTime>(
+                            v => v.Kind == DateTimeKind.Utc ? v : DateTime.SpecifyKind(v, DateTimeKind.Utc),
+                            v => DateTime.SpecifyKind(v, DateTimeKind.Utc)
+                        ));
+                    }
+                    else if (property.ClrType == typeof(DateTimeOffset) || property.ClrType == typeof(DateTimeOffset?))
+                    {
+                        property.SetValueConverter(new Microsoft.EntityFrameworkCore.Storage.ValueConversion.ValueConverter<DateTimeOffset, DateTimeOffset>(
+                            v => v.ToUniversalTime(),
+                            v => v.ToUniversalTime()
+                        ));
+                    }
+                }
+            }
+
             // Força nomes de tabelas do Identity
             builder.Entity<User>().ToTable("users");
             builder.Entity<IdentityUserLogin<string>>().ToTable("user_logins");
@@ -75,11 +97,11 @@ namespace realestate_ia_site.Server.Data
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            // Atualizar timestamps
-            var entries = ChangeTracker.Entries<User>()
+            // Atualizar timestamps para User
+            var userEntries = ChangeTracker.Entries<User>()
                 .Where(e => e.State == EntityState.Modified);
 
-            foreach (var entry in entries)
+            foreach (var entry in userEntries)
             {
                 entry.Entity.UpdatedAt = DateTime.UtcNow;
             }
