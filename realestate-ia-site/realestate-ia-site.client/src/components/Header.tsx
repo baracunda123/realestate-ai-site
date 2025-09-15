@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Search, Map, Grid3X3, Home, User, ArrowUp } from 'lucide-react';
+import { Search, Map, Grid3X3, Home, User, ArrowUp, MessageCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { UserProfileDropdown } from './UserProfileDropdown';
@@ -13,6 +13,13 @@ interface ExtendedUserProfile {
   avatarUrl?: string;
   name?: string;
   phone?: string;
+}
+
+interface ConversationMessage {
+  id: string;
+  type: 'user' | 'ai';
+  content: string;
+  timestamp: Date;
 }
 
 interface HeaderProps {
@@ -48,6 +55,8 @@ export function Header({
 }: HeaderProps) {
   const [aiOpen, setAiOpen] = useState(false);
   const [localInput, setLocalInput] = useState(searchQuery);
+  const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>([]);
+  const [currentUserQuery, setCurrentUserQuery] = useState<string>('');
 
   const handleSubmitSearch = () => {
     if (!user) { 
@@ -58,6 +67,7 @@ export function Header({
     const query = localInput.trim();
     if (!query) return;
     
+    setCurrentUserQuery(query);
     setAiOpen(true);
     onSubmitSearch?.(query);
   };
@@ -66,6 +76,14 @@ export function Header({
     if (user && e.key === 'Enter') {
       handleSubmitSearch();
     }
+  };
+
+  const handleReopenAI = () => {
+    setAiOpen(true);
+  };
+
+  const handleToggleAI = () => {
+    setAiOpen(!aiOpen);
   };
 
   const renderViewTitle = () => {
@@ -92,30 +110,51 @@ export function Header({
 
     return (
       <div className="flex-1 max-w-2xl mx-8 relative">
-        <div className="relative">
-          <Search className={`absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 ${
-            user ? 'text-clay-secondary' : 'text-clay-secondary/50'
-          }`} />
-          <Input
-            placeholder={user ? "Conte-me que tipo de casa está à procura..." : "Crie a sua conta para começar a pesquisar..."}
-            value={user ? localInput : ''}
-            onChange={(e) => user && setLocalInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            disabled={!user}
-            className={`pl-12 pr-28 h-12 text-base border-clay-medium focus:border-primary rounded-xl bg-input-background shadow-sm ${
-              !user ? 'opacity-60 cursor-not-allowed' : ''
-            }`}
-          />
+        <div className="flex items-center gap-2">
+          <div className="relative flex-1">
+            <Search className={`absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 ${
+              user ? 'text-clay-secondary' : 'text-clay-secondary/50'
+            }`} />
+            <Input
+              placeholder={user ? "Conte-me que tipo de casa está à procura..." : "Crie a sua conta para começar a pesquisar..."}
+              value={user ? localInput : ''}
+              onChange={(e) => user && setLocalInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              disabled={!user}
+              className={`pl-12 pr-28 h-12 text-base border-clay-medium focus:border-primary rounded-xl bg-input-background shadow-sm ${
+                !user ? 'opacity-60 cursor-not-allowed' : ''
+              }`}
+            />
+            {user && (
+              <Button
+                size="icon"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-burnt-peach hover:bg-burnt-peach-deep text-white border-0 shadow-clay-soft"
+                onClick={handleSubmitSearch}
+                disabled={!localInput.trim()}
+                aria-label="Abrir resposta IA"
+                title="Perguntar IA"
+              >
+                <ArrowUp className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+
+          {/* Chat Icon Button */}
           {user && (
             <Button
               size="icon"
-              className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-burnt-peach hover:bg-burnt-peach-deep text-white border-0 shadow-clay-soft"
-              onClick={handleSubmitSearch}
-              disabled={!localInput.trim()}
-              aria-label="Abrir resposta IA"
-              title="Perguntar IA"
+              variant="ghost"
+              className="h-12 w-12 text-clay-secondary hover:text-title hover:bg-clay-soft border border-clay-medium rounded-xl relative"
+              onClick={handleToggleAI}
+              aria-label="Abrir chat IA"
+              title="Chat IA"
             >
-              <ArrowUp className="h-4 w-4" />
+              <MessageCircle className="h-5 w-5" />
+              {conversationHistory.length > 0 && (
+                <div className="absolute -top-1 -right-1 bg-burnt-peach text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center font-medium">
+                  {conversationHistory.filter(msg => msg.type === 'ai').length}
+                </div>
+              )}
             </Button>
           )}
         </div>
@@ -126,7 +165,11 @@ export function Header({
             text={aiText} 
             loading={aiLoading} 
             error={aiError || null} 
-            onClose={() => setAiOpen(false)} 
+            onClose={() => setAiOpen(false)}
+            onReopen={handleReopenAI}
+            userQuery={currentUserQuery}
+            conversationHistory={conversationHistory}
+            onUpdateHistory={setConversationHistory}
           />
         )}
 

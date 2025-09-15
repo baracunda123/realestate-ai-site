@@ -130,7 +130,6 @@ export function PropertyGrid({ filters, searchQuery, serverResults, onPropertySe
     return filtered;
   }, [filters, searchQuery, serverResults]);
 
-  const hasAIRanking = searchQuery.trim().length > 0;
   const isAuthenticated = apiClient.isAuthenticated();
   const canSaveSearch = isAuthenticated && (searchQuery.trim() || filters.location || filters.propertyType !== 'any' || filters.bedrooms || filters.bathrooms);
 
@@ -213,6 +212,23 @@ export function PropertyGrid({ filters, searchQuery, serverResults, onPropertySe
     setIsSaveDialogOpen(true);
   };
 
+  const getSortingLabel = (): string => {
+    switch (filters.sortBy) {
+      case 'price':
+        return 'Ordenado por preço (menor → maior)';
+      case 'date':
+        return 'Ordenado por data (mais recentes)';
+      case 'area':
+        return 'Ordenado por área (maior → menor)';
+      case 'bedrooms':
+        return 'Ordenado por quartos';
+      case 'relevance':
+        return 'Ordenado por relevância';
+      default:
+        return 'Ordenado por preço';
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Results Header */}
@@ -224,10 +240,10 @@ export function PropertyGrid({ filters, searchQuery, serverResults, onPropertySe
         </div>
         
         <div className="flex items-center space-x-3">
-          {hasAIRanking && (
+          {filters.sortBy && (
             <div className="flex items-center space-x-1 text-xs text-muted-foreground">
               <TrendingUp className="h-3 w-3" />
-              <span>Ordenado por relevância</span>
+              <span>{getSortingLabel()}</span>
             </div>
           )}
           
