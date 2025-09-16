@@ -38,16 +38,6 @@ builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
 
-// Add Application Insights for Azure
-builder.Services.AddApplicationInsightsTelemetry();
-
-// Enhanced logging configuration
-builder.Logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
-builder.Logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
-builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting", LogLevel.Information);
-builder.Logging.AddFilter("realestate_ia_site.Server", LogLevel.Information);
-builder.Logging.SetMinimumLevel(LogLevel.Information);
-
 // SECURITY: Load environment variables for production
 if (builder.Environment.IsProduction())
 {
@@ -226,8 +216,10 @@ builder.Services.AddScoped<PropertyAIService>();
 builder.Services.AddScoped<LocationAIService>();
 builder.Services.AddScoped<IConversationContextService, ConversationContextService>();
 
-// Configurations (Stripe etc.)
+// Configurations (Stripe ScraperOptions)
 builder.Services.AddSingleton<StripeOptions>();
+builder.Services.Configure<realestate_ia_site.Server.Configuration.ScraperOptions>(
+    builder.Configuration.GetSection(realestate_ia_site.Server.Configuration.ScraperOptions.SectionName));
 
 // Payments
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();

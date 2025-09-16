@@ -12,9 +12,13 @@
 
   <ItemGroup>
     <Compile Remove="Domain\Repositories\**" />
+    <Compile Remove="Infrastructure\Persistence\Configurations\**" />
     <Content Remove="Domain\Repositories\**" />
+    <Content Remove="Infrastructure\Persistence\Configurations\**" />
     <EmbeddedResource Remove="Domain\Repositories\**" />
+    <EmbeddedResource Remove="Infrastructure\Persistence\Configurations\**" />
     <None Remove="Domain\Repositories\**" />
+    <None Remove="Infrastructure\Persistence\Configurations\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -45,9 +49,5 @@
 		    <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
 	    </ProjectReference>
     </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Infrastructure\Persistence\Configurations\" />
-  </ItemGroup>
 
 </Project>

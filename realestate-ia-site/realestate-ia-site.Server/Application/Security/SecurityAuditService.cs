@@ -113,6 +113,7 @@ namespace realestate_ia_site.Server.Application.Security
         BruteForceDetected,
         SqlInjectionAttempt,
         XssAttempt,
-        UnauthorizedAccess
+        UnauthorizedAccess,
+        ScraperAuthenticated
     }
 }

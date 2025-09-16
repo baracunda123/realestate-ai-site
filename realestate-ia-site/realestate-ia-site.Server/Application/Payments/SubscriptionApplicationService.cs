@@ -1,6 +1,6 @@
 using realestate_ia_site.Server.Application.Payments.Interfaces;
 using realestate_ia_site.Server.Domain.Entities;
-using realestate_ia_site.Server.Domain.Models; // for SubscriptionResult
+using realestate_ia_site.Server.Domain.Models; 
 
 namespace realestate_ia_site.Server.Application.Payments;
 
