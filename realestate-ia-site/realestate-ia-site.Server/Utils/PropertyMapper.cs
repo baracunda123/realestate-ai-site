@@ -11,12 +11,13 @@ namespace realestate_ia_site.Server.Utils
         public static async Task<Property> MapToPropertyEntityAsync(ScraperPropertyDto property, GoogleMapsService googleMapsService)
         {
             var text = property.caracteristicas ?? string.Empty;
+            var title = property.titleFromListing?.Trim() ?? string.Empty;
 
             var type = ExtractTypeFromTitle(property.titleFromListing) ?? ExtractTypeFromCharacteristics(text);
             var price = ParsePrice(property.preco);
             var area = ExtractAreaBruta(text);
             var usableArea = ExtractAreaUtil(text);
-            var bedrooms = ExtractBedrooms(text);
+            var bedrooms = ExtractBedrooms(text) ?? ExtractBedrooms(title);
             var bathrooms = ExtractBathrooms(text);
             var (city, state, county, civilParish) = await ParseLocationAsync(property.location, googleMapsService);
             var garage = HasGarage(text);
@@ -24,7 +25,8 @@ namespace realestate_ia_site.Server.Utils
             return new Property
             {
                 Id = Guid.NewGuid().ToString(),
-                Title = property.titleFromListing?.Trim(),
+                SourceSite = property.site?.Trim(),
+                Title = title,
                 Description = string.Join(" ", property.descricao ?? ""),
                 Type = type,
                 Price = price,
@@ -102,14 +104,24 @@ namespace realestate_ia_site.Server.Utils
             if (string.IsNullOrWhiteSpace(text))
                 return null;
 
-            var match = Regex.Match(text, @"(\d+(?:\.\d+)?)\s*m²[^,]*área bruta", RegexOptions.IgnoreCase);
-
-            if (match.Success)
+            // Melhorar o padrão regex para capturar área bruta com diferentes formatos
+            var patterns = new[]
             {
-                var areaStr = match.Groups[1].Value.Replace(",", ".");
-                if (double.TryParse(areaStr, NumberStyles.Any, CultureInfo.InvariantCulture, out var area))
+                @"Área bruta\s*(\d+(?:[,\.]\d+)?)m²", // Área bruta seguida de número
+                @"(\d+(?:[,\.]\d+)?)\s*m²[^,\n]*área bruta", // Número seguido de m² e área bruta
+                @"(\d+(?:[,\.]\d+)?)\s*m²[^,\n]*bruta" // Número seguido de m² e bruta
+            };
+
+            foreach (var pattern in patterns)
+            {
+                var match = Regex.Match(text, pattern, RegexOptions.IgnoreCase | RegexOptions.Multiline);
+                if (match.Success)
                 {
-                    return area;
+                    var areaStr = match.Groups[1].Value.Replace(",", ".");
+                    if (double.TryParse(areaStr, NumberStyles.Any, CultureInfo.InvariantCulture, out var area))
+                    {
+                        return area;
+                    }
                 }
             }
 
@@ -121,14 +133,24 @@ namespace realestate_ia_site.Server.Utils
             if (string.IsNullOrWhiteSpace(text))
                 return null;
 
-            var match = Regex.Match(text, @"(\d+(?:\.\d+)?)\s*m²[^,]*úteis", RegexOptions.IgnoreCase);
-
-            if (match.Success)
+            // Melhorar o padrão regex para capturar área útil com diferentes formatos
+            var patterns = new[]
             {
-                var areaStr = match.Groups[1].Value.Replace(",", ".");
-                if (double.TryParse(areaStr, NumberStyles.Any, CultureInfo.InvariantCulture, out var area))
+                @"Área útil\s*(\d+(?:[,\.]\d+)?)m²", // Área útil seguida de número
+                @"(\d+(?:[,\.]\d+)?)\s*m²[^,\n]*útil", // Número seguido de m² e útil
+                @"(\d+(?:[,\.]\d+)?)\s*m²[^,\n]*úteis" // Número seguido de m² e úteis
+            };
+
+            foreach (var pattern in patterns)
+            {
+                var match = Regex.Match(text, pattern, RegexOptions.IgnoreCase | RegexOptions.Multiline);
+                if (match.Success)
                 {
-                    return area;
+                    var areaStr = match.Groups[1].Value.Replace(",", ".");
+                    if (double.TryParse(areaStr, NumberStyles.Any, CultureInfo.InvariantCulture, out var area))
+                    {
+                        return area;
+                    }
                 }
             }
 
@@ -140,11 +162,40 @@ namespace realestate_ia_site.Server.Utils
             if (string.IsNullOrWhiteSpace(text))
                 return null;
 
-            var match = Regex.Match(text, @"T(\d+)", RegexOptions.IgnoreCase);
-
-            if (match.Success && int.TryParse(match.Groups[1].Value, out var bedrooms))
+            // Primeiro tenta extrair do título (padrão T1, T2, etc.)
+            var titleMatch = Regex.Match(text, @"T(\d+)", RegexOptions.IgnoreCase);
+            if (titleMatch.Success && int.TryParse(titleMatch.Groups[1].Value, out var bedroomsFromTitle))
             {
-                return bedrooms;
+                return bedroomsFromTitle;
+            }
+
+            // Depois tenta extrair padrões como "3 quartos"
+            var bedroomPatterns = new[]
+            {
+                @"(\d+)\s*quartos?", // X quartos
+                @"(\d+)\s*suítes?\s*e\s*(\d+)\s*quartos?", // X suítes e Y quartos
+                @"(\d+)\s*suítes?" // X suítes
+            };
+
+            foreach (var pattern in bedroomPatterns)
+            {
+                var match = Regex.Match(text, pattern, RegexOptions.IgnoreCase | RegexOptions.Multiline);
+                if (match.Success)
+                {
+                    // Se encontrar "suítes e quartos", somar ambos
+                    if (match.Groups.Count > 2 && match.Groups[2].Success)
+                    {
+                        if (int.TryParse(match.Groups[1].Value, out var suites) && 
+                            int.TryParse(match.Groups[2].Value, out var rooms))
+                        {
+                            return suites + rooms;
+                        }
+                    }
+                    else if (int.TryParse(match.Groups[1].Value, out var bedrooms))
+                    {
+                        return bedrooms;
+                    }
+                }
             }
 
             return null;
@@ -155,11 +206,21 @@ namespace realestate_ia_site.Server.Utils
             if (string.IsNullOrWhiteSpace(text))
                 return null;
 
-            var match = Regex.Match(text, @"(\d+).*casas de banho", RegexOptions.IgnoreCase);
-
-            if (match.Success && int.TryParse(match.Groups[1].Value, out var bathrooms))
+            // Padrões melhorados para casas de banho
+            var patterns = new[]
             {
-                return bathrooms;
+                @"(\d+)\s*casas?\s*de\s*banho", // X casas de banho
+                @"(\d+)\s*wc", // X wc
+                @"(\d+)\s*instalações?\s*sanitárias?" // X instalações sanitárias
+            };
+
+            foreach (var pattern in patterns)
+            {
+                var match = Regex.Match(text, pattern, RegexOptions.IgnoreCase | RegexOptions.Multiline);
+                if (match.Success && int.TryParse(match.Groups[1].Value, out var bathrooms))
+                {
+                    return bathrooms;
+                }
             }
 
             return null;
@@ -192,7 +253,19 @@ namespace realestate_ia_site.Server.Utils
             if (string.IsNullOrWhiteSpace(text))
                 return false;
 
-            return Regex.IsMatch(text, @"lugar de garagem|garagem incluído|com garagem", RegexOptions.IgnoreCase);
+            var garagePatterns = new[]
+            {
+                @"lugar\s*de\s*garagem",
+                @"garagem\s*incluí[dt]o",
+                @"com\s*garagem",
+                @"estacionamento",
+                @"garagem\s*fechada",
+                @"garagem\s*para\s*\d+\s*carros?",
+                @"lugares?\s*de\s*estacionamento"
+            };
+
+            return garagePatterns.Any(pattern => 
+                Regex.IsMatch(text, pattern, RegexOptions.IgnoreCase | RegexOptions.Multiline));
         }
 
         private static string? ExtractZipCode(string? location)
