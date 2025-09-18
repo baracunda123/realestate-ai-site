@@ -50,7 +50,7 @@ public class PropertySearchDto
         {
             "idealista" => "Idealista",
             "imovirtual" => "Imovirtual",
-            "casaSapo" => "Casa Sapo", 
+            "casasapo" => "Casa Sapo", 
             "custojusto" => "Custo Justo",
             "olx" => "OLX",
             "remax" => "RE/MAX",

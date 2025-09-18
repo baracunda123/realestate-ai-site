@@ -8,7 +8,6 @@ import { type Property } from '../types/property';
 interface PropertyCardProps {
   property: Property;
   onClick: () => void;
-  isWhiteBackground?: boolean;
   isFavorite?: boolean;
   onToggleFavorite?: (property: Property) => void;
 }
@@ -16,7 +15,6 @@ interface PropertyCardProps {
 function PropertyCardComponent({ 
   property, 
   onClick, 
-  isWhiteBackground = false, 
   isFavorite = false, 
   onToggleFavorite 
 }: PropertyCardProps) {
@@ -55,6 +53,21 @@ function PropertyCardComponent({
     return names[type as keyof typeof names] || type;
   }, []);
 
+  const getSiteNameColor = useCallback((siteName: string) => {
+    // Cores específicas para cada site
+    const colors = {
+      'Idealista': 'bg-yellow-50 text-yellow-700 border-yellow-200',
+      'Imovirtual': 'bg-blue-50 text-blue-700 border-blue-200',
+      'Casa Sapo': 'bg-green-50 text-green-700 border-green-200',
+      'Custo Justo': 'bg-orange-50 text-orange-700 border-orange-200',
+      'OLX': 'bg-purple-50 text-purple-700 border-purple-200',
+      'RE/MAX': 'bg-red-50 text-red-700 border-red-200',
+      'ERA': 'bg-indigo-50 text-indigo-700 border-indigo-200',
+      'Century 21': 'bg-amber-50 text-amber-700 border-amber-200'
+    };
+    return colors[siteName as keyof typeof colors] || 'bg-gray-50 text-gray-700 border-gray-200';
+  }, []);
+
   const handleFavoriteClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     if (onToggleFavorite) onToggleFavorite(property);
@@ -69,28 +82,23 @@ function PropertyCardComponent({
 
   return (
     <Card 
-      className={`overflow-hidden hover:shadow-clay-medium transition-all duration-300 cursor-pointer group border border-clay-medium hover:border-clay-strong ${isWhiteBackground ? 'property-card-white' : ''}`} 
-      style={isWhiteBackground ? { 
-        backgroundColor: '#FFFFFF',
-        background: '#FFFFFF'
-      } : undefined}
+      className="overflow-hidden hover:shadow-clay-medium transition-all duration-300 cursor-pointer group border border-clay-medium hover:border-clay-strong"
       onClick={onClick}
     >
-      <CardContent 
-        className={`p-3 ${isWhiteBackground ? 'property-card-white' : ''}`}
-        style={isWhiteBackground ? { 
-          backgroundColor: '#FFFFFF',
-          background: '#FFFFFF'
-        } : undefined}
-      >
+      <CardContent className="p-3">
         <div className="space-y-2">
           {/* Header section with title, type, price and favorite button */}
           <div className="flex items-start justify-between">
             <div className="flex-1">
-              <div className="flex items-center gap-2 mb-1">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <Badge className={`${getPropertyTypeColor(safePropertyType)} text-xs font-medium border shadow-clay-soft py-0.5 px-1.5`}>
                   {getPropertyTypeName(safePropertyType)}
                 </Badge>
+                {property.siteName && (
+                  <Badge className={`${getSiteNameColor(property.siteName)} text-xs font-medium border shadow-clay-soft py-0.5 px-1.5`}>
+                    {property.siteName}
+                  </Badge>
+                )}
                 <div className="bg-warm-white/95 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-clay-soft border border-clay-medium">
                   <span className="text-sm font-bold text-burnt-primary">
                     {formatPrice(safePrice)}
@@ -160,6 +168,21 @@ function PropertyCardComponent({
               <div className="text-sm text-burnt-primary font-semibold">
                 €{pricePerSqm}/m²
               </div>
+              {property.link && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-6 text-xs px-2 py-0 border-clay-medium hover:border-burnt-primary hover:bg-burnt-primary/10 text-clay-secondary hover:text-burnt-primary transition-all duration-200 hover:scale-105 hover:shadow-sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (property.link) {
+                      window.open(property.link, '_blank', 'noopener,noreferrer');
+                    }
+                  }}
+                >
+                  Ver mais
+                </Button>
+              )}
             </div>
           </div>
           

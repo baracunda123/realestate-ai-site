@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Sparkles, Loader2 } from 'lucide-react';
@@ -84,12 +84,18 @@ export function AIResponseBox({
     }
   }, [localHistory.length, loading]);
 
-  // Scroll to bottom when chat opens and has history - use container scroll
+  // Scroll to bottom immediately when chat opens - use container scroll
   useEffect(() => {
-    if (open && localHistory.length > 0 && conversationContainerRef.current) {
+    if (open && conversationContainerRef.current) {
+      // Scroll to bottom immediately when opening - no animation
+      const container = conversationContainerRef.current;
+      container.style.scrollBehavior = 'auto'; // Disable smooth scrolling temporarily
+      container.scrollTop = container.scrollHeight;
+      
+      // Re-enable smooth scrolling for future interactions
       setTimeout(() => {
         if (conversationContainerRef.current) {
-          conversationContainerRef.current.scrollTop = conversationContainerRef.current.scrollHeight;
+          conversationContainerRef.current.style.scrollBehavior = 'smooth';
         }
       }, 50);
     }
@@ -147,7 +153,6 @@ export function AIResponseBox({
             <div 
               ref={conversationContainerRef}
               className="max-h-96 overflow-auto pr-1"
-              style={{ scrollBehavior: 'smooth' }}
             >
               {hasHistory ? (
                 <div className="space-y-1">

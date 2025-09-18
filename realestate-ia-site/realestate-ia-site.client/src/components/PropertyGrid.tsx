@@ -337,7 +337,6 @@ export function PropertyGrid({ filters, searchQuery, serverResults, onPropertySe
             <PropertyCard
               property={property}
               onClick={() => onPropertySelect(property)}
-              isWhiteBackground={index < 3}
               isFavorite={favorites.some(f => f.id === property.id)}
               onToggleFavorite={onToggleFavorite}
             />

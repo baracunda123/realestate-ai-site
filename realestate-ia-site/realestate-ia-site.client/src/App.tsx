@@ -9,9 +9,9 @@ import { type SearchFilters as SearchFiltersType, DEFAULT_SEARCH_FILTERS } from 
 import { type Property } from './types/property';
 import { getCurrentUser, logout, authUtils } from './api/auth.service';
 import { createSafeDate } from './utils/PersonalArea';
-import { useDebounce } from './hooks/useOptimizedCallbacks';
 import type { UserProfile } from './api/client';
 import { getAlertMatches } from './api/alerts.service';
+import { getFavoriteProperties, addToFavorites, removeFromFavorites } from './api/favorites.service';
 
 // Lazy load components for better performance
 const SearchFilters = lazy(() => import('./components/SearchFilters').then(m => ({ default: m.SearchFilters })));
@@ -91,14 +91,28 @@ export default function App() {
     [user, isDefaultState, currentView]
   );
 
-  // Initialize authentication and favorites
+  // Load favorites when user logs in
+  const loadFavorites = useCallback(async () => {
+    if (!user) {
+      setFavorites([]);
+      return;
+    }
+    
+    try {
+      const userFavorites = await getFavoriteProperties();
+      setFavorites(userFavorites);
+    } catch (error) {
+      console.error('Erro ao carregar favoritos:', error);
+      setFavorites([]);
+    }
+  }, [user]);
+
+  // Initialize authentication
   useEffect(() => {
     const initializeApp = async () => {
-      // Check authentication
       try {
         const currentUser = await getCurrentUser();
         if (currentUser) {
-          // Extend user profile com campos calculados para compatibilidade
           const extendedUser: ExtendedUserProfile = {
             ...currentUser,
             name: currentUser.fullName || currentUser.name || '',
@@ -108,41 +122,17 @@ export default function App() {
           setUser(extendedUser);
         }
       } catch {
-        // Silenciar erro de inicialização
         authUtils.clearTokens();
-      }
-
-      // Load favorites from localStorage
-      try {
-        const savedFavorites = localStorage.getItem('hf_favorites');
-        if (savedFavorites) {
-          const parsed = JSON.parse(savedFavorites);
-          // Validar estrutura dos favoritos
-          if (Array.isArray(parsed)) {
-            setFavorites(parsed.filter(fav => fav && fav.id));
-          }
-        }
-      } catch {
-        // Silenciar erro de favoritos
-        setFavorites([]);
       }
     };
 
     initializeApp();
   }, []);
 
-  // Persist favorites to localStorage - debounced para performance
-  const debouncedSaveFavorites = useDebounce((favs: Property[]) => {
-    try {
-      localStorage.setItem('hf_favorites', JSON.stringify(favs));
-    } catch {
-      // Silenciar erro de localStorage
-    }
-  }, 500);
-
+  // Load favorites when user changes
   useEffect(() => {
-    debouncedSaveFavorites(favorites);
-  }, [favorites, debouncedSaveFavorites]);
+    loadFavorites();
+  }, [loadFavorites]);
 
   // Handle URL navigation
   useEffect(() => {
@@ -154,7 +144,6 @@ export default function App() {
       } else if (hash === '#alert-results' && user && selectedAlert) {
         setCurrentView('alert-results');
       } else if (hash === '#alert-results' && user && !selectedAlert) {
-        // Redirect to personal if trying to access alert results without selected alert
         setCurrentView('personal');
         window.location.hash = '#personal';
       } else {
@@ -166,7 +155,7 @@ export default function App() {
     };
 
     window.addEventListener('hashchange', handleHashChange);
-    handleHashChange(); // Check initial hash
+    handleHashChange();
 
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, [user, selectedAlert]);
@@ -221,7 +210,6 @@ export default function App() {
   }, [user]);
 
   const navigateToHome = useCallback(() => {
-    // Reset everything to default state to ensure WelcomeScreen is shown
     resetToDefaults();
     setCurrentView('home');
     window.location.hash = '';
@@ -239,28 +227,39 @@ export default function App() {
     window.location.hash = '#personal';
   }, []);
 
-  // Property handlers - otimizados
-  const toggleFavorite = useCallback((property: Property) => {
-    const exists = favorites.some(p => p.id === property.id);
-    
-    if (!exists) {
-      if (!user) {
-        setAuthDefaultTab('signin');
-        setIsAuthModalOpen(true);
-        return;
-      }
-      
+  // Property handlers - usando API
+  const toggleFavorite = useCallback(async (property: Property) => {
+    if (!user) {
+      setAuthDefaultTab('signin');
+      setIsAuthModalOpen(true);
+      return;
     }
     
-    setFavorites(prev => 
-      exists 
-        ? prev.filter(p => p.id !== property.id) 
-        : [...prev, property]
-    );
-
-    toast.success(exists ? 'Removido dos favoritos' : 'Adicionado aos favoritos', {
-      description: property.title || 'Propriedade atualizada',
-    });
+    const isFav = favorites.some(p => p.id === property.id);
+    
+    try {
+      if (isFav) {
+        const success = await removeFromFavorites(property.id);
+        if (success) {
+          setFavorites(prev => prev.filter(p => p.id !== property.id));
+          toast.success('Removido dos favoritos', {
+            description: property.title || 'Propriedade removida'
+          });
+        }
+      } else {
+        const success = await addToFavorites(property.id);
+        if (success) {
+          setFavorites(prev => [...prev, property]);
+          toast.success('Adicionado aos favoritos', {
+            description: property.title || 'Propriedade adicionada'
+          });
+        }
+      }
+    } catch (error) {
+      toast.error('Erro ao alterar favorito', {
+        description: 'Tente novamente'
+      });
+    }
   }, [favorites, user]);
 
   // Search handlers - otimizados
@@ -294,7 +293,6 @@ export default function App() {
       setAiText(result.aiResponse || '');
       setSearchQuery(query);
       
-      // Se filters foram fornecidos, aplicá-los
       if (filters) {
         setSearchFilters(filters);
       }
@@ -317,7 +315,6 @@ export default function App() {
       setAiError('Não foi possível obter resposta da IA no momento.');
       setSearchQuery(query);
       
-      // Se filters foram fornecidos, aplicá-los mesmo com erro
       if (filters) {
         setSearchFilters(filters);
       }
@@ -345,7 +342,6 @@ export default function App() {
           avatar: currentUser.avatarUrl
         };
         setUser(extendedUser);
-        
 
         toast.success(`Bem-vindo, ${currentUser.fullName || currentUser.name || 'utilizador'}!`, {
             description: 'Inicio de sessão efetuado com sucesso.',
@@ -360,6 +356,7 @@ export default function App() {
     try {
       await logout();
       setUser(null);
+      setFavorites([]);
       setCurrentView('home');
       resetToDefaults();
       window.location.hash = '';
@@ -370,6 +367,7 @@ export default function App() {
     } catch {
       authUtils.clearTokens();
       setUser(null);
+      setFavorites([]);
       toast.error('Erro no logout, mas desconectado localmente.');
     }
   }, [resetToDefaults]);
@@ -390,7 +388,6 @@ export default function App() {
     avatar: extendedUser.avatar || extendedUser.avatarUrl,
     avatarUrl: extendedUser.avatarUrl,
     phoneNumber: extendedUser.phoneNumber,
-    credits: extendedUser.credits,
     isEmailVerified: extendedUser.isEmailVerified,
     createdAt: createSafeDate(extendedUser.createdAt),
     updatedAt: extendedUser.updatedAt ? createSafeDate(extendedUser.updatedAt) : undefined
@@ -450,7 +447,7 @@ export default function App() {
           </Suspense>
         ) : (
           user && (
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={< LoadingSpinner />}>
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 <div className="lg:col-span-1 space-y-6">
                   <SearchFilters

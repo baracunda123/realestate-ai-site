@@ -47,20 +47,29 @@ namespace realestate_ia_site.Server.Controllers
 
             try
             {
-                // TODO: Implementar tabela de favoritos
-                // Por enquanto, retornar lista vazia
-                var favorites = new List<PropertySearchDto>();
+                var query = _context.Favorites
+                    .Include(f => f.Property)
+                    .Where(f => f.UserId == userId)
+                    .OrderByDescending(f => f.CreatedAt);
+
+                var totalCount = await query.CountAsync();
+                
+                var favorites = await query
+                    .Skip((page - 1) * pageSize)
+                    .Take(pageSize)
+                    .Select(f => PropertySearchDto.FromDomain(f.Property))
+                    .ToListAsync();
                 
                 _logger.LogInformation("Found {Count} favorite properties for user", favorites.Count);
 
                 return Ok(new FavoritePropertiesResponse
                 {
                     Favorites = favorites,
-                    TotalCount = favorites.Count,
+                    TotalCount = totalCount,
                     Page = page,
                     PageSize = pageSize,
-                    HasNextPage = false,
-                    HasPreviousPage = false
+                    HasNextPage = page * pageSize < totalCount,
+                    HasPreviousPage = page > 1
                 });
             }
             catch (Exception ex)
@@ -91,27 +100,48 @@ namespace realestate_ia_site.Server.Controllers
             _logger.LogInformation("Adding property {PropertyId} to favorites for user {UserId}", 
                 request.PropertyId, userId);
 
-            // Verificar se propriedade existe
-            var propertyExists = await _context.Properties
-                .AnyAsync(p => p.Id == request.PropertyId);
-
-            if (!propertyExists)
-                throw new PropertyNotFoundException(request.PropertyId);
-
-            // TODO: Verificar se já está nos favoritos e implementar lógica de favoritos
-            // if (await IsFavoriteAsync(userId, request.PropertyId))
-            // {
-            //     return Conflict(new { message = "Propriedade já está nos favoritos" });
-            // }
-
-            // TODO: Implementar tabela de favoritos
-            _logger.LogInformation("Property added to favorites successfully");
-
-            return Ok(new SuccessResponse
+            try
             {
-                Success = true,
-                Message = "Propriedade adicionada aos favoritos"
-            });
+                // Verificar se propriedade existe
+                var propertyExists = await _context.Properties
+                    .AnyAsync(p => p.Id == request.PropertyId);
+
+                if (!propertyExists)
+                    throw new PropertyNotFoundException(request.PropertyId);
+
+                // Verificar se já está nos favoritos
+                if (await IsFavoriteAsync(userId, request.PropertyId))
+                {
+                    return Conflict(new { message = "Propriedade já está nos favoritos" });
+                }
+
+                // Adicionar aos favoritos
+                var favorite = new Favorite
+                {
+                    UserId = userId,
+                    PropertyId = request.PropertyId
+                };
+
+                _context.Favorites.Add(favorite);
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Property added to favorites successfully");
+
+                return Ok(new SuccessResponse
+                {
+                    Success = true,
+                    Message = "Propriedade adicionada aos favoritos"
+                });
+            }
+            catch (PropertyNotFoundException)
+            {
+                return NotFound(new { message = "Propriedade não encontrada" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding property to favorites");
+                return StatusCode(500, new { message = "Erro interno do servidor" });
+            }
         }
 
         /// <summary>
@@ -133,13 +163,19 @@ namespace realestate_ia_site.Server.Controllers
                 _logger.LogInformation("Removing property {PropertyId} from favorites for user {UserId}", 
                     propertyId, userId);
 
-                // TODO: Verificar se está nos favoritos
-                // if (!await IsFavoriteAsync(userId, propertyId))
-                // {
-                //     return NotFound(new { message = "Propriedade não encontrada nos favoritos" });
-                // }
+                // Verificar se está nos favoritos
+                var favorite = await _context.Favorites
+                    .FirstOrDefaultAsync(f => f.UserId == userId && f.PropertyId == propertyId);
 
-                // TODO: Implementar remoção de favoritos
+                if (favorite == null)
+                {
+                    return NotFound(new { message = "Propriedade não encontrada nos favoritos" });
+                }
+
+                // Remover dos favoritos
+                _context.Favorites.Remove(favorite);
+                await _context.SaveChangesAsync();
+
                 _logger.LogInformation("Property removed from favorites successfully");
 
                 return Ok(new SuccessResponse
@@ -173,8 +209,7 @@ namespace realestate_ia_site.Server.Controllers
                 _logger.LogInformation("Checking favorite status for property {PropertyId} and user {UserId}", 
                     propertyId, userId);
 
-                // TODO: Implementar verificação de favorito
-                var isFavorite = false; // await IsFavoriteAsync(userId, propertyId);
+                var isFavorite = await IsFavoriteAsync(userId, propertyId);
 
                 return Ok(new FavoriteStatusResponse
                 {
@@ -206,7 +241,13 @@ namespace realestate_ia_site.Server.Controllers
 
                 _logger.LogInformation("Clearing all favorites for user {UserId}", userId);
 
-                // TODO: Implementar limpeza de favoritos
+                var favorites = await _context.Favorites
+                    .Where(f => f.UserId == userId)
+                    .ToListAsync();
+
+                _context.Favorites.RemoveRange(favorites);
+                await _context.SaveChangesAsync();
+
                 _logger.LogInformation("All favorites cleared successfully");
 
                 return Ok(new SuccessResponse
@@ -222,12 +263,12 @@ namespace realestate_ia_site.Server.Controllers
             }
         }
 
-        // TODO: Implementar método auxiliar quando a tabela de favoritos for criada
-        // private async Task<bool> IsFavoriteAsync(string userId, string propertyId)
-        // {
-        //     return await _context.Favorites
-        //         .AnyAsync(f => f.UserId == userId && f.PropertyId == propertyId);
-        // }
+        // Método auxiliar para verificar se uma propriedade é favorita
+        private async Task<bool> IsFavoriteAsync(string userId, string propertyId)
+        {
+            return await _context.Favorites
+                .AnyAsync(f => f.UserId == userId && f.PropertyId == propertyId);
+        }
     }
 
     // DTOs para responses

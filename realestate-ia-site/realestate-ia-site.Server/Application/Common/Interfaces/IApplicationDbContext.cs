@@ -13,6 +13,7 @@ public interface IApplicationDbContext
     DbSet<PropertyAlert> PropertyAlerts { get; }
     DbSet<PropertyPriceHistory> PropertyPriceHistories { get; }
     DbSet<UserLoginSession> UserLoginSessions { get; }
+    DbSet<Favorite> Favorites { get; }
     DbSet<User> Users { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

@@ -27,6 +27,7 @@ namespace realestate_ia_site.Server.Data
         public DbSet<PropertyAlert> PropertyAlerts { get; set; }
         public DbSet<PropertyPriceHistory> PropertyPriceHistories { get; set; }
         public DbSet<UserLoginSession> UserLoginSessions { get; set; }
+        public DbSet<Favorite> Favorites { get; set; }
         public DbSet<User> Users => Set<User>();
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -92,6 +93,25 @@ namespace realestate_ia_site.Server.Data
                 entity.HasIndex(e => e.StripeEventId).IsUnique();
                 entity.HasIndex(e => e.EventType);
                 entity.HasIndex(e => e.CreatedAt);
+            });
+
+            // Configurações para Favorites
+            builder.Entity<Favorite>(entity =>
+            {
+                entity.HasIndex(e => new { e.UserId, e.PropertyId }).IsUnique();
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.PropertyId);
+                entity.HasIndex(e => e.CreatedAt);
+
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Property)
+                      .WithMany()
+                      .HasForeignKey(e => e.PropertyId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
         }
 
