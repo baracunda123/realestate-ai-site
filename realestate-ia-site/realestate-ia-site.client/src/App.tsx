@@ -255,7 +255,7 @@ export default function App() {
           });
         }
       }
-    } catch (error) {
+    } catch {
       toast.error('Erro ao alterar favorito', {
         description: 'Tente novamente'
       });

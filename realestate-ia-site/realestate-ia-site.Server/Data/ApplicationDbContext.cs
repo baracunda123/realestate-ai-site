@@ -28,6 +28,7 @@ namespace realestate_ia_site.Server.Data
         public DbSet<PropertyPriceHistory> PropertyPriceHistories { get; set; }
         public DbSet<UserLoginSession> UserLoginSessions { get; set; }
         public DbSet<Favorite> Favorites { get; set; }
+        public DbSet<SavedSearch> SavedSearches { get; set; }
         public DbSet<User> Users => Set<User>();
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -113,6 +114,25 @@ namespace realestate_ia_site.Server.Data
                       .HasForeignKey(e => e.PropertyId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
+
+            // Configurações para SavedSearch (simplified)
+            builder.Entity<SavedSearch>(entity =>
+            {
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.CreatedAt);
+
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.Property(e => e.MinPrice)
+                      .HasPrecision(18, 2);
+
+                entity.Property(e => e.MaxPrice)
+                      .HasPrecision(18, 2);
+            });
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -122,6 +142,15 @@ namespace realestate_ia_site.Server.Data
                 .Where(e => e.State == EntityState.Modified);
 
             foreach (var entry in userEntries)
+            {
+                entry.Entity.UpdatedAt = DateTime.UtcNow;
+            }
+
+            // Atualizar timestamps para SavedSearch
+            var savedSearchEntries = ChangeTracker.Entries<SavedSearch>()
+                .Where(e => e.State == EntityState.Modified);
+
+            foreach (var entry in savedSearchEntries)
             {
                 entry.Entity.UpdatedAt = DateTime.UtcNow;
             }
