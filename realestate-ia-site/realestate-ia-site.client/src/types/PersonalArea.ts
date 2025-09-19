@@ -2,7 +2,7 @@ import type { Property } from './property';
 
 // User interface alinhada com Entity User da BD
 export interface User {
-  // Campos obrigat�rios da BD
+  // Campos obrigatórios da BD
   id: string;
   email: string;
   
@@ -80,6 +80,47 @@ export interface PropertyAlert {
   };
 }
 
+// PropertyRecommendation alinhado com BD Model PropertyRecommendation
+export interface PropertyRecommendation {
+  id: string;
+  userId: string;
+  propertyId: string;
+  score: number;
+  reason: string;
+  createdAt: Date;
+  updatedAt: Date;
+  viewedAt?: Date;
+  isActive: boolean;
+  
+  // Campos calculados para UI
+  property?: Property;
+  reasonText?: string;
+  isNew?: boolean;
+}
+
+// PropertyAlertNotification alinhado com BD Model PropertyAlertNotification
+export interface PropertyAlertNotification {
+  id: string;
+  userId: string;
+  propertyId: string;
+  alertId: string;
+  alertType: string;
+  title: string;
+  message: string;
+  createdAt: Date;
+  readAt?: Date;
+  isActive: boolean;
+  propertyPrice?: number;
+  oldPrice?: number;
+  propertyLocation?: string;
+  
+  // Campos calculados para UI
+  property?: Property;
+  alert?: PropertyAlert;
+  isRecent?: boolean;
+  formattedTime?: string;
+}
+
 // ViewHistory - estrutura para histórico de visualizações
 export interface ViewHistoryItem {
   id: string;
@@ -126,7 +167,7 @@ export interface NotificationSettings {
 export interface ActivityItem {
   id: string;
   userId?: string;
-  type: 'favorite' | 'alert' | 'search' | 'view' | 'signup' | 'login';
+  type: 'favorite' | 'alert' | 'search' | 'view' | 'signup' | 'login' | 'recommendation';
   title: string;
   description: string;
   timestamp: Date;
@@ -134,6 +175,7 @@ export interface ActivityItem {
   metadata?: Record<string, string | number | boolean>;
   propertyId?: string;
   alertId?: string;
+  recommendationId?: string;
 }
 
 // Component Props interfaces
@@ -160,6 +202,19 @@ export interface AlertsResponse {
 export interface SavedSearchesResponse {
   searches: SavedSearch[];
   totalCount: number;
+}
+
+export interface RecommendationsResponse {
+  recommendations: PropertyRecommendation[];
+  totalCount: number;
+  newCount: number;
+}
+
+export interface AlertNotificationsResponse {
+  notifications: PropertyAlertNotification[];
+  totalCount: number;
+  unreadCount: number;
+  hasMore: boolean;
 }
 
 // Create/Update request types para alertas

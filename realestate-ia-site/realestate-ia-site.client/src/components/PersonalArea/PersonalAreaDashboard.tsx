@@ -1,8 +1,5 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Button } from '../ui/button';
-import { Badge } from '../ui/badge';
 import { 
   Heart, 
   Bookmark, 
@@ -10,24 +7,27 @@ import {
   TrendingUp, 
   Home, 
   BarChart3,
-  ArrowRight
+  ArrowRight,
+  Star
 } from 'lucide-react';
-import { type User } from '../../types/PersonalArea';
+import { type Property } from '../../types/property';
+import { DashboardRecommendations } from '../Recommendations/DashboardRecommendations';
+import { DashboardAlertNotifications } from '../AlertNotifications/DashboardAlertNotifications';
 
 interface PersonalAreaDashboardProps {
-  user: User;
   favoritesCount: number;
   savedSearchesCount: number;
   alertsCount: number;
   onCardClick: (tabName: string) => void;
+  onPropertySelect?: (property: Property) => void;
 }
 
 export function PersonalAreaDashboard({ 
-  user, 
   favoritesCount, 
   savedSearchesCount, 
   alertsCount,
-  onCardClick
+  onCardClick,
+  onPropertySelect
 }: PersonalAreaDashboardProps) {
   return (
     <div className="space-y-6">
@@ -142,37 +142,60 @@ export function PersonalAreaDashboard({
         </motion.div>
       </div>
 
-      {/* Insights Card */}
-      <Card className="border border-pale-clay-deep bg-pure-white shadow-clay-deep">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <BarChart3 className="h-5 w-5 text-burnt-peach" />
-            <span>Insights Personalizados</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 bg-porcelain rounded-lg">
-              <div className="flex items-center space-x-2 mb-2">
-                <TrendingUp className="h-4 w-4 text-success-gentle" />
-                <span className="text-sm font-medium text-foreground">Tendência de Mercado</span>
+      {/* Recommendations Section */}
+      {onPropertySelect && (
+        <DashboardRecommendations 
+          onPropertySelect={onPropertySelect}
+          limit={6}
+        />
+      )}
+
+      {/* Two-column layout for Notifications and Insights */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Alert Notifications */}
+        <DashboardAlertNotifications limit={5} />
+
+        {/* Insights Card */}
+        <Card className="border border-pale-clay-deep bg-pure-white shadow-clay-deep">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2">
+              <BarChart3 className="h-5 w-5 text-burnt-peach" />
+              <span>Insights Personalizados</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 gap-4">
+              <div className="p-4 bg-porcelain rounded-lg">
+                <div className="flex items-center space-x-2 mb-2">
+                  <TrendingUp className="h-4 w-4 text-success-gentle" />
+                  <span className="text-sm font-medium text-foreground">Tendência de Mercado</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Preços em Lisboa subiram 3.2% este mês
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Preços em Lisboa subiram 3.2% este mês
-              </p>
-            </div>
-            <div className="p-4 bg-porcelain rounded-lg">
-              <div className="flex items-center space-x-2 mb-2">
-                <Home className="h-4 w-4 text-info-gentle" />
-                <span className="text-sm font-medium text-foreground">Oportunidades</span>
+              <div className="p-4 bg-porcelain rounded-lg">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Home className="h-4 w-4 text-info-gentle" />
+                  <span className="text-sm font-medium text-foreground">Oportunidades</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  12 novas propriedades correspondem aos seus critérios
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                12 novas propriedades correspondem aos seus critérios
-              </p>
+              <div className="p-4 bg-porcelain rounded-lg">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Star className="h-4 w-4 text-warning-gentle" />
+                  <span className="text-sm font-medium text-foreground">Recomendação</span>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Considere expandir a sua pesquisa para áreas próximas
+                </p>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }

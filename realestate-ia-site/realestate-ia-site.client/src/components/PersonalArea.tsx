@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { 
   BarChart3, 
@@ -6,7 +6,8 @@ import {
   Bookmark, 
   Bell, 
   Clock, 
-  Settings 
+  Settings,
+  TrendingUp
 } from 'lucide-react';
 import type { Property } from '../types/property';
 import type { User, SavedSearch, PropertyAlert, ViewHistoryItem, NotificationSettings, CreateAlertRequest } from '../types/PersonalArea';
@@ -20,6 +21,7 @@ import { PersonalAreaSearches } from './PersonalArea/PersonalAreaSearches';
 import { PersonalAreaAlerts } from './PersonalArea/PersonalAreaAlerts';
 import { PersonalAreaHistory } from './PersonalArea/PersonalAreaHistory';
 import { PersonalAreaSettings } from './PersonalArea/PersonalAreaSettings';
+import { PersonalAreaRecommendations } from './PersonalArea/PersonalAreaRecommendations';
 import { toast } from 'sonner';
 import { 
   getUserAlerts, 
@@ -160,7 +162,19 @@ export function PersonalArea({
       
       // Depois executar a pesquisa
       if (onExecuteSearch) {
-        onExecuteSearch(search.query, search.filters);
+        // Convert SavedSearch filters to SearchFilters format
+        const searchFilters: SearchFiltersType = {
+          location: search.filters.location || '',
+          priceRange: search.filters.priceRange || [0, 2000000],
+          bedrooms: search.filters.bedrooms || null,
+          bathrooms: search.filters.bathrooms || null,
+          propertyType: search.filters.propertyType || 'any',
+          hasGarage: search.filters.hasGarage,
+          sortBy: 'relevance', // Default sort for saved searches
+          sortOrder: 'desc'
+        };
+        
+        onExecuteSearch(search.query, searchFilters);
         toast.success('Executando pesquisa salva...', {
           description: `Pesquisando: "${search.query}"`
         });
@@ -187,10 +201,14 @@ export function PersonalArea({
       <PersonalAreaHeader user={user} />
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-6 h-14">
+        <TabsList className="grid w-full grid-cols-7 h-14">
           <TabsTrigger value="dashboard" className="w-full flex items-center space-x-2">
             <BarChart3 className="h-4 w-4" />
             <span className="hidden sm:inline">Dashboard</span>
+          </TabsTrigger>
+          <TabsTrigger value="recommendations" className="w-full flex items-center space-x-2">
+            <TrendingUp className="h-4 w-4" />
+            <span className="hidden sm:inline">Recomendações</span>
           </TabsTrigger>
           <TabsTrigger value="favorites" className="w-full flex items-center space-x-2">
             <Heart className="h-4 w-4" />
@@ -216,7 +234,6 @@ export function PersonalArea({
 
         <TabsContent value="dashboard">
           <PersonalAreaDashboard
-            user={user}
             favoritesCount={favorites.length}
             savedSearchesCount={savedSearches.length}
             alertsCount={alerts.filter(alert => alert.isActive).length}
@@ -225,6 +242,13 @@ export function PersonalArea({
               if (cardType === 'searches') setActiveTab('searches');
               if (cardType === 'alerts') setActiveTab('alerts');
             }}
+            onPropertySelect={onPropertySelect}
+          />
+        </TabsContent>
+
+        <TabsContent value="recommendations">
+          <PersonalAreaRecommendations
+            onPropertySelect={onPropertySelect}
           />
         </TabsContent>
 

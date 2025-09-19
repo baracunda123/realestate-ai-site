@@ -29,6 +29,8 @@ namespace realestate_ia_site.Server.Data
         public DbSet<UserLoginSession> UserLoginSessions { get; set; }
         public DbSet<Favorite> Favorites { get; set; }
         public DbSet<SavedSearch> SavedSearches { get; set; }
+        public DbSet<PropertyRecommendation> PropertyRecommendations { get; set; }
+        public DbSet<PropertyAlertNotification> PropertyAlertNotifications { get; set; }
         public DbSet<User> Users => Set<User>();
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -133,6 +135,56 @@ namespace realestate_ia_site.Server.Data
                 entity.Property(e => e.MaxPrice)
                       .HasPrecision(18, 2);
             });
+
+            // Configurações para PropertyRecommendation
+            builder.Entity<PropertyRecommendation>(entity =>
+            {
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.PropertyId);
+                entity.HasIndex(e => new { e.UserId, e.PropertyId });
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.Score);
+                entity.HasIndex(e => e.CreatedAt);
+
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Property)
+                      .WithMany()
+                      .HasForeignKey(e => e.PropertyId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Configurações para PropertyAlertNotification
+            builder.Entity<PropertyAlertNotification>(entity =>
+            {
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.PropertyId);
+                entity.HasIndex(e => e.AlertId);
+                entity.HasIndex(e => new { e.UserId, e.PropertyId });
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.AlertType);
+                entity.HasIndex(e => e.CreatedAt);
+                entity.HasIndex(e => e.ReadAt);
+
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Property)
+                      .WithMany()
+                      .HasForeignKey(e => e.PropertyId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.Property(e => e.PropertyPrice)
+                      .HasPrecision(18, 2);
+
+                entity.Property(e => e.OldPrice)
+                      .HasPrecision(18, 2);
+            });
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -151,6 +203,15 @@ namespace realestate_ia_site.Server.Data
                 .Where(e => e.State == EntityState.Modified);
 
             foreach (var entry in savedSearchEntries)
+            {
+                entry.Entity.UpdatedAt = DateTime.UtcNow;
+            }
+
+            // Atualizar timestamps para PropertyRecommendation
+            var recommendationEntries = ChangeTracker.Entries<PropertyRecommendation>()
+                .Where(e => e.State == EntityState.Modified);
+
+            foreach (var entry in recommendationEntries)
             {
                 entry.Entity.UpdatedAt = DateTime.UtcNow;
             }

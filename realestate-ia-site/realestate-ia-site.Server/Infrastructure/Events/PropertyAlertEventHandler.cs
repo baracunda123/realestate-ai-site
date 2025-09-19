@@ -1,6 +1,7 @@
 using realestate_ia_site.Server.Application.Common.Events;
 using realestate_ia_site.Server.Domain.Events;
 using realestate_ia_site.Server.Application.PropertyAlerts;
+using realestate_ia_site.Server.Application.Recommendations;
 
 namespace realestate_ia_site.Server.Infrastructure.Events
 {
@@ -9,13 +10,16 @@ namespace realestate_ia_site.Server.Infrastructure.Events
         IDomainEventHandler<PropertyPriceChangedEvent>
     {
         private readonly PropertyAlertService _alertService;
+        private readonly PropertyRecommendationService _recommendationService;
         private readonly ILogger<PropertyAlertEventHandler> _logger;
 
         public PropertyAlertEventHandler(
             PropertyAlertService alertService,
+            PropertyRecommendationService recommendationService,
             ILogger<PropertyAlertEventHandler> logger)
         {
             _alertService = alertService;
+            _recommendationService = recommendationService;
             _logger = logger;
         }
 
@@ -25,7 +29,12 @@ namespace realestate_ia_site.Server.Infrastructure.Events
             
             try
             {
+                // Alertas existentes
                 await _alertService.ProcessNewPropertyAsync(domainEvent.Property, cancellationToken);
+                
+                // NOVO: Recomendações automáticas
+                await _recommendationService.ProcessNewPropertyForRecommendationsAsync(
+                    domainEvent.Property, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -40,7 +49,12 @@ namespace realestate_ia_site.Server.Infrastructure.Events
             
             try
             {
+                // Alertas existentes
                 await _alertService.ProcessPriceChangeAsync(domainEvent.Property, domainEvent.OldPrice, cancellationToken);
+                
+                // NOVO: Recomendações por mudança de preço
+                await _recommendationService.ProcessPriceChangeForRecommendationsAsync(
+                    domainEvent.Property, domainEvent.OldPrice, cancellationToken);
             }
             catch (Exception ex)
             {

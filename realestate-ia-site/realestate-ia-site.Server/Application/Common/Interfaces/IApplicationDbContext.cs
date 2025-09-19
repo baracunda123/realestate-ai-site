@@ -15,6 +15,8 @@ public interface IApplicationDbContext
     DbSet<UserLoginSession> UserLoginSessions { get; }
     DbSet<Favorite> Favorites { get; }
     DbSet<SavedSearch> SavedSearches { get; }
+    DbSet<PropertyRecommendation> PropertyRecommendations { get; }
+    DbSet<PropertyAlertNotification> PropertyAlertNotifications { get; }
     DbSet<User> Users { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

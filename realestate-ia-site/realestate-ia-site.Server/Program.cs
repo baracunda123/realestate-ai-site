@@ -7,6 +7,7 @@ using System.Threading.RateLimiting;
 using realestate_ia_site.Server.Application.SearchAI;
 using realestate_ia_site.Server.Application.PropertyAlerts;
 using realestate_ia_site.Server.Application.PropertySearch;
+using realestate_ia_site.Server.Application.Recommendations;
 using realestate_ia_site.Server.Application.AI.Interfaces;
 using realestate_ia_site.Server.Application.Payments.Interfaces;
 using realestate_ia_site.Server.Application.Payments;
@@ -205,6 +206,7 @@ builder.Services.AddSingleton<SecurityAuditService>();
 // Application services
 builder.Services.AddScoped<SearchAIOrchestrator>();
 builder.Services.AddScoped<PropertyAlertService>();
+builder.Services.AddScoped<PropertyRecommendationService>();
 builder.Services.AddScoped<IPropertySearchService, PropertySearchService>();
 builder.Services.AddScoped<AuthService>();
 
@@ -246,9 +248,7 @@ builder.Services.AddScoped<IPropertyFilter, TopPicksFilter>();
 
 // Notifications
 builder.Services.Configure<EmailConfiguration>(builder.Configuration.GetSection("Email"));
-builder.Services.Configure<SmsConfiguration>(builder.Configuration.GetSection("Sms"));
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<ISmsService, TwilioSmsService>();
 
 // Domain events
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
