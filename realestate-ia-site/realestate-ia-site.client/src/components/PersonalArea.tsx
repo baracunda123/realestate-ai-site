@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { 
   BarChart3, 
@@ -7,13 +7,15 @@ import {
   Bell, 
   Clock, 
   Settings,
-  TrendingUp
+  TrendingUp,
+  ArrowLeft
 } from 'lucide-react';
 import type { Property } from '../types/property';
 import type { User, SavedSearch, PropertyAlert, ViewHistoryItem, NotificationSettings, CreateAlertRequest } from '../types/PersonalArea';
 import type { SearchFilters as SearchFiltersType } from '../types/SearchFilters';
 import type { NewAlert } from './NewAlertModalFixed';
 import { NewAlertModal } from './NewAlertModalFixed';
+import { Button } from './ui/button';
 import { PersonalAreaHeader } from './PersonalArea/PersonalAreaHeader';
 import { PersonalAreaDashboard } from './PersonalArea/PersonalAreaDashboard';
 import { PersonalAreaFavorites } from './PersonalArea/PersonalAreaFavorites';
@@ -39,10 +41,11 @@ interface PersonalAreaProps {
   user: User;
   onPropertySelect: (property: Property) => void;
   onNavigateToAlertResults?: (alert: PropertyAlert) => void;
-  onNavigateToHome?: () => void;
+  onNavigateToHome?: (reset?: boolean) => void;
   onExecuteSearch?: (query: string, filters?: SearchFiltersType) => void;
   favorites: Property[];
   onToggleFavorite: (property: Property) => void;
+  hasActiveSearch?: boolean; // Indica se há pesquisa ativa na home
 }
 
 export function PersonalArea({ 
@@ -52,7 +55,8 @@ export function PersonalArea({
   onNavigateToHome,
   onExecuteSearch,
   favorites, 
-  onToggleFavorite 
+  onToggleFavorite,
+  hasActiveSearch = false
 }: PersonalAreaProps) {
   // UI state
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -198,6 +202,21 @@ export function PersonalArea({
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
+      {/* Botão Voltar aos Resultados - apenas se houver pesquisa ativa */}
+      {hasActiveSearch && (
+        <div className="flex justify-start">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onNavigateToHome?.(false)}
+            className="flex items-center space-x-2 text-sm hover:bg-burnt-peach hover:text-white transition-colors"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            <span>Voltar aos Resultados</span>
+          </Button>
+        </div>
+      )}
+      
       <PersonalAreaHeader user={user} />
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

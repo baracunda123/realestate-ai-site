@@ -87,8 +87,8 @@ export default function App() {
   }, [searchFilters, searchQuery]);
 
   const showWelcomeScreen = useMemo(() => 
-    !user || (user && isDefaultState && currentView === 'home'), 
-    [user, isDefaultState, currentView]
+    !user || (user && isDefaultState && currentView === 'home' && searchResults === null), 
+    [user, isDefaultState, currentView, searchResults]
   );
 
   // Load favorites when user logs in
@@ -178,7 +178,7 @@ export default function App() {
       try {
         const resp = await getAlertMatches(selectedAlert.id, 1, 50, false);
         setAlertProperties(resp.properties || []);
-      } catch (e) {
+      } catch {
         setAlertProperties([]);
         setAlertError('Não foi possível carregar os resultados do alerta.');
       } finally {
@@ -209,8 +209,10 @@ export default function App() {
     }
   }, [user]);
 
-  const navigateToHome = useCallback(() => {
-    resetToDefaults();
+  const navigateToHome = useCallback(( reset: boolean = true ) => {
+    if (reset) {
+      resetToDefaults();
+    }
     setCurrentView('home');
     window.location.hash = '';
   }, [resetToDefaults]);
@@ -296,9 +298,6 @@ export default function App() {
       if (filters) {
         setSearchFilters(filters);
       }
-      
-      if (currentView !== 'home') setCurrentView('home');
-      if (window.location.hash) window.location.hash = '';
       
       if (result.properties?.length === 0) {
         toast.info('Nenhum resultado encontrado', { 
@@ -436,6 +435,7 @@ export default function App() {
             onExecuteSearch={handleSubmitSearch}
             favorites={favorites}
             onToggleFavorite={toggleFavorite}
+            hasActiveSearch={!isDefaultState && searchResults !== null}
           />
         ) : showWelcomeScreen ? (
           <Suspense fallback={<LoadingSpinner />}>
