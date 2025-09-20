@@ -124,27 +124,51 @@ export async function getRecommendationStats(): Promise<RecommendationStats> {
 }
 
 /**
- * Gerar recomendações manualmente (para testing)
+ * Refresh completo das recomendações baseado no perfil atual
  */
-export async function generateRecommendationsManually(): Promise<{
+export async function refreshRecommendations(): Promise<{
   success: boolean;
   message: string;
-  count: number;
 }> {
-  logToTerminal('Gerando recomendações manualmente');
+  logToTerminal('Fazendo refresh das recomendações baseado no perfil atual');
 
   try {
     const response = await apiClient.post<{
       success: boolean;
       message: string;
-      count: number;
-    }>('/api/recommendations/generate');
+    }>('/api/recommendations/refresh');
     
-    logToTerminal(`Recomendações geradas: ${response.count}`);
+    logToTerminal('Recomendações atualizadas com sucesso');
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao gerar recomendações: ${errorMsg}`, 'error');
+    logToTerminal(`Erro ao fazer refresh das recomendações: ${errorMsg}`, 'error');
+    throw error;
+  }
+}
+
+/**
+ * Gerar recomendações similares a uma propriedade específica
+ */
+export async function generateSimilarRecommendations(
+  propertyId: string
+): Promise<{
+  success: boolean;
+  message: string;
+}> {
+  logToTerminal(`Gerando recomendações similares à propriedade: ${propertyId}`);
+
+  try {
+    const response = await apiClient.post<{
+      success: boolean;
+      message: string;
+    }>(`/api/recommendations/similar-to/${propertyId}`);
+    
+    logToTerminal('Recomendações similares geradas com sucesso');
+    return response;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
+    logToTerminal(`Erro ao gerar recomendações similares: ${errorMsg}`, 'error');
     throw error;
   }
 }
@@ -170,9 +194,9 @@ export const recommendationUtils = {
     const reasons: Record<string, string> = {
       'nova_propriedade': 'Nova Propriedade',
       'reducao_preco': 'Redução de Preço',
-      'localizacao_preferida': 'Localização Preferida',
-      'tipo_preferido': 'Tipo Preferido',
-      'orcamento_adequado': 'Dentro do Orçamento'
+      'similar_favorito': 'Similar aos Favoritos',
+      'similar_pesquisa': 'Corresponde às Pesquisas',
+      'perfil_atualizado': 'Baseado no Perfil Atualizado'
     };
     return reasons[reason] || reason;
   },
@@ -188,16 +212,6 @@ export const recommendationUtils = {
   },
 
   /**
-   * Obter descrição baseada no score
-   */
-  getScoreDescription: (score: number): string => {
-    if (score >= 90) return 'Excelente correspondência';
-    if (score >= 80) return 'Boa correspondência';
-    if (score >= 70) return 'Correspondência moderada';
-    return 'Correspondência baixa';
-  },
-
-  /**
    * Verificar se a recomendação é nova (menos de 24h)
    */
   isNew: (createdAt: string): boolean => {
@@ -208,11 +222,7 @@ export const recommendationUtils = {
   }
 };
 
-// Log apenas quando carrega em desenvolvimento
-try {
-  if (process.env.NODE_ENV === 'development') {
+
+if (import.meta.env?.DEV) {
     logToTerminal('Recommendations Service carregado');
-  }
-} catch {
-  // Ignorar se verificação de ambiente falhar
 }

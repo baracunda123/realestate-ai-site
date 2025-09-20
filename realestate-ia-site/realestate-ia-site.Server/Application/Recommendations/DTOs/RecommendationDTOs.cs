@@ -8,8 +8,6 @@ namespace realestate_ia_site.Server.Application.Recommendations.DTOs
         public int? PreferredBedrooms { get; set; }
         public bool PrefersGarage { get; set; }
         public DateTime LastActivityDate { get; set; }
-        public Dictionary<string, double> LocationWeights { get; set; } = new();
-        public Dictionary<string, double> TypeWeights { get; set; } = new();
     }
 
     public class RecommendedPropertyDto

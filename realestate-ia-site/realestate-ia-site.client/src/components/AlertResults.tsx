@@ -1,12 +1,12 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { type Property } from '../types/property';
 import { PropertyCard } from './PropertyCard';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { ArrowLeft, Bell, Sparkles, Filter, Calendar, MapPin, TrendingUp } from 'lucide-react';
+import { ArrowLeft, Bell, Sparkles, Filter, Calendar, MapPin, TrendingUp, Euro, Bed, Bath } from 'lucide-react';
 import { type PropertyAlert } from '../types/PersonalArea';
-import { formatDate, formatPrice, getPropertyTypeLabel } from '../utils/PersonalArea';
+import { formatDate, formatPriceRange, getPropertyTypeLabel } from '../utils/PersonalArea';
 
 interface AlertResultsProps {
   alert: PropertyAlert;
@@ -24,7 +24,7 @@ export function AlertResults({ alert, properties, onBack, onPropertySelect, favo
   const sortedProperties = [...properties].sort((a, b) => {
     switch (sortBy) {
       case 'price':
-        return a.price - b.price;
+        return (a.price || 0) - (b.price || 0);
       case 'relevance':
         // Mock relevance score based on how well it matches alert criteria
         return Math.random() - 0.5;
@@ -68,7 +68,7 @@ export function AlertResults({ alert, properties, onBack, onPropertySelect, favo
         <CardContent className="p-5">
           <div className="flex items-center space-x-2 mb-4">
             <Filter className="h-4 w-4 text-burnt-peach" />
-            <h3 className="font-medium text-foreground">Crit√©rios do Alerta</h3>
+            <h3 className="font-medium text-foreground">CritÈrios do Alerta</h3>
             <Badge className="bg-burnt-peach text-pure-white border-0">
               <Sparkles className="h-3 w-3 mr-1" />
               Match Inteligente
@@ -76,26 +76,36 @@ export function AlertResults({ alert, properties, onBack, onPropertySelect, favo
           </div>
           
           <div className="flex flex-wrap gap-2">
-            <Badge className="bg-pure-white text-burnt-peach border border-burnt-peach-light">
-              <MapPin className="h-3 w-3 mr-1" />
-              {alert.location}
-            </Badge>
-            <Badge className="bg-pure-white text-burnt-peach border border-burnt-peach-light">
-              üè† {getPropertyTypeLabel(alert.propertyType)}
-            </Badge>
+            {alert.location && (
+              <Badge className="bg-pure-white text-burnt-peach border border-burnt-peach-light">
+                <MapPin className="h-3 w-3 mr-1" />
+                {alert.location}
+              </Badge>
+            )}
+            {alert.propertyType && (
+              <Badge className="bg-pure-white text-burnt-peach border border-burnt-peach-light">
+                <span className="mr-1">??</span>
+                {getPropertyTypeLabel(alert.propertyType)}
+              </Badge>
+            )}
             {alert.bedrooms && (
               <Badge className="bg-pure-white text-burnt-peach border border-burnt-peach-light">
-                üõèÔ∏è {alert.bedrooms}+ quartos
+                <Bed className="h-3 w-3 mr-1" />
+                {alert.bedrooms}+ quartos
               </Badge>
             )}
             {alert.bathrooms && (
               <Badge className="bg-pure-white text-burnt-peach border border-burnt-peach-light">
-                üöø {alert.bathrooms}+ banheiros
+                <Bath className="h-3 w-3 mr-1" />
+                {alert.bathrooms}+ banheiros
               </Badge>
             )}
-            <Badge className="bg-pure-white text-burnt-peach border border-burnt-peach-light">
-              üí∞ {formatPrice(alert.priceRange[0])} - {formatPrice(alert.priceRange[1])}
-            </Badge>
+            {(alert.minPrice || alert.maxPrice) && (
+              <Badge className="bg-pure-white text-burnt-peach border border-burnt-peach-light">
+                <Euro className="h-3 w-3 mr-1" />
+                {formatPriceRange(alert.minPrice, alert.maxPrice)}
+              </Badge>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -115,12 +125,12 @@ export function AlertResults({ alert, properties, onBack, onPropertySelect, favo
         <div className="flex items-center space-x-2">
           <span className="text-sm text-muted-foreground">Ordenar por:</span>
           <div className="flex space-x-1">
-            {['newest', 'price', 'relevance'].map((option) => (
+            {(['newest', 'price', 'relevance'] as const).map((option) => (
               <Button
                 key={option}
                 variant={sortBy === option ? 'default' : 'outline'}
                 size="sm"
-                onClick={() => setSortBy(option as any)}
+                onClick={() => setSortBy(option)}
                 className={
                   sortBy === option 
                     ? 'bg-burnt-peach hover:bg-burnt-peach-deep text-pure-white' 
@@ -128,10 +138,10 @@ export function AlertResults({ alert, properties, onBack, onPropertySelect, favo
                 }
               >
                 {option === 'newest' && <Calendar className="h-3 w-3 mr-1" />}
-                {option === 'price' && <span className="mr-1">üí∞</span>}
+                {option === 'price' && <Euro className="h-3 w-3 mr-1" />}
                 {option === 'relevance' && <TrendingUp className="h-3 w-3 mr-1" />}
                 {option === 'newest' ? 'Mais Recentes' : 
-                 option === 'price' ? 'Pre√ßo' : 'Relev√¢ncia'}
+                 option === 'price' ? 'PreÁo' : 'Relev‚ncia'}
               </Button>
             ))}
           </div>
@@ -146,7 +156,6 @@ export function AlertResults({ alert, properties, onBack, onPropertySelect, favo
               <PropertyCard
                 property={property}
                 onClick={() => onPropertySelect(property)}
-                isWhiteBackground={false}
                 isFavorite={favorites.some(f => f.id === property.id)}
                 onToggleFavorite={onToggleFavorite}
               />
@@ -179,8 +188,8 @@ export function AlertResults({ alert, properties, onBack, onPropertySelect, favo
               Nenhuma propriedade encontrada
             </h3>
             <p className="text-sm text-muted-foreground max-w-md mx-auto">
-              Ainda n√£o encontramos propriedades que correspondem aos crit√©rios deste alerta. 
-              Continue monitorando - notificaremos voc√™ assim que algo aparecer!
+              Ainda n„o encontramos propriedades que correspondem aos critÈrios deste alerta. 
+              Continue monitorando - notificaremos vocÍ assim que algo aparecer!
             </p>
           </CardContent>
         </Card>
@@ -200,7 +209,7 @@ export function AlertResults({ alert, properties, onBack, onPropertySelect, favo
             </div>
             {alert.lastTriggered && (
               <span className="text-muted-foreground">
-                √öltima atualiza√ß√£o: {formatDate(alert.lastTriggered)}
+                ⁄ltima atualizaÁ„o: {formatDate(alert.lastTriggered)}
               </span>
             )}
           </div>

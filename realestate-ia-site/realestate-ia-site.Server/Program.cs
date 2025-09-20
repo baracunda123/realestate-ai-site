@@ -31,6 +31,7 @@ using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Application.Auth;
 using realestate_ia_site.Server.Application.PropertySearch.Filters;
 using realestate_ia_site.Server.Application.Security;
+using realestate_ia_site.Server.Infrastructure.BackgroundServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -257,9 +258,17 @@ builder.Services.AddScoped<IDomainEventHandler<PropertyPriceChangedEvent>, Prope
 builder.Services.AddScoped<IDomainEventHandler<PropertyCreatedEvent>, RealTimePropertyEventHandler>();
 builder.Services.AddScoped<IDomainEventHandler<PropertyPriceChangedEvent>, RealTimePropertyEventHandler>();
 
+// NOVOS EVENT HANDLERS PARA RECOMENDAÇÕES INTELIGENTES
+builder.Services.AddScoped<IDomainEventHandler<FavoriteAddedEvent>, UserBehaviorEventHandler>();
+builder.Services.AddScoped<IDomainEventHandler<SavedSearchCreatedEvent>, UserBehaviorEventHandler>();
+builder.Services.AddScoped<IDomainEventHandler<SearchExecutedEvent>, UserBehaviorEventHandler>();
+
 // Real-time notifications
 builder.Services.AddSignalRNotifications();
 builder.Services.AddScoped<ISystemNotificationService, SystemNotificationService>();
+
+// BACKGROUND SERVICES PARA RECOMENDAÇÕES PROATIVAS
+builder.Services.AddHostedService<RecommendationBackgroundService>();
 
 // API basics
 builder.Services.AddControllers();

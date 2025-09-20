@@ -31,6 +31,7 @@ namespace realestate_ia_site.Server.Data
         public DbSet<SavedSearch> SavedSearches { get; set; }
         public DbSet<PropertyRecommendation> PropertyRecommendations { get; set; }
         public DbSet<PropertyAlertNotification> PropertyAlertNotifications { get; set; }
+        public DbSet<UserSearchHistory> UserSearchHistories { get; set; }
         public DbSet<User> Users => Set<User>();
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -185,6 +186,20 @@ namespace realestate_ia_site.Server.Data
                 entity.Property(e => e.OldPrice)
                       .HasPrecision(18, 2);
             });
+
+            // Configurações para UserSearchHistory (otimizado para performance)
+            builder.Entity<UserSearchHistory>(entity =>
+            {
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.SessionId);
+                entity.HasIndex(e => e.CreatedAt);
+                entity.HasIndex(e => new { e.UserId, e.CreatedAt }); // Para queries por utilizador ordenadas por data
+
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.SetNull); // Manter histórico mesmo se utilizador for eliminado
+            });
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -218,6 +233,7 @@ namespace realestate_ia_site.Server.Data
 
             var domainEvents = new List<IDomainEvent>();
 
+            // Eventos de propriedades
             foreach (var entry in ChangeTracker.Entries<Property>())
             {
                 if (entry.State == EntityState.Added)
@@ -237,6 +253,37 @@ namespace realestate_ia_site.Server.Data
                         PropertyPriceHistories.Add(outcome.History!);
                         domainEvents.Add(outcome.Event!);
                     }
+                }
+            }
+
+            // NOVOS EVENTOS: Favoritos e Pesquisas Guardadas
+            foreach (var entry in ChangeTracker.Entries<Favorite>())
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    // Buscar a propriedade para incluir no evento
+                    var property = await Properties.FirstOrDefaultAsync(p => p.Id == entry.Entity.PropertyId, cancellationToken);
+                    if (property != null)
+                    {
+                        domainEvents.Add(new FavoriteAddedEvent
+                        {
+                            UserId = entry.Entity.UserId,
+                            PropertyId = entry.Entity.PropertyId,
+                            Property = property
+                        });
+                    }
+                }
+            }
+
+            foreach (var entry in ChangeTracker.Entries<SavedSearch>())
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    domainEvents.Add(new SavedSearchCreatedEvent
+                    {
+                        UserId = entry.Entity.UserId,
+                        SavedSearch = entry.Entity
+                    });
                 }
             }
 

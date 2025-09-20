@@ -186,58 +186,71 @@ namespace realestate_ia_site.Server.Controllers
         }
 
         /// <summary>
-        /// Gerar recomendações manualmente (para testing)
+        /// Refresh completo das recomendações baseado no perfil atual do utilizador
         /// </summary>
-        [HttpPost("generate")]
+        [HttpPost("refresh")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult> GenerateRecommendationsManually()
+        public async Task<ActionResult> RefreshRecommendations()
         {
             var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
-            _logger.LogInformation("Manually generating recommendations for user {UserId}", userId);
+            _logger.LogInformation("Refreshing recommendations for user {UserId}", userId);
 
             try
             {
-                // Obter propriedades recentes (últimas 2 semanas)
-                var recentProperties = await _context.Properties
-                    .Where(p => p.CreatedAt > DateTime.UtcNow.AddDays(-14))
-                    .Where(p => p.Price.HasValue)
-                    .Take(50) // Limitar para performance
-                    .ToListAsync();
-
-                int recommendationsCreated = 0;
-
-                foreach (var property in recentProperties)
-                {
-                    // Verificar se já existe recomendação
-                    var existingRecommendation = await _context.PropertyRecommendations
-                        .AnyAsync(r => r.UserId == userId && r.PropertyId == property.Id);
-
-                    if (!existingRecommendation)
-                    {
-                        await _recommendationService.ProcessNewPropertyForRecommendationsAsync(
-                            property, HttpContext.RequestAborted);
-                        recommendationsCreated++;
-                    }
-                }
-
-                _logger.LogInformation("Generated {Count} recommendations for user {UserId}", 
-                    recommendationsCreated, userId);
+                await _recommendationService.RefreshUserRecommendationsAsync(userId, HttpContext.RequestAborted);
 
                 return Ok(new 
                 { 
                     success = true, 
-                    message = $"Geradas {recommendationsCreated} novas recomendações",
-                    count = recommendationsCreated
+                    message = "Recomendações atualizadas com base no seu perfil atual"
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error generating recommendations manually for user {UserId}", userId);
+                _logger.LogError(ex, "Error refreshing recommendations for user {UserId}", userId);
+                return StatusCode(500, new { message = "Erro interno do servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Obter recomendações similares a uma propriedade específica
+        /// </summary>
+        [HttpPost("similar-to/{propertyId}")]
+        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult> GenerateSimilarRecommendations(string propertyId)
+        {
+            var userId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            _logger.LogInformation("Generating similar recommendations for user {UserId} based on property {PropertyId}", 
+                userId, propertyId);
+
+            try
+            {
+                var property = await _context.Properties.FirstOrDefaultAsync(p => p.Id == propertyId);
+                if (property == null)
+                    return NotFound(new { message = "Propriedade não encontrada" });
+
+                await _recommendationService.ProcessSimilarPropertiesAsync(userId, property, HttpContext.RequestAborted);
+
+                return Ok(new 
+                { 
+                    success = true, 
+                    message = "Recomendações similares geradas com sucesso"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating similar recommendations for user {UserId}", userId);
                 return StatusCode(500, new { message = "Erro interno do servidor" });
             }
         }

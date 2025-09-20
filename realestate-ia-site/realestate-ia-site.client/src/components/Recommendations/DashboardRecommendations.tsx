@@ -74,52 +74,55 @@ function RecommendationCard({
       className="group"
     >
       <Card className="border border-pale-clay-deep bg-pure-white shadow-clay-soft hover:shadow-clay-medium transition-all duration-200 relative overflow-hidden">
-        {isNew && (
-          <div className="absolute top-2 right-2 z-10">
-            <Badge className="bg-burnt-peach text-white text-xs">
-              <Sparkles className="h-3 w-3 mr-1" />
-              Nova
-            </Badge>
-          </div>
-        )}
-        
         <CardContent className="p-4">
+          {/* Header com titulo, badges e botão fechar */}
           <div className="flex justify-between items-start mb-3">
-            <div className="flex-1">
-              <h3 className="font-semibold text-foreground text-sm mb-1 line-clamp-2">
-                {recommendation.title}
-              </h3>
-              <div className="flex items-center text-xs text-muted-foreground mb-2">
-                <MapPin className="h-3 w-3 mr-1" />
-                {recommendation.location}
+            <div className="flex-1 pr-2">
+              <div className="flex items-start justify-between mb-2">
+                <h3 className="font-semibold text-foreground text-sm line-clamp-2 flex-1 pr-2">
+                  {recommendation.title}
+                </h3>
+                <div className="flex items-center space-x-1 flex-shrink-0">
+                  {isNew && (
+                    <Badge className="bg-burnt-peach text-white text-xs">
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      Nova
+                    </Badge>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={handleDismiss}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                </div>
+              </div>
+              <div className="flex items-center text-xs text-muted-foreground">
+                <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+                <span className="line-clamp-1">{recommendation.location}</span>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={handleDismiss}
-            >
-              <X className="h-3 w-3" />
-            </Button>
           </div>
 
+          {/* Preço, quartos e pontuação */}
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 flex-1">
               {recommendation.price && (
                 <div className="flex items-center text-sm font-medium">
-                  <Euro className="h-3 w-3 mr-1" />
-                  {recommendation.price.toLocaleString()}
+                  <Euro className="h-3 w-3 mr-1 flex-shrink-0" />
+                  <span className="truncate">{recommendation.price.toLocaleString()}</span>
                 </div>
               )}
               {recommendation.bedrooms && (
                 <div className="flex items-center text-xs text-muted-foreground">
-                  <Bed className="h-3 w-3 mr-1" />
-                  {recommendation.bedrooms}
+                  <Bed className="h-3 w-3 mr-1 flex-shrink-0" />
+                  <span>{recommendation.bedrooms}</span>
                 </div>
               )}
             </div>
-            <div className="flex items-center space-x-1">
+            <div className="flex items-center space-x-1 flex-shrink-0">
               <Star className={`h-3 w-3 ${scoreColor}`} />
               <span className={`text-xs font-medium ${scoreColor}`}>
                 {recommendation.score}%
@@ -127,27 +130,30 @@ function RecommendationCard({
             </div>
           </div>
 
+          {/* Razão da recomendação */}
           <div className="mb-3">
             <Badge variant="secondary" className="text-xs">
               {recommendationUtils.formatReason(recommendation.reason)}
             </Badge>
           </div>
 
-          <div className="mb-3">
+          {/* Texto explicativo */}
+          <div className="mb-4">
             <p className="text-xs text-muted-foreground line-clamp-2">
               {recommendation.reasonText}
             </p>
           </div>
 
-          <div className="flex items-center justify-between">
+          {/* Footer com data e botão de ação */}
+          <div className="flex items-center justify-between pt-2 border-t border-porcelain">
             <div className="flex items-center text-xs text-muted-foreground">
-              <Clock className="h-3 w-3 mr-1" />
-              {new Date(recommendation.createdAt).toLocaleDateString('pt-PT')}
+              <Clock className="h-3 w-3 mr-1 flex-shrink-0" />
+              <span>{new Date(recommendation.createdAt).toLocaleDateString('pt-PT')}</span>
             </div>
             <Button
               size="sm"
               onClick={handleView}
-              className="h-7 text-xs bg-burnt-peach hover:bg-burnt-peach/90"
+              className="h-7 text-xs bg-burnt-peach hover:bg-burnt-peach/90 flex-shrink-0"
               disabled={recommendation.isViewed}
             >
               {recommendation.isViewed ? (

@@ -25,7 +25,7 @@ import {
   markRecommendationAsViewed,
   dismissRecommendation,
   getRecommendationStats,
-  generateRecommendationsManually,
+  refreshRecommendations,
   recommendationUtils,
   type RecommendedProperty,
   type RecommendationStats
@@ -90,61 +90,61 @@ const RecommendationCard = memo(function RecommendationCard({
       className="group"
     >
       <Card className="border border-clay-medium bg-card shadow-clay-soft hover:shadow-clay-medium transition-all duration-300 relative overflow-hidden hover:border-clay-strong">
-        {/* Status badges */}
-        <div className="absolute top-3 right-3 z-10 flex gap-2">
-          {isNew && (
-            <Badge className="bg-burnt-peach text-white text-xs shadow-clay-soft border-0">
-              <Sparkles className="h-3 w-3 mr-1" />
-              Nova
-            </Badge>
-          )}
-          {recommendation.isViewed && (
-            <Badge className="bg-success-soft text-success-strong border-success-gentle text-xs">
-              <CheckCircle className="h-3 w-3 mr-1" />
-              Vista
-            </Badge>
-          )}
-        </div>
-        
         <CardContent className="p-4">
           <div className="space-y-3">
-            {/* Header section */}
-            <div className="flex items-start justify-between">
+            {/* Header com título, badges e botão fechar */}
+            <div className="flex items-start justify-between mb-3">
               <div className="flex-1 pr-2">
-                <h3 className="font-semibold text-base text-title line-clamp-2 mb-1">
-                  {recommendation.title}
-                </h3>
+                <div className="flex items-start justify-between mb-2">
+                  <h3 className="font-semibold text-base text-title line-clamp-2 flex-1 pr-2">
+                    {recommendation.title}
+                  </h3>
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    {isNew && (
+                      <Badge className="bg-burnt-peach text-white text-xs shadow-clay-soft border-0">
+                        <Sparkles className="h-3 w-3 mr-1" />
+                        Nova
+                      </Badge>
+                    )}
+                    {recommendation.isViewed && (
+                      <Badge className="bg-success-soft text-success-strong border-success-gentle text-xs">
+                        <CheckCircle className="h-3 w-3 mr-1" />
+                        Vista
+                      </Badge>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-error-soft hover:text-error-strong"
+                      onClick={handleDismiss}
+                      disabled={processing}
+                      title="Remover recomendação"
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                </div>
                 <div className="flex items-center text-xs text-clay-secondary">
-                  <MapPin className="h-3 w-3 mr-1 text-clay-secondary" />
-                  {recommendation.location}
+                  <MapPin className="h-3 w-3 mr-1 text-clay-secondary flex-shrink-0" />
+                  <span className="line-clamp-1">{recommendation.location}</span>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-error-soft hover:text-error-strong"
-                onClick={handleDismiss}
-                disabled={processing}
-                title="Remover recomendação"
-              >
-                <X className="h-3 w-3" />
-              </Button>
             </div>
 
-            {/* Price and details section */}
+            {/* Preço, quartos e pontuação */}
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-4 flex-1">
                 {recommendation.price && (
                   <div className="bg-warm-white/95 backdrop-blur-sm px-2 py-1 rounded-full shadow-clay-soft border border-clay-medium">
                     <div className="flex items-center text-sm font-semibold text-burnt-primary">
-                      <Euro className="h-3 w-3 mr-1" />
-                      {recommendation.price.toLocaleString()}
+                      <Euro className="h-3 w-3 mr-1 flex-shrink-0" />
+                      <span className="truncate">{recommendation.price.toLocaleString()}</span>
                     </div>
                   </div>
                 )}
                 {recommendation.bedrooms && (
                   <div className="flex items-center text-xs text-clay-secondary">
-                    <div className="w-5 h-5 bg-pale-clay rounded flex items-center justify-center mr-1">
+                    <div className="w-5 h-5 bg-pale-clay rounded flex items-center justify-center mr-1 flex-shrink-0">
                       <Bed className="h-3 w-3 text-cocoa-primary" />
                     </div>
                     <span className="font-medium text-title">{recommendation.bedrooms}</span>
@@ -153,7 +153,7 @@ const RecommendationCard = memo(function RecommendationCard({
                 )}
               </div>
               
-              <div className="flex items-center space-x-1">
+              <div className="flex items-center space-x-1 flex-shrink-0">
                 <Star className={`h-4 w-4 ${scoreColor}`} />
                 <span className={`text-sm font-bold ${scoreColor}`}>
                   {recommendation.score}%
@@ -161,7 +161,7 @@ const RecommendationCard = memo(function RecommendationCard({
               </div>
             </div>
 
-            {/* Reason section */}
+            {/* Razão da recomendação */}
             <div className="space-y-2">
               <Badge 
                 variant="secondary" 
@@ -175,15 +175,15 @@ const RecommendationCard = memo(function RecommendationCard({
               </p>
             </div>
 
-            {/* Footer section */}
-            <div className="flex items-center justify-between pt-2 border-t border-clay-soft">
-              <span className="text-xs text-clay-secondary">
-                {new Date(recommendation.createdAt).toLocaleDateString('pt-PT')}
-              </span>
+            {/* Footer com data e botão de ação */}
+            <div className="flex items-center justify-between pt-3 border-t border-clay-soft">
+              <div className="flex items-center text-xs text-clay-secondary">
+                <span>{new Date(recommendation.createdAt).toLocaleDateString('pt-PT')}</span>
+              </div>
               <Button
                 size="sm"
                 onClick={handleView}
-                className="h-8 text-xs bg-burnt-peach hover:bg-burnt-peach-deep text-white border-0 shadow-clay-soft"
+                className="h-8 text-xs bg-burnt-peach hover:bg-burnt-peach-deep text-white border-0 shadow-clay-soft flex-shrink-0"
                 disabled={processing}
               >
                 {recommendation.isViewed ? (
@@ -248,12 +248,12 @@ function PersonalAreaRecommendationsComponent({
   const handleGenerate = useCallback(async () => {
     setGenerating(true);
     try {
-      const result = await generateRecommendationsManually();
+      const result = await refreshRecommendations();
       await loadData(false);
       toast.success(result.message);
     } catch (error) {
-      console.error('Erro ao gerar recomendações:', error);
-      toast.error('Erro ao gerar recomendações');
+      console.error('Erro ao atualizar recomendações:', error);
+      toast.error('Erro ao atualizar recomendações');
     } finally {
       setGenerating(false);
     }
@@ -383,7 +383,7 @@ function PersonalAreaRecommendationsComponent({
                 className="border-clay-medium hover:border-burnt-primary hover:bg-burnt-primary/10 text-clay-secondary hover:text-burnt-primary"
               >
                 <RefreshCw className={`h-4 w-4 mr-1 ${generating ? 'animate-spin' : ''}`} />
-                Gerar
+                Atualizar
               </Button>
               <Button
                 variant="ghost"
@@ -435,7 +435,7 @@ function PersonalAreaRecommendationsComponent({
           icon={TrendingUp}
           title="Sem recomendações"
           description="Não foram encontradas recomendações com os filtros selecionados."
-          actionLabel="Gerar Recomendações"
+          actionLabel="Atualizar Recomendações"
           onAction={handleGenerate}
         />
       ) : (
