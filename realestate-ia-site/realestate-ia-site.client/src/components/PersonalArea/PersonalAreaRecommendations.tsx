@@ -89,7 +89,7 @@ const RecommendationCard = memo(function RecommendationCard({
       transition={{ duration: 0.3 }}
       className="group"
     >
-      <Card className="border border-clay-medium bg-card shadow-clay-soft hover:shadow-clay-medium transition-all duration-300 relative overflow-hidden hover:border-clay-strong">
+      <Card className="border border-clay-medium bg-white shadow-clay-soft hover:shadow-clay-medium transition-all duration-300 relative overflow-hidden hover:border-clay-strong">
         <CardContent className="p-4">
           <div className="space-y-3">
             {/* Header com título, badges e botão fechar */}
@@ -165,7 +165,7 @@ const RecommendationCard = memo(function RecommendationCard({
             <div className="space-y-2">
               <Badge 
                 variant="secondary" 
-                className="bg-pale-clay text-title border-clay-medium text-xs font-medium"
+                className="bg-white text-title border-clay-medium text-xs font-medium border"
               >
                 {recommendationUtils.formatReason(recommendation.reason)}
               </Badge>
@@ -304,7 +304,7 @@ function PersonalAreaRecommendationsComponent({
     return (
       <div className="space-y-6">
         <div className="animate-pulse">
-          <Card className="border border-clay-medium shadow-clay-soft">
+          <Card className="border border-clay-medium bg-white shadow-clay-soft">
             <CardContent className="p-6">
               <div className="h-20 bg-clay-soft rounded"></div>
             </CardContent>
@@ -326,7 +326,7 @@ function PersonalAreaRecommendationsComponent({
     <div className="space-y-6">
       {/* Stats Header */}
       {stats && (
-        <Card className="border border-clay-medium bg-card shadow-clay-soft">
+        <Card className="border border-clay-medium bg-white shadow-clay-soft">
           <CardHeader className="pb-4">
             <div className="flex items-center space-x-3 mb-4">
               <div className="w-10 h-10 bg-burnt-peach rounded-xl flex items-center justify-center shadow-clay-soft">
@@ -338,19 +338,19 @@ function PersonalAreaRecommendationsComponent({
               </div>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center p-3 bg-pale-clay rounded-lg">
+              <div className="text-center p-3 bg-white border border-clay-medium rounded-lg">
                 <div className="text-2xl font-bold text-burnt-primary">{stats.total}</div>
                 <div className="text-sm text-clay-secondary">Total</div>
               </div>
-              <div className="text-center p-3 bg-pale-clay rounded-lg">
+              <div className="text-center p-3 bg-white border border-clay-medium rounded-lg">
                 <div className="text-2xl font-bold text-success-gentle">{unviewedCount}</div>
                 <div className="text-sm text-clay-secondary">Não Visualizadas</div>
               </div>
-              <div className="text-center p-3 bg-pale-clay rounded-lg">
+              <div className="text-center p-3 bg-white border border-clay-medium rounded-lg">
                 <div className="text-2xl font-bold text-info-gentle">{newCount}</div>
                 <div className="text-sm text-clay-secondary">Novas (24h)</div>
               </div>
-              <div className="text-center p-3 bg-pale-clay rounded-lg">
+              <div className="text-center p-3 bg-white border border-clay-medium rounded-lg">
                 <div className="text-2xl font-bold text-warning-gentle">{stats.averageScore}</div>
                 <div className="text-sm text-clay-secondary">Score Médio</div>
               </div>
@@ -360,7 +360,7 @@ function PersonalAreaRecommendationsComponent({
       )}
 
       {/* Controls */}
-      <Card className="border border-clay-medium bg-card shadow-clay-soft">
+      <Card className="border border-clay-medium bg-white shadow-clay-soft">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between mb-4">
             <CardTitle className="flex items-center space-x-3">
@@ -405,7 +405,7 @@ function PersonalAreaRecommendationsComponent({
                 <SelectTrigger className="w-40 h-8 text-xs border-clay-medium focus:border-burnt-primary">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-card border-clay-medium">
+                <SelectContent className="bg-white border-clay-medium">
                   <SelectItem value="all">Todas</SelectItem>
                   <SelectItem value="unviewed">Não Visualizadas</SelectItem>
                   <SelectItem value="new">Novas (24h)</SelectItem>
@@ -419,7 +419,7 @@ function PersonalAreaRecommendationsComponent({
                 <SelectTrigger className="w-32 h-8 text-xs border-clay-medium focus:border-burnt-primary">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-card border-clay-medium">
+                <SelectContent className="bg-white border-clay-medium">
                   <SelectItem value="date">Data</SelectItem>
                   <SelectItem value="score">Score</SelectItem>
                 </SelectContent>
