@@ -20,7 +20,6 @@ namespace realestate_ia_site.Server.Application.Recommendations.DTOs
         public string? Type { get; set; }
         public int Score { get; set; }
         public required string Reason { get; set; }
-        public required string ReasonText { get; set; }
         public DateTime CreatedAt { get; set; }
         public bool IsViewed { get; set; }
     }

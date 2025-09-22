@@ -1,8 +1,8 @@
-// recommendations.service.ts - ServiÁo para recomendaÁıes de propriedades
+// recommendations.service.ts - Servi√ßo para recomenda√ß√µes de propriedades
 import apiClient from "./client";
 import type { Property } from "../types/property";
 
-// Response types para recomendaÁıes
+// Response types para recomenda√ß√µes
 export interface RecommendedProperty {
   propertyId: string;
   title: string;
@@ -12,7 +12,6 @@ export interface RecommendedProperty {
   type?: string;
   score: number;
   reason: string;
-  reasonText: string;
   createdAt: string;
   isViewed: boolean;
 }
@@ -32,105 +31,105 @@ export interface RecommendationStats {
   byReason: Record<string, number>;
 }
 
-// FunÁ„o simples para logs
+// Fun√ß√£o simples para logs
 function logToTerminal(message: string, level: 'info' | 'warn' | 'error' = 'info') {
   const timestamp = new Date().toLocaleTimeString();
-  const prefix = level === 'error' ? '?' : level === 'warn' ? '??' : '?';
+  const prefix = level === 'error' ? '‚ùå' : level === 'warn' ? '‚ö†Ô∏è' : 'üîç';
   console.log(`${prefix} [${timestamp}] RECOMMENDATIONS: ${message}`);
 }
 
 /**
- * Obter recomendaÁıes para o dashboard
+ * Obter recomenda√ß√µes para o dashboard
  */
 export async function getDashboardRecommendations(
   limit: number = 10
 ): Promise<DashboardRecommendations> {
-  logToTerminal(`Buscando recomendaÁıes do dashboard (limite: ${limit})`);
+  logToTerminal(`Buscando recomenda√ß√µes do dashboard (limite: ${limit})`);
 
   try {
     const response = await apiClient.get<DashboardRecommendations>(
       `/api/recommendations/dashboard?limit=${limit}`
     );
     
-    logToTerminal(`${response.properties?.length || 0} recomendaÁıes encontradas`);
+    logToTerminal(`${response.properties?.length || 0} recomenda√ß√µes encontradas`);
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao buscar recomendaÁıes: ${errorMsg}`, 'error');
+    logToTerminal(`Erro ao buscar recomenda√ß√µes: ${errorMsg}`, 'error');
     throw error;
   }
 }
 
 /**
- * Marcar recomendaÁ„o como visualizada
+ * Marcar recomenda√ß√£o como visualizada
  */
 export async function markRecommendationAsViewed(
   propertyId: string
 ): Promise<{ success: boolean; message: string }> {
-  logToTerminal(`Marcando recomendaÁ„o como visualizada: ${propertyId}`);
+  logToTerminal(`Marcando recomenda√ß√£o como visualizada: ${propertyId}`);
 
   try {
     const response = await apiClient.post<{ success: boolean; message: string }>(
       `/api/recommendations/${propertyId}/mark-viewed`
     );
     
-    logToTerminal(`RecomendaÁ„o marcada como visualizada`);
+    logToTerminal(`Recomenda√ß√£o marcada como visualizada`);
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao marcar recomendaÁ„o como visualizada: ${errorMsg}`, 'error');
+    logToTerminal(`Erro ao marcar recomenda√ß√£o como visualizada: ${errorMsg}`, 'error');
     throw error;
   }
 }
 
 /**
- * Descartar recomendaÁ„o (marcar como inativa)
+ * Descartar recomenda√ß√£o (marcar como inativa)
  */
 export async function dismissRecommendation(
   propertyId: string
 ): Promise<{ success: boolean; message: string }> {
-  logToTerminal(`Descartando recomendaÁ„o: ${propertyId}`);
+  logToTerminal(`Descartando recomenda√ß√£o: ${propertyId}`);
 
   try {
     const response = await apiClient.delete<{ success: boolean; message: string }>(
       `/api/recommendations/${propertyId}`
     );
     
-    logToTerminal(`RecomendaÁ„o descartada`);
+    logToTerminal(`Recomenda√ß√£o descartada`);
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao descartar recomendaÁ„o: ${errorMsg}`, 'error');
+    logToTerminal(`Erro ao descartar recomenda√ß√£o: ${errorMsg}`, 'error');
     throw error;
   }
 }
 
 /**
- * Obter estatÌsticas das recomendaÁıes do usu·rio
+ * Obter estat√≠sticas das recomenda√ß√µes do usu√°rio
  */
 export async function getRecommendationStats(): Promise<RecommendationStats> {
-  logToTerminal('Buscando estatÌsticas das recomendaÁıes');
+  logToTerminal('Buscando estat√≠sticas das recomenda√ß√µes');
 
   try {
     const stats = await apiClient.get<RecommendationStats>('/api/recommendations/stats');
     
-    logToTerminal(`EstatÌsticas: ${stats.unviewed} n„o visualizadas, score mÈdio: ${stats.averageScore}`);
+    logToTerminal(`Estat√≠sticas: ${stats.unviewed} n√£o visualizadas, score m√©dio: ${stats.averageScore}`);
     return stats;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao buscar estatÌsticas: ${errorMsg}`, 'error');
+    logToTerminal(`Erro ao buscar estat√≠sticas: ${errorMsg}`, 'error');
     throw error;
   }
 }
 
 /**
- * Refresh completo das recomendaÁıes baseado no perfil atual
+ * Refresh completo das recomenda√ß√µes baseado no perfil atual
  */
 export async function refreshRecommendations(): Promise<{
   success: boolean;
   message: string;
 }> {
-  logToTerminal('Fazendo refresh das recomendaÁıes baseado no perfil atual');
+  logToTerminal('Fazendo refresh das recomenda√ß√µes baseado no perfil atual');
 
   try {
     const response = await apiClient.post<{
@@ -138,45 +137,19 @@ export async function refreshRecommendations(): Promise<{
       message: string;
     }>('/api/recommendations/refresh');
     
-    logToTerminal('RecomendaÁıes atualizadas com sucesso');
+    logToTerminal('Recomenda√ß√µes atualizadas com sucesso');
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao fazer refresh das recomendaÁıes: ${errorMsg}`, 'error');
+    logToTerminal(`Erro ao fazer refresh das recomenda√ß√µes: ${errorMsg}`, 'error');
     throw error;
   }
 }
 
-/**
- * Gerar recomendaÁıes similares a uma propriedade especÌfica
- */
-export async function generateSimilarRecommendations(
-  propertyId: string
-): Promise<{
-  success: boolean;
-  message: string;
-}> {
-  logToTerminal(`Gerando recomendaÁıes similares ‡ propriedade: ${propertyId}`);
-
-  try {
-    const response = await apiClient.post<{
-      success: boolean;
-      message: string;
-    }>(`/api/recommendations/similar-to/${propertyId}`);
-    
-    logToTerminal('RecomendaÁıes similares geradas com sucesso');
-    return response;
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao gerar recomendaÁıes similares: ${errorMsg}`, 'error');
-    throw error;
-  }
-}
-
-// Utils para recomendaÁıes
+// Utils para recomenda√ß√µes
 export const recommendationUtils = {
   /**
-   * Converter recomendaÁ„o para Property (para compatibilidade)
+   * Converter recomenda√ß√£o para Property (para compatibilidade)
    */
   toProperty: (recommendation: RecommendedProperty): Partial<Property> => ({
     id: recommendation.propertyId,
@@ -186,20 +159,6 @@ export const recommendationUtils = {
     bedrooms: recommendation.bedrooms,
     type: recommendation.type
   }),
-
-  /**
-   * Formatar texto da raz„o da recomendaÁ„o
-   */
-  formatReason: (reason: string): string => {
-    const reasons: Record<string, string> = {
-      'nova_propriedade': 'Nova Propriedade',
-      'reducao_preco': 'ReduÁ„o de PreÁo',
-      'similar_favorito': 'Similar aos Favoritos',
-      'similar_pesquisa': 'Corresponde ‡s Pesquisas',
-      'perfil_atualizado': 'Baseado no Perfil Atualizado'
-    };
-    return reasons[reason] || reason;
-  },
 
   /**
    * Obter cor baseada no score
@@ -212,7 +171,7 @@ export const recommendationUtils = {
   },
 
   /**
-   * Verificar se a recomendaÁ„o È nova (menos de 24h)
+   * Verificar se a recomenda√ß√£o √© nova (menos de 24h)
    */
   isNew: (createdAt: string): boolean => {
     const created = new Date(createdAt);

@@ -17,7 +17,9 @@ import {
   Filter,
   SortDesc,
   CheckCircle,
-  Brain
+  Brain,
+  Clock,
+  ArrowRight
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
@@ -89,113 +91,101 @@ const RecommendationCard = memo(function RecommendationCard({
       transition={{ duration: 0.3 }}
       className="group"
     >
-      <Card className="border border-clay-medium bg-white shadow-clay-soft hover:shadow-clay-medium transition-all duration-300 relative overflow-hidden hover:border-clay-strong">
+      <Card className="border border-pale-clay-deep bg-pure-white shadow-clay-soft hover:shadow-clay-medium transition-all duration-200 relative overflow-hidden">
         <CardContent className="p-4">
-          <div className="space-y-3">
-            {/* Header com título, badges e botão fechar */}
-            <div className="flex items-start justify-between mb-3">
-              <div className="flex-1 pr-2">
-                <div className="flex items-start justify-between mb-2">
-                  <h3 className="font-semibold text-base text-title line-clamp-2 flex-1 pr-2">
-                    {recommendation.title}
-                  </h3>
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    {isNew && (
-                      <Badge className="bg-burnt-peach text-white text-xs shadow-clay-soft border-0">
-                        <Sparkles className="h-3 w-3 mr-1" />
-                        Nova
-                      </Badge>
-                    )}
-                    {recommendation.isViewed && (
-                      <Badge className="bg-success-soft text-success-strong border-success-gentle text-xs">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        Vista
-                      </Badge>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-error-soft hover:text-error-strong"
-                      onClick={handleDismiss}
-                      disabled={processing}
-                      title="Remover recomendação"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                </div>
-                <div className="flex items-center text-xs text-clay-secondary">
-                  <MapPin className="h-3 w-3 mr-1 text-clay-secondary flex-shrink-0" />
-                  <span className="line-clamp-1">{recommendation.location}</span>
+          {/* Header com título, badges e botão fechar */}
+          <div className="flex justify-between items-start mb-3">
+            <div className="flex-1 pr-2">
+              <div className="flex items-start justify-between mb-2">
+                <h3 className="font-semibold text-foreground text-sm line-clamp-2 flex-1 pr-2">
+                  {recommendation.title}
+                </h3>
+                <div className="flex items-center space-x-1 flex-shrink-0">
+                  {isNew && (
+                    <Badge className="bg-burnt-peach text-white text-xs">
+                      <Sparkles className="h-3 w-3 mr-1" />
+                      Nova
+                    </Badge>
+                  )}
+                  {recommendation.isViewed && (
+                    <Badge className="bg-success-soft text-success-strong border-success-gentle text-xs">
+                      <CheckCircle className="h-3 w-3 mr-1" />
+                      Vista
+                    </Badge>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={handleDismiss}
+                    disabled={processing}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
                 </div>
               </div>
-            </div>
-
-            {/* Preço, quartos e pontuação */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 flex-1">
-                {recommendation.price && (
-                  <div className="bg-warm-white/95 backdrop-blur-sm px-2 py-1 rounded-full shadow-clay-soft border border-clay-medium">
-                    <div className="flex items-center text-sm font-semibold text-burnt-primary">
-                      <Euro className="h-3 w-3 mr-1 flex-shrink-0" />
-                      <span className="truncate">{recommendation.price.toLocaleString()}</span>
-                    </div>
-                  </div>
-                )}
-                {recommendation.bedrooms && (
-                  <div className="flex items-center text-xs text-clay-secondary">
-                    <div className="w-5 h-5 bg-pale-clay rounded flex items-center justify-center mr-1 flex-shrink-0">
-                      <Bed className="h-3 w-3 text-cocoa-primary" />
-                    </div>
-                    <span className="font-medium text-title">{recommendation.bedrooms}</span>
-                    <span className="ml-0.5">qts</span>
-                  </div>
-                )}
-              </div>
-              
-              <div className="flex items-center space-x-1 flex-shrink-0">
-                <Star className={`h-4 w-4 ${scoreColor}`} />
-                <span className={`text-sm font-bold ${scoreColor}`}>
-                  {recommendation.score}%
-                </span>
+              <div className="flex items-center text-xs text-muted-foreground">
+                <MapPin className="h-3 w-3 mr-1 flex-shrink-0" />
+                <span className="line-clamp-1">{recommendation.location}</span>
               </div>
             </div>
+          </div>
 
-            {/* Razão da recomendação */}
-            <div className="space-y-2">
-              <Badge 
-                variant="secondary" 
-                className="bg-white text-title border-clay-medium text-xs font-medium border"
-              >
-                {recommendationUtils.formatReason(recommendation.reason)}
-              </Badge>
-              
-              <p className="text-xs text-clay-secondary line-clamp-2 leading-relaxed">
-                {recommendation.reasonText}
-              </p>
+          {/* Preço, quartos e pontuação */}
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-3 flex-1">
+              {recommendation.price && (
+                <div className="flex items-center text-sm font-medium">
+                  <Euro className="h-3 w-3 mr-1 flex-shrink-0" />
+                  <span className="truncate">{recommendation.price.toLocaleString()}</span>
+                </div>
+              )}
+              {recommendation.bedrooms && (
+                <div className="flex items-center text-xs text-muted-foreground">
+                  <Bed className="h-3 w-3 mr-1 flex-shrink-0" />
+                  <span>{recommendation.bedrooms}</span>
+                </div>
+              )}
             </div>
+            <div className="flex items-center space-x-1 flex-shrink-0">
+              <Star className={`h-3 w-3 ${scoreColor}`} />
+              <span className={`text-xs font-medium ${scoreColor}`}>
+                {recommendation.score}%
+              </span>
+            </div>
+          </div>
 
-            {/* Footer com data e botão de ação */}
-            <div className="flex items-center justify-between pt-3 border-t border-clay-soft">
-              <div className="flex items-center text-xs text-clay-secondary">
-                <span>{new Date(recommendation.createdAt).toLocaleDateString('pt-PT')}</span>
-              </div>
-              <Button
-                size="sm"
-                onClick={handleView}
-                className="h-8 text-xs bg-burnt-peach hover:bg-burnt-peach-deep text-white border-0 shadow-clay-soft flex-shrink-0"
-                disabled={processing}
-              >
-                {recommendation.isViewed ? (
-                  <>
-                    <Eye className="h-3 w-3 mr-1" />
-                    Ver Novamente
-                  </>
-                ) : (
-                  'Ver Propriedade'
-                )}
-              </Button>
+          {/* Texto explicativo */}
+          <div className="mb-4">
+            <p className="text-xs text-muted-foreground line-clamp-2">
+              {recommendation.reason}
+            </p>
+          </div>
+
+          {/* Footer com data e botão de ação */}
+          <div className="flex items-center justify-between pt-2 border-t border-porcelain">
+            <div className="flex items-center text-xs text-muted-foreground">
+              <Clock className="h-3 w-3 mr-1 flex-shrink-0" />
+              <span>{new Date(recommendation.createdAt).toLocaleDateString('pt-PT')}</span>
             </div>
+            <Button
+              size="sm"
+              onClick={handleView}
+              className="h-7 text-xs bg-burnt-peach hover:bg-burnt-peach/90 flex-shrink-0"
+              disabled={processing}
+            >
+              {recommendation.isViewed ? (
+                <>
+                  <Eye className="h-3 w-3 mr-1" />
+                  Ver Novamente
+                </>
+              ) : (
+                <>
+                  Ver Propriedade
+                  <ArrowRight className="h-3 w-3 ml-1" />
+                </>
+              )}
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -213,7 +203,6 @@ function PersonalAreaRecommendationsComponent({
   const [recommendations, setRecommendations] = useState<RecommendedProperty[]>([]);
   const [stats, setStats] = useState<RecommendationStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [generating, setGenerating] = useState(false);
   const [filter, setFilter] = useState<'all' | 'unviewed' | 'new'>('all');
   const [sortBy, setSortBy] = useState<'date' | 'score'>('date');
@@ -237,13 +226,6 @@ function PersonalAreaRecommendationsComponent({
       if (showLoading) setLoading(false);
     }
   }, []);
-
-  const handleRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await loadData(false);
-    setRefreshing(false);
-    toast.success('Recomendações atualizadas');
-  }, [loadData]);
 
   const handleGenerate = useCallback(async () => {
     setGenerating(true);
@@ -380,20 +362,10 @@ function PersonalAreaRecommendationsComponent({
                 size="sm"
                 onClick={handleGenerate}
                 disabled={generating}
-                className="border-clay-medium hover:border-burnt-primary hover:bg-burnt-primary/10 text-clay-secondary hover:text-burnt-primary"
+                className="text-xs"
               >
                 <RefreshCw className={`h-4 w-4 mr-1 ${generating ? 'animate-spin' : ''}`} />
                 Atualizar
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="h-8 w-8 p-0 hover:bg-clay-soft"
-                title="Atualizar recomendações"
-              >
-                <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
               </Button>
             </div>
           </div>

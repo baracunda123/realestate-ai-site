@@ -8,7 +8,7 @@ namespace realestate_ia_site.Server.Infrastructure.BackgroundServices
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<RecommendationBackgroundService> _logger;
-        private readonly TimeSpan _interval = TimeSpan.FromMinutes(5); // Executar a cada 15 min
+        private readonly TimeSpan _interval = TimeSpan.FromMinutes(5); // Executar a cada 5 min
 
         public RecommendationBackgroundService(
             IServiceProvider serviceProvider,

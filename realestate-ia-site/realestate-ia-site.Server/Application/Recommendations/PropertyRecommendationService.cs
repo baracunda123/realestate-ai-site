@@ -491,8 +491,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
                     Bedrooms = r.Property.Bedrooms,
                     Type = r.Property.Type,
                     Score = r.Score,
-                    Reason = r.Reason,
-                    ReasonText = GetReasonText(r.Reason),
+                    Reason = GetReasonText(r.Reason),
                     CreatedAt = r.CreatedAt,
                     IsViewed = r.ViewedAt.HasValue
                 }).ToList(),

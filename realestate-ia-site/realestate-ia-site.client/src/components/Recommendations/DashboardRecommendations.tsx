@@ -130,17 +130,10 @@ function RecommendationCard({
             </div>
           </div>
 
-          {/* Razão da recomendação */}
-          <div className="mb-3">
-            <Badge variant="secondary" className="text-xs">
-              {recommendationUtils.formatReason(recommendation.reason)}
-            </Badge>
-          </div>
-
           {/* Texto explicativo */}
           <div className="mb-4">
             <p className="text-xs text-muted-foreground line-clamp-2">
-              {recommendation.reasonText}
+              {recommendation.reason}
             </p>
           </div>
 
