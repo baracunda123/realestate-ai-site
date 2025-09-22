@@ -5,7 +5,6 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { 
-  Star, 
   TrendingUp, 
   MapPin, 
   Bed, 
@@ -81,7 +80,6 @@ const RecommendationCard = memo(function RecommendationCard({
   }, [recommendation.propertyId, onDismiss]);
 
   const isNew = recommendationUtils.isNew(recommendation.createdAt);
-  const scoreColor = recommendationUtils.getScoreColor(recommendation.score);
 
   return (
     <motion.div
@@ -146,12 +144,6 @@ const RecommendationCard = memo(function RecommendationCard({
                   <span>{recommendation.bedrooms}</span>
                 </div>
               )}
-            </div>
-            <div className="flex items-center space-x-1 flex-shrink-0">
-              <Star className={`h-3 w-3 ${scoreColor}`} />
-              <span className={`text-xs font-medium ${scoreColor}`}>
-                {recommendation.score}%
-              </span>
             </div>
           </div>
 
@@ -319,7 +311,7 @@ function PersonalAreaRecommendationsComponent({
                 <p className="text-sm text-clay-secondary">Análise das suas preferências</p>
               </div>
             </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               <div className="text-center p-3 bg-white border border-clay-medium rounded-lg">
                 <div className="text-2xl font-bold text-burnt-primary">{stats.total}</div>
                 <div className="text-sm text-clay-secondary">Total</div>
@@ -331,10 +323,6 @@ function PersonalAreaRecommendationsComponent({
               <div className="text-center p-3 bg-white border border-clay-medium rounded-lg">
                 <div className="text-2xl font-bold text-info-gentle">{newCount}</div>
                 <div className="text-sm text-clay-secondary">Novas (24h)</div>
-              </div>
-              <div className="text-center p-3 bg-white border border-clay-medium rounded-lg">
-                <div className="text-2xl font-bold text-warning-gentle">{stats.averageScore}</div>
-                <div className="text-sm text-clay-secondary">Score Médio</div>
               </div>
             </div>
           </CardHeader>

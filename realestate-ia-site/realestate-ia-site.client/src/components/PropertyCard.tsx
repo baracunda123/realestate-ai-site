@@ -82,7 +82,7 @@ function PropertyCardComponent({
 
   return (
     <Card 
-      className="overflow-hidden hover:shadow-clay-medium transition-all duration-300 cursor-pointer group border border-clay-medium hover:border-clay-strong"
+      className="overflow-hidden hover:shadow-clay-medium transition-all duration-300 cursor-pointer group border border-clay-medium hover:border-clay-strong bg-pure-white"
       onClick={onClick}
     >
       <CardContent className="p-3">

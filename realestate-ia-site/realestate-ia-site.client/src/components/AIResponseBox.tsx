@@ -16,6 +16,9 @@ interface AIResponseBoxProps {
   loading?: boolean;
   error?: string | null;
   userQuery?: string;
+  onNewQuery?: () => void; // Callback simples para nova query
+  onClose?: () => void; // Callback para fechar
+  onReopen?: () => void; // Callback para reabrir
   conversationHistory?: ConversationMessage[];
   onUpdateHistory?: (history: ConversationMessage[]) => void;
 }
@@ -26,16 +29,20 @@ export function AIResponseBox({
   loading = false, 
   error = null, 
   userQuery,
+  onNewQuery,
+  onClose,
+  onReopen: _onReopen,
   conversationHistory = [],
   onUpdateHistory
 }: AIResponseBoxProps) {
   const [localHistory, setLocalHistory] = useState<ConversationMessage[]>([]);
   const conversationEndRef = useRef<HTMLDivElement>(null);
   const conversationContainerRef = useRef<HTMLDivElement>(null);
+  const aiBoxRef = useRef<HTMLDivElement>(null);
 
-  // Add user query to history
+  // Add user query to history quando onNewQuery é chamado
   useEffect(() => {
-    if (userQuery && onUpdateHistory) {
+    if (userQuery && onNewQuery && onUpdateHistory) {
       const userMessage: ConversationMessage = {
         id: `user-${Date.now()}`,
         type: 'user',
@@ -47,7 +54,7 @@ export function AIResponseBox({
       setLocalHistory(newHistory);
       onUpdateHistory(newHistory);
     }
-  }, [userQuery]);
+  }, [onNewQuery]); // Disparar quando callback muda
 
   // Add AI response to history
   useEffect(() => {
@@ -101,6 +108,45 @@ export function AIResponseBox({
     }
   }, [open]);
 
+  // Handle clicks outside of the component
+  useEffect(() => {
+    if (!open || !onClose) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      
+      // Não fecha se clicou no próprio AIResponseBox
+      if (aiBoxRef.current && aiBoxRef.current.contains(target)) {
+        return;
+      }
+      
+      // Não fecha se clicou no botão do chat
+      const chatButton = target.closest('[aria-label="Abrir chat IA"]');
+      if (chatButton) {
+        return;
+      }
+      
+      // Não fecha se clicou na barra de pesquisa
+      const searchInput = target.closest('input[placeholder*="procura"]');
+      if (searchInput) {
+        return;
+      }
+      
+      // Se chegou aqui, foi clique fora - fecha o chat
+      onClose();
+    };
+
+    // Adiciona o listener após um pequeno delay para evitar fechamento imediato
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open, onClose]);
+
   // Don't render anything when closed
   if (!open) {
     return null;
@@ -133,7 +179,10 @@ export function AIResponseBox({
   const showConversationMode = onUpdateHistory && (hasHistory || userQuery);
 
   return (
-    <div className="absolute left-0 right-0 mt-2 z-50">
+    <div 
+      ref={aiBoxRef}
+      className="absolute left-0 right-0 mt-2 z-50"
+    >
       <Card className="border border-pale-clay-deep bg-pure-white shadow-clay-deep overflow-hidden">
         <CardContent className="p-4">
           <div className="flex items-center gap-2 mb-2">

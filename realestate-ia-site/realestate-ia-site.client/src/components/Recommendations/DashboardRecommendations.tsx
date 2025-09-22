@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { 
-  Star, 
   TrendingUp, 
   MapPin, 
   Bed, 
@@ -64,7 +63,6 @@ function RecommendationCard({
   };
 
   const isNew = recommendationUtils.isNew(recommendation.createdAt);
-  const scoreColor = recommendationUtils.getScoreColor(recommendation.score);
 
   return (
     <motion.div
@@ -121,12 +119,6 @@ function RecommendationCard({
                   <span>{recommendation.bedrooms}</span>
                 </div>
               )}
-            </div>
-            <div className="flex items-center space-x-1 flex-shrink-0">
-              <Star className={`h-3 w-3 ${scoreColor}`} />
-              <span className={`text-xs font-medium ${scoreColor}`}>
-                {recommendation.score}%
-              </span>
             </div>
           </div>
 
