@@ -231,30 +231,81 @@ export const isValidPhoneNumber = (phone: string): boolean => {
 };
 
 /**
- * Utilitários para PropertyAlert
+ * Utilitários para PropertyAlert - Novos alertas de redução de preço
  */
-export const alertUtils = {
-  formatCriteria: (alert: PropertyAlert): string => {
-    const criteria = [];
+export const priceAlertUtils = {
+  /**
+   * Formatar informações do alerta
+   */
+  formatAlertInfo: (alert: PropertyAlert): string => {
+    const parts = [];
     
-    if (alert.location) criteria.push(`📍 ${alert.location}`);
-    if (alert.propertyType && alert.propertyType !== 'any') {
-      criteria.push(`🏠 ${getPropertyTypeLabel(alert.propertyType)}`);
-    }
-    if (alert.bedrooms) criteria.push(`🛏️ ${alert.bedrooms}+ quartos`);
-    if (alert.bathrooms) criteria.push(`🚿 ${alert.bathrooms}+ casas de banho`);
-    if (alert.minPrice || alert.maxPrice) {
-      criteria.push(`💰 ${formatPriceRange(alert.minPrice, alert.maxPrice)}`);
-    }
+    parts.push(`📍 ${alert.propertyLocation}`);
+    parts.push(`💰 ${formatPrice(alert.currentPrice)}`);
+    parts.push(`📉 Alerta: ${alert.alertThresholdPercentage}%`);
     
-    return criteria.join(' • ');
+    return parts.join(' • ');
   },
-  
+
+  /**
+   * Obter status do alerta
+   */
+  getAlertStatus: (alert: PropertyAlert): 'active' | 'inactive' | 'triggered' => {
+    if (!alert.isActive) return 'inactive';
+    if (alert.notificationCount > 0) return 'triggered';
+    return 'active';
+  },
+
+  /**
+   * Formatar limite do alerta
+   */
+  formatThreshold: (percentage: number): string => {
+    return `${percentage}% ou mais`;
+  },
+
+  /**
+   * Verificar se alerta teve atividade recente
+   */
+  hasRecentActivity: (alert: PropertyAlert): boolean => {
+    if (!alert.lastTriggered) return false;
+    const hoursSinceTriggered = (Date.now() - new Date(alert.lastTriggered).getTime()) / (1000 * 60 * 60);
+    return hoursSinceTriggered < 24;
+  },
+
+  /**
+   * Formatar última atividade
+   */
+  formatLastActivity: (alert: PropertyAlert): string => {
+    if (!alert.lastTriggered) return 'Nunca disparado';
+    
+    const date = new Date(alert.lastTriggered);
+    const now = new Date();
+    const diffHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffHours < 1) return 'Disparado recentemente';
+    if (diffHours < 24) return `Disparado há ${diffHours}h`;
+    
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `Disparado há ${diffDays}d`;
+    
+    return `Disparado em ${formatDate(date)}`;
+  },
+
+  /**
+   * Obter cor baseada no status
+   */
   getStatusColor: (alert: PropertyAlert): string => {
-    if (!alert.isActive) return 'gray';
-    if (alert.newMatches > 0) return 'green';
-    if (alert.matchCount > 0) return 'blue';
-    return 'yellow';
+    const status = priceAlertUtils.getAlertStatus(alert);
+    if (status === 'triggered') return 'green';
+    if (status === 'active') return 'blue';
+    return 'gray';
+  },
+
+  /**
+   * Calcular poupança estimada baseada no threshold
+   */
+  calculateEstimatedSavings: (alert: PropertyAlert): number => {
+    return Math.round((alert.currentPrice * alert.alertThresholdPercentage) / 100);
   }
 };
 

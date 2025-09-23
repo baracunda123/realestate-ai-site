@@ -15,35 +15,25 @@ namespace realestate_ia_site.Server.Domain.Entities
         public required string UserId { get; set; }
 
         [Required]
-        [Column("name")]
-        [MaxLength(200)]
-        public required string Name { get; set; }
+        [Column("property_id")]
+        public required string PropertyId { get; set; }
 
-        [Column("location")]
+        [Required]
+        [Column("property_title")]
         [MaxLength(500)]
-        public string? Location { get; set; }
+        public required string PropertyTitle { get; set; }
 
-        [Column("property_type")]
-        [MaxLength(50)]
-        public string? PropertyType { get; set; }
+        [Required]
+        [Column("property_location")]
+        [MaxLength(500)]
+        public required string PropertyLocation { get; set; }
 
-        [Column("min_price")]
-        public decimal? MinPrice { get; set; }
+        [Required]
+        [Column("current_price")]
+        public decimal CurrentPrice { get; set; }
 
-        [Column("max_price")]
-        public decimal? MaxPrice { get; set; }
-
-        [Column("bedrooms")]
-        public int? Bedrooms { get; set; }
-
-        [Column("bathrooms")]
-        public int? Bathrooms { get; set; }
-
-        [Column("price_drop_alerts")]
-        public bool PriceDropAlerts { get; set; } = true;
-
-        [Column("new_listing_alerts")]
-        public bool NewListingAlerts { get; set; } = true;
+        [Column("alert_threshold_percentage")]
+        public int AlertThresholdPercentage { get; set; } = 5; // Default 5% reduction
 
         [Column("is_active")]
         public bool IsActive { get; set; } = true;
@@ -54,13 +44,11 @@ namespace realestate_ia_site.Server.Domain.Entities
         [Column("last_triggered")]
         public DateTime? LastTriggered { get; set; }
 
-        [Column("match_count")]
-        public int MatchCount { get; set; } = 0;
+        [Column("notification_count")]
+        public int NotificationCount { get; set; } = 0;
 
-        [Column("new_matches")]
-        public int NewMatches { get; set; } = 0;
-
-        // Navegação
+        // Navigation properties
         public virtual User User { get; set; } = null!;
+        public virtual Property Property { get; set; } = null!;
     }
 }

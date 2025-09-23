@@ -252,7 +252,6 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 
 // Domain events
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
-builder.Services.AddScoped<IDomainEventHandler<PropertyCreatedEvent>, PropertyAlertEventHandler>();
 builder.Services.AddScoped<IDomainEventHandler<PropertyPriceChangedEvent>, PropertyAlertEventHandler>();
 
 // NOVOS EVENT HANDLERS PARA RECOMENDAÇÕES INTELIGENTES
@@ -374,5 +373,5 @@ if (!app.Environment.IsDevelopment())
     app.MapFallbackToFile("/index.html");
 }
 
-Console.WriteLine("=== APPLICATION READY ===");
+Console.WriteLine("APPLICATION READY");
 app.Run();

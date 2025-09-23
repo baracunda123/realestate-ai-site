@@ -48,88 +48,43 @@ export interface SavedSearch {
   newResults: number;
 }
 
-// PropertyAlert alinhado com BD Model PropertyAlert
+// PropertyAlert simplificado - apenas alertas de redução de preço
 export interface PropertyAlert {
-  // Campos da BD
   id: string;
   userId: string;
-  name: string;
-  location: string | null;
-  propertyType: string | null;
-  minPrice: number | null;
-  maxPrice: number | null;
-  bedrooms: number | null;
-  bathrooms: number | null;
-  priceDropAlerts: boolean;
-  newListingAlerts: boolean;
+  propertyId: string;
+  propertyTitle: string;
+  propertyLocation: string;
+  currentPrice: number;
+  alertThresholdPercentage: number; // % de redução necessária
   isActive: boolean;
   createdAt: Date;
   lastTriggered: Date | null;
-  matchCount: number;
-  newMatches: number;
-  
-  // Campos calculados para UI
-  priceRange?: [number, number]; // Derivado de minPrice/maxPrice
-}
+  notificationCount: number;
 
-// PropertyRecommendation alinhado com BD Model PropertyRecommendation
-export interface PropertyRecommendation {
-  id: string;
-  userId: string;
-  propertyId: string;
-  score: number;
-  reason: string;
-  createdAt: Date;
-  updatedAt: Date;
-  viewedAt?: Date;
-  isActive: boolean;
-  
   // Campos calculados para UI
   property?: Property;
-  reasonText?: string;
-  isNew?: boolean;
+  formattedThreshold?: string;
 }
 
-// Tipos específicos de alertas para type safety
-export type AlertType = 'new_listing' | 'price_drop' | 'back_to_market' | 'status_change';
-
-// PropertyAlertNotification alinhado com BD Model PropertyAlertNotification
+// DTO para notificações de redução de preço
 export interface PropertyAlertNotification {
   id: string;
-  userId: string;
   propertyId: string;
-  alertId: string;
-  alertType: AlertType; // Tipado específico
-  title: string;
-  message: string;
+  propertyTitle: string;
+  propertyLocation: string;
+  currentPrice: number;
+  oldPrice: number;
+  savingsAmount: number;
+  savingsPercentage: number;
   createdAt: Date;
-  readAt?: Date;
-  isActive: boolean;
-  propertyPrice?: number;
-  oldPrice?: number;
-  propertyLocation?: string;
+  isRead: boolean;
   
   // Campos calculados para UI
   property?: Property;
-  alert?: PropertyAlert;
   isRecent?: boolean;
   formattedTime?: string;
-  
-  // Dados adicionais da API para mostrar na notificação
-  propertyTitle?: string;
-  propertyType?: string;
-  bedrooms?: number;
-}
-
-// Utility types para notificações
-export interface AlertNotificationMeta {
-  type: AlertType;
-  title: string;
-  description: string;
-  icon: string;
-  color: string;
-  bgColor: string;
-  actionText: string;
+  formattedSavings?: string;
 }
 
 // ViewHistory - estrutura para histórico de visualizações
@@ -166,9 +121,6 @@ export interface UserLoginSession {
 // Notification settings para utilizador
 export interface NotificationSettings {
   priceAlerts: boolean;
-  newListings: boolean;
-  marketInsights: boolean;
-  weeklyDigest: boolean;
   alertFrequency: 'immediate' | 'daily' | 'weekly';
 }
 
@@ -176,7 +128,7 @@ export interface NotificationSettings {
 export interface ActivityItem {
   id: string;
   userId?: string;
-  type: 'favorite' | 'alert' | 'search' | 'view' | 'signup' | 'login' | 'recommendation';
+  type: 'favorite' | 'alert' | 'search' | 'view' | 'signup' | 'login';
   title: string;
   description: string;
   timestamp: Date;
@@ -184,10 +136,9 @@ export interface ActivityItem {
   metadata?: Record<string, string | number | boolean>;
   propertyId?: string;
   alertId?: string;
-  recommendationId?: string;
 }
 
-// Component Props interfaces (atualizado)
+// Component Props interfaces
 export interface PersonalAreaProps {
   user: User;
   onPropertySelect?: (property: Property) => void;
@@ -212,34 +163,20 @@ export interface SavedSearchesResponse {
   totalCount: number;
 }
 
-export interface RecommendationsResponse {
-  recommendations: PropertyRecommendation[];
-  totalCount: number;
-  newCount: number;
-}
-
 export interface AlertNotificationsResponse {
   notifications: PropertyAlertNotification[];
   totalCount: number;
   unreadCount: number;
-  hasMore: boolean;
 }
 
-// Create/Update request types para alertas
-export interface CreateAlertRequest {
-  name: string;
-  location?: string;
-  propertyType?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  bedrooms?: number;
-  bathrooms?: number;
-  priceDropAlerts?: boolean;
-  newListingAlerts?: boolean;
+// Create/Update request types para alertas de preço
+export interface CreatePriceAlertRequest {
+  propertyId: string;
+  alertThresholdPercentage?: number; // Default 5%
 }
 
-export interface UpdateAlertRequest extends Partial<CreateAlertRequest> {
-  id: string;
+export interface UpdatePriceAlertRequest {
+  alertThresholdPercentage?: number;
   isActive?: boolean;
 }
 
@@ -258,87 +195,24 @@ export interface UpdateUserProfileRequest {
 
 // Create/Update request types para definições de notificação
 export interface UpdateNotificationSettingsRequest {
-  priceDropAlerts?: boolean;
-  newListingAlerts?: boolean;
+  priceAlerts?: boolean;
+  alertFrequency?: 'immediate' | 'daily' | 'weekly';
 }
 
-// Utility functions para tipos de notificação
-export const AlertTypeUtils = {
+// Utility functions para alertas de preço
+export const PriceAlertUtils = {
   /**
-   * Obter metadados de um tipo de alerta
+   * Formatar percentual de desconto mínimo
    */
-  getMeta(type: AlertType): AlertNotificationMeta {
-    const metaMap: Record<AlertType, AlertNotificationMeta> = {
-      new_listing: {
-        type: 'new_listing',
-        title: 'Nova Propriedade',
-        description: 'Encontrámos uma nova propriedade que corresponde aos seus critérios',
-        icon: '🏠',
-        color: 'text-blue-600',
-        bgColor: 'bg-blue-50',
-        actionText: 'Ver Propriedade'
-      },
-      price_drop: {
-        type: 'price_drop',
-        title: 'Redução de Preço',
-        description: 'Uma propriedade do seu interesse teve o preço reduzido',
-        icon: '💰',
-        color: 'text-green-600',
-        bgColor: 'bg-green-50',
-        actionText: 'Ver Desconto'
-      },
-      back_to_market: {
-        type: 'back_to_market',
-        title: 'Voltou ao Mercado',
-        description: 'Uma propriedade que saiu voltou ao mercado',
-        icon: '🔄',
-        color: 'text-purple-600',
-        bgColor: 'bg-purple-50',
-        actionText: 'Ver Propriedade'
-      },
-      status_change: {
-        type: 'status_change',
-        title: 'Mudança de Status',
-        description: 'O status de uma propriedade foi alterado',
-        icon: '📋',
-        color: 'text-orange-600',
-        bgColor: 'bg-orange-50',
-        actionText: 'Ver Alteração'
-      }
-    };
-    
-    return metaMap[type];
+  formatThreshold(percentage: number): string {
+    return `${percentage}% ou mais`;
   },
 
   /**
-   * Verificar se é um tipo de notificação de preço
+   * Formatar poupança
    */
-  isPriceRelated(type: AlertType): boolean {
-    return type === 'price_drop';
-  },
-
-  /**
-   * Verificar se é um tipo de notificação de nova propriedade
-   */
-  isNewProperty(type: AlertType): boolean {
-    return type === 'new_listing' || type === 'back_to_market';
-  },
-
-  /**
-   * Formatar mensagem de mudança de preço
-   */
-  formatPriceChange(currentPrice?: number, oldPrice?: number): string {
-    if (!currentPrice || !oldPrice) return '';
-    
-    const difference = oldPrice - currentPrice; // Diferença positiva para descidas
-    const percentage = ((difference / oldPrice) * 100).toFixed(1);
-    
-    if (difference > 0) {
-      return `Poupança de €${difference.toLocaleString()} (-${percentage}%)`;
-    } else {
-      const increase = Math.abs(difference);
-      return `Aumento de €${increase.toLocaleString()} (+${Math.abs(parseFloat(percentage))}%)`;
-    }
+  formatSavings(amount: number, percentage: number): string {
+    return `€${amount.toLocaleString('pt-PT')} (-${percentage.toFixed(1)}%)`;
   },
 
   /**
@@ -369,5 +243,23 @@ export const AlertTypeUtils = {
     if (diffDays < 7) return `${diffDays}d atrás`;
     
     return created.toLocaleDateString('pt-PT');
+  },
+
+  /**
+   * Calcular cor do alerta baseado na poupança
+   */
+  getSavingsColor(percentage: number): string {
+    if (percentage >= 20) return 'text-green-600';
+    if (percentage >= 10) return 'text-yellow-600';
+    return 'text-orange-600';
+  },
+
+  /**
+   * Obter ícone baseado na poupança
+   */
+  getSavingsIcon(percentage: number): string {
+    if (percentage >= 20) return '🎉';
+    if (percentage >= 10) return '💰';
+    return '📉';
   }
-};};
+};

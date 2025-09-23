@@ -10,10 +10,8 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import type { Property } from '../types/property';
-import type { User, SavedSearch, PropertyAlert, ViewHistoryItem, CreateAlertRequest } from '../types/PersonalArea';
+import type { User, SavedSearch, PropertyAlert, ViewHistoryItem, CreatePriceAlertRequest } from '../types/PersonalArea';
 import type { SearchFilters as SearchFiltersType } from '../types/SearchFilters';
-import type { NewAlert } from './NewAlertModalFixed';
-import { NewAlertModal } from './NewAlertModalFixed';
 import { Button } from './ui/button';
 import { PersonalAreaHeader } from './PersonalArea/PersonalAreaHeader';
 import { PersonalAreaDashboard } from './PersonalArea/PersonalAreaDashboard';
@@ -25,51 +23,61 @@ import { PersonalAreaSettings } from './PersonalArea/PersonalAreaSettings';
 import { toast } from 'sonner';
 import { 
   getUserAlerts, 
-  createAlert as createAlertService, 
+  createPriceAlert as createPriceAlertService, 
   deleteAlert as deleteAlertService,
-  toggleAlert as toggleAlertService
+  updateAlert as updateAlertService,
+  hasAlertForProperty
 } from '../api/alerts.service';
 import { 
   getSavedSearches as getSavedSearchesService,
   deleteSavedSearch as deleteSavedSearchService,
   executeSavedSearch
 } from '../api/saved-searches.service';
+import { useNotifications } from '../hooks/useNotifications';
 
 interface PersonalAreaProps {
   user: User;
-  onNavigateToAlertResults?: (alert: PropertyAlert) => void;
   onNavigateToHome?: (reset?: boolean) => void;
   onExecuteSearch?: (query: string, filters?: SearchFiltersType) => void;
   favorites: Property[];
   onToggleFavorite: (property: Property) => void;
-  hasActiveSearch?: boolean; // Indica se há pesquisa ativa na home
+  hasActiveSearch?: boolean;
+  onCreatePriceAlert?: (property: Property) => void;
+  onCheckPriceAlert?: (propertyId: string) => Promise<boolean>;
 }
 
 export function PersonalArea({ 
   user, 
-  onNavigateToAlertResults, 
   onNavigateToHome,
   onExecuteSearch,
   favorites, 
   onToggleFavorite,
-  hasActiveSearch = false
+  hasActiveSearch = false,
+  onCreatePriceAlert,
+  onCheckPriceAlert
 }: PersonalAreaProps) {
   // UI state
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [isNewAlertModalOpen, setIsNewAlertModalOpen] = useState(false);
   
   // Data state
   const [alerts, setAlerts] = useState<PropertyAlert[]>([]);
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
+  const [alertsLoading, setAlertsLoading] = useState(true);
+
+  // Hook para notificações com refresh automático
+  const { notifications, unreadCount } = useNotifications(60000); // Polling a cada 1 minuto
 
   // Carregar alertas e pesquisas salvas ao montar
   useEffect(() => {
     const loadData = async () => {
       try {
+        setAlertsLoading(true);
         const alertsResp = await getUserAlerts();
         setAlerts(alertsResp.alerts || []);
       } catch {
         setAlerts([]);
+      } finally {
+        setAlertsLoading(false);
       }
 
       try {
@@ -83,29 +91,63 @@ export function PersonalArea({
     loadData();
   }, []);
 
-  // Handlers
-  const handleCreateAlert = async (alert: NewAlert) => {
-    const payload: CreateAlertRequest = {
-      name: alert.name,
-      location: alert.location,
-      propertyType: alert.propertyType,
-      minPrice: alert.priceRange?.[0],
-      maxPrice: alert.priceRange?.[1],
-      bedrooms: alert.bedrooms,
-      bathrooms: alert.bathrooms,
-      priceDropAlerts: alert.priceDropAlerts,
-      newListingAlerts: alert.newListingAlerts,
+  // Refresh automático dos alertas quando há novas notificações
+  useEffect(() => {
+    const refreshAlerts = async () => {
+      if (unreadCount > 0) {
+        try {
+          const alertsResp = await getUserAlerts();
+          setAlerts(alertsResp.alerts || []);
+        } catch {
+          // Ignorar erro silenciosamente
+        }
+      }
     };
 
+    refreshAlerts();
+  }, [unreadCount]);
+
+  // Handler para criar alerta de preço
+  const handleCreatePriceAlert = async (property: Property) => {
     try {
-      const created = await createAlertService(payload);
+      // Verificar se já existe alerta
+      const hasAlert = await hasAlertForProperty(property.id);
+      if (hasAlert) {
+        toast.info('Já existe um alerta para esta propriedade');
+        return;
+      }
+
+      const payload: CreatePriceAlertRequest = {
+        propertyId: property.id,
+        alertThresholdPercentage: 5 // Default 5%
+      };
+
+      const created = await createPriceAlertService(payload);
       setAlerts(prev => [...prev, created]);
-      setIsNewAlertModalOpen(false);
-      toast.success('Alerta criado com sucesso!', {
-        description: `Você será notificado sobre propriedades que correspondem aos critérios definidos.`
+      
+      toast.success('Alerta de preço criado!', {
+        description: `Será notificado quando o preço de "${property.title}" baixar 5% ou mais.`
       });
+
+      // Se temos callback, chamar também
+      if (onCreatePriceAlert) {
+        onCreatePriceAlert(property);
+      }
+    } catch (error) {
+      console.error('Erro ao criar alerta:', error);
+      toast.error('Falha ao criar alerta de preço');
+    }
+  };
+
+  // Handler para verificar se propriedade tem alerta
+  const handleCheckPriceAlert = async (propertyId: string): Promise<boolean> => {
+    try {
+      if (onCheckPriceAlert) {
+        return await onCheckPriceAlert(propertyId);
+      }
+      return await hasAlertForProperty(propertyId);
     } catch {
-      toast.error('Falha ao criar alerta no servidor.');
+      return false;
     }
   };
 
@@ -115,20 +157,17 @@ export function PersonalArea({
       setAlerts(prev => prev.filter(a => a.id !== alertId));
       toast.success('Alerta removido!');
     } catch {
-      toast.error('Falha ao remover alerta no servidor.');
+      toast.error('Falha ao remover alerta');
     }
   };
 
-  const handleToggleAlert = async (alertId: string) => {
-    const current = alerts.find(a => a.id === alertId);
-    if (!current) return;
-
+  const handleUpdateAlert = async (alertId: string, threshold: number) => {
     try {
-      const updated = await toggleAlertService(alertId, !current.isActive);
+      const updated = await updateAlertService(alertId, { alertThresholdPercentage: threshold });
       setAlerts(prev => prev.map(a => (a.id === alertId ? updated : a)));
-      toast.success(updated.isActive ? 'Alerta ativado!' : 'Alerta pausado!');
+      toast.success(`Alerta atualizado para ${threshold}%`);
     } catch {
-      toast.error('Falha ao alterar estado do alerta.');
+      toast.error('Falha ao atualizar alerta');
     }
   };
 
@@ -159,7 +198,7 @@ export function PersonalArea({
           bathrooms: search.filters.bathrooms || null,
           propertyType: search.filters.propertyType || 'any',
           hasGarage: search.filters.hasGarage,
-          sortBy: 'relevance', // Default sort for saved searches
+          sortBy: 'relevance',
           sortOrder: 'desc'
         };
         
@@ -173,16 +212,14 @@ export function PersonalArea({
       try {
         await executeSavedSearch(search.id, false);
       } catch {
-        // Ignorar erro silenciosamente - a pesquisa ainda funciona no frontend
+        // Ignorar erro silenciosamente
       }
     } catch {
-      toast.error('Erro ao executar pesquisa', {
-        description: 'Tente novamente em alguns instantes.'
-      });
+      toast.error('Erro ao executar pesquisa');
     }
   };
 
-  // Sem histórico por enquanto (removemos mocks)
+  // Sem histórico por enquanto
   const viewHistory: ViewHistoryItem[] = [];
 
   return (
@@ -218,9 +255,14 @@ export function PersonalArea({
             <Bookmark className="h-4 w-4" />
             <span className="hidden sm:inline">Pesquisas</span>
           </TabsTrigger>
-          <TabsTrigger value="alerts" className="w-full flex items-center space-x-2">
+          <TabsTrigger value="alerts" className="w-full flex items-center space-x-2 relative">
             <Bell className="h-4 w-4" />
             <span className="hidden sm:inline">Alertas</span>
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-burnt-peach text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </span>
+            )}
           </TabsTrigger>
           <TabsTrigger value="history" className="w-full flex items-center space-x-2">
             <Clock className="h-4 w-4" />
@@ -249,6 +291,8 @@ export function PersonalArea({
           <PersonalAreaFavorites
             favorites={favorites}
             onToggleFavorite={onToggleFavorite}
+            onCreatePriceAlert={handleCreatePriceAlert}
+            onCheckPriceAlert={handleCheckPriceAlert}
           />
         </TabsContent>
 
@@ -265,10 +309,8 @@ export function PersonalArea({
           <PersonalAreaAlerts
             user={user}
             alerts={alerts}
-            onCreateAlert={() => setIsNewAlertModalOpen(true)}
             onDeleteAlert={handleDeleteAlert}
-            onToggleAlert={handleToggleAlert}
-            onNavigateToAlertResults={onNavigateToAlertResults}
+            onUpdateAlert={handleUpdateAlert}
           />
         </TabsContent>
 
@@ -286,12 +328,6 @@ export function PersonalArea({
           />
         </TabsContent>
       </Tabs>
-
-      <NewAlertModal
-        isOpen={isNewAlertModalOpen}
-        onClose={() => setIsNewAlertModalOpen(false)}
-        onCreateAlert={handleCreateAlert}
-      />
     </div>
   );
 }

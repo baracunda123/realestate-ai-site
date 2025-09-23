@@ -6,7 +6,7 @@ using realestate_ia_site.Server.Application.PropertyAlerts.DTOs;
 namespace realestate_ia_site.Server.Application.PropertyAlerts
 {
     /// <summary>
-    /// Service responsável pela gestão de alertas de propriedades e criação de notificações
+    /// Service responsável pela gestão de alertas de redução de preço
     /// </summary>
     public class PropertyAlertService
     {
@@ -28,7 +28,9 @@ namespace realestate_ia_site.Server.Application.PropertyAlerts
             bool includeInactive = false,
             CancellationToken cancellationToken = default)
         {
-            var query = _context.PropertyAlerts.Where(a => a.UserId == userId);
+            var query = _context.PropertyAlerts
+                .Include(a => a.Property)
+                .Where(a => a.UserId == userId);
             
             if (!includeInactive)
             {
@@ -53,41 +55,53 @@ namespace realestate_ia_site.Server.Application.PropertyAlerts
             CancellationToken cancellationToken = default)
         {
             var alert = await _context.PropertyAlerts
+                .Include(a => a.Property)
                 .FirstOrDefaultAsync(a => a.Id == alertId && a.UserId == userId, cancellationToken);
 
             return alert == null ? null : MapToDto(alert);
         }
 
-        public async Task<PropertyAlertDto> CreateAlertAsync(
+        public async Task<PropertyAlertDto> CreatePriceAlertAsync(
             string userId,
-            CreateAlertRequestDto request,
+            CreatePriceAlertRequestDto request,
             CancellationToken cancellationToken = default)
         {
-            ValidateCreateRequest(request);
+            // Verificar se a propriedade existe
+            var property = await _context.Properties
+                .FirstOrDefaultAsync(p => p.Id == request.PropertyId, cancellationToken);
+
+            if (property == null)
+                throw new ArgumentException("Propriedade não encontrada");
+
+            if (!property.Price.HasValue)
+                throw new ArgumentException("Propriedade não tem preço definido");
+
+            // Verificar se já existe alerta para esta propriedade
+            var existingAlert = await _context.PropertyAlerts
+                .FirstOrDefaultAsync(a => a.UserId == userId && a.PropertyId == request.PropertyId, cancellationToken);
+
+            if (existingAlert != null)
+                throw new ArgumentException("Já existe um alerta para esta propriedade");
 
             var alert = new PropertyAlert
             {
                 Id = Guid.NewGuid(),
                 UserId = userId,
-                Name = request.Name,
-                Location = request.Location,
-                PropertyType = request.PropertyType,
-                MinPrice = request.MinPrice,
-                MaxPrice = request.MaxPrice,
-                Bedrooms = request.Bedrooms,
-                Bathrooms = request.Bathrooms,
-                PriceDropAlerts = request.PriceDropAlerts,
-                NewListingAlerts = request.NewListingAlerts,
+                PropertyId = request.PropertyId,
+                PropertyTitle = property.Title ?? "Propriedade sem título",
+                PropertyLocation = GetPropertyLocationString(property),
+                CurrentPrice = property.Price.Value,
+                AlertThresholdPercentage = request.AlertThresholdPercentage,
                 IsActive = true,
                 CreatedAt = DateTime.UtcNow,
-                MatchCount = 0,
-                NewMatches = 0
+                NotificationCount = 0
             };
 
             _context.PropertyAlerts.Add(alert);
             await _context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Created alert {AlertId} for user {UserId}", alert.Id, userId);
+            _logger.LogInformation("Created price alert {AlertId} for user {UserId} on property {PropertyId}", 
+                alert.Id, userId, request.PropertyId);
 
             return MapToDto(alert);
         }
@@ -95,67 +109,23 @@ namespace realestate_ia_site.Server.Application.PropertyAlerts
         public async Task<PropertyAlertDto?> UpdateAlertAsync(
             string userId,
             Guid alertId,
-            UpdateAlertRequestDto request,
+            UpdatePriceAlertRequestDto request,
             CancellationToken cancellationToken = default)
         {
             var alert = await _context.PropertyAlerts
+                .Include(a => a.Property)
                 .FirstOrDefaultAsync(a => a.Id == alertId && a.UserId == userId, cancellationToken);
 
             if (alert == null) return null;
 
-            // Atualizar apenas campos fornecidos
-            if (!string.IsNullOrWhiteSpace(request.Name))
-                alert.Name = request.Name;
-            
-            if (request.Location != null)
-                alert.Location = request.Location;
-            
-            if (request.PropertyType != null)
-                alert.PropertyType = request.PropertyType;
-            
-            if (request.MinPrice.HasValue)
-                alert.MinPrice = request.MinPrice;
-            
-            if (request.MaxPrice.HasValue)
-                alert.MaxPrice = request.MaxPrice;
-            
-            if (request.Bedrooms.HasValue)
-                alert.Bedrooms = request.Bedrooms;
-            
-            if (request.Bathrooms.HasValue)
-                alert.Bathrooms = request.Bathrooms;
-            
-            if (request.PriceDropAlerts.HasValue)
-                alert.PriceDropAlerts = request.PriceDropAlerts.Value;
-            
-            if (request.NewListingAlerts.HasValue)
-                alert.NewListingAlerts = request.NewListingAlerts.Value;
+            if (request.AlertThresholdPercentage.HasValue)
+                alert.AlertThresholdPercentage = request.AlertThresholdPercentage.Value;
             
             if (request.IsActive.HasValue)
                 alert.IsActive = request.IsActive.Value;
 
             await _context.SaveChangesAsync(cancellationToken);
-            _logger.LogInformation("Updated alert {AlertId} for user {UserId}", alertId, userId);
-
-            return MapToDto(alert);
-        }
-
-        public async Task<PropertyAlertDto?> ToggleAlertAsync(
-            string userId,
-            Guid alertId,
-            bool isActive,
-            CancellationToken cancellationToken = default)
-        {
-            var alert = await _context.PropertyAlerts
-                .FirstOrDefaultAsync(a => a.Id == alertId && a.UserId == userId, cancellationToken);
-
-            if (alert == null) return null;
-
-            alert.IsActive = isActive;
-            await _context.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("{Action} alert {AlertId} for user {UserId}", 
-                isActive ? "Activated" : "Deactivated", alertId, userId);
+            _logger.LogInformation("Updated price alert {AlertId} for user {UserId}", alertId, userId);
 
             return MapToDto(alert);
         }
@@ -173,98 +143,76 @@ namespace realestate_ia_site.Server.Application.PropertyAlerts
             _context.PropertyAlerts.Remove(alert);
             await _context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Deleted alert {AlertId} for user {UserId}", alertId, userId);
+            _logger.LogInformation("Deleted price alert {AlertId} for user {UserId}", alertId, userId);
             return true;
         }
 
-        public async Task<AlertTestResponseDto> TestAlertCriteriaAsync(
+        public async Task<bool> DeleteAlertByPropertyAsync(
             string userId,
-            CreateAlertRequestDto request,
-            CancellationToken cancellationToken = default)
-        {
-            ValidateCreateRequest(request);
-
-            var query = BuildPropertyQuery(request);
-            var matchCount = await query.CountAsync(cancellationToken);
-            
-            var sampleMatches = await query
-                .Take(5)
-                .Select(p => new PropertyMatchDto
-                {
-                    Id = p.Id,
-                    Title = p.Title,
-                    Location = $"{p.City}, {p.County}",
-                    Price = p.Price ?? 0,
-                    Bedrooms = p.Bedrooms,
-                    Bathrooms = p.Bathrooms,
-                    PropertyType = p.Type,
-                    ListingDate = p.CreatedAt,
-                    IsNew = p.CreatedAt > DateTime.UtcNow.AddDays(-7)
-                })
-                .ToListAsync(cancellationToken);
-
-            return new AlertTestResponseDto
-            {
-                PotentialMatches = sampleMatches,
-                EstimatedMatchCount = matchCount,
-                Recommendations = GenerateRecommendations(matchCount)
-            };
-        }
-
-        public async Task<bool> MarkAlertAsViewedAsync(
-            string userId,
-            Guid alertId,
+            string propertyId,
             CancellationToken cancellationToken = default)
         {
             var alert = await _context.PropertyAlerts
-                .FirstOrDefaultAsync(a => a.Id == alertId && a.UserId == userId, cancellationToken);
+                .FirstOrDefaultAsync(a => a.UserId == userId && a.PropertyId == propertyId, cancellationToken);
 
             if (alert == null) return false;
 
-            alert.NewMatches = 0;
+            _context.PropertyAlerts.Remove(alert);
             await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Deleted price alert for user {UserId} on property {PropertyId}", userId, propertyId);
             return true;
+        }
+
+        public async Task<bool> HasAlertForPropertyAsync(
+            string userId,
+            string propertyId,
+            CancellationToken cancellationToken = default)
+        {
+            return await _context.PropertyAlerts
+                .AnyAsync(a => a.UserId == userId && a.PropertyId == propertyId && a.IsActive, cancellationToken);
         }
 
         #endregion
 
-        #region Notification Processing
+        #region Price Change Processing
 
-        public async Task ProcessNewPropertyAsync(Property property, CancellationToken cancellationToken = default)
+        public async Task ProcessPriceChangeAsync(
+            Property property, 
+            decimal oldPrice, 
+            CancellationToken cancellationToken = default)
         {
-            var matchingAlerts = await GetMatchingAlertsAsync(property, cancellationToken);
-            
-            foreach (var alert in matchingAlerts.Where(a => a.NewListingAlerts))
+            if (!property.Price.HasValue || property.Price >= oldPrice) 
+                return; // Só processar reduções de preço
+
+            var matchingAlerts = await _context.PropertyAlerts
+                .Where(a => a.PropertyId == property.Id && a.IsActive)
+                .ToListAsync(cancellationToken);
+
+            foreach (var alert in matchingAlerts)
             {
-                await CreateAlertNotificationAsync(alert, property, "new_listing", null, cancellationToken);
-                alert.LastTriggered = DateTime.UtcNow;
-                alert.MatchCount++;
-                alert.NewMatches++;
+                var priceReduction = oldPrice - property.Price.Value;
+                var reductionPercentage = (priceReduction / oldPrice) * 100;
+
+                if (reductionPercentage >= alert.AlertThresholdPercentage)
+                {
+                    await CreatePriceDropNotificationAsync(alert, property, oldPrice, cancellationToken);
+                    
+                    alert.LastTriggered = DateTime.UtcNow;
+                    alert.NotificationCount++;
+                    alert.CurrentPrice = property.Price.Value; // Atualizar preço atual
+                }
             }
-            
+
             if (matchingAlerts.Any())
             {
                 await _context.SaveChangesAsync(cancellationToken);
             }
         }
 
-        public async Task ProcessPriceChangeAsync(Property property, decimal oldPrice, CancellationToken cancellationToken = default)
-        {
-            if (property.Price >= oldPrice) return; // Só reduções de preço
-            
-            var matchingAlerts = await GetMatchingAlertsAsync(property, cancellationToken);
-            
-            foreach (var alert in matchingAlerts.Where(a => a.PriceDropAlerts))
-            {
-                await CreateAlertNotificationAsync(alert, property, "price_drop", oldPrice, cancellationToken);
-                alert.LastTriggered = DateTime.UtcNow;
-            }
-            
-            if (matchingAlerts.Any())
-            {
-                await _context.SaveChangesAsync(cancellationToken);
-            }
-        }
+        #endregion
+
+        #region Notifications
 
         public async Task<AlertNotificationsResponseDto> GetUserNotificationsAsync(
             string userId,
@@ -272,7 +220,6 @@ namespace realestate_ia_site.Server.Application.PropertyAlerts
             CancellationToken cancellationToken = default)
         {
             var notifications = await _context.PropertyAlertNotifications
-                .Include(n => n.Property)
                 .Where(n => n.UserId == userId && n.IsActive)
                 .OrderByDescending(n => n.CreatedAt)
                 .Take(limit)
@@ -288,17 +235,14 @@ namespace realestate_ia_site.Server.Application.PropertyAlerts
                 {
                     Id = n.Id,
                     PropertyId = n.PropertyId,
-                    Title = n.Title,
-                    Message = n.Message,
-                    AlertType = n.AlertType,
+                    PropertyTitle = n.PropertyLocation ?? "Propriedade",
+                    PropertyLocation = n.PropertyLocation ?? "",
+                    CurrentPrice = n.PropertyPrice ?? 0,
+                    OldPrice = n.OldPrice ?? 0,
+                    SavingsAmount = (n.OldPrice ?? 0) - (n.PropertyPrice ?? 0),
+                    SavingsPercentage = n.OldPrice > 0 ? ((n.OldPrice - n.PropertyPrice) / n.OldPrice * 100) ?? 0 : 0,
                     CreatedAt = n.CreatedAt,
-                    IsRead = n.ReadAt.HasValue,
-                    PropertyTitle = n.Property.Title,
-                    PropertyLocation = n.PropertyLocation,
-                    PropertyPrice = n.PropertyPrice,
-                    OldPrice = n.OldPrice,
-                    Bedrooms = n.Property.Bedrooms,
-                    PropertyType = n.Property.Type
+                    IsRead = n.ReadAt.HasValue
                 }).ToList(),
                 TotalCount = notifications.Count,
                 UnreadCount = unreadCount
@@ -349,201 +293,15 @@ namespace realestate_ia_site.Server.Application.PropertyAlerts
             {
                 Id = alert.Id,
                 UserId = alert.UserId,
-                Name = alert.Name,
-                Location = alert.Location,
-                PropertyType = alert.PropertyType,
-                MinPrice = alert.MinPrice,
-                MaxPrice = alert.MaxPrice,
-                Bedrooms = alert.Bedrooms,
-                Bathrooms = alert.Bathrooms,
-                PriceDropAlerts = alert.PriceDropAlerts,
-                NewListingAlerts = alert.NewListingAlerts,
+                PropertyId = alert.PropertyId,
+                PropertyTitle = alert.PropertyTitle,
+                PropertyLocation = alert.PropertyLocation,
+                CurrentPrice = alert.CurrentPrice,
+                AlertThresholdPercentage = alert.AlertThresholdPercentage,
                 IsActive = alert.IsActive,
                 CreatedAt = alert.CreatedAt,
                 LastTriggered = alert.LastTriggered,
-                MatchCount = alert.MatchCount,
-                NewMatches = alert.NewMatches
-            };
-        }
-
-        private static void ValidateCreateRequest(CreateAlertRequestDto request)
-        {
-            if (string.IsNullOrWhiteSpace(request.Name))
-                throw new ArgumentException("Nome do alerta é obrigatório");
-
-            if (request.MinPrice.HasValue && request.MaxPrice.HasValue && request.MinPrice > request.MaxPrice)
-                throw new ArgumentException("Preço mínimo não pode ser maior que o preço máximo");
-        }
-
-        private IQueryable<Property> BuildPropertyQuery(CreateAlertRequestDto request)
-        {
-            var query = _context.Properties.AsQueryable();
-
-            // Aplicar filtros de localização
-            if (!string.IsNullOrWhiteSpace(request.Location))
-            {
-                query = query.Where(p => 
-                    (p.City != null && p.City.Contains(request.Location)) ||
-                    (p.County != null && p.County.Contains(request.Location)) ||
-                    (p.State != null && p.State.Contains(request.Location)) ||
-                    (p.Address != null && p.Address.Contains(request.Location)));
-            }
-
-            // Aplicar filtros de tipo
-            if (!string.IsNullOrWhiteSpace(request.PropertyType) && request.PropertyType != "any")
-            {
-                query = query.Where(p => p.Type == request.PropertyType);
-            }
-
-            // Aplicar filtros de preço
-            if (request.MinPrice.HasValue)
-            {
-                query = query.Where(p => p.Price >= request.MinPrice);
-            }
-
-            if (request.MaxPrice.HasValue)
-            {
-                query = query.Where(p => p.Price <= request.MaxPrice);
-            }
-
-            // Aplicar filtros de quartos
-            if (request.Bedrooms.HasValue)
-            {
-                query = query.Where(p => p.Bedrooms >= request.Bedrooms);
-            }
-
-            // Aplicar filtros de casas de banho
-            if (request.Bathrooms.HasValue)
-            {
-                query = query.Where(p => p.Bathrooms >= request.Bathrooms);
-            }
-
-            return query;
-        }
-
-        private static List<string> GenerateRecommendations(int matchCount)
-        {
-            var recommendations = new List<string>();
-
-            if (matchCount == 0)
-            {
-                recommendations.Add("Considere expandir a área de pesquisa para incluir concelhos próximos");
-                recommendations.Add("Tente aumentar a gama de preços");
-                recommendations.Add("Considere reduzir o número mínimo de quartos ou casas de banho");
-            }
-            else if (matchCount < 5)
-            {
-                recommendations.Add("Poucas propriedades encontradas. Considere ajustar os critérios");
-                recommendations.Add("Tente expandir ligeiramente a gama de preços");
-            }
-            else if (matchCount > 50)
-            {
-                recommendations.Add("Muitas propriedades encontradas. Considere refinar os critérios");
-                recommendations.Add("Tente ser mais específico na localização ou tipo de propriedade");
-            }
-
-            return recommendations;
-        }
-
-        private async Task<List<PropertyAlert>> GetMatchingAlertsAsync(Property property, CancellationToken cancellationToken)
-        {
-            var query = _context.PropertyAlerts.Where(a => a.IsActive);
-            
-            // Filtro de localização
-            if (!string.IsNullOrWhiteSpace(property.City) || !string.IsNullOrWhiteSpace(property.County))
-            {
-                query = query.Where(a => a.Location == null ||
-                    (property.City != null && a.Location.Contains(property.City)) ||
-                    (property.County != null && a.Location.Contains(property.County)));
-            }
-            
-            // Filtro de tipo
-            if (!string.IsNullOrWhiteSpace(property.Type))
-            {
-                query = query.Where(a => a.PropertyType == null || a.PropertyType == property.Type);
-            }
-            
-            // Filtros de preço e características
-            query = query.Where(a =>
-                (a.MinPrice == null || property.Price >= a.MinPrice) &&
-                (a.MaxPrice == null || property.Price <= a.MaxPrice) &&
-                (a.Bedrooms == null || property.Bedrooms >= a.Bedrooms) &&
-                (a.Bathrooms == null || property.Bathrooms >= a.Bathrooms));
-                
-            return await query.ToListAsync(cancellationToken);
-        }
-
-        private async Task CreateAlertNotificationAsync(
-            PropertyAlert alert,
-            Property property,
-            string alertType,
-            decimal? oldPrice = null,
-            CancellationToken cancellationToken = default)
-        {
-            // Verificar se já existe notificação recente para evitar duplicatas
-            var existingNotification = await _context.PropertyAlertNotifications
-                .FirstOrDefaultAsync(n => 
-                    n.UserId == alert.UserId && 
-                    n.PropertyId == property.Id && 
-                    n.AlertType == alertType &&
-                    n.CreatedAt > DateTime.UtcNow.AddHours(-1), // Últimas 1 hora
-                    cancellationToken);
-
-            if (existingNotification != null)
-            {
-                _logger.LogDebug("Skipping duplicate notification for user {UserId}, property {PropertyId}, type {AlertType}",
-                    alert.UserId, property.Id, alertType);
-                return;
-            }
-
-            var (title, message) = GenerateNotificationContent(alert, property, alertType, oldPrice);
-            var propertyLocation = GetPropertyLocationString(property);
-
-            var notification = new PropertyAlertNotification
-            {
-                UserId = alert.UserId,
-                PropertyId = property.Id,
-                AlertId = alert.Id,
-                AlertType = alertType,
-                Title = title,
-                Message = message,
-                PropertyPrice = property.Price,
-                OldPrice = oldPrice,
-                PropertyLocation = propertyLocation,
-                CreatedAt = DateTime.UtcNow,
-                IsActive = true
-            };
-
-            _context.PropertyAlertNotifications.Add(notification);
-            await _context.SaveChangesAsync(cancellationToken);
-
-            _logger.LogInformation("Created alert notification for user {UserId}, property {PropertyId}, type {AlertType}",
-                alert.UserId, property.Id, alertType);
-        }
-
-        private static (string title, string message) GenerateNotificationContent(
-            PropertyAlert alert,
-            Property property,
-            string alertType,
-            decimal? oldPrice)
-        {
-            var propertyDesc = $"{property.Type ?? "Propriedade"} em {property.City ?? "localização não especificada"}";
-            var priceText = property.Price.HasValue ? $"€{property.Price:N0}" : "Preço sob consulta";
-
-            return alertType switch
-            {
-                "new_listing" => (
-                    $"?? Novo {propertyDesc}",
-                    $"Encontrámos uma nova propriedade que corresponde ao seu alerta '{alert.Name}': {propertyDesc} por {priceText}."
-                ),
-                "price_drop" => (
-                    $"?? Redução de preço - {propertyDesc}",
-                    $"O preço de uma propriedade no seu alerta '{alert.Name}' foi reduzido de €{oldPrice:N0} para {priceText}. Poupança: €{(oldPrice - property.Price):N0}!"
-                ),
-                _ => (
-                    $"?? Alerta: {propertyDesc}",
-                    $"Nova atualização para o seu alerta '{alert.Name}': {propertyDesc}."
-                )
+                NotificationCount = alert.NotificationCount
             };
         }
 
@@ -554,6 +312,52 @@ namespace realestate_ia_site.Server.Application.PropertyAlerts
             if (!string.IsNullOrWhiteSpace(property.County)) parts.Add(property.County);
             if (!string.IsNullOrWhiteSpace(property.State)) parts.Add(property.State);
             return parts.Any() ? string.Join(", ", parts) : "Localização não especificada";
+        }
+
+        private async Task CreatePriceDropNotificationAsync(
+            PropertyAlert alert,
+            Property property,
+            decimal oldPrice,
+            CancellationToken cancellationToken = default)
+        {
+            // Verificar se já existe notificação recente para evitar spam
+            var existingNotification = await _context.PropertyAlertNotifications
+                .FirstOrDefaultAsync(n => 
+                    n.UserId == alert.UserId && 
+                    n.PropertyId == property.Id && 
+                    n.AlertType == "price_drop" &&
+                    n.CreatedAt > DateTime.UtcNow.AddHours(-24), // Últimas 24 horas
+                    cancellationToken);
+
+            if (existingNotification != null)
+            {
+                _logger.LogDebug("Skipping duplicate price drop notification for user {UserId}, property {PropertyId}",
+                    alert.UserId, property.Id);
+                return;
+            }
+
+            var savings = oldPrice - property.Price!.Value;
+            var savingsPercentage = (savings / oldPrice) * 100;
+
+            var notification = new PropertyAlertNotification
+            {
+                UserId = alert.UserId,
+                PropertyId = property.Id,
+                AlertId = alert.Id,
+                AlertType = "price_drop",
+                Title = $"?? Redução de Preço - {property.Title}",
+                Message = $"O preço baixou de €{oldPrice:N0} para €{property.Price:N0}. Poupança: €{savings:N0} ({savingsPercentage:F1}%)",
+                PropertyPrice = property.Price,
+                OldPrice = oldPrice,
+                PropertyLocation = alert.PropertyLocation,
+                CreatedAt = DateTime.UtcNow,
+                IsActive = true
+            };
+
+            _context.PropertyAlertNotifications.Add(notification);
+
+            _logger.LogInformation("Created price drop notification for user {UserId}, property {PropertyId}, savings €{Savings}",
+                alert.UserId, property.Id, savings);
         }
 
         #endregion

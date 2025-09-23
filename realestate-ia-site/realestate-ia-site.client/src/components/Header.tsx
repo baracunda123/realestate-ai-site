@@ -4,6 +4,8 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { UserProfileDropdown } from './UserProfileDropdown';
 import { AIResponseBox } from './AIResponseBox';
+import { NotificationBell } from './NotificationBell/NotificationBell';
+import { useUnreadNotificationsCount } from '../hooks/useNotifications';
 
 // Extended user interface for internal use
 interface ExtendedUserProfile {
@@ -59,6 +61,9 @@ export function Header({
   const [currentUserQuery, setCurrentUserQuery] = useState<string>('');
   const [triggerNewQuery, setTriggerNewQuery] = useState<() => void>(() => () => {});
 
+  // Hook SEMPRE executado - nunca condicional
+  const { unreadCount, isLoading: notificationsLoading } = useUnreadNotificationsCount(60000);
+
   // Reset local input when view changes and not on home page
   useEffect(() => {
     if (currentView !== 'home') {
@@ -111,6 +116,13 @@ export function Header({
 
   const handleNavigateToPersonal = () => {
     // Don't reset AI state when navigating to personal area
+    onNavigateToPersonal();
+  };
+
+  // Handler para navegar para área pessoal na aba de alertas
+  const handleNavigateToAlerts = () => {
+    // Implementar navegação para área pessoal com aba 'alerts' ativa
+    // Por agora, navega para área pessoal (a aba será definida lá)
     onNavigateToPersonal();
   };
 
@@ -253,6 +265,17 @@ export function Header({
             <User className="h-4 w-4 mr-2" />
             Minha Área
           </Button>
+          
+          {/* Notification Bell - Só renderizar se user existe */}
+          {user && (
+            <NotificationBell 
+              onClick={handleNavigateToAlerts}
+              className="hover:bg-clay-soft text-clay-secondary hover:text-title"
+              unreadCount={unreadCount}
+              isLoading={notificationsLoading}
+            />
+          )}
+          
           <UserProfileDropdown 
             user={userForDropdown} 
             onLogout={onLogout} 

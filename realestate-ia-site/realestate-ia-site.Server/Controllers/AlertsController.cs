@@ -1,16 +1,15 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.RateLimiting;
 using realestate_ia_site.Server.Application.PropertyAlerts;
 using realestate_ia_site.Server.Application.PropertyAlerts.DTOs;
 using realestate_ia_site.Server.Controllers;
 
 namespace realestate_ia_site.Server.Controllers
 {
-    [Route("api/[controller]")]
+    /// <summary>
+    /// Controller para gestão de alertas de redução de preço
+    /// </summary>
     [ApiController]
-    [EnableRateLimiting("ApiPolicy")]
-    [Authorize]
+    [Route("api/[controller]")]
     public class AlertsController : BaseController
     {
         private readonly PropertyAlertService _alertService;
@@ -25,7 +24,7 @@ namespace realestate_ia_site.Server.Controllers
         }
 
         /// <summary>
-        /// Obter todos os alertas do utilizador
+        /// Obter todos os alertas de redução de preço do usuário
         /// </summary>
         [HttpGet]
         [ProducesResponseType(typeof(AlertsResponseDto), StatusCodes.Status200OK)]
@@ -38,17 +37,12 @@ namespace realestate_ia_site.Server.Controllers
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
-            _logger.LogInformation("Getting alerts for user {UserId} (includeInactive: {IncludeInactive})", 
-                userId, includeInactive);
+            _logger.LogInformation("Getting price alerts for user {UserId}", userId);
 
             try
             {
-                var response = await _alertService.GetUserAlertsAsync(userId, includeInactive, HttpContext.RequestAborted);
-
-                _logger.LogInformation("Found {Count} alerts for user {UserId}", 
-                    response.Alerts.Count, userId);
-
-                return Ok(response);
+                var alerts = await _alertService.GetUserAlertsAsync(userId, includeInactive, HttpContext.RequestAborted);
+                return Ok(alerts);
             }
             catch (Exception ex)
             {
@@ -93,21 +87,22 @@ namespace realestate_ia_site.Server.Controllers
         }
 
         /// <summary>
-        /// Criar novo alerta
+        /// Criar novo alerta de redução de preço
         /// </summary>
         [HttpPost]
         [ProducesResponseType(typeof(PropertyAlertDto), StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<PropertyAlertDto>> CreateAlert(
-            [FromBody] CreateAlertRequestDto request)
+        public async Task<ActionResult<PropertyAlertDto>> CreatePriceAlert(
+            [FromBody] CreatePriceAlertRequestDto request)
         {
             var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
-            _logger.LogInformation("Creating alert '{AlertName}' for user {UserId}", request.Name, userId);
+            _logger.LogInformation("Creating price alert for user {UserId} on property {PropertyId}", 
+                userId, request.PropertyId);
 
             try
             {
@@ -116,20 +111,21 @@ namespace realestate_ia_site.Server.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var alert = await _alertService.CreateAlertAsync(userId, request, HttpContext.RequestAborted);
+                var alert = await _alertService.CreatePriceAlertAsync(userId, request, HttpContext.RequestAborted);
 
-                _logger.LogInformation("Alert {AlertId} created successfully for user {UserId}", alert.Id, userId);
+                _logger.LogInformation("Price alert {AlertId} created successfully for user {UserId}", 
+                    alert.Id, userId);
 
                 return CreatedAtAction(nameof(GetAlertById), new { alertId = alert.Id }, alert);
             }
             catch (ArgumentException ex)
             {
-                _logger.LogWarning(ex, "Invalid request for creating alert for user {UserId}", userId);
+                _logger.LogWarning(ex, "Invalid request for creating price alert for user {UserId}", userId);
                 return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error creating alert for user {UserId}", userId);
+                _logger.LogError(ex, "Error creating price alert for user {UserId}", userId);
                 return StatusCode(500, new { message = "Erro interno do servidor" });
             }
         }
@@ -145,7 +141,7 @@ namespace realestate_ia_site.Server.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<PropertyAlertDto>> UpdateAlert(
             Guid alertId,
-            [FromBody] UpdateAlertRequestDto request)
+            [FromBody] UpdatePriceAlertRequestDto request)
         {
             var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
@@ -168,13 +164,11 @@ namespace realestate_ia_site.Server.Controllers
                     return NotFound(new { message = "Alerta não encontrado" });
                 }
 
-                _logger.LogInformation("Alert {AlertId} updated successfully", alertId);
-
                 return Ok(alert);
             }
             catch (ArgumentException ex)
             {
-                _logger.LogWarning(ex, "Invalid request for updating alert {AlertId}", alertId);
+                _logger.LogWarning(ex, "Invalid request for updating alert {AlertId} for user {UserId}", alertId, userId);
                 return BadRequest(new { message = ex.Message });
             }
             catch (Exception ex)
@@ -185,51 +179,10 @@ namespace realestate_ia_site.Server.Controllers
         }
 
         /// <summary>
-        /// Ativar/desativar alerta
-        /// </summary>
-        [HttpPatch("{alertId:guid}/toggle")]
-        [ProducesResponseType(typeof(PropertyAlertDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<PropertyAlertDto>> ToggleAlert(
-            Guid alertId,
-            [FromBody] ToggleAlertRequestDto request)
-        {
-            var userId = GetCurrentUserId();
-            if (string.IsNullOrEmpty(userId))
-                return Unauthorized();
-
-            _logger.LogInformation("{Action} alert {AlertId} for user {UserId}", 
-                request.IsActive ? "Activating" : "Deactivating", alertId, userId);
-
-            try
-            {
-                var alert = await _alertService.ToggleAlertAsync(userId, alertId, request.IsActive, HttpContext.RequestAborted);
-                
-                if (alert == null)
-                {
-                    _logger.LogWarning("Alert {AlertId} not found for user {UserId}", alertId, userId);
-                    return NotFound(new { message = "Alerta não encontrado" });
-                }
-
-                _logger.LogInformation("Alert {AlertId} {Action} successfully", alertId, 
-                    request.IsActive ? "activated" : "deactivated");
-
-                return Ok(alert);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error toggling alert {AlertId} for user {UserId}", alertId, userId);
-                return StatusCode(500, new { message = "Erro interno do servidor" });
-            }
-        }
-
-        /// <summary>
         /// Excluir alerta
         /// </summary>
         [HttpDelete("{alertId:guid}")]
-        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -243,17 +196,15 @@ namespace realestate_ia_site.Server.Controllers
 
             try
             {
-                var success = await _alertService.DeleteAlertAsync(userId, alertId, HttpContext.RequestAborted);
+                var deleted = await _alertService.DeleteAlertAsync(userId, alertId, HttpContext.RequestAborted);
                 
-                if (!success)
+                if (!deleted)
                 {
                     _logger.LogWarning("Alert {AlertId} not found for user {UserId}", alertId, userId);
                     return NotFound(new { message = "Alerta não encontrado" });
                 }
 
-                _logger.LogInformation("Alert {AlertId} deleted successfully", alertId);
-
-                return Ok(new { success = true, message = "Alerta excluído com sucesso" });
+                return Ok(new { message = "Alerta removido com sucesso" });
             }
             catch (Exception ex)
             {
@@ -263,87 +214,66 @@ namespace realestate_ia_site.Server.Controllers
         }
 
         /// <summary>
-        /// Testar critérios de alerta
+        /// Excluir alerta por propriedade
         /// </summary>
-        [HttpPost("test")]
-        [ProducesResponseType(typeof(AlertTestResponseDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<AlertTestResponseDto>> TestAlert(
-            [FromBody] CreateAlertRequestDto request)
-        {
-            var userId = GetCurrentUserId();
-            if (string.IsNullOrEmpty(userId))
-                return Unauthorized();
-
-            _logger.LogInformation("Testing alert criteria '{AlertName}' for user {UserId}", request.Name, userId);
-
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    return BadRequest(ModelState);
-                }
-
-                var testResult = await _alertService.TestAlertCriteriaAsync(userId, request, HttpContext.RequestAborted);
-
-                _logger.LogInformation("Alert test completed: {EstimatedCount} potential matches", 
-                    testResult.EstimatedMatchCount);
-
-                return Ok(testResult);
-            }
-            catch (ArgumentException ex)
-            {
-                _logger.LogWarning(ex, "Invalid request for testing alert for user {UserId}", userId);
-                return BadRequest(new { message = ex.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error testing alert for user {UserId}", userId);
-                return StatusCode(500, new { message = "Erro interno do servidor" });
-            }
-        }
-
-        /// <summary>
-        /// Marcar alerta como visualizado
-        /// </summary>
-        [HttpPost("{alertId:guid}/mark-viewed")]
-        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [HttpDelete("property/{propertyId}")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult> MarkAlertAsViewed(Guid alertId)
+        public async Task<ActionResult> DeleteAlertByProperty(string propertyId)
         {
             var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
-            _logger.LogInformation("Marking alert {AlertId} as viewed for user {UserId}", alertId, userId);
+            _logger.LogInformation("Deleting alert for property {PropertyId} for user {UserId}", propertyId, userId);
 
             try
             {
-                var success = await _alertService.MarkAlertAsViewedAsync(userId, alertId, HttpContext.RequestAborted);
+                var deleted = await _alertService.DeleteAlertByPropertyAsync(userId, propertyId, HttpContext.RequestAborted);
                 
-                if (!success)
+                if (!deleted)
                 {
-                    _logger.LogWarning("Alert {AlertId} not found for user {UserId}", alertId, userId);
-                    return NotFound(new { message = "Alerta não encontrado" });
+                    return NotFound(new { message = "Alerta não encontrado para esta propriedade" });
                 }
 
-                _logger.LogInformation("Alert {AlertId} marked as viewed successfully", alertId);
-
-                return Ok(new { success = true, message = "Alerta marcado como visualizado" });
+                return Ok(new { message = "Alerta removido com sucesso" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error marking alert as viewed for alert {AlertId}", alertId);
+                _logger.LogError(ex, "Error deleting alert for property {PropertyId} for user {UserId}", propertyId, userId);
                 return StatusCode(500, new { message = "Erro interno do servidor" });
             }
         }
 
         /// <summary>
-        /// Obter notificações de alertas para o utilizador
+        /// Verificar se existe alerta para uma propriedade
+        /// </summary>
+        [HttpGet("property/{propertyId}/exists")]
+        [ProducesResponseType(typeof(bool), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<bool>> HasAlertForProperty(string propertyId)
+        {
+            var userId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized();
+
+            try
+            {
+                var hasAlert = await _alertService.HasAlertForPropertyAsync(userId, propertyId, HttpContext.RequestAborted);
+                return Ok(hasAlert);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking alert for property {PropertyId} for user {UserId}", propertyId, userId);
+                return StatusCode(500, new { message = "Erro interno do servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Obter notificações de redução de preço do usuário
         /// </summary>
         [HttpGet("notifications")]
         [ProducesResponseType(typeof(AlertNotificationsResponseDto), StatusCodes.Status200OK)]
@@ -356,20 +286,14 @@ namespace realestate_ia_site.Server.Controllers
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
-            _logger.LogInformation("Getting alert notifications for user {UserId}", userId);
-
             try
             {
                 var notifications = await _alertService.GetUserNotificationsAsync(userId, limit, HttpContext.RequestAborted);
-
-                _logger.LogInformation("Found {Count} notifications for user {UserId}", 
-                    notifications.Notifications.Count, userId);
-
                 return Ok(notifications);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting alert notifications for user {UserId}", userId);
+                _logger.LogError(ex, "Error getting notifications for user {UserId}", userId);
                 return StatusCode(500, new { message = "Erro interno do servidor" });
             }
         }
@@ -377,8 +301,8 @@ namespace realestate_ia_site.Server.Controllers
         /// <summary>
         /// Marcar notificação como lida
         /// </summary>
-        [HttpPost("notifications/{notificationId}/mark-read")]
-        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [HttpPost("notifications/{notificationId:guid}/mark-read")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
@@ -388,20 +312,14 @@ namespace realestate_ia_site.Server.Controllers
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
-            _logger.LogInformation("Marking notification {NotificationId} as read for user {UserId}", 
-                notificationId, userId);
-
             try
             {
                 await _alertService.MarkNotificationAsReadAsync(userId, notificationId, HttpContext.RequestAborted);
-
-                _logger.LogInformation("Notification marked as read successfully");
-
-                return Ok(new { success = true, message = "Notificação marcada como lida" });
+                return Ok(new { message = "Notificação marcada como lida" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error marking notification as read");
+                _logger.LogError(ex, "Error marking notification as read for user {UserId}", userId);
                 return StatusCode(500, new { message = "Erro interno do servidor" });
             }
         }
@@ -410,7 +328,7 @@ namespace realestate_ia_site.Server.Controllers
         /// Marcar todas as notificações como lidas
         /// </summary>
         [HttpPost("notifications/mark-all-read")]
-        [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult> MarkAllNotificationsAsRead()
@@ -419,19 +337,14 @@ namespace realestate_ia_site.Server.Controllers
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized();
 
-            _logger.LogInformation("Marking all notifications as read for user {UserId}", userId);
-
             try
             {
                 await _alertService.MarkAllNotificationsAsReadAsync(userId, HttpContext.RequestAborted);
-
-                _logger.LogInformation("All notifications marked as read successfully");
-
-                return Ok(new { success = true, message = "Todas as notificações marcadas como lidas" });
+                return Ok(new { message = "Todas as notificações marcadas como lidas" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error marking all notifications as read");
+                _logger.LogError(ex, "Error marking all notifications as read for user {UserId}", userId);
                 return StatusCode(500, new { message = "Erro interno do servidor" });
             }
         }

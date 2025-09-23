@@ -2,19 +2,23 @@ import React, { memo, useCallback } from 'react';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import { Heart, MapPin, Bed, Bath, Square, Calendar } from 'lucide-react';
+import { Heart, MapPin, Bed, Bath, Square, Calendar, Bell } from 'lucide-react';
 import { type Property } from '../types/property';
 
 interface PropertyCardProps {
   property: Property;
   isFavorite?: boolean;
   onToggleFavorite?: (property: Property) => void;
+  onCreatePriceAlert?: (property: Property) => void;
+  hasPriceAlert?: boolean;
 }
 
 function PropertyCardComponent({ 
   property, 
   isFavorite = false, 
-  onToggleFavorite 
+  onToggleFavorite,
+  onCreatePriceAlert,
+  hasPriceAlert = false
 }: PropertyCardProps) {
   // Memoized formatters
   const formatPrice = useCallback((price: number) => {
@@ -71,6 +75,11 @@ function PropertyCardComponent({
     if (onToggleFavorite) onToggleFavorite(property);
   }, [onToggleFavorite, property]);
 
+  const handlePriceAlertClick = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onCreatePriceAlert) onCreatePriceAlert(property);
+  }, [onCreatePriceAlert, property]);
+
   // Safe calculations with null checks
   const pricePerSqm = property.price && property.area ? Math.round(property.price / property.area) : 0;
   const safePrice = property.price || 0;
@@ -84,7 +93,7 @@ function PropertyCardComponent({
     >
       <CardContent className="p-3">
         <div className="space-y-2">
-          {/* Header section with title, type, price and favorite button */}
+          {/* Header section with title, type, price and action buttons */}
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -109,16 +118,37 @@ function PropertyCardComponent({
               </div>
             </div>
             
-            <Button
-              variant="ghost"
-              size="sm"
-              aria-pressed={isFavorite}
-              aria-label={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
-              className="h-7 w-7 p-0 bg-warm-white/95 hover:bg-warm-white shadow-clay-soft backdrop-blur-sm hover:scale-105 transition-all duration-200 flex-shrink-0"
-              onClick={handleFavoriteClick}
-            >
-              <Heart className={`h-3.5 w-3.5 transition-all duration-200 ${isFavorite ? 'text-burnt-primary fill-current' : 'text-clay-secondary'}`} />
-            </Button>
+            {/* Action buttons */}
+            <div className="flex items-center space-x-1 ml-2">
+              {/* Price Alert Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-pressed={hasPriceAlert}
+                aria-label={hasPriceAlert ? 'Remover alerta de preço' : 'Criar alerta de redução de preço'}
+                className={`h-7 w-7 p-0 ${hasPriceAlert 
+                  ? 'bg-burnt-peach/20 hover:bg-burnt-peach/30 text-burnt-peach' 
+                  : 'bg-warm-white/95 hover:bg-warm-white text-clay-secondary hover:text-burnt-peach'
+                } shadow-clay-soft backdrop-blur-sm hover:scale-105 transition-all duration-200 flex-shrink-0`}
+                onClick={handlePriceAlertClick}
+              >
+                <Bell className={`h-3.5 w-3.5 transition-all duration-200 ${
+                  hasPriceAlert ? 'text-burnt-peach fill-current' : ''
+                }`} />
+              </Button>
+
+              {/* Favorite Button */}
+              <Button
+                variant="ghost"
+                size="sm"
+                aria-pressed={isFavorite}
+                aria-label={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
+                className="h-7 w-7 p-0 bg-warm-white/95 hover:bg-warm-white shadow-clay-soft backdrop-blur-sm hover:scale-105 transition-all duration-200 flex-shrink-0"
+                onClick={handleFavoriteClick}
+              >
+                <Heart className={`h-3.5 w-3.5 transition-all duration-200 ${isFavorite ? 'text-burnt-primary fill-current' : 'text-clay-secondary'}`} />
+              </Button>
+            </div>
           </div>
           
           {/* Property details and footer in one row */}

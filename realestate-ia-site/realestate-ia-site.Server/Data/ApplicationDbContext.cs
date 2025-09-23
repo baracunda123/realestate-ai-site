@@ -136,24 +136,27 @@ namespace realestate_ia_site.Server.Data
                       .HasPrecision(18, 2);
             });
 
-            // Configurações para PropertyAlert
+            // Configurações para PropertyAlert - Nova estrutura simplificada
             builder.Entity<PropertyAlert>(entity =>
             {
                 entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.PropertyId);
+                entity.HasIndex(e => new { e.UserId, e.PropertyId }).IsUnique(); // Um alerta por utilizador por propriedade
                 entity.HasIndex(e => e.IsActive);
                 entity.HasIndex(e => e.CreatedAt);
                 entity.HasIndex(e => e.LastTriggered);
-                entity.HasIndex(e => new { e.UserId, e.IsActive });
 
                 entity.HasOne(e => e.User)
                       .WithMany()
                       .HasForeignKey(e => e.UserId)
                       .OnDelete(DeleteBehavior.Cascade);
 
-                entity.Property(e => e.MinPrice)
-                      .HasPrecision(18, 2);
+                entity.HasOne(e => e.Property)
+                      .WithMany()
+                      .HasForeignKey(e => e.PropertyId)
+                      .OnDelete(DeleteBehavior.Cascade);
 
-                entity.Property(e => e.MaxPrice)
+                entity.Property(e => e.CurrentPrice)
                       .HasPrecision(18, 2);
             });
 

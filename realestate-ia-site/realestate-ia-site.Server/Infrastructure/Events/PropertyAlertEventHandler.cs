@@ -5,8 +5,10 @@ using realestate_ia_site.Server.Application.Recommendations;
 
 namespace realestate_ia_site.Server.Infrastructure.Events
 {
+    /// <summary>
+    /// Event handler responsável pelo processamento de eventos de mudança de preço para alertas
+    /// </summary>
     public class PropertyAlertEventHandler : 
-        IDomainEventHandler<PropertyCreatedEvent>,
         IDomainEventHandler<PropertyPriceChangedEvent>
     {
         private readonly PropertyAlertService _alertService;
@@ -23,42 +25,34 @@ namespace realestate_ia_site.Server.Infrastructure.Events
             _logger = logger;
         }
 
-        public async Task HandleAsync(PropertyCreatedEvent domainEvent, CancellationToken cancellationToken = default)
-        {
-            _logger.LogInformation("Handling PropertyCreatedEvent for property {PropertyId}", domainEvent.PropertyId);
-            
-            try
-            {
-                // Alertas existentes
-                await _alertService.ProcessNewPropertyAsync(domainEvent.Property, cancellationToken);
-                
-                // NOVO: Recomendações automáticas
-                await _recommendationService.ProcessNewPropertyForRecommendationsAsync(
-                    domainEvent.Property, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing new property alert for {PropertyId}", domainEvent.PropertyId);
-                throw;
-            }
-        }
-
         public async Task HandleAsync(PropertyPriceChangedEvent domainEvent, CancellationToken cancellationToken = default)
         {
-            _logger.LogInformation("Handling PropertyPriceChangedEvent for property {PropertyId}", domainEvent.PropertyId);
+            _logger.LogInformation("Handling PropertyPriceChangedEvent for property {PropertyId}: {OldPrice} -> {NewPrice}", 
+                domainEvent.PropertyId, domainEvent.OldPrice, domainEvent.Property.Price);
             
             try
             {
-                // Alertas existentes
-                await _alertService.ProcessPriceChangeAsync(domainEvent.Property, domainEvent.OldPrice, cancellationToken);
-                
-                // NOVO: Recomendações por mudança de preço
-                await _recommendationService.ProcessPriceChangeForRecommendationsAsync(
-                    domainEvent.Property, domainEvent.OldPrice, cancellationToken);
+                // Só processar se for redução de preço
+                if (domainEvent.Property.Price < domainEvent.OldPrice)
+                {
+                    // Processar alertas de redução de preço
+                    await _alertService.ProcessPriceChangeAsync(domainEvent.Property, domainEvent.OldPrice, cancellationToken);
+                    
+                    // Processar recomendações por mudança de preço
+                    await _recommendationService.ProcessPriceChangeForRecommendationsAsync(
+                        domainEvent.Property, domainEvent.OldPrice, cancellationToken);
+                        
+                    _logger.LogInformation("Price drop processed for property {PropertyId}: saved €{Savings}", 
+                        domainEvent.PropertyId, domainEvent.OldPrice - domainEvent.Property.Price);
+                }
+                else
+                {
+                    _logger.LogDebug("Price increase ignored for property {PropertyId}", domainEvent.PropertyId);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing price change alert for {PropertyId}", domainEvent.PropertyId);
+                _logger.LogError(ex, "Error processing price change alert for property {PropertyId}", domainEvent.PropertyId);
                 throw;
             }
         }

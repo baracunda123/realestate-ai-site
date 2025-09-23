@@ -7,11 +7,15 @@ import { EmptyState } from '../EmptyState';
 interface PersonalAreaFavoritesProps {
   favorites: Property[];
   onToggleFavorite?: (property: Property) => void;
+  onCreatePriceAlert?: (property: Property) => void;
+  onCheckPriceAlert?: (propertyId: string) => Promise<boolean>;
 }
 
 export function PersonalAreaFavorites({
   favorites,
   onToggleFavorite,
+  onCreatePriceAlert,
+  onCheckPriceAlert,
 }: PersonalAreaFavoritesProps) {
 
   if (favorites.length === 0) {
@@ -36,7 +40,7 @@ export function PersonalAreaFavorites({
         <div>
           <h2 className="font-medium text-foreground">Suas Propriedades Favoritas</h2>
           <p className="text-sm text-muted-foreground">
-            {favorites.length} propriedades favoritadas
+            {favorites.length} propriedades favoritadas • Use o sininho (??) para criar alertas de preço
           </p>
         </div>
       </div>
@@ -48,7 +52,9 @@ export function PersonalAreaFavorites({
             key={property.id}
             property={property}
             onToggleFavorite={onToggleFavorite}
+            onCreatePriceAlert={onCreatePriceAlert}
             isFavorite={true}
+            hasPriceAlert={false} // This will be determined by the parent component via onCheckPriceAlert
           />
         ))}
       </div>

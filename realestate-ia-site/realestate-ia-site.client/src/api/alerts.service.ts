@@ -1,43 +1,28 @@
-// alerts.service.ts - Serviço para alertas de propriedades (simplificado)
+// alerts.service.ts - Serviço para alertas de redução de preço
 import apiClient from "./client";
 import type { 
   PropertyAlert, 
-  CreateAlertRequest, 
-  UpdateAlertRequest,
-  AlertsResponse 
+  CreatePriceAlertRequest, 
+  UpdatePriceAlertRequest,
+  AlertsResponse,
+  PropertyAlertNotification,
+  AlertNotificationsResponse
 } from "../types/PersonalArea";
-
-// Response types essenciais
-interface AlertTestResponse {
-  potentialMatches: Array<{
-    id: string;
-    title: string;
-    location?: string;
-    price: number;
-    bedrooms?: number;
-    bathrooms?: number;
-    propertyType?: string;
-    listingDate: string;
-    isNew: boolean;
-  }>;
-  estimatedMatchCount: number;
-  recommendations: string[];
-}
 
 // Função simples para logs
 function logToTerminal(message: string, level: 'info' | 'warn' | 'error' = 'info') {
   const timestamp = new Date().toLocaleTimeString();
-  const prefix = level === 'error' ? '❌' : level === 'warn' ? '⚠️' : '🔍';
-  console.log(`${prefix} [${timestamp}] ALERTS: ${message}`);
+  const prefix = level === 'error' ? '❌' : level === 'warn' ? '⚠️' : '🔔';
+  console.log(`${prefix} [${timestamp}] PRICE ALERTS: ${message}`);
 }
 
 /**
- * Obter todos os alertas do usuário
+ * Obter todos os alertas de redução de preço do usuário
  */
 export async function getUserAlerts(
   includeInactive: boolean = false
 ): Promise<AlertsResponse> {
-  logToTerminal(`Buscando alertas do usuário (incluir inativos: ${includeInactive})`);
+  logToTerminal(`Buscando alertas de preço (incluir inativos: ${includeInactive})`);
 
   const params = new URLSearchParams();
   if (includeInactive) params.append('includeInactive', 'true');
@@ -63,7 +48,7 @@ export async function getAlertById(alertId: string): Promise<PropertyAlert> {
   try {
     const alert = await apiClient.get<PropertyAlert>(`/api/alerts/${alertId}`);
     
-    logToTerminal(`Alerta encontrado: ${alert.name}`);
+    logToTerminal(`Alerta encontrado: ${alert.propertyTitle}`);
     return alert;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
@@ -73,15 +58,15 @@ export async function getAlertById(alertId: string): Promise<PropertyAlert> {
 }
 
 /**
- * Criar novo alerta
+ * Criar novo alerta de redução de preço
  */
-export async function createAlert(alertData: CreateAlertRequest): Promise<PropertyAlert> {
-  logToTerminal(`Criando novo alerta: ${alertData.name}`);
+export async function createPriceAlert(alertData: CreatePriceAlertRequest): Promise<PropertyAlert> {
+  logToTerminal(`Criando alerta de preço para propriedade: ${alertData.propertyId}`);
 
   try {
     const alert = await apiClient.post<PropertyAlert>('/api/alerts', alertData);
     
-    logToTerminal(`Alerta criado: ${alert.id}`);
+    logToTerminal(`Alerta de preço criado: ${alert.id}`);
     return alert;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
@@ -95,7 +80,7 @@ export async function createAlert(alertData: CreateAlertRequest): Promise<Proper
  */
 export async function updateAlert(
   alertId: string,
-  updates: Partial<UpdateAlertRequest>
+  updates: UpdatePriceAlertRequest
 ): Promise<PropertyAlert> {
   logToTerminal(`Atualizando alerta: ${alertId}`);
 
@@ -107,29 +92,6 @@ export async function updateAlert(
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
     logToTerminal(`Erro ao atualizar alerta: ${errorMsg}`, 'error');
-    throw error;
-  }
-}
-
-/**
- * Ativar/desativar alerta
- */
-export async function toggleAlert(
-  alertId: string,
-  isActive: boolean
-): Promise<PropertyAlert> {
-  logToTerminal(`${isActive ? 'Ativando' : 'Desativando'} alerta: ${alertId}`);
-
-  try {
-    const alert = await apiClient.patch<PropertyAlert>(`/api/alerts/${alertId}/toggle`, {
-      isActive
-    });
-    
-    logToTerminal(`Alerta ${isActive ? 'ativado' : 'desativado'}: ${alert.id}`);
-    return alert;
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao alterar status do alerta: ${errorMsg}`, 'error');
     throw error;
   }
 }
@@ -155,85 +117,124 @@ export async function deleteAlert(alertId: string): Promise<{ success: boolean; 
 }
 
 /**
- * Testar alerta (ver quantas propriedades ele encontraria)
+ * Excluir alerta por propriedade
  */
-export async function testAlert(alertData: CreateAlertRequest): Promise<AlertTestResponse> {
-  logToTerminal(`Testando critérios do alerta: ${alertData.name}`);
+export async function deleteAlertByProperty(propertyId: string): Promise<{ success: boolean; message: string }> {
+  logToTerminal(`Excluindo alerta para propriedade: ${propertyId}`);
 
   try {
-    const response = await apiClient.post<AlertTestResponse>('/api/alerts/test', alertData);
+    const response = await apiClient.delete<{ success: boolean; message: string }>(
+      `/api/alerts/property/${propertyId}`
+    );
     
-    logToTerminal(`Teste do alerta: ${response.estimatedMatchCount} propriedades encontradas`);
+    logToTerminal(`Alerta excluído para propriedade`);
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao testar alerta: ${errorMsg}`, 'error');
+    logToTerminal(`Erro ao excluir alerta da propriedade: ${errorMsg}`, 'error');
     throw error;
   }
 }
 
 /**
- * Marcar novas propriedades como visualizadas (limpar badge "novo")
+ * Verificar se existe alerta para uma propriedade
  */
-export async function markAlertAsViewed(alertId: string): Promise<{ success: boolean; message: string }> {
-  logToTerminal(`Marcando alerta como visualizado: ${alertId}`);
+export async function hasAlertForProperty(propertyId: string): Promise<boolean> {
+  logToTerminal(`Verificando alerta para propriedade: ${propertyId}`);
 
   try {
-    const response = await apiClient.post<{ success: boolean; message: string }>(
-      `/api/alerts/${alertId}/mark-viewed`
+    const hasAlert = await apiClient.get<boolean>(`/api/alerts/property/${propertyId}/exists`);
+    
+    logToTerminal(`Propriedade ${hasAlert ? 'tem' : 'não tem'} alerta`);
+    return hasAlert;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
+    logToTerminal(`Erro ao verificar alerta: ${errorMsg}`, 'error');
+    return false; // Retorna false em caso de erro
+  }
+}
+
+/**
+ * Obter notificações de redução de preço
+ */
+export async function getNotifications(limit: number = 20): Promise<AlertNotificationsResponse> {
+  logToTerminal(`Buscando notificações de preço (limite: ${limit})`);
+
+  try {
+    const response = await apiClient.get<AlertNotificationsResponse>(
+      `/api/alerts/notifications?limit=${limit}`
     );
     
-    logToTerminal(`Alerta marcado como visualizado`);
+    logToTerminal(`${response.notifications?.length || 0} notificações encontradas (${response.unreadCount} não lidas)`);
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao marcar alerta como visualizado: ${errorMsg}`, 'error');
+    logToTerminal(`Erro ao buscar notificações: ${errorMsg}`, 'error');
     throw error;
   }
 }
 
-// Utils para alertas (simplificados)
-export const alertUtils = {
+// Utils para alertas de preço
+export const priceAlertUtils = {
   /**
-   * Formatar critérios do alerta em texto legível
+   * Formatar limiar de alerta
    */
-  formatCriteria: (alert: PropertyAlert): string => {
-    const criteria = [];
-    
-    if (alert.location) criteria.push(`📍 ${alert.location}`);
-    if (alert.propertyType && alert.propertyType !== 'any') {
-      criteria.push(`🏠 ${alert.propertyType}`);
-    }
-    if (alert.bedrooms) criteria.push(`🛏️ ${alert.bedrooms}+ quartos`);
-    if (alert.bathrooms) criteria.push(`🚿 ${alert.bathrooms}+ banheiros`);
-    if (alert.minPrice || alert.maxPrice) {
-      const min = alert.minPrice ? `€${alert.minPrice.toLocaleString()}` : '0';
-      const max = alert.maxPrice ? `€${alert.maxPrice.toLocaleString()}` : '∞';
-      criteria.push(`💰 ${min} - ${max}`);
-    }
-    
-    return criteria.join(' • ');
+  formatThreshold: (alert: PropertyAlert): string => {
+    return `${alert.alertThresholdPercentage}% ou mais de redução`;
   },
 
   /**
-   * Verificar se alerta tem novos resultados
+   * Formatar informações do alerta
    */
-  hasNewMatches: (alert: PropertyAlert): boolean => {
-    return alert.newMatches > 0;
+  formatAlertInfo: (alert: PropertyAlert): string => {
+    const parts = [];
+    
+    parts.push(`📍 ${alert.propertyLocation}`);
+    parts.push(`💰 €${alert.currentPrice.toLocaleString('pt-PT')}`);
+    parts.push(`📉 Alerta: ${alert.alertThresholdPercentage}%`);
+    
+    return parts.join(' • ');
   },
 
   /**
-   * Calcular performance do alerta
+   * Verificar se alerta tem notificações recentes
    */
-  calculatePerformance: (alert: PropertyAlert): 'excellent' | 'good' | 'poor' | 'none' => {
-    if (alert.matchCount === 0) return 'none';
-    if (alert.matchCount >= 10) return 'excellent';
-    if (alert.matchCount >= 5) return 'good';
-    return 'poor';
+  hasRecentActivity: (alert: PropertyAlert): boolean => {
+    if (!alert.lastTriggered) return false;
+    const hoursSinceTriggered = (Date.now() - new Date(alert.lastTriggered).getTime()) / (1000 * 60 * 60);
+    return hoursSinceTriggered < 24;
+  },
+
+  /**
+   * Obter status do alerta
+   */
+  getAlertStatus: (alert: PropertyAlert): 'active' | 'inactive' | 'triggered' => {
+    if (!alert.isActive) return 'inactive';
+    if (alert.notificationCount > 0) return 'triggered';
+    return 'active';
+  },
+
+  /**
+   * Formatar última atividade
+   */
+  formatLastActivity: (alert: PropertyAlert): string => {
+    if (!alert.lastTriggered) return 'Nunca disparado';
+    
+    const date = new Date(alert.lastTriggered);
+    const now = new Date();
+    const diffHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffHours < 1) return 'Disparado recentemente';
+    if (diffHours < 24) return `Disparado há ${diffHours}h`;
+    
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `Disparado há ${diffDays}d`;
+    
+    return `Disparado em ${date.toLocaleDateString('pt-PT')}`;
   }
 };
 
 // Log apenas quando carrega em desenvolvimento
 if (import.meta.env.DEV) {
-  logToTerminal('Alerts Service carregado (simplificado)');
+  logToTerminal('Price Alerts Service carregado');
 }

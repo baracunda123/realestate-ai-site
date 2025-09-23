@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -12,20 +12,16 @@ import {
   RefreshCw,
   MapPin,
   Euro,
-  Clock
+  Clock,
+  TrendingDown
 } from 'lucide-react';
-import { toast } from 'sonner';
-import { 
-  getRecentNotifications,
-  markNotificationAsRead,
-  markAllNotificationsAsRead,
-  alertNotificationUtils
-} from '../../api/alert-notifications.service';
+import { useNotifications } from '../../hooks/useNotifications';
+import { alertNotificationUtils } from '../../api/alert-notifications.service';
 import type { PropertyAlertNotification } from '../../types/PersonalArea';
 
 interface NotificationItemProps {
   notification: PropertyAlertNotification;
-  onMarkAsRead: (id: string) => void;
+  onMarkAsRead: (id: string) => Promise<void>;
 }
 
 function NotificationItem({ 
@@ -35,26 +31,21 @@ function NotificationItem({
   const [processing, setProcessing] = useState(false);
 
   const handleMarkAsRead = async () => {
-    if (notification.readAt) return;
+    if (notification.isRead) return;
     
     setProcessing(true);
     try {
-      await markNotificationAsRead(notification.id);
-      onMarkAsRead(notification.id);
-    } catch (error) {
-      console.error('Erro ao marcar como lida:', error);
-      toast.error('Erro ao marcar notificação como lida');
+      await onMarkAsRead(notification.id);
     } finally {
       setProcessing(false);
     }
   };
 
-  const isUnread = !notification.readAt;
+  const isUnread = !notification.isRead;
   const isRecent = alertNotificationUtils.isRecent(notification.createdAt);
-  const alertTypeIcon = alertNotificationUtils.getAlertTypeIcon(notification.alertType);
   const relativeTime = alertNotificationUtils.formatRelativeTime(notification.createdAt);
   const priceChange = alertNotificationUtils.formatPriceChange(
-    notification.propertyPrice, 
+    notification.currentPrice, 
     notification.oldPrice
   );
 
@@ -69,13 +60,13 @@ function NotificationItem({
         <CardContent className="p-3">
           <div className="flex items-start space-x-3">
             <div className={`p-1.5 rounded-full ${isUnread ? 'bg-burnt-peach/20' : 'bg-porcelain'}`}>
-              <span className="text-lg">{alertTypeIcon}</span>
+              <TrendingDown className="h-4 w-4 text-green-600" />
             </div>
             
             <div className="flex-1 min-w-0">
               <div className="flex items-start justify-between mb-1">
                 <h4 className={`text-sm font-medium ${isUnread ? 'text-burnt-peach' : 'text-foreground'} line-clamp-2`}>
-                  {notification.title}
+                  💰 Redução de Preço
                 </h4>
                 {isRecent && (
                   <Badge variant="secondary" className="text-xs ml-2">
@@ -85,7 +76,7 @@ function NotificationItem({
               </div>
               
               <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
-                {notification.message}
+                {notification.propertyTitle}
               </p>
               
               <div className="flex items-center justify-between text-xs">
@@ -97,15 +88,15 @@ function NotificationItem({
                     </div>
                   )}
                   
-                  {notification.propertyPrice && (
+                  {notification.currentPrice && (
                     <div className="flex items-center text-muted-foreground">
                       <Euro className="h-3 w-3 mr-1" />
-                      {notification.propertyPrice.toLocaleString()}
+                      €{notification.currentPrice.toLocaleString('pt-PT')}
                     </div>
                   )}
                   
                   {priceChange && (
-                    <span className={notification.alertType === 'price_drop' ? 'text-green-600' : 'text-red-600'}>
+                    <span className="text-green-600 font-medium">
                       {priceChange}
                     </span>
                   )}
@@ -147,61 +138,20 @@ interface DashboardAlertNotificationsProps {
 export function DashboardAlertNotifications({ 
   limit = 5 
 }: DashboardAlertNotificationsProps) {
-  const [notifications, setNotifications] = useState<PropertyAlertNotification[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const {
+    notifications,
+    unreadCount,
+    isLoading,
+    isRefreshing,
+    markAsRead,
+    markAllAsRead,
+    refresh
+  } = useNotifications(30000); // Polling a cada 30 segundos
 
-  const loadNotifications = async (showLoading = true) => {
-    if (showLoading) setLoading(true);
-    try {
-      const notificationsList = await getRecentNotifications(limit);
-      setNotifications(notificationsList);
-    } catch (error) {
-      console.error('Erro ao carregar notificações:', error);
-      setNotifications([]);
-    } finally {
-      if (showLoading) setLoading(false);
-    }
-  };
+  // Limitar as notificações exibidas
+  const displayNotifications = notifications.slice(0, limit);
 
-  const handleRefresh = async () => {
-    setRefreshing(true);
-    await loadNotifications(false);
-    setRefreshing(false);
-    toast.success('Notificações atualizadas');
-  };
-
-  const handleMarkAsRead = (notificationId: string) => {
-    setNotifications(prev => 
-      prev.map(notif => 
-        notif.id === notificationId 
-          ? { ...notif, readAt: new Date() }
-          : notif
-      )
-    );
-  };
-
-  const handleMarkAllAsRead = async () => {
-    try { 
-      await markAllNotificationsAsRead();
-      setNotifications(prev => 
-        prev.map(notif => ({ 
-          ...notif, 
-          readAt: notif.readAt || new Date() 
-        }))
-      );
-      toast.success('Todas as notificações marcadas como lidas');
-    } catch (error) {
-      console.error('Erro ao marcar todas como lidas:', error);
-      toast.error('Erro ao marcar todas as notificações como lidas');
-    }
-  };
-
-  useEffect(() => {
-    loadNotifications();
-  }, [limit]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <Card className="border border-pale-clay-deep bg-pure-white shadow-clay-deep">
         <CardHeader>
@@ -223,7 +173,7 @@ export function DashboardAlertNotifications({
     );
   }
 
-  if (notifications.length === 0) {
+  if (displayNotifications.length === 0) {
     return (
       <Card className="border border-pale-clay-deep bg-pure-white shadow-clay-deep">
         <CardHeader>
@@ -235,10 +185,10 @@ export function DashboardAlertNotifications({
             <Button
               variant="ghost"
               size="icon"
-              onClick={handleRefresh}
-              disabled={refreshing}
+              onClick={refresh}
+              disabled={isRefreshing}
             >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </CardHeader>
@@ -249,10 +199,10 @@ export function DashboardAlertNotifications({
               Sem notificações
             </h3>
             <p className="text-muted-foreground text-sm mb-4">
-              Você será notificado quando os seus alertas encontrarem novas propriedades
+              Você será notificado quando houver reduções de preço nas propriedades dos seus alertas
             </p>
-            <Button onClick={handleRefresh} disabled={refreshing}>
-              <RefreshCw className={`h-4 w-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+            <Button onClick={refresh} disabled={isRefreshing}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
               Verificar Novamente
             </Button>
           </div>
@@ -260,8 +210,6 @@ export function DashboardAlertNotifications({
       </Card>
     );
   }
-
-  const unreadCount = notifications.filter(notif => !notif.readAt).length;
 
   return (
     <Card className="border border-pale-clay-deep bg-pure-white shadow-clay-deep">
@@ -281,7 +229,7 @@ export function DashboardAlertNotifications({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleMarkAllAsRead}
+                onClick={markAllAsRead}
                 className="text-xs"
               >
                 <CheckCheck className="h-3 w-3 mr-1" />
@@ -291,10 +239,10 @@ export function DashboardAlertNotifications({
             <Button
               variant="ghost"
               size="icon"
-              onClick={handleRefresh}
-              disabled={refreshing}
+              onClick={refresh}
+              disabled={isRefreshing}
             >
-              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>
@@ -308,16 +256,24 @@ export function DashboardAlertNotifications({
         <ScrollArea className="h-80">
           <div className="space-y-3">
             <AnimatePresence>
-              {notifications.map((notification) => (
+              {displayNotifications.map((notification) => (
                 <NotificationItem
                   key={notification.id}
                   notification={notification}
-                  onMarkAsRead={handleMarkAsRead}
+                  onMarkAsRead={markAsRead}
                 />
               ))}
             </AnimatePresence>
           </div>
         </ScrollArea>
+        
+        {notifications.length > limit && (
+          <div className="mt-4 text-center">
+            <p className="text-xs text-muted-foreground">
+              Mostrando {limit} de {notifications.length} notificações
+            </p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
