@@ -9,7 +9,6 @@ import {
   BellRing,
   Check,
   CheckCheck,
-  Trash2,
   RefreshCw,
   MapPin,
   Euro,
@@ -20,7 +19,6 @@ import {
   getRecentNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
-  deleteNotification,
   alertNotificationUtils,
   type PropertyAlertNotification 
 } from '../../api/alert-notifications.service';
@@ -28,13 +26,11 @@ import {
 interface NotificationItemProps {
   notification: PropertyAlertNotification;
   onMarkAsRead: (id: string) => void;
-  onDelete: (id: string) => void;
 }
 
 function NotificationItem({ 
   notification, 
-  onMarkAsRead, 
-  onDelete 
+  onMarkAsRead
 }: NotificationItemProps) {
   const [processing, setProcessing] = useState(false);
 
@@ -48,20 +44,6 @@ function NotificationItem({
     } catch (error) {
       console.error('Erro ao marcar como lida:', error);
       toast.error('Erro ao marcar notificação como lida');
-    } finally {
-      setProcessing(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    setProcessing(true);
-    try {
-      await deleteNotification(notification.id);
-      onDelete(notification.id);
-      toast.success('Notificação removida');
-    } catch (error) {
-      console.error('Erro ao excluir notificação:', error);
-      toast.error('Erro ao remover notificação');
     } finally {
       setProcessing(false);
     }
@@ -136,8 +118,9 @@ function NotificationItem({
               </div>
             </div>
             
-            <div className="flex items-center space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              {isUnread && (
+            {/* Botão para marcar como lida */}
+            {isUnread && (
+              <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -148,19 +131,8 @@ function NotificationItem({
                 >
                   <Check className="h-3 w-3" />
                 </Button>
-              )}
-              
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6 text-destructive hover:text-destructive"
-                onClick={handleDelete}
-                disabled={processing}
-                title="Remover notificação"
-              >
-                <Trash2 className="h-3 w-3" />
-              </Button>
-            </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -209,22 +181,16 @@ export function DashboardAlertNotifications({
     );
   };
 
-  const handleDelete = (notificationId: string) => {
-    setNotifications(prev => 
-      prev.filter(notif => notif.id !== notificationId)
-    );
-  };
-
   const handleMarkAllAsRead = async () => {
     try { 
-      const result = await markAllNotificationsAsRead();
+      await markAllNotificationsAsRead();
       setNotifications(prev => 
         prev.map(notif => ({ 
           ...notif, 
           readAt: notif.readAt || new Date().toISOString() 
         }))
       );
-      toast.success(`${result.markedCount} notificações marcadas como lidas`);
+      toast.success('Todas as notificações marcadas como lidas');
     } catch (error) {
       console.error('Erro ao marcar todas como lidas:', error);
       toast.error('Erro ao marcar todas as notificações como lidas');
@@ -347,7 +313,6 @@ export function DashboardAlertNotifications({
                   key={notification.id}
                   notification={notification}
                   onMarkAsRead={handleMarkAsRead}
-                  onDelete={handleDelete}
                 />
               ))}
             </AnimatePresence>

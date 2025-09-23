@@ -10,7 +10,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import type { Property } from '../types/property';
-import type { User, SavedSearch, PropertyAlert, ViewHistoryItem, NotificationSettings, CreateAlertRequest } from '../types/PersonalArea';
+import type { User, SavedSearch, PropertyAlert, ViewHistoryItem, CreateAlertRequest } from '../types/PersonalArea';
 import type { SearchFilters as SearchFiltersType } from '../types/SearchFilters';
 import type { NewAlert } from './NewAlertModalFixed';
 import { NewAlertModal } from './NewAlertModalFixed';
@@ -61,15 +61,6 @@ export function PersonalArea({
   // Data state
   const [alerts, setAlerts] = useState<PropertyAlert[]>([]);
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
-  const [notifications, setNotifications] = useState<NotificationSettings>({
-    email: true,
-    sms: false,
-    priceAlerts: true,
-    newListings: true,
-    marketInsights: true,
-    weeklyDigest: true,
-    alertFrequency: 'immediate'
-  });
 
   // Carregar alertas e pesquisas salvas ao montar
   useEffect(() => {
@@ -94,6 +85,8 @@ export function PersonalArea({
 
   // Handlers
   const handleCreateAlert = async (alert: NewAlert) => {
+    console.log('🎯 PersonalArea: handleCreateAlert chamado com:', alert);
+    
     const payload: CreateAlertRequest = {
       name: alert.name,
       location: alert.location,
@@ -102,20 +95,36 @@ export function PersonalArea({
       maxPrice: alert.priceRange?.[1],
       bedrooms: alert.bedrooms,
       bathrooms: alert.bathrooms,
-      emailNotifications: alert.emailNotifications,
-      smsNotifications: alert.smsNotifications,
       priceDropAlerts: alert.priceDropAlerts,
       newListingAlerts: alert.newListingAlerts,
     };
 
+    console.log('📡 Payload para API:', payload);
+
     try {
+      console.log('🚀 Chamando createAlertService...');
       const created = await createAlertService(payload);
-      setAlerts(prev => [...prev, created]);
-      setIsNewAlertModalOpen(false);
-      toast.success('Alerta criado com sucesso!', {
-        description: `Você será notificado sobre propriedades que correspondem aos critérios definidos.`
+      console.log('✅ Alerta criado pela API:', created);
+      
+      setAlerts(prev => {
+        const updatedAlerts = [...prev, created];
+        console.log('📋 Lista de alertas atualizada:', updatedAlerts);
+        return updatedAlerts;
       });
-    } catch {
+      
+      setIsNewAlertModalOpen(false);
+      console.log('🎉 Modal fechado');
+      
+      toast.success('Alerta criado com sucesso!', {
+        description: `Será notificado sobre propriedades que correspondem aos critérios definidos.`
+      });
+    } catch (error) {
+      console.error('❌ Erro ao criar alerta na API:', error);
+      console.error('❌ Detalhes do erro:', {
+        message: error instanceof Error ? error.message : 'Erro desconhecido',
+        stack: error instanceof Error ? error.stack : undefined,
+        response: (error as any)?.response?.data
+      });
       toast.error('Falha ao criar alerta no servidor.');
     }
   };
@@ -294,11 +303,6 @@ export function PersonalArea({
         <TabsContent value="settings">
           <PersonalAreaSettings
             user={user}
-            notifications={notifications}
-            onUpdateNotifications={(settings) => {
-              setNotifications(settings);
-              toast.success('Configurações atualizadas!');
-            }}
           />
         </TabsContent>
       </Tabs>

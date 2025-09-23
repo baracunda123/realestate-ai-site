@@ -261,9 +261,7 @@ export async function getSavedSearchesStats(): Promise<{
  */
 export async function convertSearchToAlert(
   searchId: string,
-  alertName?: string,
-  emailNotifications: boolean = true,
-  smsNotifications: boolean = false
+  alertName: string
 ): Promise<{ alertId: string; message: string }> {
   logToTerminal(`Convertendo pesquisa salva em alerta: ${searchId}`);
 
@@ -271,9 +269,7 @@ export async function convertSearchToAlert(
     const response = await apiClient.post<{ alertId: string; message: string }>(
       `/api/saved-searches/${searchId}/convert-to-alert`,
       {
-        alertName,
-        emailNotifications,
-        smsNotifications
+        alertName
       }
     );
     

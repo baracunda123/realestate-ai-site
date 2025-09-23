@@ -270,6 +270,9 @@ builder.Services.AddScoped<ISystemNotificationService, SystemNotificationService
 // BACKGROUND SERVICES PARA RECOMENDAÇÕES PROATIVAS
 builder.Services.AddHostedService<RecommendationBackgroundService>();
 
+// BACKGROUND SERVICES PARA ALERTAS DE PROPRIEDADES
+builder.Services.AddHostedService<PropertyAlertBackgroundService>();
+
 // API basics
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();

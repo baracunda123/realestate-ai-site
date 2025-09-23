@@ -1,223 +1,140 @@
-// alert-notifications.service.ts - ServiÁo para notificaÁıes de alertas
+Ôªø// alert-notifications.service.ts - Servi√ßo para notifica√ß√µes de alertas
 import apiClient from "./client";
+import type { PropertyAlertNotification, AlertNotificationsResponse, AlertType } from "../types/PersonalArea";
 
-// Response types para notificaÁıes de alertas
-export interface PropertyAlertNotification {
-  id: string;
-  userId: string;
-  propertyId: string;
-  alertId: string;
-  alertType: string;
-  title: string;
-  message: string;
-  createdAt: string;
-  readAt?: string;
-  isActive: boolean;
-  propertyPrice?: number;
-  oldPrice?: number;
-  propertyLocation?: string;
-}
-
-export interface AlertNotificationsResponse {
-  notifications: PropertyAlertNotification[];
-  totalCount: number;
-  unreadCount: number;
-  hasMore: boolean;
-}
-
-export interface AlertNotificationStats {
-  totalNotifications: number;
-  unreadNotifications: number;
-  todayNotifications: number;
-  weekNotifications: number;
-  byAlertType: Record<string, number>;
-  lastNotification?: string;
-}
-
-// FunÁ„o simples para logs
+// Fun√ß√£o simples para logs
 function logToTerminal(message: string, level: 'info' | 'warn' | 'error' = 'info') {
   const timestamp = new Date().toLocaleTimeString();
-  const prefix = level === 'error' ? '?' : level === 'warn' ? '??' : '?';
+  const prefix = level === 'error' ? '‚ùå' : level === 'warn' ? '‚ö†Ô∏è' : 'üîî';
   console.log(`${prefix} [${timestamp}] ALERT_NOTIFICATIONS: ${message}`);
 }
 
 /**
- * Obter notificaÁıes de alertas do usu·rio
+ * Obter notifica√ß√µes de alertas do usu√°rio
  */
 export async function getAlertNotifications(
-  page: number = 1,
-  pageSize: number = 20,
-  unreadOnly: boolean = false
+  limit: number = 20
 ): Promise<AlertNotificationsResponse> {
-  logToTerminal(`Buscando notificaÁıes (p·gina ${page}, unreadOnly: ${unreadOnly})`);
+  logToTerminal(`Buscando notifica√ß√µes (limite: ${limit})`);
 
   const params = new URLSearchParams();
-  params.append('page', page.toString());
-  params.append('pageSize', pageSize.toString());
-  if (unreadOnly) params.append('unreadOnly', 'true');
+  params.append('limit', limit.toString());
 
   try {
     const response = await apiClient.get<AlertNotificationsResponse>(
       `/api/alerts/notifications?${params.toString()}`
     );
     
-    logToTerminal(`${response.notifications?.length || 0} notificaÁıes encontradas (${response.unreadCount} n„o lidas)`);
+    logToTerminal(`${response.notifications?.length || 0} notifica√ß√µes encontradas (${response.unreadCount} n√£o lidas)`);
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao buscar notificaÁıes: ${errorMsg}`, 'error');
+    logToTerminal(`Erro ao buscar notifica√ß√µes: ${errorMsg}`, 'error');
     throw error;
   }
 }
 
 /**
- * Marcar notificaÁ„o como lida
+ * Obter notifica√ß√µes recentes para o dashboard
+ */
+export async function getRecentNotifications(
+  limit: number = 5
+): Promise<PropertyAlertNotification[]> {
+  logToTerminal(`Buscando notifica√ß√µes recentes (limite: ${limit})`);
+
+  try {
+    const response = await getAlertNotifications(limit);
+    
+    logToTerminal(`${response.notifications?.length || 0} notifica√ß√µes recentes encontradas`);
+    return response.notifications || [];
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
+    logToTerminal(`Erro ao buscar notifica√ß√µes recentes: ${errorMsg}`, 'error');
+    throw error;
+  }
+}
+
+/**
+ * Marcar notifica√ß√£o como lida
  */
 export async function markNotificationAsRead(
   notificationId: string
 ): Promise<{ success: boolean; message: string }> {
-  logToTerminal(`Marcando notificaÁ„o como lida: ${notificationId}`);
+  logToTerminal(`Marcando notifica√ß√£o como lida: ${notificationId}`);
 
   try {
     const response = await apiClient.post<{ success: boolean; message: string }>(
       `/api/alerts/notifications/${notificationId}/mark-read`
     );
     
-    logToTerminal(`NotificaÁ„o marcada como lida`);
+    logToTerminal(`Notifica√ß√£o marcada como lida`);
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao marcar notificaÁ„o como lida: ${errorMsg}`, 'error');
+    logToTerminal(`Erro ao marcar notifica√ß√£o como lida: ${errorMsg}`, 'error');
     throw error;
   }
 }
 
 /**
- * Marcar todas as notificaÁıes como lidas
+ * Marcar todas as notifica√ß√µes como lidas
  */
 export async function markAllNotificationsAsRead(): Promise<{
   success: boolean;
   message: string;
-  markedCount: number;
 }> {
-  logToTerminal('Marcando todas as notificaÁıes como lidas');
+  logToTerminal('Marcando todas as notifica√ß√µes como lidas');
 
   try {
     const response = await apiClient.post<{
       success: boolean;
       message: string;
-      markedCount: number;
     }>('/api/alerts/notifications/mark-all-read');
     
-    logToTerminal(`${response.markedCount} notificaÁıes marcadas como lidas`);
+    logToTerminal(`Todas as notifica√ß√µes marcadas como lidas`);
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao marcar todas as notificaÁıes como lidas: ${errorMsg}`, 'error');
+    logToTerminal(`Erro ao marcar todas as notifica√ß√µes como lidas: ${errorMsg}`, 'error');
     throw error;
   }
 }
 
-/**
- * Excluir notificaÁ„o
- */
-export async function deleteNotification(
-  notificationId: string
-): Promise<{ success: boolean; message: string }> {
-  logToTerminal(`Excluindo notificaÁ„o: ${notificationId}`);
-
-  try {
-    const response = await apiClient.delete<{ success: boolean; message: string }>(
-      `/api/alerts/notifications/${notificationId}`
-    );
-    
-    logToTerminal(`NotificaÁ„o excluÌda`);
-    return response;
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao excluir notificaÁ„o: ${errorMsg}`, 'error');
-    throw error;
-  }
-}
-
-/**
- * Obter estatÌsticas das notificaÁıes de alertas
- */
-export async function getAlertNotificationStats(): Promise<AlertNotificationStats> {
-  logToTerminal('Buscando estatÌsticas das notificaÁıes');
-
-  try {
-    const stats = await apiClient.get<AlertNotificationStats>('/api/alerts/notifications/stats');
-    
-    logToTerminal(`EstatÌsticas: ${stats.unreadNotifications} n„o lidas, ${stats.todayNotifications} hoje`);
-    return stats;
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao buscar estatÌsticas das notificaÁıes: ${errorMsg}`, 'error');
-    throw error;
-  }
-}
-
-/**
- * Obter notificaÁıes recentes para o dashboard
- */
-export async function getRecentNotifications(
-  limit: number = 5
-): Promise<PropertyAlertNotification[]> {
-  logToTerminal(`Buscando notificaÁıes recentes (limite: ${limit})`);
-
-  try {
-    const response = await apiClient.get<{ notifications: PropertyAlertNotification[] }>(
-      `/api/alerts/notifications/recent?limit=${limit}`
-    );
-    
-    logToTerminal(`${response.notifications?.length || 0} notificaÁıes recentes encontradas`);
-    return response.notifications || [];
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao buscar notificaÁıes recentes: ${errorMsg}`, 'error');
-    throw error;
-  }
-}
-
-// Utils para notificaÁıes de alertas
+// Utils para notifica√ß√µes de alertas (simplificados - usar AlertTypeUtils)
 export const alertNotificationUtils = {
   /**
    * Formatar tipo de alerta
    */
-  formatAlertType: (alertType: string): string => {
-    const types: Record<string, string> = {
+  formatAlertType: (alertType: AlertType): string => {
+    const types: Record<AlertType, string> = {
       'new_listing': 'Nova Propriedade',
-      'price_drop': 'ReduÁ„o de PreÁo',
-      'price_increase': 'Aumento de PreÁo',
+      'price_drop': 'Redu√ß√£o de Pre√ßo',
       'back_to_market': 'Voltou ao Mercado',
-      'status_change': 'MudanÁa de Status'
+      'status_change': 'Mudan√ßa de Status'
     };
     return types[alertType] || alertType;
   },
 
   /**
-   * Obter Ìcone baseado no tipo de alerta
+   * Obter √≠cone baseado no tipo de alerta
    */
-  getAlertTypeIcon: (alertType: string): string => {
-    const icons: Record<string, string> = {
-      'new_listing': '??',
-      'price_drop': '??',
-      'price_increase': '??',
-      'back_to_market': '??',
-      'status_change': '??'
+  getAlertTypeIcon: (alertType: AlertType): string => {
+    const icons: Record<AlertType, string> = {
+      'new_listing': 'üè†',
+      'price_drop': 'üí∞',
+      'back_to_market': 'üîÑ',
+      'status_change': 'üìã'
     };
-    return icons[alertType] || '??';
+    return icons[alertType] || 'üîî';
   },
 
   /**
    * Obter cor baseada no tipo de alerta
    */
-  getAlertTypeColor: (alertType: string): string => {
-    const colors: Record<string, string> = {
+  getAlertTypeColor: (alertType: AlertType): string => {
+    const colors: Record<AlertType, string> = {
       'new_listing': 'text-blue-600',
       'price_drop': 'text-green-600',
-      'price_increase': 'text-red-600',
       'back_to_market': 'text-purple-600',
       'status_change': 'text-orange-600'
     };
@@ -225,9 +142,9 @@ export const alertNotificationUtils = {
   },
 
   /**
-   * Verificar se a notificaÁ„o È recente (menos de 1 hora)
+   * Verificar se a notifica√ß√£o √© recente (menos de 1 hora)
    */
-  isRecent: (createdAt: string): boolean => {
+  isRecent: (createdAt: string | Date): boolean => {
     const created = new Date(createdAt);
     const now = new Date();
     const diffMinutes = (now.getTime() - created.getTime()) / (1000 * 60);
@@ -235,9 +152,9 @@ export const alertNotificationUtils = {
   },
 
   /**
-   * Verificar se a notificaÁ„o È de hoje
+   * Verificar se a notifica√ß√£o √© de hoje
    */
-  isToday: (createdAt: string): boolean => {
+  isToday: (createdAt: string | Date): boolean => {
     const created = new Date(createdAt);
     const now = new Date();
     return created.toDateString() === now.toDateString();
@@ -246,45 +163,43 @@ export const alertNotificationUtils = {
   /**
    * Formatar tempo relativo
    */
-  formatRelativeTime: (createdAt: string): string => {
+  formatRelativeTime: (createdAt: string | Date): string => {
     const created = new Date(createdAt);
     const now = new Date();
     const diffMinutes = Math.floor((now.getTime() - created.getTime()) / (1000 * 60));
 
     if (diffMinutes < 1) return 'Agora mesmo';
-    if (diffMinutes < 60) return `${diffMinutes}min atr·s`;
+    if (diffMinutes < 60) return `${diffMinutes}min atr√°s`;
     
     const diffHours = Math.floor(diffMinutes / 60);
-    if (diffHours < 24) return `${diffHours}h atr·s`;
+    if (diffHours < 24) return `${diffHours}h atr√°s`;
     
     const diffDays = Math.floor(diffHours / 24);
-    if (diffDays < 7) return `${diffDays}d atr·s`;
+    if (diffDays < 7) return `${diffDays}d atr√°s`;
     
     return created.toLocaleDateString('pt-PT');
   },
 
   /**
-   * Formatar mensagem de mudanÁa de preÁo
+   * Formatar mensagem de mudan√ßa de pre√ßo
    */
   formatPriceChange: (currentPrice?: number, oldPrice?: number): string => {
     if (!currentPrice || !oldPrice) return '';
     
-    const difference = currentPrice - oldPrice;
+    const difference = oldPrice - currentPrice; // Diferen√ßa positiva para descidas
     const percentage = ((difference / oldPrice) * 100).toFixed(1);
     
     if (difference > 0) {
-      return `+Ä${difference.toLocaleString()} (+${percentage}%)`;
+      return `Poupan√ßa de ‚Ç¨${difference.toLocaleString()} (-${percentage}%)`;
     } else {
-      return `-Ä${Math.abs(difference).toLocaleString()} (${percentage}%)`;
+      const increase = Math.abs(difference);
+      return `Aumento de ‚Ç¨${increase.toLocaleString()} (+${Math.abs(parseFloat(percentage))}%)`;
     }
   }
 };
 
 // Log apenas quando carrega em desenvolvimento
-try {
-  if (process.env.NODE_ENV === 'development') {
-    logToTerminal('Alert Notifications Service carregado');
-  }
-} catch {
-  // Ignorar se verificaÁ„o de ambiente falhar
+
+if (import.meta.env?.DEV) {
+logToTerminal('Alert Notifications Service carregado (tipado)');
 }

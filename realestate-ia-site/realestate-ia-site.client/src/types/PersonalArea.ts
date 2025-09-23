@@ -60,8 +60,6 @@ export interface PropertyAlert {
   maxPrice: number | null;
   bedrooms: number | null;
   bathrooms: number | null;
-  emailNotifications: boolean;
-  smsNotifications: boolean;
   priceDropAlerts: boolean;
   newListingAlerts: boolean;
   isActive: boolean;
@@ -72,12 +70,6 @@ export interface PropertyAlert {
   
   // Campos calculados para UI
   priceRange?: [number, number]; // Derivado de minPrice/maxPrice
-  notifications?: {
-    email: boolean;
-    sms: boolean;
-    priceDrops: boolean;
-    newListings: boolean;
-  };
 }
 
 // PropertyRecommendation alinhado com BD Model PropertyRecommendation
@@ -98,13 +90,16 @@ export interface PropertyRecommendation {
   isNew?: boolean;
 }
 
+// Tipos específicos de alertas para type safety
+export type AlertType = 'new_listing' | 'price_drop' | 'back_to_market' | 'status_change';
+
 // PropertyAlertNotification alinhado com BD Model PropertyAlertNotification
 export interface PropertyAlertNotification {
   id: string;
   userId: string;
   propertyId: string;
   alertId: string;
-  alertType: string;
+  alertType: AlertType; // Tipado específico
   title: string;
   message: string;
   createdAt: Date;
@@ -119,6 +114,22 @@ export interface PropertyAlertNotification {
   alert?: PropertyAlert;
   isRecent?: boolean;
   formattedTime?: string;
+  
+  // Dados adicionais da API para mostrar na notificação
+  propertyTitle?: string;
+  propertyType?: string;
+  bedrooms?: number;
+}
+
+// Utility types para notificações
+export interface AlertNotificationMeta {
+  type: AlertType;
+  title: string;
+  description: string;
+  icon: string;
+  color: string;
+  bgColor: string;
+  actionText: string;
 }
 
 // ViewHistory - estrutura para histórico de visualizações
@@ -154,8 +165,6 @@ export interface UserLoginSession {
 
 // Notification settings para utilizador
 export interface NotificationSettings {
-  email: boolean;
-  sms: boolean;
   priceAlerts: boolean;
   newListings: boolean;
   marketInsights: boolean;
@@ -226,8 +235,6 @@ export interface CreateAlertRequest {
   maxPrice?: number;
   bedrooms?: number;
   bathrooms?: number;
-  emailNotifications?: boolean;
-  smsNotifications?: boolean;
   priceDropAlerts?: boolean;
   newListingAlerts?: boolean;
 }
@@ -252,8 +259,116 @@ export interface UpdateUserProfileRequest {
 
 // Create/Update request types para definições de notificação
 export interface UpdateNotificationSettingsRequest {
-  emailNotifications?: boolean;
-  smsNotifications?: boolean;
   priceDropAlerts?: boolean;
   newListingAlerts?: boolean;
 }
+
+// Utility functions para tipos de notificação
+export const AlertTypeUtils = {
+  /**
+   * Obter metadados de um tipo de alerta
+   */
+  getMeta(type: AlertType): AlertNotificationMeta {
+    const metaMap: Record<AlertType, AlertNotificationMeta> = {
+      new_listing: {
+        type: 'new_listing',
+        title: 'Nova Propriedade',
+        description: 'Encontrámos uma nova propriedade que corresponde aos seus critérios',
+        icon: '🏠',
+        color: 'text-blue-600',
+        bgColor: 'bg-blue-50',
+        actionText: 'Ver Propriedade'
+      },
+      price_drop: {
+        type: 'price_drop',
+        title: 'Redução de Preço',
+        description: 'Uma propriedade do seu interesse teve o preço reduzido',
+        icon: '💰',
+        color: 'text-green-600',
+        bgColor: 'bg-green-50',
+        actionText: 'Ver Desconto'
+      },
+      back_to_market: {
+        type: 'back_to_market',
+        title: 'Voltou ao Mercado',
+        description: 'Uma propriedade que saiu voltou ao mercado',
+        icon: '🔄',
+        color: 'text-purple-600',
+        bgColor: 'bg-purple-50',
+        actionText: 'Ver Propriedade'
+      },
+      status_change: {
+        type: 'status_change',
+        title: 'Mudança de Status',
+        description: 'O status de uma propriedade foi alterado',
+        icon: '📋',
+        color: 'text-orange-600',
+        bgColor: 'bg-orange-50',
+        actionText: 'Ver Alteração'
+      }
+    };
+    
+    return metaMap[type];
+  },
+
+  /**
+   * Verificar se é um tipo de notificação de preço
+   */
+  isPriceRelated(type: AlertType): boolean {
+    return type === 'price_drop';
+  },
+
+  /**
+   * Verificar se é um tipo de notificação de nova propriedade
+   */
+  isNewProperty(type: AlertType): boolean {
+    return type === 'new_listing' || type === 'back_to_market';
+  },
+
+  /**
+   * Formatar mensagem de mudança de preço
+   */
+  formatPriceChange(currentPrice?: number, oldPrice?: number): string {
+    if (!currentPrice || !oldPrice) return '';
+    
+    const difference = oldPrice - currentPrice; // Diferença positiva para descidas
+    const percentage = ((difference / oldPrice) * 100).toFixed(1);
+    
+    if (difference > 0) {
+      return `Poupança de €${difference.toLocaleString()} (-${percentage}%)`;
+    } else {
+      const increase = Math.abs(difference);
+      return `Aumento de €${increase.toLocaleString()} (+${Math.abs(parseFloat(percentage))}%)`;
+    }
+  },
+
+  /**
+   * Verificar se a notificação é recente (menos de 1 hora)
+   */
+  isRecent(createdAt: Date | string): boolean {
+    const created = new Date(createdAt);
+    const now = new Date();
+    const diffMinutes = (now.getTime() - created.getTime()) / (1000 * 60);
+    return diffMinutes < 60;
+  },
+
+  /**
+   * Formatar tempo relativo
+   */
+  formatRelativeTime(createdAt: Date | string): string {
+    const created = new Date(createdAt);
+    const now = new Date();
+    const diffMinutes = Math.floor((now.getTime() - created.getTime()) / (1000 * 60));
+
+    if (diffMinutes < 1) return 'Agora mesmo';
+    if (diffMinutes < 60) return `${diffMinutes}min atrás`;
+    
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours}h atrás`;
+    
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays}d atrás`;
+    
+    return created.toLocaleDateString('pt-PT');
+  }
+};

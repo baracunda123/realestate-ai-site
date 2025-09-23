@@ -10,17 +10,14 @@ import { type Property } from './types/property';
 import { getCurrentUser, logout, authUtils } from './api/auth.service';
 import { createSafeDate } from './utils/PersonalArea';
 import type { UserProfile } from './api/client';
-import { getAlertMatches } from './api/alerts.service';
 import { getFavoriteProperties, addToFavorites, removeFromFavorites } from './api/favorites.service';
 
 // Lazy load components for better performance
 const SearchFilters = lazy(() => import('./components/SearchFilters').then(m => ({ default: m.SearchFilters })));
 const PropertyGrid = lazy(() => import('./components/PropertyGrid').then(m => ({ default: m.PropertyGrid })));
-// const PropertyModal = lazy(() => import('./components/PropertyModal').then(m => ({ default: m.PropertyModal })));
 const MapView = lazy(() => import('./components/MapView').then(m => ({ default: m.MapView })));
 const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
 const WelcomeScreen = lazy(() => import('./components/WelcomeScreen').then(m => ({ default: m.WelcomeScreen })));
-const AlertResults = lazy(() => import('./components/AlertResults').then(m => ({ default: m.AlertResults })));
 
 // Loading components otimizados
 const LoadingSpinner = () => (
@@ -29,8 +26,8 @@ const LoadingSpinner = () => (
   </div>
 );
 
-// View types
-type ViewType = 'home' | 'personal' | 'alert-results';
+// View types (removido 'alert-results')
+type ViewType = 'home' | 'personal';
 type ViewMode = 'grid' | 'map';
 type AuthTab = 'signin' | 'signup';
 
@@ -44,7 +41,6 @@ interface ExtendedUserProfile extends UserProfile {
 
 export default function App() {
   // Property-related state
-  // const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [favorites, setFavorites] = useState<Property[]>([]);
   const [searchResults, setSearchResults] = useState<Property[] | null>(null);
   
@@ -53,14 +49,8 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   
-  // Navigation state
+  // Navigation state (simplificado)
   const [currentView, setCurrentView] = useState<ViewType>('home');
-  const [selectedAlert, setSelectedAlert] = useState<PropertyAlert | null>(null);
-  
-  // Alert results state (API)
-  const [alertProperties, setAlertProperties] = useState<Property[] | null>(null);
-  const [alertLoading, setAlertLoading] = useState(false);
-  // const [alertError, setAlertError] = useState<string | null>(null);
   
   // AI state
   const [aiText, setAiText] = useState<string>('');
@@ -134,18 +124,13 @@ export default function App() {
     loadFavorites();
   }, [loadFavorites]);
 
-  // Handle URL navigation
+  // Handle URL navigation (simplificado)
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash;
       
       if (hash === '#personal' && user) {
         setCurrentView('personal');
-      } else if (hash === '#alert-results' && user && selectedAlert) {
-        setCurrentView('alert-results');
-      } else if (hash === '#alert-results' && user && !selectedAlert) {
-        setCurrentView('personal');
-        window.location.hash = '#personal';
       } else {
         setCurrentView('home');
         if (hash && hash !== '#') {
@@ -158,34 +143,15 @@ export default function App() {
     handleHashChange();
 
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [user, selectedAlert]);
+  }, [user]);
 
   // Redirect to home if user logs out while in protected views
   useEffect(() => {
-    if (!user && (currentView === 'personal' || currentView === 'alert-results')) {
+    if (!user && currentView === 'personal') {
       setCurrentView('home');
-      setSelectedAlert(null);
       window.location.hash = '';
     }
   }, [user, currentView]);
-
-  // Fetch alert results from API when entering alert-results view
-  useEffect(() => {
-    const fetchAlertProperties = async () => {
-      if (currentView !== 'alert-results' || !selectedAlert) return;
-      setAlertLoading(true);
-      try {
-        const resp = await getAlertMatches(selectedAlert.id, 1, 50, false);
-        setAlertProperties(resp.properties || []);
-      } catch {
-        setAlertProperties([]);
-      } finally {
-        setAlertLoading(false);
-      }
-    };
-
-    fetchAlertProperties();
-  }, [currentView, selectedAlert]);
 
   // Optimized callbacks
   const resetToDefaults = useCallback(() => {
@@ -215,16 +181,11 @@ export default function App() {
     window.location.hash = '';
   }, [resetToDefaults]);
 
+  // Simplified navigation for alert results (now just shows a toast message)
   const navigateToAlertResults = useCallback((alert: PropertyAlert) => {
-    setSelectedAlert(alert);
-    setCurrentView('alert-results');
-    window.location.hash = '#alert-results';
-  }, []);
-
-  const navigateBackFromAlertResults = useCallback(() => {
-    setSelectedAlert(null);
-    setCurrentView('personal');
-    window.location.hash = '#personal';
+    toast.info('Funcionalidade em desenvolvimento', {
+      description: `Ver resultados do alerta "${alert.name}" estará disponível em breve.`
+    });
   }, []);
 
   // Property handlers - usando API
@@ -409,22 +370,7 @@ export default function App() {
       />
       
       <main className="flex-1 site-container py-8">
-        {currentView === 'alert-results' && user && selectedAlert ? (
-          <Suspense fallback={<LoadingSpinner />}>
-            {alertLoading ? (
-              <LoadingSpinner />
-            ) : (
-              <AlertResults
-                alert={selectedAlert}
-                properties={alertProperties || []}
-                onBack={navigateBackFromAlertResults}
-                onPropertySelect={() => {}} // Desabilitado temporariamente
-                favorites={favorites}
-                onToggleFavorite={toggleFavorite}
-              />
-            )}
-          </Suspense>
-        ) : currentView === 'personal' && user ? (
+        {currentView === 'personal' && user ? (
           <PersonalArea
             user={convertToUser(user)}
             onNavigateToAlertResults={navigateToAlertResults}
@@ -458,7 +404,6 @@ export default function App() {
                       filters={searchFilters}
                       searchQuery={searchQuery}
                       serverResults={searchResults || undefined}
-                      onPropertySelect={() => {}} // Desabilitado temporariamente
                       favorites={favorites}
                       onToggleFavorite={toggleFavorite}
                     />
@@ -477,17 +422,6 @@ export default function App() {
       </main>
 
       <Footer />
-
-      {/* Modals */}
-      {/* PropertyModal temporariamente desabilitado */}
-      {/* {selectedProperty && (
-        <Suspense fallback={null}>
-          <PropertyModal
-            property={selectedProperty}
-            onClose={() => setSelectedProperty(null)}
-          />
-        </Suspense>
-      )} */}
 
       <Suspense fallback={null}>
         <AuthModal

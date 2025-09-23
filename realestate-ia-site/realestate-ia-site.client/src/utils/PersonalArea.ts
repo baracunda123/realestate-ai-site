@@ -242,7 +242,7 @@ export const alertUtils = {
       criteria.push(`🏠 ${getPropertyTypeLabel(alert.propertyType)}`);
     }
     if (alert.bedrooms) criteria.push(`🛏️ ${alert.bedrooms}+ quartos`);
-    if (alert.bathrooms) criteria.push(`🚿 ${alert.bathrooms}+ banheiros`);
+    if (alert.bathrooms) criteria.push(`🚿 ${alert.bathrooms}+ casas de banho`);
     if (alert.minPrice || alert.maxPrice) {
       criteria.push(`💰 ${formatPriceRange(alert.minPrice, alert.maxPrice)}`);
     }

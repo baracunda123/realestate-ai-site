@@ -5,7 +5,6 @@ import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from './ui/select';
 import { Slider } from './ui/slider';
-import { Switch } from './ui/switch';
 import { Separator } from './ui/separator';
 import { Card, CardContent } from './ui/card';
 import { 
@@ -15,12 +14,10 @@ import {
   Castle, 
   Warehouse,
   MapPin,
-  DollarSign,
+  Euro,
   Bed,
   Bath,
-  TrendingDown, 
-  Mail,
-  Smartphone,
+  TrendingDown,
   Plus
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -41,14 +38,8 @@ export interface NewAlert {
   bedrooms?: number;
   bathrooms?: number;
   priceDropPercentage?: number;
-  emailNotifications?: boolean;
-  smsNotifications?: boolean;
   priceDropAlerts?: boolean;
   newListingAlerts?: boolean;
-  notifications?: {
-    email: boolean;
-    sms: boolean;
-  };
   isActive: boolean;
   createdAt: Date;
 }
@@ -58,59 +49,53 @@ const propertyTypeOptions = [
   { value: 'house', label: 'Casa', icon: Home },
   { value: 'apartment', label: 'Apartamento', icon: Building2 },
   { value: 'condo', label: 'Condomínio', icon: Castle },
-  { value: 'townhouse', label: 'Sobrado', icon: Warehouse },
+  { value: 'townhouse', label: 'Moradia', icon: Warehouse },
 ];
 
 const popularLocations = [
-  'Vila Madalena', 'Pinheiros', 'Jardins', 'Moema', 'Brooklin',
-  'Centro', 'Liberdade', 'Bela Vista', 'Higienópolis', 'Perdizes'
+  'Lisboa', 'Porto', 'Cascais', 'Sintra', 'Oeiras',
+  'Almada', 'Braga', 'Coimbra', 'Aveiro', 'Setúbal'
 ];
 
 export function NewAlertModal({ isOpen, onClose, onCreateAlert, editingAlert }: NewAlertModalProps) {
   const [alertName, setAlertName] = useState(editingAlert?.name || '');
   const [location, setLocation] = useState(editingAlert?.location || '');
   const [propertyType, setPropertyType] = useState<string>(editingAlert?.propertyType || 'any');
-  const [priceRange, setPriceRange] = useState<[number, number]>(editingAlert?.priceRange || [500000, 2000000]);
+  const [priceRange, setPriceRange] = useState<[number, number]>(editingAlert?.priceRange || [100000, 500000]);
   const [bedrooms, setBedrooms] = useState<number | undefined>(editingAlert?.bedrooms);
   const [bathrooms, setBathrooms] = useState<number | undefined>(editingAlert?.bathrooms);
   const [priceDropPercentage, setPriceDropPercentage] = useState<number>(editingAlert?.priceDropPercentage || 10);
-  const [emailNotifications, setEmailNotifications] = useState(editingAlert?.emailNotifications ?? editingAlert?.notifications?.email ?? true);
-  const [smsNotifications, setSmsNotifications] = useState(editingAlert?.smsNotifications ?? editingAlert?.notifications?.sms ?? false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Detect if we're editing based on editingAlert presence
+  // Detectar se estamos a editar baseado na presença de editingAlert
   const isEditing = !!editingAlert;
 
-  // Sync form with editing data when modal opens
+  // Sincronizar formulário com dados de edição quando o modal abre
   useEffect(() => {
     if (isEditing && editingAlert) {
       setAlertName(editingAlert.name || '');
       setLocation(editingAlert.location || '');
       setPropertyType(editingAlert.propertyType || 'any');
-      setPriceRange(editingAlert.priceRange || [500000, 2000000]);
+      setPriceRange(editingAlert.priceRange || [100000, 500000]);
       setBedrooms(editingAlert.bedrooms);
       setBathrooms(editingAlert.bathrooms);
       setPriceDropPercentage(editingAlert.priceDropPercentage || 10);
-      setEmailNotifications(editingAlert.emailNotifications ?? editingAlert.notifications?.email ?? true);
-      setSmsNotifications(editingAlert.smsNotifications ?? editingAlert.notifications?.sms ?? false);
     } else if (!isEditing) {
-      // Reset form for new alert
+      // Resetar formulário para novo alerta
       setAlertName('');
       setLocation('');
       setPropertyType('any');
-      setPriceRange([500000, 2000000]);
+      setPriceRange([100000, 500000]);
       setBedrooms(undefined);
       setBathrooms(undefined);
       setPriceDropPercentage(10);
-      setEmailNotifications(true);
-      setSmsNotifications(false);
     }
   }, [isEditing, editingAlert]);
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat('pt-BR', {
+    return new Intl.NumberFormat('pt-PT', {
       style: 'currency',
-      currency: 'BRL',
+      currency: 'EUR',
       maximumFractionDigits: 0,
     }).format(price);
   };
@@ -118,63 +103,79 @@ export function NewAlertModal({ isOpen, onClose, onCreateAlert, editingAlert }: 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log('🚀 NewAlertModal: handleSubmit iniciado');
+    console.log('📝 Dados do formulário:', {
+      alertName: alertName.trim(),
+      location: location.trim(),
+      propertyType,
+      priceRange,
+      bedrooms,
+      bathrooms,
+      priceDropPercentage
+    });
+    
     if (!alertName.trim()) {
+      console.warn('❌ Validação falhou: Nome do alerta vazio');
       toast.error('Nome do alerta é obrigatório');
       return;
     }
 
     if (!location.trim()) {
+      console.warn('❌ Validação falhou: Localização vazia');
       toast.error('Localização é obrigatória');
       return;
     }
 
+    console.log('✅ Validação passou, criando alerta...');
     setIsSubmitting(true);
-
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
 
     const newAlert: NewAlert = {
       id: Date.now().toString(),
       name: alertName.trim(),
       location: location.trim(),
-      propertyType: propertyType as any,
+      propertyType: propertyType as NewAlert['propertyType'],
       priceRange,
       bedrooms,
       bathrooms,
       priceDropPercentage,
-      emailNotifications,
-      smsNotifications,
       priceDropAlerts: true,
       newListingAlerts: true,
-      notifications: {
-        email: emailNotifications,
-        sms: smsNotifications,
-      },
       isActive: true,
       createdAt: new Date(),
     };
 
-    onCreateAlert(newAlert);
-    
-    toast.success(isEditing ? 'Alerta atualizado com sucesso!' : 'Alerta criado com sucesso!', {
-      description: `Você será notificado sobre propriedades em ${location}`,
-    });
+    console.log('📦 Alerta criado no componente:', newAlert);
+    console.log('🔄 Chamando onCreateAlert...');
 
-    // Reset form only if not editing
-    if (!isEditing) {
-      setAlertName('');
-      setLocation('');
-      setPropertyType('any');
-      setPriceRange([500000, 2000000]);
-      setBedrooms(undefined);
-      setBathrooms(undefined);
-      setPriceDropPercentage(10);
-      setEmailNotifications(true);
-      setSmsNotifications(false);
+    try {
+      onCreateAlert(newAlert);
+      
+      toast.success(isEditing ? 'Alerta atualizado com sucesso!' : 'Alerta criado com sucesso!', {
+        description: `Será notificado sobre propriedades em ${location}`,
+      });
+
+      console.log('✅ onCreateAlert executado com sucesso');
+
+      // Resetar formulário apenas se não estivermos a editar
+      if (!isEditing) {
+        console.log('🔄 Resetando formulário...');
+        setAlertName('');
+        setLocation('');
+        setPropertyType('any');
+        setPriceRange([100000, 500000]);
+        setBedrooms(undefined);
+        setBathrooms(undefined);
+        setPriceDropPercentage(10);
+      }
+      
+      console.log('🚪 Fechando modal...');
+      onClose();
+    } catch (error) {
+      console.error('❌ Erro ao executar onCreateAlert:', error);
+      toast.error('Erro ao criar alerta');
+    } finally {
+      setIsSubmitting(false);
     }
-    setIsSubmitting(false);
-    
-    onClose();
   };
 
   const addLocationChip = (loc: string) => {
@@ -196,15 +197,15 @@ export function NewAlertModal({ isOpen, onClose, onCreateAlert, editingAlert }: 
             <span>{isEditing ? 'Editar Alerta de Preço' : 'Criar Novo Alerta de Preço'}</span>
           </DialogTitle>
           <DialogDescription className="text-warm-taupe mt-2">
-{isEditing 
+            {isEditing 
               ? 'Atualize os critérios do seu alerta para receber notificações mais precisas sobre propriedades de interesse.'
-              : 'Configure seus alertas personalizados para receber notificações quando propriedades que correspondem aos seus critérios ficarem disponíveis ou tiverem o preço reduzido.'
+              : 'Configure os seus alertas personalizados para receber notificações quando propriedades que correspondem aos seus critérios ficarem disponíveis ou tiverem o preço reduzido.'
             }
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6 py-4">
-          {/* Alert Name */}
+          {/* Nome do Alerta */}
           <div className="space-y-2">
             <Label htmlFor="alertName" className="text-warm-taupe">
               Nome do Alerta *
@@ -213,13 +214,13 @@ export function NewAlertModal({ isOpen, onClose, onCreateAlert, editingAlert }: 
               id="alertName"
               value={alertName}
               onChange={(e) => setAlertName(e.target.value)}
-              placeholder="Ex: Apartamentos Vila Madalena"
+              placeholder="Ex: Apartamentos em Lisboa"
               className="border-pale-clay-deep focus:border-burnt-peach bg-input-background"
               required
             />
           </div>
 
-          {/* Location */}
+          {/* Localização */}
           <div className="space-y-3">
             <Label className="text-warm-taupe">
               Localização *
@@ -230,13 +231,13 @@ export function NewAlertModal({ isOpen, onClose, onCreateAlert, editingAlert }: 
                 <Input
                   value={location}
                   onChange={(e) => setLocation(e.target.value)}
-                  placeholder="Digite os bairros ou regiões de interesse"
+                  placeholder="Digite as cidades ou regiões de interesse"
                   className="pl-10 border-pale-clay-deep focus:border-burnt-peach bg-input-background"
                   required
                 />
               </div>
               
-              {/* Popular Locations */}
+              {/* Localizações Populares */}
               <div className="space-y-2">
                 <Label className="text-xs text-warm-taupe-light">
                   Localizações Populares
@@ -260,7 +261,7 @@ export function NewAlertModal({ isOpen, onClose, onCreateAlert, editingAlert }: 
             </div>
           </div>
 
-          {/* Property Type */}
+          {/* Tipo de Propriedade */}
           <div className="space-y-3">
             <Label className="text-warm-taupe">
               Tipo de Propriedade
@@ -291,17 +292,17 @@ export function NewAlertModal({ isOpen, onClose, onCreateAlert, editingAlert }: 
             </Select>
           </div>
 
-          {/* Price Range */}
+          {/* Gama de Preços */}
           <div className="space-y-4">
             <Label className="text-warm-taupe">
-              Faixa de Preço
+              Gama de Preços
             </Label>
             <Card className="border border-pale-clay-deep bg-pale-clay-light">
               <CardContent className="p-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-2">
-                    <DollarSign className="h-4 w-4 text-cocoa-taupe" />
-                    <span className="text-sm text-warm-taupe">Faixa de valores</span>
+                    <Euro className="h-4 w-4 text-cocoa-taupe" />
+                    <span className="text-sm text-warm-taupe">Gama de valores</span>
                   </div>
                   <div className="text-sm font-medium text-deep-mocha">
                     {formatPrice(priceRange[0])} - {formatPrice(priceRange[1])}
@@ -310,16 +311,16 @@ export function NewAlertModal({ isOpen, onClose, onCreateAlert, editingAlert }: 
                 <Slider
                   value={priceRange}
                   onValueChange={(value) => setPriceRange(value as [number, number])}
-                  max={5000000}
-                  min={100000}
-                  step={50000}
+                  max={2000000}
+                  min={50000}
+                  step={25000}
                   className="w-full"
                 />
               </CardContent>
             </Card>
           </div>
 
-          {/* Bedrooms & Bathrooms */}
+          {/* Quartos e Casas de Banho */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label className="text-warm-taupe">
@@ -358,7 +359,7 @@ export function NewAlertModal({ isOpen, onClose, onCreateAlert, editingAlert }: 
 
             <div className="space-y-2">
               <Label className="text-warm-taupe">
-                Banheiros (Opcional)
+                Casas de Banho (Opcional)
               </Label>
               <Select 
                 value={bathrooms?.toString() || 'any'} 
@@ -368,7 +369,7 @@ export function NewAlertModal({ isOpen, onClose, onCreateAlert, editingAlert }: 
                   <SelectValue>
                     <div className="flex items-center space-x-2">
                       <Bath className="h-4 w-4 text-cocoa-taupe" />
-                      <span>{bathrooms ? `${bathrooms} banheiros` : 'Qualquer'}</span>
+                      <span>{bathrooms ? `${bathrooms} casas de banho` : 'Qualquer'}</span>
                     </div>
                   </SelectValue>
                 </SelectTrigger>
@@ -383,7 +384,7 @@ export function NewAlertModal({ isOpen, onClose, onCreateAlert, editingAlert }: 
                     <SelectItem key={num} value={num.toString()}>
                       <div className="flex items-center space-x-2">
                         <Bath className="h-4 w-4 text-cocoa-taupe" />
-                        <span>{num} banheiros</span>
+                        <span>{num} casas de banho</span>
                       </div>
                     </SelectItem>
                   ))}
@@ -392,85 +393,39 @@ export function NewAlertModal({ isOpen, onClose, onCreateAlert, editingAlert }: 
             </div>
           </div>
 
-          {/* Price Drop Alert */}
-          {
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <Label className="text-warm-taupe">
-                  Alerta de Redução de Preço
-                </Label>
-              </div>
-              <Card className="border border-pale-clay-deep bg-pale-clay-light">
-                <CardContent className="p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <TrendingDown className="h-4 w-4 text-cocoa-taupe" />
-                      <span className="text-sm text-warm-taupe">Notificar quando o preço cair</span>
-                    </div>
-                    <div className="text-sm font-medium text-deep-mocha">
-                      {priceDropPercentage}% ou mais
-                    </div>
-                  </div>
-                  <Slider
-                    value={[priceDropPercentage]}
-                    onValueChange={(value) => setPriceDropPercentage(value[0])}
-                    max={50}
-                    min={5}
-                    step={5}
-                    className="w-full"
-                  />
-                </CardContent>
-              </Card>
+          {/* Alerta de Redução de Preço */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <Label className="text-warm-taupe">
+                Alerta de Redução de Preço
+              </Label>
             </div>
-          }
+            <Card className="border border-pale-clay-deep bg-pale-clay-light">
+              <CardContent className="p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <TrendingDown className="h-4 w-4 text-cocoa-taupe" />
+                    <span className="text-sm text-warm-taupe">Notificar quando o preço baixar</span>
+                  </div>
+                  <div className="text-sm font-medium text-deep-mocha">
+                    {priceDropPercentage}% ou mais
+                  </div>
+                </div>
+                <Slider
+                  value={[priceDropPercentage]}
+                  onValueChange={(value) => setPriceDropPercentage(value[0])}
+                  max={50}
+                  min={5}
+                  step={5}
+                  className="w-full"
+                />
+              </CardContent>
+            </Card>
+          </div>
 
           <Separator className="bg-pale-clay-medium" />
 
-          {/* Notification Settings */}
-          <div className="space-y-4">
-            <Label className="text-warm-taupe">
-              Configurações de Notificação
-            </Label>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-pale-clay-light rounded-lg border border-pale-clay-deep">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-burnt-peach-lighter rounded-lg flex items-center justify-center">
-                    <Mail className="h-4 w-4 text-burnt-peach-dark" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-deep-mocha">Notificações por Email</p>
-                    <p className="text-xs text-warm-taupe">Receba alertas no seu email</p>
-                  </div>
-                </div>
-                <Switch
-                  checked={emailNotifications}
-                  onCheckedChange={setEmailNotifications}
-                />
-              </div>
-
-              <div className="flex items-center justify-between p-3 bg-pale-clay-light rounded-lg border border-pale-clay-deep">
-                <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-burnt-peach-lighter rounded-lg flex items-center justify-center">
-                    <Smartphone className="h-4 w-4 text-burnt-peach-dark" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-deep-mocha">Notificações por SMS</p>
-                    <p className="text-xs text-warm-taupe">
-                      Receba alertas por mensagem de texto
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  checked={smsNotifications}
-                  onCheckedChange={setSmsNotifications}
-disabled={false}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
+          {/* Botões de Ação */}
           <div className="flex items-center justify-end space-x-3 pt-4 border-t border-pale-clay-medium">
             <Button 
               type="button" 
@@ -485,9 +440,9 @@ disabled={false}
               disabled={isSubmitting}
               className="bg-burnt-peach hover:bg-burnt-peach-deep text-white border-0"
             >
-{isSubmitting 
-                ? (isEditing ? 'Salvando...' : 'Criando...') 
-                : (isEditing ? 'Salvar Alterações' : 'Criar Alerta')
+              {isSubmitting 
+                ? (isEditing ? 'A guardar...' : 'A criar...') 
+                : (isEditing ? 'Guardar Alterações' : 'Criar Alerta')
               }
             </Button>
           </div>
