@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Map, Grid3X3, Home, User, MessageCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -59,6 +59,15 @@ export function Header({
   const [currentUserQuery, setCurrentUserQuery] = useState<string>('');
   const [triggerNewQuery, setTriggerNewQuery] = useState<() => void>(() => () => {});
 
+  // Reset local input when view changes and not on home page
+  useEffect(() => {
+    if (currentView !== 'home') {
+      setLocalInput('');
+    } else {
+      setLocalInput(searchQuery);
+    }
+  }, [currentView, searchQuery]);
+
   const handleSubmitSearch = () => {
     if (!user) { 
       onOpenAuth(); 
@@ -89,6 +98,20 @@ export function Header({
 
   const handleToggleAI = () => {
     setAiOpen(!aiOpen);
+  };
+
+  const handleNavigateToHome = () => {
+    // Reset AI state only when navigating to home
+    setAiOpen(false);
+    setConversationHistory([]);
+    setCurrentUserQuery('');
+    setTriggerNewQuery(() => () => {});
+    onNavigateToHome();
+  };
+
+  const handleNavigateToPersonal = () => {
+    // Don't reset AI state when navigating to personal area
+    onNavigateToPersonal();
   };
 
   const renderViewTitle = () => {
@@ -222,7 +245,7 @@ export function Header({
           <Button
             variant="ghost"
             size="sm"
-            onClick={onNavigateToPersonal}
+            onClick={handleNavigateToPersonal}
             className={`hidden md:flex hover:bg-clay-soft text-clay-secondary hover:text-title ${
               currentView === 'personal' || currentView === 'alert-results' ? 'bg-clay-soft text-title' : ''
             }`}
@@ -233,7 +256,7 @@ export function Header({
           <UserProfileDropdown 
             user={userForDropdown} 
             onLogout={onLogout} 
-            onNavigateToPersonal={onNavigateToPersonal}
+            onNavigateToPersonal={handleNavigateToPersonal}
           />
         </div>
       );
@@ -258,7 +281,7 @@ export function Header({
             <Button
               variant="ghost"
               className="flex items-center space-x-3 p-2 hover:bg-clay-soft"
-              onClick={onNavigateToHome}
+              onClick={handleNavigateToHome}
             >
               <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-burnt-peach">
                 <Home className="h-5 w-5 text-white" />

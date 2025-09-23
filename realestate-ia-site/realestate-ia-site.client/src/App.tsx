@@ -16,7 +16,7 @@ import { getFavoriteProperties, addToFavorites, removeFromFavorites } from './ap
 // Lazy load components for better performance
 const SearchFilters = lazy(() => import('./components/SearchFilters').then(m => ({ default: m.SearchFilters })));
 const PropertyGrid = lazy(() => import('./components/PropertyGrid').then(m => ({ default: m.PropertyGrid })));
-const PropertyModal = lazy(() => import('./components/PropertyModal').then(m => ({ default: m.PropertyModal })));
+// const PropertyModal = lazy(() => import('./components/PropertyModal').then(m => ({ default: m.PropertyModal })));
 const MapView = lazy(() => import('./components/MapView').then(m => ({ default: m.MapView })));
 const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
 const WelcomeScreen = lazy(() => import('./components/WelcomeScreen').then(m => ({ default: m.WelcomeScreen })));
@@ -44,7 +44,7 @@ interface ExtendedUserProfile extends UserProfile {
 
 export default function App() {
   // Property-related state
-  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  // const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [favorites, setFavorites] = useState<Property[]>([]);
   const [searchResults, setSearchResults] = useState<Property[] | null>(null);
   
@@ -60,7 +60,7 @@ export default function App() {
   // Alert results state (API)
   const [alertProperties, setAlertProperties] = useState<Property[] | null>(null);
   const [alertLoading, setAlertLoading] = useState(false);
-  const [alertError, setAlertError] = useState<string | null>(null);
+  // const [alertError, setAlertError] = useState<string | null>(null);
   
   // AI state
   const [aiText, setAiText] = useState<string>('');
@@ -174,13 +174,11 @@ export default function App() {
     const fetchAlertProperties = async () => {
       if (currentView !== 'alert-results' || !selectedAlert) return;
       setAlertLoading(true);
-      setAlertError(null);
       try {
         const resp = await getAlertMatches(selectedAlert.id, 1, 50, false);
         setAlertProperties(resp.properties || []);
       } catch {
         setAlertProperties([]);
-        setAlertError('Não foi possível carregar os resultados do alerta.');
       } finally {
         setAlertLoading(false);
       }
@@ -420,7 +418,7 @@ export default function App() {
                 alert={selectedAlert}
                 properties={alertProperties || []}
                 onBack={navigateBackFromAlertResults}
-                onPropertySelect={setSelectedProperty}
+                onPropertySelect={() => {}} // Desabilitado temporariamente
                 favorites={favorites}
                 onToggleFavorite={toggleFavorite}
               />
@@ -429,7 +427,7 @@ export default function App() {
         ) : currentView === 'personal' && user ? (
           <PersonalArea
             user={convertToUser(user)}
-            onPropertySelect={setSelectedProperty}
+            onPropertySelect={() => {}} // Desabilitado temporariamente
             onNavigateToAlertResults={navigateToAlertResults}
             onNavigateToHome={navigateToHome}
             onExecuteSearch={handleSubmitSearch}
@@ -447,7 +445,7 @@ export default function App() {
           </Suspense>
         ) : (
           user && (
-            <Suspense fallback={< LoadingSpinner />}>
+            <Suspense fallback={<LoadingSpinner />}>
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 <div className="lg:col-span-1 space-y-6">
                   <SearchFilters
@@ -461,7 +459,7 @@ export default function App() {
                       filters={searchFilters}
                       searchQuery={searchQuery}
                       serverResults={searchResults || undefined}
-                      onPropertySelect={setSelectedProperty}
+                      onPropertySelect={() => {}} // Desabilitado temporariamente
                       favorites={favorites}
                       onToggleFavorite={toggleFavorite}
                     />
@@ -469,7 +467,7 @@ export default function App() {
                     <MapView
                       filters={searchFilters}
                       searchQuery={searchQuery}
-                      onPropertySelect={setSelectedProperty}
+                      onPropertySelect={() => {}} // Desabilitado temporariamente
                     />
                   )}
                 </div>
@@ -482,14 +480,15 @@ export default function App() {
       <Footer />
 
       {/* Modals */}
-      {selectedProperty && (
+      {/* PropertyModal temporariamente desabilitado */}
+      {/* {selectedProperty && (
         <Suspense fallback={null}>
           <PropertyModal
             property={selectedProperty}
             onClose={() => setSelectedProperty(null)}
           />
         </Suspense>
-      )}
+      )} */}
 
       <Suspense fallback={null}>
         <AuthModal

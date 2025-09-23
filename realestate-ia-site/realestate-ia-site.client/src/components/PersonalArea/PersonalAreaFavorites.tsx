@@ -3,19 +3,14 @@ import { Heart } from 'lucide-react';
 import type { Property } from '../../types/property';
 import { PropertyCard } from '../PropertyCard';
 import { EmptyState } from '../EmptyState';
-import type { User } from '../../types/PersonalArea';
 
 interface PersonalAreaFavoritesProps {
-  user: User;
   favorites: Property[];
-  onPropertySelect: (property: Property) => void;
   onToggleFavorite?: (property: Property) => void;
 }
 
 export function PersonalAreaFavorites({
-  user,
   favorites,
-  onPropertySelect,
   onToggleFavorite,
 }: PersonalAreaFavoritesProps) {
 
@@ -52,7 +47,6 @@ export function PersonalAreaFavorites({
           <PropertyCard
             key={property.id}
             property={property}
-            onClick={() => onPropertySelect(property)}
             onToggleFavorite={onToggleFavorite}
             isFavorite={true}
           />

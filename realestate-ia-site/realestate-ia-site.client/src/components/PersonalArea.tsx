@@ -39,7 +39,6 @@ import {
 
 interface PersonalAreaProps {
   user: User;
-  onPropertySelect: (property: Property) => void;
   onNavigateToAlertResults?: (alert: PropertyAlert) => void;
   onNavigateToHome?: (reset?: boolean) => void;
   onExecuteSearch?: (query: string, filters?: SearchFiltersType) => void;
@@ -50,7 +49,6 @@ interface PersonalAreaProps {
 
 export function PersonalArea({ 
   user, 
-  onPropertySelect, 
   onNavigateToAlertResults, 
   onNavigateToHome,
   onExecuteSearch,
@@ -261,21 +259,16 @@ export function PersonalArea({
               if (cardType === 'searches') setActiveTab('searches');
               if (cardType === 'alerts') setActiveTab('alerts');
             }}
-            onPropertySelect={onPropertySelect}
           />
         </TabsContent>
 
         <TabsContent value="recommendations">
-          <PersonalAreaRecommendations
-            onPropertySelect={onPropertySelect}
-          />
+          <PersonalAreaRecommendations />
         </TabsContent>
 
         <TabsContent value="favorites">
           <PersonalAreaFavorites
-            user={user}
             favorites={favorites}
-            onPropertySelect={onPropertySelect}
             onToggleFavorite={onToggleFavorite}
           />
         </TabsContent>

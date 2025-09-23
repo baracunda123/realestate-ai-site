@@ -18,6 +18,7 @@ namespace realestate_ia_site.Server.Application.Recommendations.DTOs
         public decimal? Price { get; set; }
         public int? Bedrooms { get; set; }
         public string? Type { get; set; }
+        public string? Link { get; set; }
         public int Score { get; set; }
         public required string Reason { get; set; }
         public DateTime CreatedAt { get; set; }

@@ -490,6 +490,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
                     Price = r.Property.Price,
                     Bedrooms = r.Property.Bedrooms,
                     Type = r.Property.Type,
+                    Link = r.Property.Link,
                     Score = r.Score,
                     Reason = GetReasonText(r.Reason),
                     CreatedAt = r.CreatedAt,

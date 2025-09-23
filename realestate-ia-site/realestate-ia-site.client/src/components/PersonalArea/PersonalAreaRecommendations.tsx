@@ -1,4 +1,4 @@
-import { useState, useEffect, memo, useCallback } from 'react';
+import React, { useState, useEffect, memo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -9,7 +9,6 @@ import {
   MapPin, 
   Bed, 
   Euro,
-  Eye,
   X,
   RefreshCw,
   Sparkles,
@@ -18,7 +17,7 @@ import {
   CheckCircle,
   Brain,
   Clock,
-  ArrowRight
+  ExternalLink
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
@@ -31,39 +30,21 @@ import {
   type RecommendedProperty,
   type RecommendationStats
 } from '../../api/recommendations.service';
-import type { Property } from '../../types/property';
+//import type { Property } from '../../types/property';
 import { EmptyState } from '../EmptyState';
 
 interface RecommendationCardProps {
   recommendation: RecommendedProperty;
   onView: (propertyId: string) => void;
   onDismiss: (propertyId: string) => void;
-  onPropertySelect: (property: Property) => void;
 }
 
 const RecommendationCard = memo(function RecommendationCard({ 
   recommendation, 
   onView, 
   onDismiss, 
-  onPropertySelect 
 }: RecommendationCardProps) {
   const [processing, setProcessing] = useState(false);
-
-  const handleView = useCallback(async () => {
-    setProcessing(true);
-    try {
-      await markRecommendationAsViewed(recommendation.propertyId);
-      onView(recommendation.propertyId);
-      
-      const property = recommendationUtils.toProperty(recommendation) as Property;
-      onPropertySelect(property);
-    } catch (error) {
-      console.error('Erro ao marcar como visualizada:', error);
-      toast.error('Erro ao marcar recomendação como visualizada');
-    } finally {
-      setProcessing(false);
-    }
-  }, [recommendation.propertyId, onView, onPropertySelect]);
 
   const handleDismiss = useCallback(async () => {
     setProcessing(true);
@@ -78,6 +59,23 @@ const RecommendationCard = memo(function RecommendationCard({
       setProcessing(false);
     }
   }, [recommendation.propertyId, onDismiss]);
+
+  const handleExternalLink = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (recommendation.link) {
+      // Marcar como vista ao clicar no link externo
+      if (!recommendation.isViewed) {
+        try {
+          await markRecommendationAsViewed(recommendation.propertyId);
+          onView(recommendation.propertyId);
+        } catch (error) {
+          console.error('Erro ao marcar como visualizada:', error);
+          // Não mostrar erro para não interromper a navegação
+        }
+      }
+      window.open(recommendation.link, '_blank', 'noopener,noreferrer');
+    }
+  }, [recommendation.link, recommendation.isViewed, recommendation.propertyId, onView]);
 
   const isNew = recommendationUtils.isNew(recommendation.createdAt);
 
@@ -160,24 +158,20 @@ const RecommendationCard = memo(function RecommendationCard({
               <Clock className="h-3 w-3 mr-1 flex-shrink-0" />
               <span>{new Date(recommendation.createdAt).toLocaleDateString('pt-PT')}</span>
             </div>
-            <Button
-              size="sm"
-              onClick={handleView}
-              className="h-7 text-xs bg-burnt-peach hover:bg-burnt-peach/90 flex-shrink-0"
-              disabled={processing}
-            >
-              {recommendation.isViewed ? (
-                <>
-                  <Eye className="h-3 w-3 mr-1" />
-                  Ver Novamente
-                </>
-              ) : (
-                <>
-                  Ver Propriedade
-                  <ArrowRight className="h-3 w-3 ml-1" />
-                </>
+            <div className="flex items-center space-x-2">
+              {recommendation.link && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 text-xs px-2 py-0 border-clay-medium hover:border-burnt-primary hover:bg-burnt-primary/10 text-clay-secondary hover:text-burnt-primary transition-all duration-200 hover:scale-105 hover:shadow-sm flex-shrink-0"
+                  onClick={handleExternalLink}
+                  disabled={processing}
+                >
+                  <ExternalLink className="h-3 w-3 mr-1" />
+                  Ver mais
+                </Button>
               )}
-            </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -185,13 +179,7 @@ const RecommendationCard = memo(function RecommendationCard({
   );
 });
 
-interface PersonalAreaRecommendationsProps {
-  onPropertySelect: (property: Property) => void;
-}
-
-function PersonalAreaRecommendationsComponent({ 
-  onPropertySelect 
-}: PersonalAreaRecommendationsProps) {
+function PersonalAreaRecommendationsComponent() {
   const [recommendations, setRecommendations] = useState<RecommendedProperty[]>([]);
   const [stats, setStats] = useState<RecommendationStats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -407,7 +395,6 @@ function PersonalAreaRecommendationsComponent({
                 recommendation={recommendation}
                 onView={handleView}
                 onDismiss={handleDismiss}
-                onPropertySelect={onPropertySelect}
               />
             ))}
           </AnimatePresence>

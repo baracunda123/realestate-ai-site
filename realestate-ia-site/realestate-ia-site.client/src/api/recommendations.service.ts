@@ -10,6 +10,7 @@ export interface RecommendedProperty {
   price?: number;
   bedrooms?: number;
   type?: string;
+  link?: string;
   score: number;
   reason: string;
   createdAt: string;

@@ -7,14 +7,12 @@ import { type Property } from '../types/property';
 
 interface PropertyCardProps {
   property: Property;
-  onClick: () => void;
   isFavorite?: boolean;
   onToggleFavorite?: (property: Property) => void;
 }
 
 function PropertyCardComponent({ 
   property, 
-  onClick, 
   isFavorite = false, 
   onToggleFavorite 
 }: PropertyCardProps) {
@@ -82,8 +80,7 @@ function PropertyCardComponent({
 
   return (
     <Card 
-      className="overflow-hidden hover:shadow-clay-medium transition-all duration-300 cursor-pointer group border border-clay-medium hover:border-clay-strong bg-pure-white"
-      onClick={onClick}
+      className="overflow-hidden hover:shadow-clay-medium transition-all duration-300 group border border-clay-medium hover:border-clay-strong bg-pure-white"
     >
       <CardContent className="p-3">
         <div className="space-y-2">

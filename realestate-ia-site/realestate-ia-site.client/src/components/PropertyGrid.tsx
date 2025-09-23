@@ -16,7 +16,6 @@ interface PropertyGridProps {
   filters: SearchFilters;
   searchQuery: string;
   serverResults?: Property[];
-  onPropertySelect: (property: Property) => void;
   favorites?: Property[];
   onToggleFavorite?: (property: Property) => void;
 }
@@ -54,7 +53,7 @@ const calculateRelevanceScore = (property: Property, query: string): number => {
   return score;
 };
 
-export function PropertyGrid({ filters, searchQuery, serverResults, onPropertySelect, favorites = [], onToggleFavorite }: PropertyGridProps) {
+export function PropertyGrid({ filters, searchQuery, serverResults, favorites = [], onToggleFavorite }: PropertyGridProps) {
   // State for save search dialog
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [saveSearchName, setSaveSearchName] = useState('');
@@ -332,11 +331,10 @@ export function PropertyGrid({ filters, searchQuery, serverResults, onPropertySe
       
       {/* Properties List */}
       <div className="space-y-4">
-        {filteredAndRankedProperties.map((property, index) => (
+        {filteredAndRankedProperties.map((property) => (
           <div key={property.id} className="relative">
             <PropertyCard
               property={property}
-              onClick={() => onPropertySelect(property)}
               isFavorite={favorites.some(f => f.id === property.id)}
               onToggleFavorite={onToggleFavorite}
             />
