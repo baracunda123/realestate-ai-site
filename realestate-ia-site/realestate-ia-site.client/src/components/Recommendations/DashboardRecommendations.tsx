@@ -8,11 +8,11 @@ import {
   MapPin, 
   Bed, 
   Euro,
-  Eye,
+  ExternalLink,
   X,
   RefreshCw,
   Sparkles,
-  ArrowRight,
+  CheckCircle,
   Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -23,31 +23,35 @@ import {
   recommendationUtils,
   type RecommendedProperty 
 } from '../../api/recommendations.service';
-import type { Property } from '../../types/property';
 
 interface RecommendationCardProps {
   recommendation: RecommendedProperty;
   onView: (propertyId: string) => void;
   onDismiss: (propertyId: string) => void;
-  onPropertySelect: (property: Property) => void;
 }
 
 function RecommendationCard({ 
   recommendation, 
   onView, 
   onDismiss, 
-  onPropertySelect 
 }: RecommendationCardProps) {
-  const handleView = async () => {
-    try {
-      await markRecommendationAsViewed(recommendation.propertyId);
-      onView(recommendation.propertyId);
-      
-      // Converter para Property e navegar
-      const property = recommendationUtils.toProperty(recommendation) as Property;
-      onPropertySelect(property);
-    } catch (error) {
-      console.error('Erro ao marcar como visualizada:', error);
+  const [processing, setProcessing] = useState(false);
+
+  const handleExternalLink = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (recommendation.link) {
+      setProcessing(true);
+      try {
+        if (!recommendation.isViewed) {
+          await markRecommendationAsViewed(recommendation.propertyId);
+          onView(recommendation.propertyId);
+        }
+        window.open(recommendation.link, '_blank', 'noopener,noreferrer');
+      } catch (error) {
+        console.error('Erro ao marcar como visualizada:', error);
+      } finally {
+        setProcessing(false);
+      }
     }
   };
 
@@ -129,30 +133,32 @@ function RecommendationCard({
             </p>
           </div>
 
-          {/* Footer com data e botão de ação */}
+          {/* Footer com data, status e botão de ação */}
           <div className="flex items-center justify-between pt-2 border-t border-porcelain">
-            <div className="flex items-center text-xs text-muted-foreground">
-              <Clock className="h-3 w-3 mr-1 flex-shrink-0" />
-              <span>{new Date(recommendation.createdAt).toLocaleDateString('pt-PT')}</span>
-            </div>
-            <Button
-              size="sm"
-              onClick={handleView}
-              className="h-7 text-xs bg-burnt-peach hover:bg-burnt-peach/90 flex-shrink-0"
-              disabled={recommendation.isViewed}
-            >
-              {recommendation.isViewed ? (
-                <>
-                  <Eye className="h-3 w-3 mr-1" />
-                  Visualizada
-                </>
-              ) : (
-                <>
-                  Ver Propriedade
-                  <ArrowRight className="h-3 w-3 ml-1" />
-                </>
+            <div className="flex items-center space-x-3">
+              <div className="flex items-center text-xs text-muted-foreground">
+                <Clock className="h-3 w-3 mr-1 flex-shrink-0" />
+                <span>{new Date(recommendation.createdAt).toLocaleDateString('pt-PT')}</span>
+              </div>
+              {recommendation.isViewed && (
+                <Badge className="bg-success-soft text-success-strong border-success-gentle text-xs">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Vista
+                </Badge>
               )}
-            </Button>
+            </div>
+            {recommendation.link && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 text-xs px-2 py-0 border-clay-medium hover:border-burnt-primary hover:bg-burnt-primary/10 text-clay-secondary hover:text-burnt-primary transition-all duration-200 hover:scale-105 hover:shadow-sm flex-shrink-0"
+                onClick={handleExternalLink}
+                disabled={processing}
+              >
+                <ExternalLink className="h-3 w-3 mr-1" />
+                Ver mais
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -161,12 +167,10 @@ function RecommendationCard({
 }
 
 interface DashboardRecommendationsProps {
-  onPropertySelect: (property: Property) => void;
   limit?: number;
 }
 
 export function DashboardRecommendations({ 
-  onPropertySelect, 
   limit = 6 
 }: DashboardRecommendationsProps) {
   const [recommendations, setRecommendations] = useState<RecommendedProperty[]>([]);
@@ -312,7 +316,6 @@ export function DashboardRecommendations({
               recommendation={recommendation}
               onView={handleView}
               onDismiss={handleDismiss}
-              onPropertySelect={onPropertySelect}
             />
           ))}
         </div>

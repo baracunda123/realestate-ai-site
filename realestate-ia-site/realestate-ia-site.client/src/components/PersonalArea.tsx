@@ -7,7 +7,6 @@ import {
   Bell, 
   Clock, 
   Settings,
-  TrendingUp,
   ArrowLeft
 } from 'lucide-react';
 import type { Property } from '../types/property';
@@ -23,7 +22,6 @@ import { PersonalAreaSearches } from './PersonalArea/PersonalAreaSearches';
 import { PersonalAreaAlerts } from './PersonalArea/PersonalAreaAlerts';
 import { PersonalAreaHistory } from './PersonalArea/PersonalAreaHistory';
 import { PersonalAreaSettings } from './PersonalArea/PersonalAreaSettings';
-import { PersonalAreaRecommendations } from './PersonalArea/PersonalAreaRecommendations';
 import { toast } from 'sonner';
 import { 
   getUserAlerts, 
@@ -218,14 +216,10 @@ export function PersonalArea({
       <PersonalAreaHeader user={user} />
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-7 h-14">
+        <TabsList className="grid w-full grid-cols-6 h-14">
           <TabsTrigger value="dashboard" className="w-full flex items-center space-x-2">
             <BarChart3 className="h-4 w-4" />
             <span className="hidden sm:inline">Dashboard</span>
-          </TabsTrigger>
-          <TabsTrigger value="recommendations" className="w-full flex items-center space-x-2">
-            <TrendingUp className="h-4 w-4" />
-            <span className="hidden sm:inline">Recomendações</span>
           </TabsTrigger>
           <TabsTrigger value="favorites" className="w-full flex items-center space-x-2">
             <Heart className="h-4 w-4" />
@@ -260,10 +254,6 @@ export function PersonalArea({
               if (cardType === 'alerts') setActiveTab('alerts');
             }}
           />
-        </TabsContent>
-
-        <TabsContent value="recommendations">
-          <PersonalAreaRecommendations />
         </TabsContent>
 
         <TabsContent value="favorites">

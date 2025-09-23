@@ -6,8 +6,7 @@ import {
   Bell, 
   ArrowRight,
 } from 'lucide-react';
-//import { type Property } from '../../types/property';
-//import { DashboardRecommendations } from '../Recommendations/DashboardRecommendations';
+import { DashboardRecommendations } from '../Recommendations/DashboardRecommendations';
 import { DashboardAlertNotifications } from '../AlertNotifications/DashboardAlertNotifications';
 
 interface PersonalAreaDashboardProps {
@@ -21,7 +20,7 @@ export function PersonalAreaDashboard({
   favoritesCount, 
   savedSearchesCount, 
   alertsCount,
-  onCardClick,
+  onCardClick
 }: PersonalAreaDashboardProps) {
   return (
     <div className="space-y-6">
@@ -136,19 +135,13 @@ export function PersonalAreaDashboard({
         </motion.div>
       </div>
 
-      {/* Recommendations Section - Temporariamente desabilitado */}
-      {/* {onPropertySelect && (
-        <DashboardRecommendations 
-          onPropertySelect={onPropertySelect}
-          limit={6}
-        />
-      )} */}
+      {/* Recommendations Section */}
+      <DashboardRecommendations 
+        limit={6}
+      />
 
-      {/* Two-column layout for Notifications and Insights */}
-      <div className="grid grid-cols-1 lg:grid-cols-1 gap-6">
-        {/* Alert Notifications */}
-        <DashboardAlertNotifications limit={5} />
-      </div>
+      {/* Alert Notifications */}
+      <DashboardAlertNotifications limit={5} />
     </div>
   );
 }

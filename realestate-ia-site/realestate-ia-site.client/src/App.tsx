@@ -427,7 +427,6 @@ export default function App() {
         ) : currentView === 'personal' && user ? (
           <PersonalArea
             user={convertToUser(user)}
-            onPropertySelect={() => {}} // Desabilitado temporariamente
             onNavigateToAlertResults={navigateToAlertResults}
             onNavigateToHome={navigateToHome}
             onExecuteSearch={handleSubmitSearch}

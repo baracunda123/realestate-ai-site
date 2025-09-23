@@ -213,7 +213,6 @@ export function AIResponseBox({
                         <div className="max-w-[85%] rounded-lg p-3 bg-pure-white border border-pale-clay-deep">
                           <div className="flex items-center gap-2 text-sm text-warm-taupe">
                             <Loader2 className="h-4 w-4 animate-spin" />
-                            A IA está a pensar...
                           </div>
                         </div>
                       </div>
