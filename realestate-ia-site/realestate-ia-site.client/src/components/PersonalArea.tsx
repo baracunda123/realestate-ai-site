@@ -85,8 +85,6 @@ export function PersonalArea({
 
   // Handlers
   const handleCreateAlert = async (alert: NewAlert) => {
-    console.log('🎯 PersonalArea: handleCreateAlert chamado com:', alert);
-    
     const payload: CreateAlertRequest = {
       name: alert.name,
       location: alert.location,
@@ -99,32 +97,14 @@ export function PersonalArea({
       newListingAlerts: alert.newListingAlerts,
     };
 
-    console.log('📡 Payload para API:', payload);
-
     try {
-      console.log('🚀 Chamando createAlertService...');
       const created = await createAlertService(payload);
-      console.log('✅ Alerta criado pela API:', created);
-      
-      setAlerts(prev => {
-        const updatedAlerts = [...prev, created];
-        console.log('📋 Lista de alertas atualizada:', updatedAlerts);
-        return updatedAlerts;
-      });
-      
+      setAlerts(prev => [...prev, created]);
       setIsNewAlertModalOpen(false);
-      console.log('🎉 Modal fechado');
-      
       toast.success('Alerta criado com sucesso!', {
-        description: `Será notificado sobre propriedades que correspondem aos critérios definidos.`
+        description: `Você será notificado sobre propriedades que correspondem aos critérios definidos.`
       });
-    } catch (error) {
-      console.error('❌ Erro ao criar alerta na API:', error);
-      console.error('❌ Detalhes do erro:', {
-        message: error instanceof Error ? error.message : 'Erro desconhecido',
-        stack: error instanceof Error ? error.stack : undefined,
-        response: (error as any)?.response?.data
-      });
+    } catch {
       toast.error('Falha ao criar alerta no servidor.');
     }
   };

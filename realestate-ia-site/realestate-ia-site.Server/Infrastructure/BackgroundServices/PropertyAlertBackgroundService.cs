@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Application.Common.Interfaces;
 using realestate_ia_site.Server.Application.PropertyAlerts;
+using realestate_ia_site.Server.Domain.Entities;
 
 namespace realestate_ia_site.Server.Infrastructure.BackgroundServices
 {
@@ -12,7 +13,7 @@ namespace realestate_ia_site.Server.Infrastructure.BackgroundServices
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<PropertyAlertBackgroundService> _logger;
-        private readonly TimeSpan _interval = TimeSpan.FromMinutes(30); // Executar a cada 30 minutos
+        private readonly TimeSpan _interval = TimeSpan.FromMinutes(1); // Executar a cada 30 minutos
 
         public PropertyAlertBackgroundService(
             IServiceProvider serviceProvider,
@@ -226,7 +227,7 @@ namespace realestate_ia_site.Server.Infrastructure.BackgroundServices
 
         private async Task<List<Domain.Entities.Property>> FindPropertiesForAlertAsync(
             IApplicationDbContext context,
-            Domain.Models.PropertyAlert alert,
+            Domain.Entities.PropertyAlert alert,
             CancellationToken cancellationToken)
         {
             var query = context.Properties.Where(p => p.Price.HasValue);

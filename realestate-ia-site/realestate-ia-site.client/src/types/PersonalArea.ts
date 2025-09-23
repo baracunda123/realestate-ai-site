@@ -187,11 +187,10 @@ export interface ActivityItem {
   recommendationId?: string;
 }
 
-// Component Props interfaces
+// Component Props interfaces (atualizado)
 export interface PersonalAreaProps {
   user: User;
-  onPropertySelect: (property: Property) => void;
-  onNavigateToAlertResults?: (alert: PropertyAlert) => void;
+  onPropertySelect?: (property: Property) => void;
   favorites: Property[];
   onToggleFavorite: (property: Property) => void;
 }
@@ -371,4 +370,4 @@ export const AlertTypeUtils = {
     
     return created.toLocaleDateString('pt-PT');
   }
-};
+};};

@@ -26,7 +26,6 @@ using realestate_ia_site.Server.Infrastructure.Notifications;
 using realestate_ia_site.Server.Infrastructure.Events;
 using realestate_ia_site.Server.Infrastructure.Payments;
 using realestate_ia_site.Server.Infrastructure.Configurations;
-using realestate_ia_site.Server.Infrastructure.RealTime;
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Application.Auth;
 using realestate_ia_site.Server.Application.PropertySearch.Filters;
@@ -255,17 +254,11 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 builder.Services.AddScoped<IDomainEventHandler<PropertyCreatedEvent>, PropertyAlertEventHandler>();
 builder.Services.AddScoped<IDomainEventHandler<PropertyPriceChangedEvent>, PropertyAlertEventHandler>();
-builder.Services.AddScoped<IDomainEventHandler<PropertyCreatedEvent>, RealTimePropertyEventHandler>();
-builder.Services.AddScoped<IDomainEventHandler<PropertyPriceChangedEvent>, RealTimePropertyEventHandler>();
 
 // NOVOS EVENT HANDLERS PARA RECOMENDAÇÕES INTELIGENTES
 builder.Services.AddScoped<IDomainEventHandler<FavoriteAddedEvent>, UserBehaviorEventHandler>();
 builder.Services.AddScoped<IDomainEventHandler<SavedSearchCreatedEvent>, UserBehaviorEventHandler>();
 builder.Services.AddScoped<IDomainEventHandler<SearchExecutedEvent>, UserBehaviorEventHandler>();
-
-// Real-time notifications
-builder.Services.AddSignalRNotifications();
-builder.Services.AddScoped<ISystemNotificationService, SystemNotificationService>();
 
 // BACKGROUND SERVICES PARA RECOMENDAÇÕES PROATIVAS
 builder.Services.AddHostedService<RecommendationBackgroundService>();
@@ -375,7 +368,6 @@ app.UseAuthorization();
 app.UseCors();
 
 app.MapControllers();
-app.MapSignalRHubs();
 
 if (!app.Environment.IsDevelopment())
 {

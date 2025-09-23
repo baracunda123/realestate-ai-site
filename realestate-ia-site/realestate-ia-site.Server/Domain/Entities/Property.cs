@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using realestate_ia_site.Server.Domain.ValueObjects;
 using realestate_ia_site.Server.Domain.Events;
-using realestate_ia_site.Server.Domain.Models;
 using AddressVO = realestate_ia_site.Server.Domain.ValueObjects.Address;
 
 namespace realestate_ia_site.Server.Domain.Entities

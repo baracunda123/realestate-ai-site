@@ -19,9 +19,9 @@ import {
   getRecentNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
-  alertNotificationUtils,
-  type PropertyAlertNotification 
+  alertNotificationUtils
 } from '../../api/alert-notifications.service';
+import type { PropertyAlertNotification } from '../../types/PersonalArea';
 
 interface NotificationItemProps {
   notification: PropertyAlertNotification;
@@ -175,7 +175,7 @@ export function DashboardAlertNotifications({
     setNotifications(prev => 
       prev.map(notif => 
         notif.id === notificationId 
-          ? { ...notif, readAt: new Date().toISOString() }
+          ? { ...notif, readAt: new Date() }
           : notif
       )
     );
@@ -187,7 +187,7 @@ export function DashboardAlertNotifications({
       setNotifications(prev => 
         prev.map(notif => ({ 
           ...notif, 
-          readAt: notif.readAt || new Date().toISOString() 
+          readAt: notif.readAt || new Date() 
         }))
       );
       toast.success('Todas as notificações marcadas como lidas');

@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Domain.Entities;
-using realestate_ia_site.Server.Domain.Models;
 using realestate_ia_site.Server.Application.Common.Events;
 using realestate_ia_site.Server.Domain.Events;
 using realestate_ia_site.Server.Application.Common.Interfaces;
@@ -137,6 +136,27 @@ namespace realestate_ia_site.Server.Data
                       .HasPrecision(18, 2);
             });
 
+            // Configurações para PropertyAlert
+            builder.Entity<PropertyAlert>(entity =>
+            {
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.CreatedAt);
+                entity.HasIndex(e => e.LastTriggered);
+                entity.HasIndex(e => new { e.UserId, e.IsActive });
+
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.Property(e => e.MinPrice)
+                      .HasPrecision(18, 2);
+
+                entity.Property(e => e.MaxPrice)
+                      .HasPrecision(18, 2);
+            });
+
             // Configurações para PropertyRecommendation
             builder.Entity<PropertyRecommendation>(entity =>
             {
@@ -184,6 +204,25 @@ namespace realestate_ia_site.Server.Data
                       .HasPrecision(18, 2);
 
                 entity.Property(e => e.OldPrice)
+                      .HasPrecision(18, 2);
+            });
+
+            // Configurações para PropertyPriceHistory
+            builder.Entity<PropertyPriceHistory>(entity =>
+            {
+                entity.HasIndex(e => e.PropertyId);
+                entity.HasIndex(e => e.ChangedAt);
+                entity.HasIndex(e => new { e.PropertyId, e.ChangedAt });
+
+                entity.HasOne(e => e.Property)
+                      .WithMany()
+                      .HasForeignKey(e => e.PropertyId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.Property(e => e.OldPrice)
+                      .HasPrecision(18, 2);
+
+                entity.Property(e => e.NewPrice)
                       .HasPrecision(18, 2);
             });
 

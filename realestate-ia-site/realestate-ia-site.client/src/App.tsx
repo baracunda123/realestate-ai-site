@@ -4,7 +4,6 @@ import { PersonalArea } from './components/PersonalArea';
 import { Footer } from './components/Footer';
 import { toast } from 'sonner';
 import { Toaster } from './components/ui/sonner';
-import { type PropertyAlert } from './types/PersonalArea';
 import { type SearchFilters as SearchFiltersType, DEFAULT_SEARCH_FILTERS } from './types/SearchFilters';
 import { type Property } from './types/property';
 import { getCurrentUser, logout, authUtils } from './api/auth.service';
@@ -26,7 +25,7 @@ const LoadingSpinner = () => (
   </div>
 );
 
-// View types (removido 'alert-results')
+// View types
 type ViewType = 'home' | 'personal';
 type ViewMode = 'grid' | 'map';
 type AuthTab = 'signin' | 'signup';
@@ -49,7 +48,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   
-  // Navigation state (simplificado)
+  // Navigation state
   const [currentView, setCurrentView] = useState<ViewType>('home');
   
   // AI state
@@ -124,7 +123,7 @@ export default function App() {
     loadFavorites();
   }, [loadFavorites]);
 
-  // Handle URL navigation (simplificado)
+  // Handle URL navigation
   useEffect(() => {
     const handleHashChange = () => {
       const hash = window.location.hash;
@@ -180,13 +179,6 @@ export default function App() {
     setCurrentView('home');
     window.location.hash = '';
   }, [resetToDefaults]);
-
-  // Simplified navigation for alert results (now just shows a toast message)
-  const navigateToAlertResults = useCallback((alert: PropertyAlert) => {
-    toast.info('Funcionalidade em desenvolvimento', {
-      description: `Ver resultados do alerta "${alert.name}" estará disponível em breve.`
-    });
-  }, []);
 
   // Property handlers - usando API
   const toggleFavorite = useCallback(async (property: Property) => {
@@ -373,7 +365,6 @@ export default function App() {
         {currentView === 'personal' && user ? (
           <PersonalArea
             user={convertToUser(user)}
-            onNavigateToAlertResults={navigateToAlertResults}
             onNavigateToHome={navigateToHome}
             onExecuteSearch={handleSubmitSearch}
             favorites={favorites}
