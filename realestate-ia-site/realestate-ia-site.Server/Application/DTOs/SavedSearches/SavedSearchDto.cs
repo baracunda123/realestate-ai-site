@@ -30,6 +30,7 @@ namespace realestate_ia_site.Server.Application.DTOs.SavedSearches
         public string Name { get; set; } = string.Empty;
         public string Query { get; set; } = string.Empty;
         public SavedSearchFiltersDto Filters { get; set; } = new();
+        public int Results { get; set; }
     }
 
     public class UpdateSavedSearchRequest

@@ -179,7 +179,8 @@ namespace realestate_ia_site.Server.Controllers
                     MaxPrice = request.Filters.PriceRange?.ElementAtOrDefault(1),
                     Bedrooms = request.Filters.Bedrooms,
                     Bathrooms = request.Filters.Bathrooms,
-                    HasGarage = request.Filters.HasGarage ?? false
+                    HasGarage = request.Filters.HasGarage ?? false,
+                    ResultsCount = request.Results
                 };
 
                 _context.SavedSearches.Add(savedSearch);

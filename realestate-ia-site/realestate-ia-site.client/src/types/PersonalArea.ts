@@ -184,6 +184,7 @@ export interface CreateSavedSearchRequest {
   name: string;
   query: string;
   filters: SavedSearch['filters'];
+  results: number;
 }
 
 // Create/Update request types para perfil de utilizador

@@ -195,7 +195,8 @@ export function PropertyGrid({
           priceRange: filters.priceRange[0] > 0 || filters.priceRange[1] < 2000000 ? filters.priceRange : undefined,
           bedrooms: filters.bedrooms || undefined,
           bathrooms: filters.bathrooms || undefined
-        }
+          },
+        results: filteredAndRankedProperties.length
       };
 
       await createSavedSearch(searchData);
