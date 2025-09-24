@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion';
+import { useState } from 'react';
 import { Card, CardContent } from '../ui/card';
 import { 
   Heart, 
@@ -22,6 +23,8 @@ export function PersonalAreaDashboard({
   alertsCount,
   onCardClick
 }: PersonalAreaDashboardProps) {
+  const [hoveredCard, setHoveredCard] = useState<string | null>(null);
+
   return (
     <div className="space-y-6">
       {/* Quick Stats Cards */}
@@ -36,28 +39,38 @@ export function PersonalAreaDashboard({
             damping: 25,
             duration: 0.15
           }}
-          className="cursor-pointer group"
+          className="dashboard-card-container cursor-pointer"
           onClick={() => onCardClick('favorites')}
+          onMouseEnter={() => setHoveredCard('favorites')}
+          onMouseLeave={() => setHoveredCard(null)}
         >
-          <Card className="border border-burnt-peach-light bg-pure-white shadow-clay-soft hover:shadow-clay-medium transition-shadow duration-200">
+          <Card className="dashboard-section-card border border-burnt-peach-light bg-pure-white shadow-clay-soft overflow-hidden group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center space-x-2 mb-2">
                     <Heart className="h-5 w-5 text-burnt-peach-dark" />
-                    <span className="text-sm font-medium text-muted-foreground">Favoritos</span>
+                    <span className="text-sm font-medium text-warm-taupe">Favoritos</span>
                   </div>
-                  <p className="text-2xl font-bold text-foreground">
+                  <p className="text-3xl font-bold text-title">
                     {favoritesCount}
                   </p>
                 </div>
-                <div className="p-3 bg-burnt-peach-lighter rounded-lg">
+                <div className="p-3 bg-burnt-peach-lighter rounded-lg shadow-clay-soft group-hover:shadow-burnt-peach group-hover:scale-110 transition-all duration-200">
                   <Heart className="h-6 w-6 text-burnt-peach-dark" />
                 </div>
               </div>
-              <div className="mt-4 flex items-center text-sm text-burnt-peach-dark opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-200">
+              <motion.div 
+                className="mt-4 flex items-center text-sm text-burnt-peach-darker font-semibold"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ 
+                  opacity: hoveredCard === 'favorites' ? 1 : 0, 
+                  y: hoveredCard === 'favorites' ? 0 : 10 
+                }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+              >
                 Ver favoritos <ArrowRight className="h-4 w-4 ml-1" />
-              </div>
+              </motion.div>
             </CardContent>
           </Card>
         </motion.div>
@@ -72,28 +85,38 @@ export function PersonalAreaDashboard({
             damping: 25,
             duration: 0.15
           }}
-          className="cursor-pointer group"
+          className="dashboard-card-container cursor-pointer"
           onClick={() => onCardClick('searches')}
+          onMouseEnter={() => setHoveredCard('searches')}
+          onMouseLeave={() => setHoveredCard(null)}
         >
-          <Card className="border border-cocoa-taupe-light bg-pure-white shadow-clay-soft hover:shadow-clay-medium transition-shadow duration-200">
+          <Card className="dashboard-section-card border border-cocoa-taupe-light bg-pure-white shadow-clay-soft overflow-hidden group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center space-x-2 mb-2">
                     <Bookmark className="h-5 w-5 text-cocoa-taupe-dark" />
-                    <span className="text-sm font-medium text-muted-foreground">Pesquisas Salvas</span>
+                    <span className="text-sm font-medium text-warm-taupe">Pesquisas Salvas</span>
                   </div>
-                  <p className="text-2xl font-bold text-foreground">
+                  <p className="text-3xl font-bold text-title">
                     {savedSearchesCount}
                   </p>
                 </div>
-                <div className="p-3 bg-cocoa-taupe-lighter rounded-lg">
+                <div className="p-3 bg-cocoa-taupe-lighter rounded-lg shadow-clay-soft group-hover:shadow-cocoa-taupe group-hover:scale-110 transition-all duration-200">
                   <Bookmark className="h-6 w-6 text-cocoa-taupe-dark" />
                 </div>
               </div>
-              <div className="mt-4 flex items-center text-sm text-cocoa-taupe-dark opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-200">
+              <motion.div 
+                className="mt-4 flex items-center text-sm text-cocoa-taupe-darker font-semibold"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ 
+                  opacity: hoveredCard === 'searches' ? 1 : 0, 
+                  y: hoveredCard === 'searches' ? 0 : 10 
+                }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+              >
                 Ver pesquisas <ArrowRight className="h-4 w-4 ml-1" />
-              </div>
+              </motion.div>
             </CardContent>
           </Card>
         </motion.div>
@@ -108,28 +131,38 @@ export function PersonalAreaDashboard({
             damping: 25,
             duration: 0.15
           }}
-          className="cursor-pointer group"
+          className="dashboard-card-container cursor-pointer"
           onClick={() => onCardClick('alerts')}
+          onMouseEnter={() => setHoveredCard('alerts')}
+          onMouseLeave={() => setHoveredCard(null)}
         >
-          <Card className="border border-cocoa-taupe-light bg-pure-white shadow-clay-soft hover:shadow-clay-medium transition-shadow duration-200">
+          <Card className="dashboard-section-card border border-cocoa-taupe-light bg-pure-white shadow-clay-soft overflow-hidden group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <div className="flex items-center space-x-2 mb-2">
                     <Bell className="h-5 w-5 text-cocoa-taupe-dark" />
-                    <span className="text-sm font-medium text-muted-foreground">Alertas Ativos</span>
+                    <span className="text-sm font-medium text-warm-taupe">Alertas Ativos</span>
                   </div>
-                  <p className="text-2xl font-bold text-foreground">
+                  <p className="text-3xl font-bold text-title">
                     {alertsCount}
                   </p>
                 </div>
-                <div className="p-3 bg-cocoa-taupe-lighter rounded-lg">
+                <div className="p-3 bg-cocoa-taupe-lighter rounded-lg shadow-clay-soft group-hover:shadow-cocoa-taupe group-hover:scale-110 transition-all duration-200">
                   <Bell className="h-6 w-6 text-cocoa-taupe-dark" />
                 </div>
               </div>
-              <div className="mt-4 flex items-center text-sm text-cocoa-taupe-dark opacity-0 group-hover:opacity-100 transform translate-y-2 group-hover:translate-y-0 transition-all duration-200">
+              <motion.div 
+                className="mt-4 flex items-center text-sm text-cocoa-taupe-darker font-semibold"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ 
+                  opacity: hoveredCard === 'alerts' ? 1 : 0, 
+                  y: hoveredCard === 'alerts' ? 0 : 10 
+                }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+              >
                 Ver alertas <ArrowRight className="h-4 w-4 ml-1" />
-              </div>
+              </motion.div>
             </CardContent>
           </Card>
         </motion.div>

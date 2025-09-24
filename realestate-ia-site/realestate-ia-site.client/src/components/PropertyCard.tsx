@@ -89,7 +89,7 @@ function PropertyCardComponent({
 
   return (
     <Card 
-      className="overflow-hidden hover:shadow-clay-medium transition-all duration-300 group border border-clay-medium hover:border-clay-strong bg-pure-white"
+      className="property-card overflow-hidden hover:shadow-clay-medium transition-all duration-300 group border border-clay-medium hover:border-clay-strong bg-pure-white"
     >
       <CardContent className="p-3">
         <div className="space-y-2">
@@ -97,15 +97,15 @@ function PropertyCardComponent({
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
-                <Badge className={`${getPropertyTypeColor(safePropertyType)} text-xs font-medium border shadow-clay-soft py-0.5 px-1.5`}>
+                <Badge className={`property-badge ${getPropertyTypeColor(safePropertyType)} text-xs font-medium border shadow-clay-soft py-0.5 px-1.5`}>
                   {getPropertyTypeName(safePropertyType)}
                 </Badge>
                 {property.siteName && (
-                  <Badge className={`${getSiteNameColor(property.siteName)} text-xs font-medium border shadow-clay-soft py-0.5 px-1.5`}>
+                  <Badge className={`property-badge ${getSiteNameColor(property.siteName)} text-xs font-medium border shadow-clay-soft py-0.5 px-1.5`}>
                     {property.siteName}
                   </Badge>
                 )}
-                <div className="bg-warm-white/95 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-clay-soft border border-clay-medium">
+                <div className="bg-warm-white/95 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-clay-soft border border-clay-medium transition-all duration-300 hover:transform hover:scale-105 hover:shadow-burnt-peach">
                   <span className="text-sm font-bold text-burnt-primary">
                     {formatPrice(safePrice)}
                   </span>
@@ -113,7 +113,7 @@ function PropertyCardComponent({
               </div>
               <h3 className="font-semibold text-base text-title line-clamp-1 mb-0.5">{safeTitle}</h3>
               <div className="flex items-center text-xs text-clay-secondary">
-                <MapPin className="h-3 w-3 mr-1 text-clay-secondary" />
+                <MapPin className="property-info-icon h-3 w-3 mr-1 text-clay-secondary" />
                 {property.location}
               </div>
             </div>
@@ -126,14 +126,13 @@ function PropertyCardComponent({
                 size="sm"
                 aria-pressed={hasPriceAlert}
                 aria-label={hasPriceAlert ? 'Remover alerta de preço' : 'Criar alerta de redução de preço'}
-                className={`h-7 w-7 p-0 ${hasPriceAlert 
-                  ? 'bg-burnt-peach/20 hover:bg-burnt-peach/30 text-burnt-peach' 
-                  : 'bg-warm-white/95 hover:bg-warm-white text-clay-secondary hover:text-burnt-peach'
-                } shadow-clay-soft backdrop-blur-sm hover:scale-105 transition-all duration-200 flex-shrink-0`}
+                className={`btn-price-alert h-7 w-7 p-0 backdrop-blur-sm flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-burnt-peach/20 ${
+                  hasPriceAlert ? 'active' : ''
+                }`}
                 onClick={handlePriceAlertClick}
               >
-                <Bell className={`h-3.5 w-3.5 transition-all duration-200 ${
-                  hasPriceAlert ? 'text-burnt-peach fill-current' : ''
+                <Bell className={`bell-icon h-3.5 w-3.5 transition-all duration-200 ${
+                  hasPriceAlert ? 'text-burnt-peach fill-current' : 'text-warm-taupe'
                 }`} />
               </Button>
 
@@ -143,10 +142,14 @@ function PropertyCardComponent({
                 size="sm"
                 aria-pressed={isFavorite}
                 aria-label={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
-                className="h-7 w-7 p-0 bg-warm-white/95 hover:bg-warm-white shadow-clay-soft backdrop-blur-sm hover:scale-105 transition-all duration-200 flex-shrink-0"
+                className={`btn-favorite h-7 w-7 p-0 backdrop-blur-sm flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-burnt-peach/20 ${
+                  isFavorite ? 'active' : ''
+                }`}
                 onClick={handleFavoriteClick}
               >
-                <Heart className={`h-3.5 w-3.5 transition-all duration-200 ${isFavorite ? 'text-burnt-primary fill-current' : 'text-clay-secondary'}`} />
+                <Heart className={`heart-icon h-3.5 w-3.5 transition-all duration-200 ${
+                  isFavorite ? 'text-burnt-peach fill-current' : 'text-warm-taupe'
+                }`} />
               </Button>
             </div>
           </div>
@@ -156,8 +159,8 @@ function PropertyCardComponent({
             {/* Property details section */}
             <div className="flex items-center gap-4">
               <div className="flex items-center space-x-1.5 text-clay-secondary">
-                <div className="w-6 h-6 bg-pale-clay rounded flex items-center justify-center">
-                  <Bed className="h-3 w-3 text-cocoa-primary" />
+                <div className="property-detail-icon w-6 h-6 bg-pale-clay rounded flex items-center justify-center">
+                  <Bed className="icon h-3 w-3 text-cocoa-primary" />
                 </div>
                 <div>
                   <span className="font-semibold text-title text-sm">{property.bedrooms}</span>
@@ -166,8 +169,8 @@ function PropertyCardComponent({
               </div>
               
               <div className="flex items-center space-x-1.5 text-clay-secondary">
-                <div className="w-6 h-6 bg-pale-clay rounded flex items-center justify-center">
-                  <Bath className="h-3 w-3 text-cocoa-primary" />
+                <div className="property-detail-icon w-6 h-6 bg-pale-clay rounded flex items-center justify-center">
+                  <Bath className="icon h-3 w-3 text-cocoa-primary" />
                 </div>
                 <div>
                   <span className="font-semibold text-title text-sm">{property.bathrooms}</span>
@@ -176,8 +179,8 @@ function PropertyCardComponent({
               </div>
               
               <div className="flex items-center space-x-1.5 text-clay-secondary">
-                <div className="w-6 h-6 bg-pale-clay rounded flex items-center justify-center">
-                  <Square className="h-3 w-3 text-cocoa-primary" />
+                <div className="property-detail-icon w-6 h-6 bg-pale-clay rounded flex items-center justify-center">
+                  <Square className="icon h-3 w-3 text-cocoa-primary" />
                 </div>
                 <div>
                   <span className="font-semibold text-title text-sm">{formatArea(safeArea)}</span>
@@ -189,7 +192,7 @@ function PropertyCardComponent({
             {/* Footer section */}
             <div className="flex items-center gap-3 text-xs text-clay-secondary">
               <div className="flex items-center">
-                <Calendar className="h-3 w-3 mr-1" />
+                <Calendar className="property-info-icon h-3 w-3 mr-1" />
                 {property.yearBuilt}
               </div>
               <div className="text-sm text-burnt-primary font-semibold">
@@ -199,7 +202,7 @@ function PropertyCardComponent({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-6 text-xs px-2 py-0 border-clay-medium hover:border-burnt-primary hover:bg-burnt-primary/10 text-clay-secondary hover:text-burnt-primary transition-all duration-200 hover:scale-105 hover:shadow-sm"
+                  className="btn-ver-mais h-6 text-xs px-2 py-0 border-pale-clay-deep text-warm-taupe transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-burnt-peach/20"
                   onClick={(e) => {
                     e.stopPropagation();
                     if (property.link) {
@@ -217,12 +220,12 @@ function PropertyCardComponent({
           {property.features && property.features.length > 0 && (
             <div className="flex flex-wrap gap-1">
               {property.features.slice(0, 3).map((feature, index) => (
-                <Badge key={`${feature}-${index}`} className="text-xs border bg-pure-white text-title border-clay-medium py-0 px-1.5 leading-tight">
+                <Badge key={`${feature}-${index}`} className="property-badge text-xs border bg-pure-white text-title border-clay-medium py-0 px-1.5 leading-tight">
                   {feature}
                 </Badge>
               ))}
               {property.features.length > 3 && (
-                <Badge variant="outline" className="text-xs bg-pure-white text-clay-secondary border-clay-medium py-0 px-1.5 leading-tight">
+                <Badge variant="outline" className="property-badge text-xs bg-pure-white text-clay-secondary border-clay-medium py-0 px-1.5 leading-tight">
                   +{property.features.length - 3}
                 </Badge>
               )}

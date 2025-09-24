@@ -22,7 +22,6 @@ import { PersonalAreaHistory } from './PersonalArea/PersonalAreaHistory';
 import { PersonalAreaSettings } from './PersonalArea/PersonalAreaSettings';
 import { toast } from 'sonner';
 import { 
-  getUserAlerts, 
   deleteAlert as deleteAlertService,
   updateAlert as updateAlertService
 } from '../api/alerts.service';
@@ -41,7 +40,10 @@ interface PersonalAreaProps {
   onToggleFavorite: (property: Property) => void;
   hasActiveSearch?: boolean;
   onCreatePriceAlert: (property: Property) => void;
-  onCheckPriceAlert?: (propertyId: string) => Promise<boolean>;
+  hasAlertForPropertyId?: (propertyId: string) => boolean;
+  alerts?: PropertyAlert[];
+  onDeleteAlert?: (alertId: string) => Promise<void>
+  onUpdateAlert?: (alertId: string, threshold: number) => Promise<void>
 }
 
 export function PersonalArea({ 
@@ -52,28 +54,23 @@ export function PersonalArea({
   onToggleFavorite,
   hasActiveSearch = false,
   onCreatePriceAlert,
-  onCheckPriceAlert
+  hasAlertForPropertyId,
+  alerts = [],
+  onDeleteAlert,
+  onUpdateAlert
 }: PersonalAreaProps) {
   // UI state
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  // Data state
-  const [alerts, setAlerts] = useState<PropertyAlert[]>([]);
+  // Data state - apenas para saved searches agora
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
 
   // Hook para notificações com refresh automático
   const { unreadCount } = useNotifications();
 
-  // Carregar alertas e pesquisas salvas ao montar
+  // Carregar pesquisas salvas ao montar
   useEffect(() => {
     const loadData = async () => {
-      try {
-        const alertsResp = await getUserAlerts();
-        setAlerts(alertsResp.alerts || []);
-      } catch {
-        setAlerts([]);
-      }
-
       try {
         const searchesResp = await getSavedSearchesService();
         setSavedSearches(searchesResp.searches || []);
@@ -85,52 +82,31 @@ export function PersonalArea({
     loadData();
   }, []);
 
-  // Refresh automático dos alertas quando há novas notificações
-  useEffect(() => {
-    const refreshAlerts = async () => {
-      if (unreadCount > 0) {
-        try {
-          const alertsResp = await getUserAlerts();
-          setAlerts(alertsResp.alerts || []);
-        } catch {
-          // Ignorar erro silenciosamente
-        }
-      }
-    };
-
-    refreshAlerts();
-  }, [unreadCount]);
-
-  // Handler para verificar se propriedade tem alerta - apenas wrapper para a prop
-  const handleCheckPriceAlert = async (propertyId: string): Promise<boolean> => {
-    try {
-      if (onCheckPriceAlert) {
-        return await onCheckPriceAlert(propertyId);
-      }
-      // Fallback: check local alerts state
-      return alerts.some(alert => alert.propertyId === propertyId && alert.isActive);
-    } catch {
-      return false;
-    }
-  };
-
+  // Handler para deletar alerta - usar função passada por prop ou fallback
   const handleDeleteAlert = async (alertId: string) => {
-    try {
-      await deleteAlertService(alertId);
-      setAlerts(prev => prev.filter(a => a.id !== alertId));
-      toast.success('Alerta removido!');
-    } catch {
-      toast.error('Falha ao remover alerta');
+    if (onDeleteAlert) {
+      await onDeleteAlert(alertId);
+    } else {
+      // Fallback para compatibilidade - sem toast adicional
+      try {
+        await deleteAlertService(alertId);
+      } catch {
+        toast.error('Falha ao remover alerta');
+      }
     }
   };
 
+  // Handler para atualizar alerta - usar função passada por prop ou fallback
   const handleUpdateAlert = async (alertId: string, threshold: number) => {
-    try {
-      const updated = await updateAlertService(alertId, { alertThresholdPercentage: threshold });
-      setAlerts(prev => prev.map(a => (a.id === alertId ? updated : a)));
-      toast.success(`Alerta atualizado para ${threshold}%`);
-    } catch {
-      toast.error('Falha ao atualizar alerta');
+    if (onUpdateAlert) {
+      await onUpdateAlert(alertId, threshold);
+    } else {
+      // Fallback para compatibilidade - sem toast adicional
+      try {
+        await updateAlertService(alertId, { alertThresholdPercentage: threshold });
+      } catch {
+        toast.error('Falha ao atualizar alerta');
+      }
     }
   };
 
@@ -189,14 +165,14 @@ export function PersonalArea({
     <div className="max-w-7xl mx-auto p-6 space-y-6">
       {/* Botão Voltar aos Resultados - apenas se houver pesquisa ativa */}
       {hasActiveSearch && (
-        <div className="flex justify-start">
+        <div className="back-button-container flex justify-start">
           <Button
             variant="outline"
             size="sm"
             onClick={() => onNavigateToHome?.(false)}
-            className="flex items-center space-x-2 text-sm hover:bg-burnt-peach hover:text-white transition-colors"
+            className="back-to-results-btn flex items-center space-x-2 text-sm px-4 py-2 font-medium shadow-clay-soft focus:outline-none focus:ring-2 focus:ring-burnt-peach/20"
           >
-            <ArrowLeft className="h-4 w-4" />
+            <ArrowLeft className="back-icon h-4 w-4" />
             <span>Voltar aos Resultados</span>
           </Button>
         </div>
@@ -255,7 +231,7 @@ export function PersonalArea({
             favorites={favorites}
             onToggleFavorite={onToggleFavorite}
             onCreatePriceAlert={onCreatePriceAlert}
-            onCheckPriceAlert={handleCheckPriceAlert}
+            hasAlertForPropertyId={hasAlertForPropertyId}
           />
         </TabsContent>
 

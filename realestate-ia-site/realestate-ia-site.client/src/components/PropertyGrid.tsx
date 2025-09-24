@@ -19,6 +19,7 @@ interface PropertyGridProps {
   favorites?: Property[];
   onToggleFavorite?: (property: Property) => void;
   onCreatePriceAlert?: (property: Property) => void;
+  hasAlertForPropertyId?: (propertyId: string) => boolean;
 }
 
 // Calculate simple text relevance score for ranking
@@ -60,7 +61,8 @@ export function PropertyGrid({
   serverResults, 
   favorites = [], 
   onToggleFavorite,
-  onCreatePriceAlert 
+  onCreatePriceAlert,
+  hasAlertForPropertyId
 }: PropertyGridProps) {
   // State for save search dialog
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
@@ -346,6 +348,7 @@ export function PropertyGrid({
               isFavorite={favorites.some(f => f.id === property.id)}
               onToggleFavorite={onToggleFavorite}
               onCreatePriceAlert={onCreatePriceAlert}
+              hasPriceAlert={hasAlertForPropertyId ? hasAlertForPropertyId(property.id) : false}
             />
           </div>
         ))}

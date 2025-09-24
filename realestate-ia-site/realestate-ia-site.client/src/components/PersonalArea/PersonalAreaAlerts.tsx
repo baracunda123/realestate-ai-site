@@ -63,32 +63,34 @@ export function PersonalAreaAlerts({
           return (
             <Card 
               key={alert.id} 
-              className={`border shadow-clay-soft transition-all duration-200 ${
+              className={`saved-search-card border shadow-clay-soft transition-all duration-200 group ${
                 alert.isActive 
                   ? 'border-pale-clay-deep bg-pure-white' 
                   : 'border-gray-200 bg-gray-50 opacity-75'
-              } ${hasRecentActivity ? 'ring-1 ring-burnt-peach/20' : ''}`}
+              } ${hasRecentActivity ? 'ring-2 ring-burnt-peach/20' : ''}`}
             >
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-3">
-                      <div className="w-8 h-8 bg-burnt-peach-lighter rounded-lg flex items-center justify-center border border-burnt-peach-light">
-                        <TrendingDown className="h-4 w-4 text-burnt-peach-dark" />
+                    <div className="flex items-center space-x-3 mb-3">
+                      <div className="search-icon w-10 h-10 bg-burnt-peach-lighter rounded-lg flex items-center justify-center border border-burnt-peach-light">
+                        <TrendingDown className="icon h-5 w-5 text-burnt-peach-dark" />
                       </div>
-                      <div>
-                        <h3 className="font-medium text-foreground line-clamp-1">{alert.propertyTitle}</h3>
-                        <div className="flex items-center space-x-2 mt-1">
-                          <Badge variant={alert.isActive ? "default" : "secondary"} className="text-xs">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <h3 className="font-semibold text-title line-clamp-1">{alert.propertyTitle}</h3>
+                          <Badge variant={alert.isActive ? "default" : "secondary"} className="text-xs shadow-clay-soft">
                             {alert.isActive ? 'Ativo' : 'Pausado'}
                           </Badge>
+                        </div>
+                        <div className="flex items-center space-x-2">
                           {status === 'triggered' && (
-                            <Badge className="bg-success-soft text-success-strong border-success-gentle text-xs">
+                            <Badge className="search-badge bg-success-soft text-success-strong border-success-gentle text-xs">
                               {alert.notificationCount} notificação{alert.notificationCount !== 1 ? 'ões' : ''}
                             </Badge>
                           )}
                           {hasRecentActivity && (
-                            <Badge className="bg-burnt-peach text-pure-white border-0 text-xs">
+                            <Badge className="search-badge bg-burnt-peach text-pure-white border-0 text-xs shadow-burnt-peach">
                               Atividade recente
                             </Badge>
                           )}
@@ -96,36 +98,36 @@ export function PersonalAreaAlerts({
                       </div>
                     </div>
                     
-                    <div className="space-y-3 text-sm text-muted-foreground">
-                      <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-1">
-                          <MapPin className="h-3 w-3 text-burnt-peach" />
-                          <span>{alert.propertyLocation}</span>
+                    <div className="space-y-3 text-sm">
+                      <div className="flex flex-wrap gap-3">
+                        <div className="flex items-center bg-pale-clay-light px-3 py-1.5 rounded-full">
+                          <MapPin className="h-3 w-3 text-burnt-peach mr-2" />
+                          <span className="text-clay-secondary">{alert.propertyLocation}</span>
                         </div>
-                        <div className="flex items-center space-x-1">
-                          <Euro className="h-3 w-3 text-burnt-peach" />
-                          <span className="font-medium text-foreground">{alert.currentPrice.toLocaleString('pt-PT')}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-4">
-                        <div className="flex items-center space-x-1">
-                          <TrendingDown className="h-3 w-3 text-burnt-peach" />
-                          <span>Alerta: redução de {alert.alertThresholdPercentage}% ou mais</span>
+                        <div className="flex items-center bg-pale-clay-light px-3 py-1.5 rounded-full">
+                          <Euro className="h-3 w-3 text-burnt-peach mr-2" />
+                          <span className="font-medium text-title">€{alert.currentPrice.toLocaleString('pt-PT')}</span>
                         </div>
                       </div>
                       
-                      <div className="flex items-center space-x-4 pt-2 border-t border-gray-100">
-                        <div className="flex items-center space-x-1">
-                          <Clock className="h-3 w-3 text-gray-400" />
-                          <span className="text-xs">Criado em {formatDate(alert.createdAt)}</span>
-                        </div>
-                        {alert.lastTriggered && (
-                          <div className="flex items-center space-x-1">
-                            <Bell className="h-3 w-3 text-gray-400" />
-                            <span className="text-xs">{priceAlertUtils.formatLastActivity(alert)}</span>
+                      <div className="flex items-center bg-burnt-peach-lighter/30 px-3 py-1.5 rounded-full">
+                        <TrendingDown className="h-3 w-3 text-burnt-peach mr-2" />
+                        <span className="text-burnt-peach-dark">Alerta: redução de {alert.alertThresholdPercentage}% ou mais</span>
+                      </div>
+                      
+                      <div className="flex items-center justify-between pt-2 border-t border-whisper-clay">
+                        <div className="flex items-center space-x-4">
+                          <div className="flex items-center text-clay-secondary">
+                            <Clock className="h-3 w-3 mr-1" />
+                            <span className="text-xs">Criado em {formatDate(alert.createdAt)}</span>
                           </div>
-                        )}
+                          {alert.lastTriggered && (
+                            <div className="flex items-center text-clay-secondary">
+                              <Bell className="h-3 w-3 mr-1" />
+                              <span className="text-xs">{priceAlertUtils.formatLastActivity(alert)}</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -174,7 +176,7 @@ export function PersonalAreaAlerts({
                             </SelectItem>
                           </SelectContent>
                         </Select>
-                        <Settings className="h-3 w-3 text-cocoa-taupe hover:text-burnt-peach transition-colors duration-200" />
+                        <Settings className="h-4 w-4 text-cocoa-taupe hover:text-burnt-peach transition-colors duration-200 hover:scale-110" />
                       </div>
                     )}
                     
@@ -182,7 +184,7 @@ export function PersonalAreaAlerts({
                       size="sm"
                       variant="ghost"
                       onClick={() => onDeleteAlert(alert.id)}
-                      className="text-xs p-2 text-error-gentle hover:text-error-strong hover:bg-error-gentle/10"
+                      className="search-delete-btn text-xs p-2 text-error-gentle hover:text-pure-white"
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>
@@ -195,14 +197,16 @@ export function PersonalAreaAlerts({
       </div>
 
       {/* Info Card */}
-      <Card className="border border-burnt-peach-light bg-burnt-peach-lighter/5 shadow-clay-soft">
+      <Card className="dashboard-section-card border border-burnt-peach-light bg-burnt-peach-lighter/5 shadow-clay-soft">
         <CardContent className="p-4">
           <div className="flex items-start space-x-3">
-            <Bell className="h-5 w-5 text-burnt-peach mt-0.5" />
+            <div className="w-10 h-10 bg-burnt-peach-lighter rounded-lg flex items-center justify-center flex-shrink-0">
+              <Bell className="h-5 w-5 text-burnt-peach" />
+            </div>
             <div className="space-y-1">
-              <h4 className="text-sm font-medium text-foreground">Como funcionam os alertas de preço</h4>
-              <p className="text-xs text-muted-foreground">
-                Clique no sininho, em qualquer propriedade para criar um alerta. Será notificado quando o preço baixar 
+              <h4 className="text-sm font-medium text-title">Como funcionam os alertas de preço</h4>
+              <p className="text-xs text-warm-taupe leading-relaxed">
+                Clique no sininho em qualquer propriedade para criar um alerta. Será notificado quando o preço baixar 
                 conforme a percentagem definida. Pode ajustar a sensibilidade do alerta a qualquer momento.
               </p>
             </div>

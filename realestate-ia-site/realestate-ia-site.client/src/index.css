@@ -686,195 +686,595 @@ html {
         color: var(--burnt-peach-deep); /* Links hover - Contraste AA+ */
     }
 
-/* Classes de Texto com Garantia de Contraste */
-.text-primary-contrast {
-    color: var(--deep-mocha); /* Máximo contraste para texto principal */
+/* Estilos para botão de navegação "Voltar aos Resultados" */
+.back-to-results-btn {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 0.875rem;
+  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--pale-clay-deep);
 }
 
-.text-secondary-contrast {
-    color: var(--warm-taupe); /* Contraste AA garantido para secundário */
+.back-to-results-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(229, 154, 121, 0.15), transparent);
+  transition: left 0.5s ease;
 }
 
-.text-accent-contrast {
-    color: var(--burnt-peach); /* Contraste AA para acentos */
+.back-to-results-btn:hover::before {
+  left: 100%;
 }
 
-/* Classes de Background com Texto Seguro */
-.bg-clay-with-dark-text {
-    background-color: var(--pale-clay);
-    color: var(--deep-mocha); /* Texto escuro em fundo claro */
+.back-to-results-btn:hover {
+  background: linear-gradient(135deg, var(--burnt-peach) 0%, var(--burnt-peach-deep) 100%);
+  border-color: var(--burnt-peach);
+  color: var(--pure-white);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 8px 16px rgba(229, 154, 121, 0.25), 0 4px 8px rgba(60, 47, 43, 0.1);
 }
 
-.bg-white-with-dark-text {
-    background-color: var(--pure-white);
-    color: var(--deep-mocha); /* Máximo contraste */
+.back-to-results-btn .back-icon {
+  transition: all 0.3s ease;
 }
 
-.bg-primary-with-white-text {
-    background-color: var(--burnt-peach);
-    color: #FFFFFF; /* Branco puro garantido */
+.back-to-results-btn:hover .back-icon {
+  transform: translateX(-2px);
+  color: var(--pure-white);
 }
 
-.bg-secondary-with-white-text {
-    background-color: var(--cocoa-taupe);
-    color: #FFFFFF; /* Branco puro garantido */
+.back-to-results-btn:active {
+  transform: translateY(0) scale(1);
+  box-shadow: 0 4px 8px rgba(229, 154, 121, 0.2);
 }
 
-/* Classe especial para forçar background branco nos primeiros cards */
-.bg-forced-white {
-    background-color: #FFFFFF !important;
-    background: #FFFFFF !important;
+.back-to-results-btn:focus-visible {
+  outline: none;
+  ring: 2px solid rgba(229, 154, 121, 0.4);
+  ring-offset: 2px;
+  ring-offset-color: var(--background);
 }
 
-/* Seletor específico para cards com background branco */
-[data-slot="card"][style*="background-color: rgb(255, 255, 255)"] {
-    background-color: #FFFFFF !important;
-    background: #FFFFFF !important;
+/* Container do botão para animação suave */
+.back-button-container {
+  animation: slideInFromLeft 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Seletor ainda mais específico */
-.property-card-white {
-    background-color: #FFFFFF !important;
-    background: #FFFFFF !important;
+@keyframes slideInFromLeft {
+  0% {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
-/* Spacing System Clay - Generoso e Limpo */
-.space-clay-xs {
-    gap: 0.5rem;
+/* Estilos para cards de recomendações */
+.recommendation-card {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 0.875rem;
 }
 
-.space-clay-sm {
-    gap: 0.75rem;
+.recommendation-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(229, 154, 121, 0.1), transparent);
+  transition: left 0.6s ease;
 }
 
-.space-clay-md {
-    gap: 1rem;
+.recommendation-card:hover::before {
+  left: 100%;
 }
 
-.space-clay-lg {
-    gap: 1.5rem;
+.recommendation-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 24px rgba(229, 154, 121, 0.15), 0 6px 12px rgba(60, 47, 43, 0.1);
+  border-color: var(--burnt-peach-light);
 }
 
-.space-clay-xl {
-    gap: 2rem;
+.recommendation-card .recommendation-badge {
+  transition: all 0.3s ease;
+  transform: scale(0.95);
 }
 
-.space-clay-2xl {
-    gap: 3rem;
+.recommendation-card:hover .recommendation-badge {
+  transform: scale(1);
+  box-shadow: 0 2px 6px rgba(229, 154, 121, 0.3);
 }
 
-/* Containers Clay - Cards Elegantes e Acessíveis */
-.container-clay {
-    background-color: var(--pale-clay); /* Background neutro */
-    border: 1px solid var(--pale-clay-deep); /* Border bem visível */
-    border-radius: var(--radius-lg);
-    padding: 1.5rem;
-    box-shadow: var(--shadow-clay-soft);
-    color: var(--deep-mocha); /* Texto principal */
+.recommendation-card .recommendation-icon {
+  transition: all 0.3s ease;
 }
 
-.container-clay-elevated {
-    background-color: var(--pure-white); /* Background elevado */
-    border: 1px solid var(--pale-clay-medium); /* Border suave mas visível */
-    border-radius: var(--radius-lg);
-    padding: 2rem;
-    box-shadow: var(--shadow-clay-medium);
-    color: var(--deep-mocha); /* Texto principal */
+.recommendation-card:hover .recommendation-icon {
+  color: var(--burnt-peach);
+  transform: scale(1.1);
 }
 
-/* Container especial para CTAs */
-.container-clay-cta {
-    background-color: var(--burnt-peach-lighter); /* Background CTA suave */
-    border: 1px solid var(--burnt-peach-light);
-    border-radius: var(--radius-lg);
-    padding: 1.5rem;
-    box-shadow: var(--shadow-burnt-peach);
-    color: var(--deep-mocha); /* Texto escuro em fundo claro */
+.recommendation-card .recommendation-dismiss-btn {
+  transition: all 0.3s ease;
+  opacity: 0;
+  transform: scale(0.8);
 }
 
-/* Container para informações secundárias */
-.container-clay-secondary {
-    background-color: var(--porcelain-soft); /* Background muito sutil */
-    border: 1px solid var(--pale-clay-medium);
-    border-radius: var(--radius-lg);
-    padding: 1rem;
-    color: var(--warm-taupe); /* Texto secundário */
+.recommendation-card:hover .recommendation-dismiss-btn {
+  opacity: 1;
+  transform: scale(1);
 }
 
-/* Botões Clay - CTAs Acessíveis e Convidativos */
-.btn-clay-primary {
-    background-color: var(--burnt-peach); /* Fundo Burnt Peach */
-    color: #FFFFFF; /* Texto branco puro - contraste AAA */
-    border: none;
-    border-radius: var(--radius-lg);
-    padding: 0.875rem 2rem;
-    font-weight: var(--font-weight-medium);
-    box-shadow: var(--shadow-burnt-peach);
-    transition: all 0.2s ease;
+.recommendation-card .recommendation-action-btn {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
 }
 
-    .btn-clay-primary:hover {
-        background-color: var(--burnt-peach-deep); /* Hover mais escuro */
-        color: #FFFFFF; /* Manter branco puro */
-        transform: translateY(-1px);
-        box-shadow: 0 6px 8px -2px rgba(229, 154, 121, 0.35);
-    }
-
-.btn-clay-secondary {
-    background-color: var(--cocoa-taupe); /* Fundo Cocoa Taupe */
-    color: #FFFFFF; /* Texto branco puro - contraste AA+ */
-    border: none;
-    border-radius: var(--radius-lg);
-    padding: 0.875rem 2rem;
-    font-weight: var(--font-weight-medium);
-    box-shadow: var(--shadow-cocoa-taupe);
-    transition: all 0.2s ease;
+.recommendation-card .recommendation-action-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(229, 154, 121, 0.2), transparent);
+  transition: left 0.5s;
 }
 
-    .btn-clay-secondary:hover {
-        background-color: var(--cocoa-taupe-deep); /* Hover mais escuro */
-        color: #FFFFFF; /* Manter branco puro */
-        transform: translateY(-1px);
-    }
-
-.btn-clay-ghost {
-    background-color: transparent;
-    color: var(--cocoa-taupe); /* Cocoa Taupe para melhor contraste */
-    border: 1px solid var(--cocoa-taupe-light);
-    border-radius: var(--radius-lg);
-    padding: 0.875rem 2rem;
-    font-weight: var(--font-weight-medium);
-    transition: all 0.2s ease;
+.recommendation-card .recommendation-action-btn:hover::before {
+  left: 100%;
 }
 
-    .btn-clay-ghost:hover {
-        background-color: var(--cocoa-taupe-lighter); /* Hover suave */
-        color: var(--cocoa-taupe-dark); /* Texto mais escuro no hover */
-        border-color: var(--cocoa-taupe);
-    }
-
-/* Botão de texto simples */
-.btn-clay-text {
-    background-color: transparent;
-    color: var(--burnt-peach); /* Link style */
-    border: none;
-    border-radius: var(--radius-lg);
-    padding: 0.5rem 1rem;
-    font-weight: var(--font-weight-medium);
-    transition: all 0.2s ease;
+.recommendation-card .recommendation-action-btn:hover {
+  background: linear-gradient(135deg, rgba(229, 154, 121, 0.1) 0%, rgba(229, 154, 121, 0.05) 100%);
+  border-color: var(--burnt-peach);
+  color: var(--burnt-peach);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(229, 154, 121, 0.2);
 }
 
-    .btn-clay-text:hover {
-        color: var(--burnt-peach-deep); /* Hover mais escuro */
-        background-color: var(--burnt-peach-lighter); /* Background suave */
-    }
-
-/* Esconder scrollbar para webkit (Chrome, Safari, Edge) */
-.scrollbar-hide {
-  -ms-overflow-style: none;  /* IE e Edge */
-  scrollbar-width: none;  /* Firefox */
+/* Estilos para cards de notificações de alerta */
+.alert-notification-card {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 0.875rem;
 }
 
-.scrollbar-hide::-webkit-scrollbar {
-  display: none;  /* Chrome, Safari, Opera */
+.alert-notification-card.unread {
+  background: linear-gradient(135deg, rgba(229, 154, 121, 0.05) 0%, rgba(229, 154, 121, 0.02) 100%);
+  border-color: var(--burnt-peach-light);
+}
+
+.alert-notification-card.unread::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: linear-gradient(180deg, var(--burnt-peach) 0%, var(--burnt-peach-deep) 100%);
+}
+
+.alert-notification-card:hover {
+  transform: translateY(-2px) scale(1.01);
+  box-shadow: 0 8px 16px rgba(229, 154, 121, 0.15), 0 4px 8px rgba(60, 47, 43, 0.1);
+}
+
+.alert-notification-card .notification-icon {
+  transition: all 0.3s ease;
+  border-radius: 50%;
+}
+
+.alert-notification-card:hover .notification-icon {
+  background-color: var(--burnt-peach-lighter);
+  transform: scale(1.1) rotate(5deg);
+}
+
+.alert-notification-card .notification-icon .icon {
+  transition: all 0.3s ease;
+}
+
+.alert-notification-card:hover .notification-icon .icon {
+  color: var(--burnt-peach-dark);
+}
+
+.alert-notification-card .notification-mark-read {
+  transition: all 0.3s ease;
+  opacity: 0;
+  transform: scale(0.8);
+  border-radius: 50%;
+}
+
+.alert-notification-card:hover .notification-mark-read {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.alert-notification-card .notification-mark-read:hover {
+  background-color: var(--success-gentle);
+  color: var(--pure-white);
+  transform: scale(1.1);
+}
+
+/* Estilos para cards de pesquisas salvas */
+.saved-search-card {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 0.875rem;
+}
+
+.saved-search-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(167, 139, 124, 0.1), transparent);
+  transition: left 0.6s ease;
+}
+
+.saved-search-card:hover::before {
+  left: 100%;
+}
+
+.saved-search-card:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 12px 24px rgba(167, 139, 124, 0.15), 0 6px 12px rgba(60, 47, 43, 0.1);
+  border-color: var(--cocoa-taupe-light);
+}
+
+.saved-search-card .search-icon {
+  transition: all 0.3s ease;
+  border-radius: 0.5rem;
+}
+
+.saved-search-card:hover .search-icon {
+  background-color: var(--cocoa-taupe-lighter);
+  transform: scale(1.05) rotate(5deg);
+  box-shadow: 0 4px 8px rgba(167, 139, 124, 0.2);
+}
+
+.saved-search-card .search-icon .icon {
+  transition: all 0.3s ease;
+}
+
+.saved-search-card:hover .search-icon .icon {
+  color: var(--cocoa-taupe-dark);
+}
+
+.saved-search-card .search-badge {
+  transition: all 0.3s ease;
+}
+
+.saved-search-card:hover .search-badge {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(167, 139, 124, 0.2);
+}
+
+.saved-search-card .search-action-btn {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.saved-search-card .search-action-btn::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(167, 139, 124, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.saved-search-card .search-action-btn:hover::before {
+  left: 100%;
+}
+
+.saved-search-card .search-action-btn:hover {
+  background: linear-gradient(135deg, rgba(167, 139, 124, 0.1) 0%, rgba(167, 139, 124, 0.05) 100%);
+  border-color: var(--cocoa-taupe);
+  color: var(--cocoa-taupe-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(167, 139, 124, 0.2);
+}
+
+.saved-search-card .search-delete-btn {
+  transition: all 0.3s ease;
+  opacity: 0;
+  transform: scale(0.8);
+  border-radius: 50%;
+}
+
+.saved-search-card:hover .search-delete-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.saved-search-card .search-delete-btn:hover {
+  background-color: var(--error-gentle);
+  color: var(--pure-white);
+  transform: scale(1.1);
+}
+
+/* Estilos para ícones de detalhes da propriedade */
+.property-detail-icon {
+  transition: all 0.3s ease;
+  border-radius: 0.375rem;
+}
+
+.property-detail-icon:hover {
+  background-color: var(--burnt-peach-lighter);
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(229, 154, 121, 0.2);
+}
+
+.property-detail-icon .icon {
+  transition: color 0.3s ease;
+}
+
+.property-detail-icon:hover .icon {
+  color: var(--burnt-peach);
+}
+
+/* Melhorias para badges */
+.property-badge {
+  transition: all 0.3s ease;
+  border-radius: 0.5rem;
+}
+
+.property-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Estilos para containers dos cards principais */
+.dashboard-card-container {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.dashboard-card-container:hover {
+  transform: translateY(-2px);
+}
+
+.dashboard-section-card {
+  border-radius: 1rem;
+  box-shadow: 0 4px 6px -1px rgba(60, 47, 43, 0.1), 0 2px 4px -1px rgba(60, 47, 43, 0.06);
+  transition: all 0.3s ease;
+}
+
+.dashboard-section-card:hover {
+  box-shadow: 0 8px 16px -3px rgba(60, 47, 43, 0.12), 0 4px 8px -2px rgba(60, 47, 43, 0.08);
+  transform: translateY(-1px);
+}
+
+/* Efeitos do card principal que afetam os botões */
+.property-card {
+  transition: all 0.3s ease;
+}
+
+.property-card:hover .btn-price-alert:not(.active),
+.property-card:hover .btn-favorite:not(.active) {
+  background: rgba(248, 246, 243, 0.8);
+  transform: scale(1.02);
+}
+
+.property-card:hover .btn-price-alert:not(.active) .bell-icon,
+.property-card:hover .btn-favorite:not(.active) .heart-icon {
+  color: var(--cocoa-taupe);
+}
+
+/* Melhorar o efeito do card principal */
+.property-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(60, 47, 43, 0.12), 0 4px 10px rgba(60, 47, 43, 0.08);
+}
+
+.property-card:hover .property-badge {
+  transform: translateY(-1px);
+}
+
+/* Efeito sutil nos ícones de localização e calendário */
+.property-info-icon {
+  transition: all 0.3s ease;
+}
+
+.property-card:hover .property-info-icon {
+  color: var(--burnt-peach);
+  transform: scale(1.1);
+}
+
+/* Adicionar estilos específicos para o botão "Ver mais" */
+.btn-ver-mais {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-ver-mais::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(229, 154, 121, 0.2), transparent);
+  transition: left 0.5s;
+}
+
+.btn-ver-mais:hover::before {
+  left: 100%;
+}
+
+.btn-ver-mais:hover {
+  background: linear-gradient(135deg, rgba(229, 154, 121, 0.1) 0%, rgba(229, 154, 121, 0.05) 100%);
+  border-color: var(--burnt-peach);
+  color: var(--burnt-peach);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(229, 154, 121, 0.2);
+}
+
+.btn-ver-mais:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(229, 154, 121, 0.15);
+}
+
+/* Estilos para o botão de alerta de preço (sininho) */
+.btn-price-alert {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+}
+
+.btn-price-alert::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(229, 154, 121, 0.15), transparent 70%);
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.3s ease;
+}
+
+.btn-price-alert:hover::before {
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+.btn-price-alert:hover {
+  background: rgba(229, 154, 121, 0.15);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 12px rgba(229, 154, 121, 0.25);
+}
+
+.btn-price-alert:hover .bell-icon {
+  color: var(--burnt-peach);
+  animation: bellRing 0.6s ease-in-out;
+}
+
+.btn-price-alert.active {
+  background: rgba(229, 154, 121, 0.2);
+  color: var(--burnt-peach);
+}
+
+.btn-price-alert.active .bell-icon {
+  color: var(--burnt-peach);
+  fill: currentColor;
+}
+
+.btn-price-alert:active {
+  transform: translateY(0) scale(1);
+  box-shadow: 0 2px 6px rgba(229, 154, 121, 0.2);
+}
+
+/* Estilos para o botão de favoritos (coração) */
+.btn-favorite {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+}
+
+.btn-favorite::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(229, 154, 121, 0.15), transparent 70%);
+  opacity: 0;
+  transform: scale(0.8);
+  transition: all 0.3s ease;
+}
+
+.btn-favorite:hover::before {
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+.btn-favorite:hover {
+  background: rgba(229, 154, 121, 0.15);
+  transform: translateY(-2px) scale(1.05);
+  box-shadow: 0 6px 12px rgba(229, 154, 121, 0.25);
+}
+
+.btn-favorite:hover .heart-icon {
+  color: var(--burnt-peach);
+  animation: heartBeat 0.8s ease-in-out;
+}
+
+.btn-favorite.active {
+  background: rgba(229, 154, 121, 0.2);
+  color: var(--burnt-peach);
+}
+
+.btn-favorite.active .heart-icon {
+  color: var(--burnt-peach);
+  fill: currentColor;
+  animation: heartPulse 1.5s ease-in-out infinite;
+}
+
+.btn-favorite:active {
+  transform: translateY(0) scale(1);
+  box-shadow: 0 2px 6px rgba(229, 154, 121, 0.2);
+}
+
+/* Animações personalizadas */
+@keyframes bellRing {
+  0%, 100% { transform: rotate(0deg); }
+  10%, 30%, 50%, 70%, 90% { transform: rotate(-10deg); }
+  20%, 40%, 60%, 80% { transform: rotate(10deg); }
+}
+
+@keyframes heartBeat {
+  0%, 100% { transform: scale(1); }
+  25% { transform: scale(1.1); }
+  50% { transform: scale(1.05); }
+  75% { transform: scale(1.15); }
+}
+
+@keyframes heartPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.8; }
+}
+
+/* Estados de foco para acessibilidade */
+.btn-price-alert:focus-visible,
+.btn-favorite:focus-visible {
+  outline: none;
+  ring: 2px solid rgba(229, 154, 121, 0.4);
+  ring-offset: 2px;
+  ring-offset-color: var(--pure-white);
+}
+
+/* Efeitos especiais para estados ativos */
+.btn-price-alert.active:hover {
+  background: rgba(229, 154, 121, 0.25);
+  box-shadow: 0 8px 16px rgba(229, 154, 121, 0.3);
+}
+
+.btn-favorite.active:hover {
+  background: rgba(229, 154, 121, 0.25);
+  box-shadow: 0 8px 16px rgba(229, 154, 121, 0.3);
 }

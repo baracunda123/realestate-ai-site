@@ -10,12 +10,7 @@ import { getCurrentUser, logout, authUtils } from './api/auth.service';
 import { createSafeDate } from './utils/PersonalArea';
 import type { UserProfile } from './api/client';
 import { getFavoriteProperties, addToFavorites, removeFromFavorites } from './api/favorites.service';
-import { 
-  createPriceAlert as createPriceAlertService, 
-  deleteAlertByProperty as deleteAlertByPropertyService,
-  hasAlertForProperty 
-} from './api/alerts.service';
-import type { CreatePriceAlertRequest } from './types/PersonalArea';
+import { usePriceAlerts } from './hooks/usePriceAlerts';
 
 // Lazy load components for better performance
 const SearchFilters = lazy(() => import('./components/SearchFilters').then(m => ({ default: m.SearchFilters })));
@@ -66,7 +61,39 @@ export default function App() {
   const [user, setUser] = useState<ExtendedUserProfile | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authDefaultTab, setAuthDefaultTab] = useState<AuthTab>('signin');
-  
+
+  // Hook para gerenciar alertas de preço
+  const {
+    alerts,
+    hasAlertForPropertyId,
+    createAlertForProperty,
+    removeAlertForProperty,
+    removeAlert,
+    updateAlertThreshold,
+    refreshAlerts
+  } = usePriceAlerts();
+
+  // Wrapper functions para compatibilidade com PersonalArea
+  const handleDeleteAlert = useCallback(async (alertId: string) => {
+    try {
+      await removeAlert(alertId);
+      toast.success('Alerta removido');
+    } catch (error) {
+      console.error('Erro ao remover alerta:', error);
+      toast.error('Erro ao remover alerta');
+    }
+  }, [removeAlert]);
+
+  const handleUpdateAlert = useCallback(async (alertId: string, threshold: number) => {
+    try {
+      await updateAlertThreshold(alertId, threshold);
+      toast.success(`Alerta atualizado`);
+    } catch (error) {
+      console.error('Erro ao atualizar alerta:', error);
+      toast.error('Erro ao atualizar alerta');
+    }
+  }, [updateAlertThreshold]);
+
   // Memoized values para evitar recálculos
   const isDefaultState = useMemo((): boolean => {
     const isDefaultFilters = 
@@ -230,34 +257,20 @@ export default function App() {
     }
     
     try {
-      // Verificar se já existe alerta
-      const hasAlert = await hasAlertForProperty(property.id);
+      const hasAlert = hasAlertForPropertyId(property.id);
       
       if (hasAlert) {
-        // Remover alerta existente
-        await deleteAlertByPropertyService(property.id);
-        
-        toast.success('Alerta removido!', {
-          description: `Não será mais notificado sobre "${property.title}".`
-        });
+        await removeAlertForProperty(property.id);
+        toast.success('Alerta removido');
       } else {
-        // Criar novo alerta
-        const payload: CreatePriceAlertRequest = {
-          propertyId: property.id,
-          alertThresholdPercentage: 5 // Default 5%
-        };
-
-        await createPriceAlertService(payload);
-        
-        toast.success('Alerta de preço criado!', {
-          description: `Será notificado quando o preço de "${property.title}" baixar 5% ou mais.`
-        });
+        await createAlertForProperty(property, 5); // Default 5%
+        toast.success('Alerta criado');
       }
     } catch (error) {
       console.error('Erro ao gerenciar alerta:', error);
-      toast.error('Falha ao gerenciar alerta de preço');
+      toast.error('Erro ao gerenciar alerta');
     }
-  }, [user]);
+  }, [user, hasAlertForPropertyId, removeAlertForProperty, createAlertForProperty]);
 
   // Search handlers - otimizados
   const handleExampleSearch = useCallback((query: string) => {
@@ -415,6 +428,10 @@ export default function App() {
             onToggleFavorite={toggleFavorite}
             hasActiveSearch={!isDefaultState && searchResults !== null}
             onCreatePriceAlert={handleCreatePriceAlert}
+            hasAlertForPropertyId={hasAlertForPropertyId}
+            alerts={alerts}
+            onDeleteAlert={handleDeleteAlert}
+            onUpdateAlert={handleUpdateAlert}
           />
         ) : showWelcomeScreen ? (
           <Suspense fallback={<LoadingSpinner />}>
@@ -426,7 +443,7 @@ export default function App() {
           </Suspense>
         ) : (
           user && (
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={< LoadingSpinner />}>
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 <div className="lg:col-span-1 space-y-6">
                   <SearchFilters
@@ -443,6 +460,7 @@ export default function App() {
                       favorites={favorites}
                       onToggleFavorite={toggleFavorite}
                       onCreatePriceAlert={handleCreatePriceAlert}
+                      hasAlertForPropertyId={hasAlertForPropertyId}
                     />
                   ) : (
                     <MapView
