@@ -17,17 +17,10 @@ interface SavedSearchDetailsResponse extends SavedSearch {
   }>;
 }
 
-interface SavedSearchExecuteResponse {
-  success: boolean;
-  totalCount: number;
-  newCount: number;
-  message: string;
-}
-
 // Função simples para logs
 function logToTerminal(message: string, level: 'info' | 'warn' | 'error' = 'info') {
   const timestamp = new Date().toLocaleTimeString();
-  const prefix = level === 'error' ? '❌' : level === 'warn' ? '⚠️' : '💡';
+  const prefix = level === 'error' ? '❌' : level === 'warn' ? '⚠️' : '🔍';
   console.log(`${prefix} [${timestamp}] SAVED_SEARCHES: ${message}`);
 }
 
@@ -132,29 +125,6 @@ export async function deleteSavedSearch(searchId: string): Promise<{ success: bo
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
     logToTerminal(`Erro ao excluir pesquisa salva: ${errorMsg}`, 'error');
-    throw error;
-  }
-}
-
-/**
- * Executar uma pesquisa salva
- */
-export async function executeSavedSearch(
-  searchId: string,
-  updateResults: boolean = true
-): Promise<SavedSearchExecuteResponse> {
-  logToTerminal(`Executando pesquisa salva: ${searchId}`);
-
-  try {
-    const response = await apiClient.post<SavedSearchExecuteResponse>(
-      `/api/saved-searches/${searchId}/execute`
-    );
-    
-    logToTerminal(`Pesquisa executada: ${response.totalCount} propriedades encontradas`);
-    return response;
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao executar pesquisa salva: ${errorMsg}`, 'error');
     throw error;
   }
 }

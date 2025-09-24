@@ -4,27 +4,22 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
 import { Search, Trash2, RefreshCw } from 'lucide-react';
-import type { SavedSearch, User } from '../../types/PersonalArea';
-import type { Property } from '../../types/property';
+import type { SavedSearch } from '../../types/PersonalArea';
 import { EmptyState } from '../EmptyState';
 import { formatDate, getPropertyTypeLabel } from '../../utils/PersonalArea';
-import { executeSavedSearch } from '../../api/saved-searches.service';
-import { toast } from 'sonner';
 
 interface PersonalAreaSearchesProps {
   savedSearches: SavedSearch[];
   onDeleteSearch: (searchId: string) => void;
   onNavigateToHome?: () => void;
   onExecuteSearch?: (search: SavedSearch) => void;
-  onUpdateSearch?: (searchId: string, updatedData: Partial<SavedSearch>) => void;
 }
 
 export function PersonalAreaSearches({ 
   savedSearches, 
   onDeleteSearch, 
   onNavigateToHome,
-  onExecuteSearch,
-  onUpdateSearch
+  onExecuteSearch
 }: PersonalAreaSearchesProps) {
 
   const handleDeleteSearch = (searchId: string) => {
@@ -40,53 +35,15 @@ export function PersonalAreaSearches({
     }
   };
 
-  const handleExecuteSearch = async (search: SavedSearch) => {
-    try {
-      // Primeiro atualizar os contadores no backend
-      const response = await executeSavedSearch(search.id, true);
-      
-      // Atualizar o estado local se callback disponível
-      if (onUpdateSearch) {
-        onUpdateSearch(search.id, {
-          results: response.totalCount,
-          newResults: response.newCount
-        });
-      }
-      
-      // Mostrar toast com informação dos resultados
-      if (response.newCount > 0) {
-        toast.success(`${response.totalCount} propriedades encontradas`, {
-          description: `${response.newCount} novas propriedades desde a última execução`
-        });
+  const handleExecuteSearch = (search: SavedSearch) => {
+    if (onExecuteSearch) {
+      onExecuteSearch(search);
+    } else {
+      // Fallback - navegar para home com a query da pesquisa
+      if (onNavigateToHome) {
+        onNavigateToHome();
       } else {
-        toast.info(`${response.totalCount} propriedades encontradas`);
-      }
-      
-      // Depois executar a navegação normal
-      if (onExecuteSearch) {
-        // Passar a pesquisa com dados atualizados
-        const updatedSearch = {
-          ...search,
-          results: response.totalCount,
-          newResults: response.newCount
-        };
-        onExecuteSearch(updatedSearch);
-      } else {
-        // Fallback - navegar para home
-        if (onNavigateToHome) {
-          onNavigateToHome();
-        } else {
-          window.location.hash = '';
-        }
-      }
-      
-    } catch (error) {
-      console.error('Erro ao executar pesquisa:', error);
-      toast.error('Erro ao executar pesquisa');
-      
-      // Mesmo com erro, tentar navegar
-      if (onExecuteSearch) {
-        onExecuteSearch(search);
+        window.location.hash = '';
       }
     }
   };

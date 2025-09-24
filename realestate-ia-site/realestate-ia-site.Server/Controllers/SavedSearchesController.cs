@@ -514,56 +514,5 @@ namespace realestate_ia_site.Server.Controllers
                 return StatusCode(500, new { message = "Erro interno do servidor" });
             }
         }
-
-        /// <summary>
-        /// Executar uma pesquisa salva (atualiza contador de resultados)
-        /// </summary>
-        [HttpPost("{id}/execute")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult> ExecuteSavedSearch(string id)
-        {
-            var userId = GetCurrentUserId();
-            if (string.IsNullOrEmpty(userId))
-                return Unauthorized(new { message = "Usuário não autenticado" });
-
-            _logger.LogInformation("Executing saved search {SearchId} for user {UserId}", id, userId);
-
-            try
-            {
-                // Buscar a pesquisa salva
-                var savedSearch = await _context.SavedSearches
-                    .FirstOrDefaultAsync(ss => ss.Id == id && ss.UserId == userId);
-
-                if (savedSearch == null)
-                    return NotFound(new { message = "Pesquisa salva não encontrada" });
-
-                // Atualizar contador de resultados
-                var newCount = await CountPropertiesMatchingCriteria(savedSearch);
-                var previousCount = savedSearch.ResultsCount;
-                
-                savedSearch.ResultsCount = newCount;
-                savedSearch.NewResultsCount = Math.Max(0, newCount - previousCount);
-                savedSearch.LastExecutedAt = DateTime.UtcNow;
-                savedSearch.UpdatedAt = DateTime.UtcNow;
-                
-                await _context.SaveChangesAsync();
-
-                _logger.LogInformation("Updated search {SearchId}: {NewCount} properties (was {PreviousCount})", 
-                    id, newCount, previousCount);
-
-                return Ok(new { 
-                    success = true, 
-                    totalCount = newCount,
-                    newCount = Math.Max(0, newCount - previousCount),
-                    message = "Pesquisa executada e atualizada com sucesso" 
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error executing saved search {SearchId}", id);
-                return StatusCode(500, new { message = "Erro interno do servidor" });
-            }
-        }
     }
 }
