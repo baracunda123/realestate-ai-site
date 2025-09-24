@@ -6,7 +6,7 @@ import {
   markNotificationAsRead,
   markAllNotificationsAsRead
 } from '../api/alert-notifications.service';
-import apiClient from '../api/client';
+import { useSignalR } from './useSignalR';
 
 interface UseNotificationsReturn {
   notifications: PropertyAlertNotification[];
@@ -16,31 +16,32 @@ interface UseNotificationsReturn {
   markAsRead: (notificationId: string) => Promise<void>;
   markAllAsRead: () => Promise<void>;
   refresh: () => Promise<void>;
-  startPolling: () => void;
-  stopPolling: () => void;
 }
 
 /**
- * Hook para gestão de notificações com refresh automático
+ * Hook para gestão de notificações com SignalR (substitui o sistema de polling)
  */
-export function useNotifications(pollingInterval: number = 30000): UseNotificationsReturn {
+export function useNotifications(): UseNotificationsReturn {
   const [notifications, setNotifications] = useState<PropertyAlertNotification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const mountedRef = useRef(true);
 
-  // Calcular notificações não lidas
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  // Usar SignalR para notificações em tempo real
+  const { 
+    unreadCount, 
+    isConnected, 
+    notifications: signalRNotifications 
+  } = useSignalR();
 
-  // Carregar notificações
+  // Carregar notificações iniciais
   const loadNotifications = useCallback(async (showLoading = true) => {
     if (!mountedRef.current) return;
     
     if (showLoading) setIsLoading(true);
     
     try {
-      const notificationsList = await getRecentNotifications(10); // Buscar mais notificações
+      const notificationsList = await getRecentNotifications(20);
       
       if (mountedRef.current) {
         setNotifications(notificationsList);
@@ -103,79 +104,24 @@ export function useNotifications(pollingInterval: number = 30000): UseNotificati
     }
   }, []);
 
-  // Iniciar polling
-  const startPolling = useCallback(() => {
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-    }
-    
-    pollingRef.current = setInterval(() => {
-      if (mountedRef.current) {
-        loadNotifications(false);
-      }
-    }, pollingInterval);
-  }, [loadNotifications, pollingInterval]);
-
-  // Parar polling
-  const stopPolling = useCallback(() => {
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
-    }
-  }, []);
-
-  // Ref para controlar toast notifications - FORA do useEffect
-  const previousUnreadRef = useRef(0);
-
-  // Verificar se há novas notificações e mostrar toast
-  useEffect(() => {
-    if (!isLoading && notifications.length > 0) {
-      const currentUnread = unreadCount;
-      
-      // Se há mais notificações não lidas que antes (exceto no primeiro load)
-      if (previousUnreadRef.current > 0 && currentUnread > previousUnreadRef.current) {
-        const newNotifications = currentUnread - previousUnreadRef.current;
-        toast.success(`${newNotifications} nova${newNotifications > 1 ? 's' : ''} notificação${newNotifications > 1 ? 'ões' : ''}!`, {
-          description: 'Verifique o dashboard para mais detalhes',
-          duration: 5000,
-        });
-      }
-      
-      previousUnreadRef.current = currentUnread;
-    }
-  }, [notifications, unreadCount, isLoading]);
-
-  // Carregar inicial e iniciar polling
+  // Carregar notificações iniciais
   useEffect(() => {
     mountedRef.current = true;
     loadNotifications();
-    startPolling();
 
-    // Cleanup
     return () => {
       mountedRef.current = false;
-      stopPolling();
     };
-  }, [loadNotifications, startPolling, stopPolling]);
+  }, [loadNotifications]);
 
-  // Parar polling quando a aba não está ativa (otimização)
+  // Processar notificações do SignalR
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        stopPolling();
-      } else {
-        startPolling();
-        // Refresh quando voltar à aba
-        refresh();
-      }
-    };
-
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [startPolling, stopPolling, refresh]);
+    if (signalRNotifications.length > 0 && isConnected) {
+      // Quando chegar nova notificação via SignalR, fazer refresh das notificações
+      // para ter os dados mais atualizados da base de dados
+      refresh();
+    }
+  }, [signalRNotifications, isConnected, refresh]);
 
   return {
     notifications,
@@ -184,85 +130,22 @@ export function useNotifications(pollingInterval: number = 30000): UseNotificati
     isRefreshing,
     markAsRead,
     markAllAsRead,
-    refresh,
-    startPolling,
-    stopPolling
+    refresh
   };
 }
 
 /**
  * Hook simplificado para apenas contagem de notificações não lidas
- * SEMPRE executa para evitar "Rules of Hooks" violation mas não faz requests se não autenticado
+ * NOVA VERSÃO: Usa SignalR em vez de polling
  */
-export function useUnreadNotificationsCount(pollingInterval: number = 60000): {
+export function useUnreadNotificationsCount(): {
   unreadCount: number;
   isLoading: boolean;
 } {
-  const [unreadCount, setUnreadCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
-  const mountedRef = useRef(true);
-
-  const checkUnreadCount = useCallback(async () => {
-    if (!mountedRef.current) return;
-    
-    // Verificar autenticação usando o apiClient
-    if (!apiClient.isAuthenticated()) {
-      if (mountedRef.current) {
-        setUnreadCount(0);
-        setIsLoading(false);
-      }
-      return;
-    }
-    
-    try {
-      const notifications = await getRecentNotifications(50);
-      const count = notifications.filter(n => !n.isRead).length;
-      
-      if (mountedRef.current) {
-        setUnreadCount(count);
-        setIsLoading(false);
-      }
-    } catch (error) {
-      // Falha silenciosa - pode ser usuário não autenticado ou erro de rede
-      if (mountedRef.current) {
-        setUnreadCount(0);
-        setIsLoading(false);
-      }
-    }
-  }, []);
-
-  // Inicializar ref na primeira renderização
-  useEffect(() => {
-    mountedRef.current = true;
-    return () => {
-      mountedRef.current = false;
-    };
-  }, []);
-
-  // Setup do polling
-  useEffect(() => {
-    // Verificação inicial
-    checkUnreadCount();
-    
-    // Configurar polling
-    pollingRef.current = setInterval(() => {
-      if (mountedRef.current) {
-        checkUnreadCount();
-      }
-    }, pollingInterval);
-
-    // Cleanup
-    return () => {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
-    };
-  }, [checkUnreadCount, pollingInterval]);
-
+  const { unreadCount, isConnected, isConnecting } = useSignalR();
+  
   return {
     unreadCount,
-    isLoading
+    isLoading: isConnecting || !isConnected
   };
 }

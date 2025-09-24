@@ -61,8 +61,8 @@ export function Header({
   const [currentUserQuery, setCurrentUserQuery] = useState<string>('');
   const [triggerNewQuery, setTriggerNewQuery] = useState<() => void>(() => () => {});
 
-  // Hook SEMPRE executado - nunca condicional
-  const { unreadCount, isLoading: notificationsLoading } = useUnreadNotificationsCount(60000);
+  // SIGNALR: Hook SEMPRE executado - agora usa SignalR em vez de polling
+  const { unreadCount, isLoading: notificationsLoading } = useUnreadNotificationsCount();
 
   // Reset local input when view changes and not on home page
   useEffect(() => {
@@ -253,20 +253,19 @@ export function Header({
       };
 
       return (
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleNavigateToPersonal}
-            className={`hidden md:flex hover:bg-clay-soft text-clay-secondary hover:text-title ${
-              currentView === 'personal' || currentView === 'alert-results' ? 'bg-clay-soft text-title' : ''
-            }`}
-          >
-            <User className="h-4 w-4 mr-2" />
-            Minha Área
-          </Button>
+          <div className="flex items-center space-x-2">
+              {currentView === 'home' && (< Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleNavigateToPersonal}
+                  className={"shidden md:flex hover:bg-clay-soft text-clay-secondary hover:text-title bg-clay-soft text-title" }
+                  >
+                  <User className="h-4 w-4 mr-2" />
+                  Minha Área
+              </Button>
+              )}
           
-          {/* Notification Bell - Só renderizar se user existe */}
+          {/* SIGNALR: Notification Bell - agora com notificações em tempo real */}
           {user && (
             <NotificationBell 
               onClick={handleNavigateToAlerts}

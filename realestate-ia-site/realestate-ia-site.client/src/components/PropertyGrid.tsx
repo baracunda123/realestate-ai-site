@@ -18,6 +18,7 @@ interface PropertyGridProps {
   serverResults?: Property[];
   favorites?: Property[];
   onToggleFavorite?: (property: Property) => void;
+  onCreatePriceAlert?: (property: Property) => void;
 }
 
 // Calculate simple text relevance score for ranking
@@ -53,7 +54,14 @@ const calculateRelevanceScore = (property: Property, query: string): number => {
   return score;
 };
 
-export function PropertyGrid({ filters, searchQuery, serverResults, favorites = [], onToggleFavorite }: PropertyGridProps) {
+export function PropertyGrid({ 
+  filters, 
+  searchQuery, 
+  serverResults, 
+  favorites = [], 
+  onToggleFavorite,
+  onCreatePriceAlert 
+}: PropertyGridProps) {
   // State for save search dialog
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
   const [saveSearchName, setSaveSearchName] = useState('');
@@ -337,6 +345,7 @@ export function PropertyGrid({ filters, searchQuery, serverResults, favorites = 
               property={property}
               isFavorite={favorites.some(f => f.id === property.id)}
               onToggleFavorite={onToggleFavorite}
+              onCreatePriceAlert={onCreatePriceAlert}
             />
           </div>
         ))}

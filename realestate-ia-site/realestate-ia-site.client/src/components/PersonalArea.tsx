@@ -10,7 +10,7 @@ import {
   ArrowLeft
 } from 'lucide-react';
 import type { Property } from '../types/property';
-import type { User, SavedSearch, PropertyAlert, ViewHistoryItem, CreatePriceAlertRequest } from '../types/PersonalArea';
+import type { User, SavedSearch, PropertyAlert, ViewHistoryItem } from '../types/PersonalArea';
 import type { SearchFilters as SearchFiltersType } from '../types/SearchFilters';
 import { Button } from './ui/button';
 import { PersonalAreaHeader } from './PersonalArea/PersonalAreaHeader';
@@ -23,10 +23,8 @@ import { PersonalAreaSettings } from './PersonalArea/PersonalAreaSettings';
 import { toast } from 'sonner';
 import { 
   getUserAlerts, 
-  createPriceAlert as createPriceAlertService, 
   deleteAlert as deleteAlertService,
-  updateAlert as updateAlertService,
-  hasAlertForProperty
+  updateAlert as updateAlertService
 } from '../api/alerts.service';
 import { 
   getSavedSearches as getSavedSearchesService,
@@ -42,7 +40,7 @@ interface PersonalAreaProps {
   favorites: Property[];
   onToggleFavorite: (property: Property) => void;
   hasActiveSearch?: boolean;
-  onCreatePriceAlert?: (property: Property) => void;
+  onCreatePriceAlert: (property: Property) => void;
   onCheckPriceAlert?: (propertyId: string) => Promise<boolean>;
 }
 
@@ -62,22 +60,18 @@ export function PersonalArea({
   // Data state
   const [alerts, setAlerts] = useState<PropertyAlert[]>([]);
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
-  const [alertsLoading, setAlertsLoading] = useState(true);
 
   // Hook para notificações com refresh automático
-  const { notifications, unreadCount } = useNotifications(60000); // Polling a cada 1 minuto
+  const { unreadCount } = useNotifications();
 
   // Carregar alertas e pesquisas salvas ao montar
   useEffect(() => {
     const loadData = async () => {
       try {
-        setAlertsLoading(true);
         const alertsResp = await getUserAlerts();
         setAlerts(alertsResp.alerts || []);
       } catch {
         setAlerts([]);
-      } finally {
-        setAlertsLoading(false);
       }
 
       try {
@@ -107,45 +101,14 @@ export function PersonalArea({
     refreshAlerts();
   }, [unreadCount]);
 
-  // Handler para criar alerta de preço
-  const handleCreatePriceAlert = async (property: Property) => {
-    try {
-      // Verificar se já existe alerta
-      const hasAlert = await hasAlertForProperty(property.id);
-      if (hasAlert) {
-        toast.info('Já existe um alerta para esta propriedade');
-        return;
-      }
-
-      const payload: CreatePriceAlertRequest = {
-        propertyId: property.id,
-        alertThresholdPercentage: 5 // Default 5%
-      };
-
-      const created = await createPriceAlertService(payload);
-      setAlerts(prev => [...prev, created]);
-      
-      toast.success('Alerta de preço criado!', {
-        description: `Será notificado quando o preço de "${property.title}" baixar 5% ou mais.`
-      });
-
-      // Se temos callback, chamar também
-      if (onCreatePriceAlert) {
-        onCreatePriceAlert(property);
-      }
-    } catch (error) {
-      console.error('Erro ao criar alerta:', error);
-      toast.error('Falha ao criar alerta de preço');
-    }
-  };
-
-  // Handler para verificar se propriedade tem alerta
+  // Handler para verificar se propriedade tem alerta - apenas wrapper para a prop
   const handleCheckPriceAlert = async (propertyId: string): Promise<boolean> => {
     try {
       if (onCheckPriceAlert) {
         return await onCheckPriceAlert(propertyId);
       }
-      return await hasAlertForProperty(propertyId);
+      // Fallback: check local alerts state
+      return alerts.some(alert => alert.propertyId === propertyId && alert.isActive);
     } catch {
       return false;
     }
@@ -291,7 +254,7 @@ export function PersonalArea({
           <PersonalAreaFavorites
             favorites={favorites}
             onToggleFavorite={onToggleFavorite}
-            onCreatePriceAlert={handleCreatePriceAlert}
+            onCreatePriceAlert={onCreatePriceAlert}
             onCheckPriceAlert={handleCheckPriceAlert}
           />
         </TabsContent>

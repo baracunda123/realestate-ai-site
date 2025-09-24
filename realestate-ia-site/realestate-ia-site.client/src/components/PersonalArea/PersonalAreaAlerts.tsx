@@ -1,7 +1,7 @@
-import React from 'react';
 import { Card, CardContent} from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
 import { Bell, Settings, Trash2, TrendingDown, MapPin, Euro, Clock } from 'lucide-react';
 import type { User, PropertyAlert } from '../../types/PersonalArea';
 import { EmptyState } from '../EmptyState';
@@ -104,7 +104,7 @@ export function PersonalAreaAlerts({
                         </div>
                         <div className="flex items-center space-x-1">
                           <Euro className="h-3 w-3 text-burnt-peach" />
-                          <span className="font-medium text-foreground">€{alert.currentPrice.toLocaleString('pt-PT')}</span>
+                          <span className="font-medium text-foreground">{alert.currentPrice.toLocaleString('pt-PT')}</span>
                         </div>
                       </div>
                       
@@ -133,19 +133,48 @@ export function PersonalAreaAlerts({
                   <div className="flex items-center space-x-2 ml-4">
                     {/* Threshold adjustment */}
                     {onUpdateAlert && (
-                      <div className="flex items-center space-x-1">
-                        <select
-                          value={alert.alertThresholdPercentage}
-                          onChange={(e) => handleThresholdChange(alert.id, parseInt(e.target.value))}
-                          className="text-xs border border-pale-clay-deep rounded px-2 py-1 bg-white text-gray-700 focus:border-burnt-peach focus:outline-none"
+                      <div className="flex items-center space-x-2">
+                        <Select
+                          value={alert.alertThresholdPercentage.toString()}
+                          onValueChange={(value) => handleThresholdChange(alert.id, parseInt(value))}
                         >
-                          <option value={5}>5%</option>
-                          <option value={10}>10%</option>
-                          <option value={15}>15%</option>
-                          <option value={20}>20%</option>
-                          <option value={25}>25%</option>
-                        </select>
-                        <Settings className="h-3 w-3 text-gray-400" />
+                          <SelectTrigger className="w-20 h-8 text-xs border-pale-clay-deep bg-pure-white hover:border-burnt-peach focus:border-burnt-peach focus:ring-2 focus:ring-burnt-peach/20 transition-all duration-200">
+                            <SelectValue className="text-warm-taupe font-medium" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-pure-white border-pale-clay-deep shadow-clay-medium">
+                            <SelectItem 
+                              value="5" 
+                              className="text-xs text-warm-taupe hover:bg-burnt-peach-lighter/20 hover:text-burnt-peach-dark focus:bg-burnt-peach-lighter/30 focus:text-burnt-peach-dark cursor-pointer"
+                            >
+                              5%
+                            </SelectItem>
+                            <SelectItem 
+                              value="10" 
+                              className="text-xs text-warm-taupe hover:bg-burnt-peach-lighter/20 hover:text-burnt-peach-dark focus:bg-burnt-peach-lighter/30 focus:text-burnt-peach-dark cursor-pointer"
+                            >
+                              10%
+                            </SelectItem>
+                            <SelectItem 
+                              value="15" 
+                              className="text-xs text-warm-taupe hover:bg-burnt-peach-lighter/20 hover:text-burnt-peach-dark focus:bg-burnt-peach-lighter/30 focus:text-burnt-peach-dark cursor-pointer"
+                            >
+                              15%
+                            </SelectItem>
+                            <SelectItem 
+                              value="20" 
+                              className="text-xs text-warm-taupe hover:bg-burnt-peach-lighter/20 hover:text-burnt-peach-dark focus:bg-burnt-peach-lighter/30 focus:text-burnt-peach-dark cursor-pointer"
+                            >
+                              20%
+                            </SelectItem>
+                            <SelectItem 
+                              value="25" 
+                              className="text-xs text-warm-taupe hover:bg-burnt-peach-lighter/20 hover:text-burnt-peach-dark focus:bg-burnt-peach-lighter/30 focus:text-burnt-peach-dark cursor-pointer"
+                            >
+                              25%
+                            </SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Settings className="h-3 w-3 text-cocoa-taupe hover:text-burnt-peach transition-colors duration-200" />
                       </div>
                     )}
                     
@@ -173,7 +202,7 @@ export function PersonalAreaAlerts({
             <div className="space-y-1">
               <h4 className="text-sm font-medium text-foreground">Como funcionam os alertas de preço</h4>
               <p className="text-xs text-muted-foreground">
-                Clique no sininho (🔔) em qualquer propriedade para criar um alerta. Será notificado por email quando o preço baixar 
+                Clique no sininho, em qualquer propriedade para criar um alerta. Será notificado quando o preço baixar 
                 conforme a percentagem definida. Pode ajustar a sensibilidade do alerta a qualquer momento.
               </p>
             </div>

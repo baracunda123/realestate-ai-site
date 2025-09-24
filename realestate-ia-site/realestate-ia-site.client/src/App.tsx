@@ -10,6 +10,12 @@ import { getCurrentUser, logout, authUtils } from './api/auth.service';
 import { createSafeDate } from './utils/PersonalArea';
 import type { UserProfile } from './api/client';
 import { getFavoriteProperties, addToFavorites, removeFromFavorites } from './api/favorites.service';
+import { 
+  createPriceAlert as createPriceAlertService, 
+  deleteAlertByProperty as deleteAlertByPropertyService,
+  hasAlertForProperty 
+} from './api/alerts.service';
+import type { CreatePriceAlertRequest } from './types/PersonalArea';
 
 // Lazy load components for better performance
 const SearchFilters = lazy(() => import('./components/SearchFilters').then(m => ({ default: m.SearchFilters })));
@@ -215,6 +221,44 @@ export default function App() {
     }
   }, [favorites, user]);
 
+  // Handler para criar/remover alertas de preço
+  const handleCreatePriceAlert = useCallback(async (property: Property) => {
+    if (!user) {
+      setAuthDefaultTab('signin');
+      setIsAuthModalOpen(true);
+      return;
+    }
+    
+    try {
+      // Verificar se já existe alerta
+      const hasAlert = await hasAlertForProperty(property.id);
+      
+      if (hasAlert) {
+        // Remover alerta existente
+        await deleteAlertByPropertyService(property.id);
+        
+        toast.success('Alerta removido!', {
+          description: `Não será mais notificado sobre "${property.title}".`
+        });
+      } else {
+        // Criar novo alerta
+        const payload: CreatePriceAlertRequest = {
+          propertyId: property.id,
+          alertThresholdPercentage: 5 // Default 5%
+        };
+
+        await createPriceAlertService(payload);
+        
+        toast.success('Alerta de preço criado!', {
+          description: `Será notificado quando o preço de "${property.title}" baixar 5% ou mais.`
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao gerenciar alerta:', error);
+      toast.error('Falha ao gerenciar alerta de preço');
+    }
+  }, [user]);
+
   // Search handlers - otimizados
   const handleExampleSearch = useCallback((query: string) => {
     if (!user) {
@@ -300,7 +344,7 @@ export default function App() {
     } catch {
       toast.error('Erro ao carregar dados do utilizador');
     }
-  }, []);
+  }, [[]]);
 
   const handleLogout = useCallback(async () => {
     try {
@@ -370,6 +414,7 @@ export default function App() {
             favorites={favorites}
             onToggleFavorite={toggleFavorite}
             hasActiveSearch={!isDefaultState && searchResults !== null}
+            onCreatePriceAlert={handleCreatePriceAlert}
           />
         ) : showWelcomeScreen ? (
           <Suspense fallback={<LoadingSpinner />}>
@@ -397,6 +442,7 @@ export default function App() {
                       serverResults={searchResults || undefined}
                       favorites={favorites}
                       onToggleFavorite={toggleFavorite}
+                      onCreatePriceAlert={handleCreatePriceAlert}
                     />
                   ) : (
                     <MapView

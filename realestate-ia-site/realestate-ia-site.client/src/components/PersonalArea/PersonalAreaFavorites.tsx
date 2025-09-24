@@ -40,7 +40,7 @@ export function PersonalAreaFavorites({
         <div>
           <h2 className="font-medium text-foreground">Suas Propriedades Favoritas</h2>
           <p className="text-sm text-muted-foreground">
-            {favorites.length} propriedades favoritadas • Use o sininho (??) para criar alertas de preço
+            {favorites.length} propriedades favoritadas
           </p>
         </div>
       </div>

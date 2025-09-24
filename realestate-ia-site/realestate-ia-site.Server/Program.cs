@@ -126,6 +126,22 @@ builder.Services.AddAuthentication(options =>
             return Task.CompletedTask;
         }
     };
+
+    // SIGNALR: JWT Authentication para hubs
+    options.Events.OnMessageReceived = context =>
+    {
+        var accessToken = context.Request.Query["access_token"];
+
+        // Se é request para hub SignalR
+        var path = context.HttpContext.Request.Path;
+        if (!string.IsNullOrEmpty(accessToken) && 
+            path.StartsWithSegments("/hubs"))
+        {
+            context.Token = accessToken;
+        }
+
+        return Task.CompletedTask;
+    };
 });
 
 // Enhanced Rate Limiter
@@ -250,6 +266,19 @@ builder.Services.AddScoped<IPropertyFilter, TopPicksFilter>();
 builder.Services.Configure<EmailConfiguration>(builder.Configuration.GetSection("Email"));
 builder.Services.AddScoped<IEmailService, EmailService>();
 
+// SIGNALR: Serviço de notificações em tempo real
+builder.Services.AddScoped<IRealtimeNotificationService, RealtimeNotificationService>();
+
+// SIGNALR: Configuração do SignalR com autenticação
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+    options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+    options.HandshakeTimeout = TimeSpan.FromSeconds(15);
+    options.MaximumReceiveMessageSize = 32 * 1024; // 32KB
+});
+
 // Domain events
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 builder.Services.AddScoped<IDomainEventHandler<PropertyPriceChangedEvent>, PropertyAlertEventHandler>();
@@ -367,6 +396,9 @@ app.UseAuthorization();
 app.UseCors();
 
 app.MapControllers();
+
+// SIGNALR: Mapear hubs (DEPOIS da autenticação e autorização)
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 if (!app.Environment.IsDevelopment())
 {

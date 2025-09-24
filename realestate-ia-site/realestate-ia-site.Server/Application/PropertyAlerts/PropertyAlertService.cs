@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Application.Common.Interfaces;
 using realestate_ia_site.Server.Application.PropertyAlerts.DTOs;
+using realestate_ia_site.Server.Application.Notifications.Interfaces;
 
 namespace realestate_ia_site.Server.Application.PropertyAlerts
 {
@@ -11,13 +12,16 @@ namespace realestate_ia_site.Server.Application.PropertyAlerts
     public class PropertyAlertService
     {
         private readonly IApplicationDbContext _context;
+        private readonly IRealtimeNotificationService _realtimeNotificationService;
         private readonly ILogger<PropertyAlertService> _logger;
 
         public PropertyAlertService(
             IApplicationDbContext context,
+            IRealtimeNotificationService realtimeNotificationService,
             ILogger<PropertyAlertService> logger)
         {
             _context = context;
+            _realtimeNotificationService = realtimeNotificationService;
             _logger = logger;
         }
 
@@ -102,6 +106,18 @@ namespace realestate_ia_site.Server.Application.PropertyAlerts
 
             _logger.LogInformation("Created price alert {AlertId} for user {UserId} on property {PropertyId}", 
                 alert.Id, userId, request.PropertyId);
+
+            // SIGNALR: Notificar utilizador em tempo real que o alerta foi criado
+            try
+            {
+                var alertDto = MapToDto(alert);
+                await _realtimeNotificationService.SendAlertCreatedNotificationAsync(userId, alertDto);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to send real-time alert created notification to user {UserId}", userId);
+                // Não falhar a operação por causa do SignalR
+            }
 
             return MapToDto(alert);
         }
@@ -196,17 +212,46 @@ namespace realestate_ia_site.Server.Application.PropertyAlerts
 
                 if (reductionPercentage >= alert.AlertThresholdPercentage)
                 {
-                    await CreatePriceDropNotificationAsync(alert, property, oldPrice, cancellationToken);
+                    var notification = await CreatePriceDropNotificationAsync(alert, property, oldPrice, cancellationToken);
                     
                     alert.LastTriggered = DateTime.UtcNow;
                     alert.NotificationCount++;
                     alert.CurrentPrice = property.Price.Value; // Atualizar preço atual
+
+                    // SIGNALR: Enviar notificação em tempo real
+                    if (notification != null)
+                    {
+                        try
+                        {
+                            await _realtimeNotificationService.SendPriceAlertNotificationAsync(alert.UserId, notification);
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Failed to send real-time price alert to user {UserId}", alert.UserId);
+                            // Continuar com o processamento mesmo se o SignalR falhar
+                        }
+                    }
                 }
             }
 
             if (matchingAlerts.Any())
             {
                 await _context.SaveChangesAsync(cancellationToken);
+
+                // SIGNALR: Atualizar contagem de notificações não lidas para cada utilizador afetado
+                var affectedUsers = matchingAlerts.Select(a => a.UserId).Distinct();
+                foreach (var userId in affectedUsers)
+                {
+                    try
+                    {
+                        var unreadCount = await GetUnreadNotificationCountAsync(userId, cancellationToken);
+                        await _realtimeNotificationService.SendUnreadCountUpdateAsync(userId, unreadCount);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to send unread count update to user {UserId}", userId);
+                    }
+                }
             }
         }
 
@@ -225,9 +270,7 @@ namespace realestate_ia_site.Server.Application.PropertyAlerts
                 .Take(limit)
                 .ToListAsync(cancellationToken);
 
-            var unreadCount = await _context.PropertyAlertNotifications
-                .Where(n => n.UserId == userId && n.IsActive && n.ReadAt == null)
-                .CountAsync(cancellationToken);
+            var unreadCount = await GetUnreadNotificationCountAsync(userId, cancellationToken);
 
             return new AlertNotificationsResponseDto
             {
@@ -261,6 +304,17 @@ namespace realestate_ia_site.Server.Application.PropertyAlerts
             {
                 notification.ReadAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync(cancellationToken);
+
+                // SIGNALR: Atualizar contagem de não lidas
+                try
+                {
+                    var unreadCount = await GetUnreadNotificationCountAsync(userId, cancellationToken);
+                    await _realtimeNotificationService.SendUnreadCountUpdateAsync(userId, unreadCount);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to send unread count update to user {UserId}", userId);
+                }
             }
         }
 
@@ -280,7 +334,24 @@ namespace realestate_ia_site.Server.Application.PropertyAlerts
             if (unreadNotifications.Any())
             {
                 await _context.SaveChangesAsync(cancellationToken);
+
+                // SIGNALR: Atualizar contagem para 0
+                try
+                {
+                    await _realtimeNotificationService.SendUnreadCountUpdateAsync(userId, 0);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to send unread count update to user {UserId}", userId);
+                }
             }
+        }
+
+        private async Task<int> GetUnreadNotificationCountAsync(string userId, CancellationToken cancellationToken = default)
+        {
+            return await _context.PropertyAlertNotifications
+                .Where(n => n.UserId == userId && n.IsActive && n.ReadAt == null)
+                .CountAsync(cancellationToken);
         }
 
         #endregion
@@ -314,7 +385,7 @@ namespace realestate_ia_site.Server.Application.PropertyAlerts
             return parts.Any() ? string.Join(", ", parts) : "Localização não especificada";
         }
 
-        private async Task CreatePriceDropNotificationAsync(
+        private async Task<PropertyAlertNotificationDto?> CreatePriceDropNotificationAsync(
             PropertyAlert alert,
             Property property,
             decimal oldPrice,
@@ -333,7 +404,7 @@ namespace realestate_ia_site.Server.Application.PropertyAlerts
             {
                 _logger.LogDebug("Skipping duplicate price drop notification for user {UserId}, property {PropertyId}",
                     alert.UserId, property.Id);
-                return;
+                return null;
             }
 
             var savings = oldPrice - property.Price!.Value;
@@ -358,6 +429,21 @@ namespace realestate_ia_site.Server.Application.PropertyAlerts
 
             _logger.LogInformation("Created price drop notification for user {UserId}, property {PropertyId}, savings €{Savings}",
                 alert.UserId, property.Id, savings);
+
+            // Retornar DTO para envio via SignalR
+            return new PropertyAlertNotificationDto
+            {
+                Id = notification.Id,
+                PropertyId = property.Id,
+                PropertyTitle = property.Title ?? "Propriedade",
+                PropertyLocation = alert.PropertyLocation,
+                CurrentPrice = property.Price.Value,
+                OldPrice = oldPrice,
+                SavingsAmount = savings,
+                SavingsPercentage = savingsPercentage,
+                CreatedAt = notification.CreatedAt,
+                IsRead = false
+            };
         }
 
         #endregion
