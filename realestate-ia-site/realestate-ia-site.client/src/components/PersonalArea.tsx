@@ -146,12 +146,6 @@ export function PersonalArea({
         });
       }
       
-      // Opcional: executar no backend para atualizar estatísticas
-      try {
-        await executeSavedSearch(search.id, false);
-      } catch {
-        // Ignorar erro silenciosamente
-      }
     } catch {
       toast.error('Erro ao executar pesquisa');
     }
