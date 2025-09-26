@@ -27,8 +27,7 @@ import {
 } from '../api/alerts.service';
 import { 
   getSavedSearches as getSavedSearchesService,
-  deleteSavedSearch as deleteSavedSearchService,
-  executeSavedSearch
+  deleteSavedSearch as deleteSavedSearchService
 } from '../api/saved-searches.service';
 import { useNotifications } from '../hooks/useNotifications';
 
@@ -147,12 +146,6 @@ export function PersonalArea({
         });
       }
       
-      // Opcional: executar no backend para atualizar estatísticas
-      try {
-        await executeSavedSearch(search.id, false);
-      } catch {
-        // Ignorar erro silenciosamente
-      }
     } catch {
       toast.error('Erro ao executar pesquisa');
     }
