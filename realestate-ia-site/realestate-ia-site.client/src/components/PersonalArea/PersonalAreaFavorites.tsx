@@ -3,22 +3,20 @@ import { Heart } from 'lucide-react';
 import type { Property } from '../../types/property';
 import { PropertyCard } from '../PropertyCard';
 import { EmptyState } from '../EmptyState';
-import type { User } from '../../types/PersonalArea';
 
 interface PersonalAreaFavoritesProps {
-  user: User;
   favorites: Property[];
-  onPropertySelect: (property: Property) => void;
   onToggleFavorite?: (property: Property) => void;
+  onCreatePriceAlert?: (property: Property) => void;
+  hasAlertForPropertyId?: (propertyId: string) => boolean;
 }
 
 export function PersonalAreaFavorites({
-  user,
   favorites,
-  onPropertySelect,
   onToggleFavorite,
+  onCreatePriceAlert,
+  hasAlertForPropertyId,
 }: PersonalAreaFavoritesProps) {
-
   if (favorites.length === 0) {
     return (
       <EmptyState
@@ -47,14 +45,15 @@ export function PersonalAreaFavorites({
       </div>
 
       {/* Properties Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
         {favorites.map((property) => (
           <PropertyCard
             key={property.id}
             property={property}
-            onClick={() => onPropertySelect(property)}
             onToggleFavorite={onToggleFavorite}
+            onCreatePriceAlert={onCreatePriceAlert}
             isFavorite={true}
+            hasPriceAlert={hasAlertForPropertyId ? hasAlertForPropertyId(property.id) : false}
           />
         ))}
       </div>

@@ -64,6 +64,45 @@ namespace realestate_ia_site.Server.Data.Migrations
                     b.ToTable("user_tokens", (string)null);
                 });
 
+            modelBuilder.Entity("realestate_ia_site.Server.Domain.Entities.Favorite", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("PropertyId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("property_id");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("PropertyId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "PropertyId")
+                        .IsUnique();
+
+                    b.ToTable("favorites");
+                });
+
             modelBuilder.Entity("realestate_ia_site.Server.Domain.Entities.Property", b =>
                 {
                     b.Property<string>("Id")
@@ -122,6 +161,10 @@ namespace realestate_ia_site.Server.Data.Migrations
                         .HasColumnType("decimal")
                         .HasColumnName("price");
 
+                    b.Property<string>("SourceSite")
+                        .HasColumnType("text")
+                        .HasColumnName("source_site");
+
                     b.Property<string>("State")
                         .HasColumnType("text")
                         .HasColumnName("state");
@@ -149,6 +192,361 @@ namespace realestate_ia_site.Server.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("properties");
+                });
+
+            modelBuilder.Entity("realestate_ia_site.Server.Domain.Entities.PropertyAlert", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("AlertThresholdPercentage")
+                        .HasColumnType("integer")
+                        .HasColumnName("alert_threshold_percentage");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<decimal>("CurrentPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("current_price");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<DateTime?>("LastTriggered")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_triggered");
+
+                    b.Property<int>("NotificationCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("notification_count");
+
+                    b.Property<string>("PropertyId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("property_id");
+
+                    b.Property<string>("PropertyLocation")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("property_location");
+
+                    b.Property<string>("PropertyTitle")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("property_title");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("LastTriggered");
+
+                    b.HasIndex("PropertyId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "PropertyId")
+                        .IsUnique();
+
+                    b.ToTable("property_alerts");
+                });
+
+            modelBuilder.Entity("realestate_ia_site.Server.Domain.Entities.PropertyAlertNotification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AlertId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("alert_id");
+
+                    b.Property<string>("AlertType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("alert_type");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("message");
+
+                    b.Property<decimal?>("OldPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("old_price");
+
+                    b.Property<string>("PropertyId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("property_id");
+
+                    b.Property<string>("PropertyLocation")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("property_location");
+
+                    b.Property<decimal?>("PropertyPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("property_price");
+
+                    b.Property<DateTime?>("ReadAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("read_at");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("title");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AlertId");
+
+                    b.HasIndex("AlertType");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("PropertyId");
+
+                    b.HasIndex("ReadAt");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "PropertyId");
+
+                    b.ToTable("property_alert_notifications");
+                });
+
+            modelBuilder.Entity("realestate_ia_site.Server.Domain.Entities.PropertyPriceHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("ChangeReason")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("change_reason");
+
+                    b.Property<DateTime>("ChangedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("changed_at");
+
+                    b.Property<decimal>("NewPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("new_price");
+
+                    b.Property<decimal>("OldPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("old_price");
+
+                    b.Property<string>("PropertyId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("property_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ChangedAt");
+
+                    b.HasIndex("PropertyId");
+
+                    b.HasIndex("PropertyId", "ChangedAt");
+
+                    b.ToTable("property_price_histories");
+                });
+
+            modelBuilder.Entity("realestate_ia_site.Server.Domain.Entities.PropertyRecommendation", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<string>("PropertyId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("property_id");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("reason");
+
+                    b.Property<int>("Score")
+                        .HasColumnType("integer")
+                        .HasColumnName("score");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("user_id");
+
+                    b.Property<DateTime?>("ViewedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("viewed_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("PropertyId");
+
+                    b.HasIndex("Score");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "PropertyId");
+
+                    b.ToTable("property_recommendations");
+                });
+
+            modelBuilder.Entity("realestate_ia_site.Server.Domain.Entities.SavedSearch", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasColumnType("text")
+                        .HasColumnName("id");
+
+                    b.Property<int?>("Bathrooms")
+                        .HasColumnType("integer")
+                        .HasColumnName("bathrooms");
+
+                    b.Property<int?>("Bedrooms")
+                        .HasColumnType("integer")
+                        .HasColumnName("bedrooms");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<bool>("HasGarage")
+                        .HasColumnType("boolean")
+                        .HasColumnName("has_garage");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("is_active");
+
+                    b.Property<DateTime?>("LastExecutedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_executed_at");
+
+                    b.Property<DateTime?>("LastViewedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_viewed_at");
+
+                    b.Property<string>("Location")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("location");
+
+                    b.Property<decimal?>("MaxPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("max_price");
+
+                    b.Property<decimal?>("MinPrice")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("min_price");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<int>("NewResultsCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("new_results_count");
+
+                    b.Property<string>("PropertyType")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("property_type");
+
+                    b.Property<string>("Query")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("query");
+
+                    b.Property<int>("ResultsCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("results_count");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("IsActive");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("saved_searches");
                 });
 
             modelBuilder.Entity("realestate_ia_site.Server.Domain.Entities.ScrapingState", b =>
@@ -464,6 +862,59 @@ namespace realestate_ia_site.Server.Data.Migrations
                     b.ToTable("user_login_sessions");
                 });
 
+            modelBuilder.Entity("realestate_ia_site.Server.Domain.Entities.UserSearchHistory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("FiltersJson")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("filters_json");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(45)
+                        .HasColumnType("character varying(45)")
+                        .HasColumnName("ip_address");
+
+                    b.Property<int>("ResultsCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("results_count");
+
+                    b.Property<string>("SearchQuery")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("search_query");
+
+                    b.Property<string>("SessionId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("session_id");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("text")
+                        .HasColumnName("user_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("SessionId");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("user_search_history");
+                });
+
             modelBuilder.Entity("realestate_ia_site.Server.Domain.Entities.WebhookEvent", b =>
                 {
                     b.Property<string>("Id")
@@ -508,99 +959,6 @@ namespace realestate_ia_site.Server.Data.Migrations
                     b.ToTable("webhook_events");
                 });
 
-            modelBuilder.Entity("realestate_ia_site.Server.Domain.Models.PropertyAlert", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<int?>("Bathrooms")
-                        .HasColumnType("integer");
-
-                    b.Property<int?>("Bedrooms")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<bool>("EmailNotifications")
-                        .HasColumnType("boolean");
-
-                    b.Property<bool>("IsActive")
-                        .HasColumnType("boolean");
-
-                    b.Property<DateTime?>("LastTriggered")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Location")
-                        .HasColumnType("text");
-
-                    b.Property<int>("MatchCount")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal?>("MaxPrice")
-                        .HasColumnType("numeric");
-
-                    b.Property<decimal?>("MinPrice")
-                        .HasColumnType("numeric");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<bool>("NewListingAlerts")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("NewMatches")
-                        .HasColumnType("integer");
-
-                    b.Property<bool>("PriceDropAlerts")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("PropertyType")
-                        .HasColumnType("text");
-
-                    b.Property<bool>("SmsNotifications")
-                        .HasColumnType("boolean");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("PropertyAlerts");
-                });
-
-            modelBuilder.Entity("realestate_ia_site.Server.Domain.Models.PropertyPriceHistory", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("ChangeReason")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("ChangedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<decimal>("NewPrice")
-                        .HasColumnType("numeric");
-
-                    b.Property<decimal>("OldPrice")
-                        .HasColumnType("numeric");
-
-                    b.Property<string>("PropertyId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PropertyId");
-
-                    b.ToTable("PropertyPriceHistories");
-                });
-
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
                 {
                     b.HasOne("realestate_ia_site.Server.Domain.Entities.User", null)
@@ -617,6 +975,104 @@ namespace realestate_ia_site.Server.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("realestate_ia_site.Server.Domain.Entities.Favorite", b =>
+                {
+                    b.HasOne("realestate_ia_site.Server.Domain.Entities.Property", "Property")
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("realestate_ia_site.Server.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Property");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("realestate_ia_site.Server.Domain.Entities.PropertyAlert", b =>
+                {
+                    b.HasOne("realestate_ia_site.Server.Domain.Entities.Property", "Property")
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("realestate_ia_site.Server.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Property");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("realestate_ia_site.Server.Domain.Entities.PropertyAlertNotification", b =>
+                {
+                    b.HasOne("realestate_ia_site.Server.Domain.Entities.Property", "Property")
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("realestate_ia_site.Server.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Property");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("realestate_ia_site.Server.Domain.Entities.PropertyPriceHistory", b =>
+                {
+                    b.HasOne("realestate_ia_site.Server.Domain.Entities.Property", "Property")
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Property");
+                });
+
+            modelBuilder.Entity("realestate_ia_site.Server.Domain.Entities.PropertyRecommendation", b =>
+                {
+                    b.HasOne("realestate_ia_site.Server.Domain.Entities.Property", "Property")
+                        .WithMany()
+                        .HasForeignKey("PropertyId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("realestate_ia_site.Server.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Property");
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("realestate_ia_site.Server.Domain.Entities.SavedSearch", b =>
+                {
+                    b.HasOne("realestate_ia_site.Server.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("realestate_ia_site.Server.Domain.Entities.Subscription", b =>
@@ -639,15 +1095,14 @@ namespace realestate_ia_site.Server.Data.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("realestate_ia_site.Server.Domain.Models.PropertyPriceHistory", b =>
+            modelBuilder.Entity("realestate_ia_site.Server.Domain.Entities.UserSearchHistory", b =>
                 {
-                    b.HasOne("realestate_ia_site.Server.Domain.Entities.Property", "Property")
+                    b.HasOne("realestate_ia_site.Server.Domain.Entities.User", "User")
                         .WithMany()
-                        .HasForeignKey("PropertyId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
-                    b.Navigation("Property");
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("realestate_ia_site.Server.Domain.Entities.User", b =>

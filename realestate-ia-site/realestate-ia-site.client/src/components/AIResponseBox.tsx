@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Sparkles, Loader2 } from 'lucide-react';
@@ -16,6 +16,9 @@ interface AIResponseBoxProps {
   loading?: boolean;
   error?: string | null;
   userQuery?: string;
+  onNewQuery?: () => void; // Callback simples para nova query
+  onClose?: () => void; // Callback para fechar
+  onReopen?: () => void; // Callback para reabrir
   conversationHistory?: ConversationMessage[];
   onUpdateHistory?: (history: ConversationMessage[]) => void;
 }
@@ -26,16 +29,20 @@ export function AIResponseBox({
   loading = false, 
   error = null, 
   userQuery,
+  onNewQuery,
+  onClose,
+  onReopen: _onReopen,
   conversationHistory = [],
   onUpdateHistory
 }: AIResponseBoxProps) {
   const [localHistory, setLocalHistory] = useState<ConversationMessage[]>([]);
   const conversationEndRef = useRef<HTMLDivElement>(null);
   const conversationContainerRef = useRef<HTMLDivElement>(null);
+  const aiBoxRef = useRef<HTMLDivElement>(null);
 
-  // Add user query to history
+  // Add user query to history quando onNewQuery é chamado
   useEffect(() => {
-    if (userQuery && onUpdateHistory) {
+    if (userQuery && onNewQuery && onUpdateHistory) {
       const userMessage: ConversationMessage = {
         id: `user-${Date.now()}`,
         type: 'user',
@@ -47,7 +54,7 @@ export function AIResponseBox({
       setLocalHistory(newHistory);
       onUpdateHistory(newHistory);
     }
-  }, [userQuery]);
+  }, [onNewQuery]); // Disparar quando callback muda
 
   // Add AI response to history
   useEffect(() => {
@@ -84,16 +91,61 @@ export function AIResponseBox({
     }
   }, [localHistory.length, loading]);
 
-  // Scroll to bottom when chat opens and has history - use container scroll
+  // Scroll to bottom immediately when chat opens - use container scroll
   useEffect(() => {
-    if (open && localHistory.length > 0 && conversationContainerRef.current) {
+    if (open && conversationContainerRef.current) {
+      // Scroll to bottom immediately when opening - no animation
+      const container = conversationContainerRef.current;
+      container.style.scrollBehavior = 'auto'; // Disable smooth scrolling temporarily
+      container.scrollTop = container.scrollHeight;
+      
+      // Re-enable smooth scrolling for future interactions
       setTimeout(() => {
         if (conversationContainerRef.current) {
-          conversationContainerRef.current.scrollTop = conversationContainerRef.current.scrollHeight;
+          conversationContainerRef.current.style.scrollBehavior = 'smooth';
         }
       }, 50);
     }
   }, [open]);
+
+  // Handle clicks outside of the component
+  useEffect(() => {
+    if (!open || !onClose) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      
+      // Não fecha se clicou no próprio AIResponseBox
+      if (aiBoxRef.current && aiBoxRef.current.contains(target)) {
+        return;
+      }
+      
+      // Não fecha se clicou no botão do chat
+      const chatButton = target.closest('[aria-label="Abrir chat IA"]');
+      if (chatButton) {
+        return;
+      }
+      
+      // Não fecha se clicou na barra de pesquisa
+      const searchInput = target.closest('input[placeholder*="procura"]');
+      if (searchInput) {
+        return;
+      }
+      
+      // Se chegou aqui, foi clique fora - fecha o chat
+      onClose();
+    };
+
+    // Adiciona o listener após um pequeno delay para evitar fechamento imediato
+    const timeoutId = setTimeout(() => {
+      document.addEventListener('mousedown', handleClickOutside);
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [open, onClose]);
 
   // Don't render anything when closed
   if (!open) {
@@ -127,7 +179,10 @@ export function AIResponseBox({
   const showConversationMode = onUpdateHistory && (hasHistory || userQuery);
 
   return (
-    <div className="absolute left-0 right-0 mt-2 z-50">
+    <div 
+      ref={aiBoxRef}
+      className="absolute left-0 right-0 mt-2 z-50"
+    >
       <Card className="border border-pale-clay-deep bg-pure-white shadow-clay-deep overflow-hidden">
         <CardContent className="p-4">
           <div className="flex items-center gap-2 mb-2">
@@ -147,7 +202,6 @@ export function AIResponseBox({
             <div 
               ref={conversationContainerRef}
               className="max-h-96 overflow-auto pr-1"
-              style={{ scrollBehavior: 'smooth' }}
             >
               {hasHistory ? (
                 <div className="space-y-1">
@@ -159,7 +213,6 @@ export function AIResponseBox({
                         <div className="max-w-[85%] rounded-lg p-3 bg-pure-white border border-pale-clay-deep">
                           <div className="flex items-center gap-2 text-sm text-warm-taupe">
                             <Loader2 className="h-4 w-4 animate-spin" />
-                            A IA está a pensar...
                           </div>
                         </div>
                       </div>

@@ -1,9 +1,11 @@
-import React, { useState } from 'react';
-import { Search, Map, Grid3X3, Home, User, ArrowUp, MessageCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Search, Map, Grid3X3, Home, User, MessageCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { UserProfileDropdown } from './UserProfileDropdown';
 import { AIResponseBox } from './AIResponseBox';
+import { NotificationBell } from './NotificationBell/NotificationBell';
+import { useUnreadNotificationsCount } from '../hooks/useNotifications';
 
 // Extended user interface for internal use
 interface ExtendedUserProfile {
@@ -57,6 +59,19 @@ export function Header({
   const [localInput, setLocalInput] = useState(searchQuery);
   const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>([]);
   const [currentUserQuery, setCurrentUserQuery] = useState<string>('');
+  const [triggerNewQuery, setTriggerNewQuery] = useState<() => void>(() => () => {});
+
+  // SIGNALR: Hook SEMPRE executado - agora usa SignalR em vez de polling
+  const { unreadCount, isLoading: notificationsLoading } = useUnreadNotificationsCount();
+
+  // Reset local input when view changes and not on home page
+  useEffect(() => {
+    if (currentView !== 'home') {
+      setLocalInput('');
+    } else {
+      setLocalInput(searchQuery);
+    }
+  }, [currentView, searchQuery]);
 
   const handleSubmitSearch = () => {
     if (!user) { 
@@ -70,6 +85,10 @@ export function Header({
     setCurrentUserQuery(query);
     setAiOpen(true);
     onSubmitSearch?.(query);
+    setLocalInput('');
+    
+    // Trigger callback para adicionar query ao histórico
+    setTriggerNewQuery(() => () => {}); 
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -84,6 +103,27 @@ export function Header({
 
   const handleToggleAI = () => {
     setAiOpen(!aiOpen);
+  };
+
+  const handleNavigateToHome = () => {
+    // Reset AI state only when navigating to home
+    setAiOpen(false);
+    setConversationHistory([]);
+    setCurrentUserQuery('');
+    setTriggerNewQuery(() => () => {});
+    onNavigateToHome();
+  };
+
+  const handleNavigateToPersonal = () => {
+    // Don't reset AI state when navigating to personal area
+    onNavigateToPersonal();
+  };
+
+  // Handler para navegar para área pessoal na aba de alertas
+  const handleNavigateToAlerts = () => {
+    // Implementar navegação para área pessoal com aba 'alerts' ativa
+    // Por agora, navega para área pessoal (a aba será definida lá)
+    onNavigateToPersonal();
   };
 
   const renderViewTitle = () => {
@@ -121,22 +161,10 @@ export function Header({
               onChange={(e) => user && setLocalInput(e.target.value)}
               onKeyDown={handleKeyDown}
               disabled={!user}
-              className={`pl-12 pr-28 h-12 text-base border-clay-medium focus:border-primary rounded-xl bg-input-background shadow-sm ${
+              className={`pl-12 pr-4 h-12 text-base border-clay-medium focus:border-primary rounded-xl bg-input-background shadow-sm ${
                 !user ? 'opacity-60 cursor-not-allowed' : ''
               }`}
             />
-            {user && (
-              <Button
-                size="icon"
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 bg-burnt-peach hover:bg-burnt-peach-deep text-white border-0 shadow-clay-soft"
-                onClick={handleSubmitSearch}
-                disabled={!localInput.trim()}
-                aria-label="Abrir resposta IA"
-                title="Perguntar IA"
-              >
-                <ArrowUp className="h-4 w-4" />
-              </Button>
-            )}
           </div>
 
           {/* Chat Icon Button */}
@@ -150,11 +178,6 @@ export function Header({
               title="Chat IA"
             >
               <MessageCircle className="h-5 w-5" />
-              {conversationHistory.length > 0 && (
-                <div className="absolute -top-1 -right-1 bg-burnt-peach text-white text-xs rounded-full min-w-[18px] h-[18px] flex items-center justify-center font-medium">
-                  {conversationHistory.filter(msg => msg.type === 'ai').length}
-                </div>
-              )}
             </Button>
           )}
         </div>
@@ -168,6 +191,7 @@ export function Header({
             onClose={() => setAiOpen(false)}
             onReopen={handleReopenAI}
             userQuery={currentUserQuery}
+            onNewQuery={triggerNewQuery}
             conversationHistory={conversationHistory}
             onUpdateHistory={setConversationHistory}
           />
@@ -229,22 +253,32 @@ export function Header({
       };
 
       return (
-        <div className="flex items-center space-x-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onNavigateToPersonal}
-            className={`hidden md:flex hover:bg-clay-soft text-clay-secondary hover:text-title ${
-              currentView === 'personal' || currentView === 'alert-results' ? 'bg-clay-soft text-title' : ''
-            }`}
-          >
-            <User className="h-4 w-4 mr-2" />
-            Minha Área
-          </Button>
+          <div className="flex items-center space-x-2">
+              {currentView === 'home' && (< Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleNavigateToPersonal}
+                  className={"shidden md:flex hover:bg-clay-soft text-clay-secondary hover:text-title bg-clay-soft text-title" }
+                  >
+                  <User className="h-4 w-4 mr-2" />
+                  Minha Área
+              </Button>
+              )}
+          
+          {/* SIGNALR: Notification Bell - agora com notificações em tempo real */}
+          {user && (
+            <NotificationBell 
+              onClick={handleNavigateToAlerts}
+              className="hover:bg-clay-soft text-clay-secondary hover:text-title"
+              unreadCount={unreadCount}
+              isLoading={notificationsLoading}
+            />
+          )}
+          
           <UserProfileDropdown 
             user={userForDropdown} 
             onLogout={onLogout} 
-            onNavigateToPersonal={onNavigateToPersonal}
+            onNavigateToPersonal={handleNavigateToPersonal}
           />
         </div>
       );
@@ -269,7 +303,7 @@ export function Header({
             <Button
               variant="ghost"
               className="flex items-center space-x-3 p-2 hover:bg-clay-soft"
-              onClick={onNavigateToHome}
+              onClick={handleNavigateToHome}
             >
               <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-burnt-peach">
                 <Home className="h-5 w-5 text-white" />

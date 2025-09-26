@@ -24,6 +24,7 @@ export interface Property {
   // URLs e links
   imageUrl: string | null;
   link: string | null;
+  siteName: string | null; // Nome amigável do site (vem do backend via PropertySearchDto)
   
   // Timestamps
   createdAt: string; // ISO string da BD
@@ -41,40 +42,4 @@ export interface Property {
     email: string;
   };
   aiRelevanceScore?: number; // Pontuação de IA
-}
-
-// Helper types
-export type PropertyType = 'house' | 'apartment' | 'condo' | 'townhouse' | 'any';
-
-export interface PropertyFilters {
-  location?: string;
-  propertyType?: PropertyType;
-  priceMin?: number;
-  priceMax?: number;
-  bedrooms?: number;
-  bathrooms?: number;
-  hasGarage?: boolean;
-  minArea?: number;
-  maxArea?: number;
-}
-
-// Para criação/edição (apenas campos obrigatórios)
-export interface CreatePropertyRequest {
-  title: string;
-  description?: string;
-  type?: string;
-  price?: number;
-  address?: string;
-  city?: string;
-  state?: string;
-  county?: string;
-  civilParish?: string;
-  zipCode?: string;
-  area?: number;
-  usableArea?: number;
-  bedrooms?: number;
-  bathrooms?: number;
-  garage?: boolean;
-  imageUrl?: string;
-  link?: string;
 }

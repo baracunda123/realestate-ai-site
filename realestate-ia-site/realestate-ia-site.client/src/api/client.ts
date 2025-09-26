@@ -261,8 +261,11 @@ class ApiClient {
   constructor(baseURL: string = '') {
     SecureTokenManager.initialize();
 
+      const apiUrl = baseURL || import.meta.env.VITE_API_URL || '';
+
+
     this.client = axios.create({
-      baseURL,
+      baseURL: apiUrl,
       withCredentials: true,
       timeout: 30000,
       headers: {

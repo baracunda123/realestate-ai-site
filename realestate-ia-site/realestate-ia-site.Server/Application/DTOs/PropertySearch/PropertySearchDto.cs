@@ -14,6 +14,7 @@ public class PropertySearchDto
     public double Area { get; set; }
     public string? ImageUrl { get; set; }
     public string? Link { get; set; }
+    public string? SiteName { get; set; } 
     public DateTime? CreatedAt { get; set; }
 
     public static PropertySearchDto FromDomain(realestate_ia_site.Server.Domain.Entities.Property property)
@@ -21,6 +22,7 @@ public class PropertySearchDto
         return new PropertySearchDto
         {
             Id = property.Id,
+            SiteName = GetFriendlySiteName(property.SourceSite),
             Title = property.Title ?? "N/A",
             Description = property.Description ?? string.Empty,
             Type = property.Type ?? "N/A",
@@ -33,6 +35,28 @@ public class PropertySearchDto
             ImageUrl = property.ImageUrl,
             Link = property.Link,
             CreatedAt = property.CreatedAt
+        };
+    }
+
+    /// <summary>
+    /// Converte o nome técnico do site em nome amigável
+    /// </summary>
+    private static string GetFriendlySiteName(string? sourceSite)
+    {
+        if (string.IsNullOrWhiteSpace(sourceSite))
+            return "N/A";
+
+        return sourceSite.ToLower() switch
+        {
+            "idealista" => "Idealista",
+            "imovirtual" => "Imovirtual",
+            "casasapo" => "Casa Sapo", 
+            "custojusto" => "Custo Justo",
+            "olx" => "OLX",
+            "remax" => "RE/MAX",
+            "era" => "ERA",
+            "century21" => "Century 21",
+            _ => sourceSite 
         };
     }
 }

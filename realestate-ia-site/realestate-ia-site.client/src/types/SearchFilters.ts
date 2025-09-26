@@ -2,7 +2,7 @@
 import type { Property } from './property';
 
 export interface SearchFilters {
-  // Localiza��o - alinhado com campos da BD Property
+  // Localização - alinhado com campos da BD Property
   location: string;
   city?: string;
   county?: string;
@@ -10,17 +10,17 @@ export interface SearchFilters {
   civilParish?: string;
   zipCode?: string;
   
-  // Pre�o
+  // Preço
   priceRange: [number, number];
   priceMin?: number;
   priceMax?: number;
   
-  // Caracter�sticas da propriedade
+  // Características da propriedade
   bedrooms: number | null;
   bathrooms: number | null;
   propertyType: string; // 'any' | 'house' | 'apartment' | 'condo' | 'townhouse'
   
-  // �rea
+  // Área
   minArea?: number;
   maxArea?: number;
   minUsableArea?: number;
@@ -29,7 +29,7 @@ export interface SearchFilters {
   // Features
   hasGarage?: boolean;
   
-  // Ordena��o
+  // Ordenação
   sortBy: 'price' | 'area' | 'bedrooms' | 'date' | 'relevance';
   sortOrder?: 'asc' | 'desc';
   
@@ -46,7 +46,7 @@ export interface SearchRequest {
   // Filtros estruturados
   filters?: Partial<SearchFilters>;
   
-  // Pagina��o
+  // Paginação
   page?: number;
   pageSize?: number;
   
@@ -84,7 +84,7 @@ export interface SearchResponse {
   // Filtros aplicados (para debugging)
   appliedFilters?: SearchFilters;
   
-  // Sugest�es de refinamento
+  // Sugestões de refinamento
   suggestions?: {
     locations: string[];
     priceRanges: Array<[number, number]>;
@@ -92,7 +92,7 @@ export interface SearchResponse {
   };
 }
 
-// Para autocomplete e sugest�es
+// Para autocomplete e sugestões
 export interface LocationSuggestion {
   id: string;
   name: string;
@@ -121,10 +121,10 @@ export interface SavedFilter {
   lastUsed?: Date;
 }
 
-// Export para compatibilidade com c�digo existente
+// Export para compatibilidade com código existente
 export type { SearchFilters as SearchFiltersType };
 
-// Constantes para valores padr�o
+// Constantes para valores padrão
 export const DEFAULT_SEARCH_FILTERS: SearchFilters = {
   location: '',
   priceRange: [0, 2000000],
@@ -138,17 +138,17 @@ export const DEFAULT_SEARCH_FILTERS: SearchFilters = {
 };
 
 export const PROPERTY_TYPES: PropertyTypeSuggestion[] = [
-  { value: 'any', label: 'Qualquer Tipo', icon: '??' },
-  { value: 'house', label: 'Casa', icon: '??' },
-  { value: 'apartment', label: 'Apartamento', icon: '??' },
-  { value: 'condo', label: 'Condom�nio', icon: '???' },
-  { value: 'townhouse', label: 'Sobrado', icon: '??' }
+  { value: 'any', label: 'Qualquer Tipo', icon: '🏘️' },
+  { value: 'house', label: 'Casa', icon: '🏠' },
+  { value: 'apartment', label: 'Apartamento', icon: '🏢' },
+  { value: 'condo', label: 'Condomínio', icon: '🏘️' },
+  { value: 'townhouse', label: 'Sobrado', icon: '🏡' }
 ];
 
 export const SORT_OPTIONS = [
-  { value: 'price', label: 'Pre�o' },
-  { value: 'area', label: '�rea' },
+  { value: 'price', label: 'Preço' },
+  { value: 'area', label: 'Área' },
   { value: 'bedrooms', label: 'Quartos' },
   { value: 'date', label: 'Data' },
-  { value: 'relevance', label: 'Relev�ncia' }
+  { value: 'relevance', label: 'Relevância' }
 ] as const;

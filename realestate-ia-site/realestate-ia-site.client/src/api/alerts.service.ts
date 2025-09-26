@@ -1,48 +1,28 @@
-// alerts.service.ts - Servi�o para alertas de propriedades alinhado com BD
+// alerts.service.ts - Serviço para alertas de redução de preço
 import apiClient from "./client";
 import type { 
   PropertyAlert, 
-  CreateAlertRequest, 
-  UpdateAlertRequest,
-  AlertsResponse 
+  CreatePriceAlertRequest, 
+  UpdatePriceAlertRequest,
+  AlertsResponse,
+  PropertyAlertNotification,
+  AlertNotificationsResponse
 } from "../types/PersonalArea";
-import type { Property } from "../types/property";
 
-// Response types espec�ficas para alertas
-interface AlertDetailsResponse extends PropertyAlert {
-  matchingProperties?: Property[];
-  lastMatchedProperties?: Property[];
-  triggerHistory?: Array<{
-    id: string;
-    triggeredAt: string;
-    reason: 'new_listing' | 'price_drop';
-    propertyId: string;
-    propertyTitle: string;
-    oldPrice?: number;
-    newPrice?: number;
-  }>;
-}
-
-interface AlertTestResponse {
-  potentialMatches: Property[];
-  estimatedMatchCount: number;
-  recommendations: string[];
-}
-
-// Fun��o simples para logs
+// Função simples para logs
 function logToTerminal(message: string, level: 'info' | 'warn' | 'error' = 'info') {
   const timestamp = new Date().toLocaleTimeString();
-  const prefix = level === 'error' ? '?' : level === 'warn' ? '??' : '??';
-  console.log(`${prefix} [${timestamp}] ALERTS: ${message}`);
+  const prefix = level === 'error' ? '❌' : level === 'warn' ? '⚠️' : '🔔';
+  console.log(`${prefix} [${timestamp}] PRICE ALERTS: ${message}`);
 }
 
 /**
- * Obter todos os alertas do usu�rio
+ * Obter todos os alertas de redução de preço do usuário
  */
 export async function getUserAlerts(
   includeInactive: boolean = false
 ): Promise<AlertsResponse> {
-  logToTerminal(`Buscando alertas do usu�rio (incluir inativos: ${includeInactive})`);
+  logToTerminal(`Buscando alertas de preço (incluir inativos: ${includeInactive})`);
 
   const params = new URLSearchParams();
   if (includeInactive) params.append('includeInactive', 'true');
@@ -60,25 +40,15 @@ export async function getUserAlerts(
 }
 
 /**
- * Obter detalhes de um alerta espec�fico
+ * Obter detalhes de um alerta específico
  */
-export async function getAlertById(
-  alertId: string,
-  includeMatches: boolean = false,
-  includeHistory: boolean = false
-): Promise<AlertDetailsResponse> {
+export async function getAlertById(alertId: string): Promise<PropertyAlert> {
   logToTerminal(`Buscando alerta: ${alertId}`);
 
-  const params = new URLSearchParams();
-  if (includeMatches) params.append('includeMatches', 'true');
-  if (includeHistory) params.append('includeHistory', 'true');
-
   try {
-    const alert = await apiClient.get<AlertDetailsResponse>(
-      `/api/alerts/${alertId}?${params.toString()}`
-    );
+    const alert = await apiClient.get<PropertyAlert>(`/api/alerts/${alertId}`);
     
-    logToTerminal(`Alerta encontrado: ${alert.name}`);
+    logToTerminal(`Alerta encontrado: ${alert.propertyTitle}`);
     return alert;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
@@ -88,15 +58,15 @@ export async function getAlertById(
 }
 
 /**
- * Criar novo alerta
+ * Criar novo alerta de redução de preço
  */
-export async function createAlert(alertData: CreateAlertRequest): Promise<PropertyAlert> {
-  logToTerminal(`Criando novo alerta: ${alertData.name}`);
+export async function createPriceAlert(alertData: CreatePriceAlertRequest): Promise<PropertyAlert> {
+  logToTerminal(`Criando alerta de preço para propriedade: ${alertData.propertyId}`);
 
   try {
     const alert = await apiClient.post<PropertyAlert>('/api/alerts', alertData);
     
-    logToTerminal(`Alerta criado: ${alert.id}`);
+    logToTerminal(`Alerta de preço criado: ${alert.id}`);
     return alert;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
@@ -110,7 +80,7 @@ export async function createAlert(alertData: CreateAlertRequest): Promise<Proper
  */
 export async function updateAlert(
   alertId: string,
-  updates: Partial<UpdateAlertRequest>
+  updates: UpdatePriceAlertRequest
 ): Promise<PropertyAlert> {
   logToTerminal(`Atualizando alerta: ${alertId}`);
 
@@ -127,29 +97,6 @@ export async function updateAlert(
 }
 
 /**
- * Ativar/desativar alerta
- */
-export async function toggleAlert(
-  alertId: string,
-  isActive: boolean
-): Promise<PropertyAlert> {
-  logToTerminal(`${isActive ? 'Ativando' : 'Desativando'} alerta: ${alertId}`);
-
-  try {
-    const alert = await apiClient.patch<PropertyAlert>(`/api/alerts/${alertId}/toggle`, {
-      isActive
-    });
-    
-    logToTerminal(`Alerta ${isActive ? 'ativado' : 'desativado'}: ${alert.id}`);
-    return alert;
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao alterar status do alerta: ${errorMsg}`, 'error');
-    throw error;
-  }
-}
-
-/**
  * Excluir alerta
  */
 export async function deleteAlert(alertId: string): Promise<{ success: boolean; message: string }> {
@@ -160,7 +107,7 @@ export async function deleteAlert(alertId: string): Promise<{ success: boolean; 
       `/api/alerts/${alertId}`
     );
     
-    logToTerminal(`Alerta exclu�do`);
+    logToTerminal(`Alerta excluído`);
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
@@ -170,241 +117,124 @@ export async function deleteAlert(alertId: string): Promise<{ success: boolean; 
 }
 
 /**
- * Testar alerta (ver quantas propriedades ele encontraria)
+ * Excluir alerta por propriedade
  */
-export async function testAlert(alertData: CreateAlertRequest): Promise<AlertTestResponse> {
-  logToTerminal(`Testando crit�rios do alerta: ${alertData.name}`);
+export async function deleteAlertByProperty(propertyId: string): Promise<{ success: boolean; message: string }> {
+  logToTerminal(`Excluindo alerta para propriedade: ${propertyId}`);
 
   try {
-    const response = await apiClient.post<AlertTestResponse>('/api/alerts/test', alertData);
-    
-    logToTerminal(`Teste do alerta: ${response.estimatedMatchCount} propriedades encontradas`);
-    return response;
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao testar alerta: ${errorMsg}`, 'error');
-    throw error;
-  }
-}
-
-/**
- * Obter propriedades que atendem aos crit�rios de um alerta
- */
-export async function getAlertMatches(
-  alertId: string,
-  page: number = 1,
-  pageSize: number = 20,
-  onlyNew: boolean = false
-): Promise<{
-  properties: Property[];
-  totalCount: number;
-  newCount: number;
-  page: number;
-  pageSize: number;
-  hasNextPage: boolean;
-}> {
-  logToTerminal(`Buscando propriedades do alerta: ${alertId} (p�gina ${page})`);
-
-  const params = new URLSearchParams();
-  params.append('page', page.toString());
-  params.append('pageSize', pageSize.toString());
-  if (onlyNew) params.append('onlyNew', 'true');
-
-  try {
-    const response = await apiClient.get<{
-      properties: Property[];
-      totalCount: number;
-      newCount: number;
-      page: number;
-      pageSize: number;
-      hasNextPage: boolean;
-    }>(`/api/alerts/${alertId}/matches?${params.toString()}`);
-    
-    logToTerminal(`${response.properties.length} propriedades encontradas para o alerta`);
-    return response;
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao buscar propriedades do alerta: ${errorMsg}`, 'error');
-    throw error;
-  }
-}
-
-/**
- * Marcar novas propriedades como visualizadas (limpar badge "novo")
- */
-export async function markAlertAsViewed(alertId: string): Promise<{ success: boolean; message: string }> {
-  logToTerminal(`Marcando alerta como visualizado: ${alertId}`);
-
-  try {
-    const response = await apiClient.post<{ success: boolean; message: string }>(
-      `/api/alerts/${alertId}/mark-viewed`
+    const response = await apiClient.delete<{ success: boolean; message: string }>(
+      `/api/alerts/property/${propertyId}`
     );
     
-    logToTerminal(`Alerta marcado como visualizado`);
+    logToTerminal(`Alerta excluído para propriedade`);
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao marcar alerta como visualizado: ${errorMsg}`, 'error');
+    logToTerminal(`Erro ao excluir alerta da propriedade: ${errorMsg}`, 'error');
     throw error;
   }
 }
 
 /**
- * Obter estat�sticas dos alertas do usu�rio
+ * Verificar se existe alerta para uma propriedade
  */
-export async function getAlertsStats(): Promise<{
-  totalAlerts: number;
-  activeAlerts: number;
-  totalMatches: number;
-  newMatches: number;
-  lastTriggered?: string;
-  topPerformingAlert?: {
-    id: string;
-    name: string;
-    matchCount: number;
-  };
-}> {
-  logToTerminal('Buscando estat�sticas dos alertas');
+export async function hasAlertForProperty(propertyId: string): Promise<boolean> {
+  logToTerminal(`Verificando alerta para propriedade: ${propertyId}`);
 
   try {
-    const stats = await apiClient.get<{
-      totalAlerts: number;
-      activeAlerts: number;
-      totalMatches: number;
-      newMatches: number;
-      lastTriggered?: string;
-      topPerformingAlert?: {
-        id: string;
-        name: string;
-        matchCount: number;
-      };
-    }>('/api/alerts/stats');
+    const hasAlert = await apiClient.get<boolean>(`/api/alerts/property/${propertyId}/exists`);
     
-    logToTerminal(`Estat�sticas: ${stats.activeAlerts}/${stats.totalAlerts} alertas ativos, ${stats.newMatches} novos matches`);
-    return stats;
+    logToTerminal(`Propriedade ${hasAlert ? 'tem' : 'não tem'} alerta`);
+    return hasAlert;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao buscar estat�sticas: ${errorMsg}`, 'error');
-    throw error;
+    logToTerminal(`Erro ao verificar alerta: ${errorMsg}`, 'error');
+    return false; // Retorna false em caso de erro
   }
 }
 
 /**
- * Duplicar alerta existente
+ * Obter notificações de redução de preço
  */
-export async function duplicateAlert(
-  alertId: string,
-  newName?: string
-): Promise<PropertyAlert> {
-  logToTerminal(`Duplicando alerta: ${alertId}`);
+export async function getNotifications(limit: number = 20): Promise<AlertNotificationsResponse> {
+  logToTerminal(`Buscando notificações de preço (limite: ${limit})`);
 
   try {
-    const alert = await apiClient.post<PropertyAlert>(`/api/alerts/${alertId}/duplicate`, {
-      newName: newName || undefined
-    });
+    const response = await apiClient.get<AlertNotificationsResponse>(
+      `/api/alerts/notifications?limit=${limit}`
+    );
     
-    logToTerminal(`Alerta duplicado: ${alert.id}`);
-    return alert;
+    logToTerminal(`${response.notifications?.length || 0} notificações encontradas (${response.unreadCount} não lidas)`);
+    return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao duplicar alerta: ${errorMsg}`, 'error');
+    logToTerminal(`Erro ao buscar notificações: ${errorMsg}`, 'error');
     throw error;
   }
 }
 
-/**
- * Obter sugest�es de melhorias para um alerta
- */
-export async function getAlertOptimizationSuggestions(alertId: string): Promise<{
-  suggestions: Array<{
-    type: 'location_expand' | 'price_adjust' | 'criteria_relax';
-    title: string;
-    description: string;
-    impact: 'low' | 'medium' | 'high';
-    estimatedAdditionalMatches: number;
-  }>;
-  currentPerformance: {
-    matchCount: number;
-    avgMatchesPerWeek: number;
-    lastMatch?: string;
-  };
-}> {
-  logToTerminal(`Buscando sugest�es de otimiza��o para alerta: ${alertId}`);
-
-  try {
-    const suggestions = await apiClient.get<{
-      suggestions: Array<{
-        type: 'location_expand' | 'price_adjust' | 'criteria_relax';
-        title: string;
-        description: string;
-        impact: 'low' | 'medium' | 'high';
-        estimatedAdditionalMatches: number;
-      }>;
-      currentPerformance: {
-        matchCount: number;
-        avgMatchesPerWeek: number;
-        lastMatch?: string;
-      };
-    }>(`/api/alerts/${alertId}/optimize`);
-    
-    logToTerminal(`${suggestions.suggestions.length} sugest�es de otimiza��o encontradas`);
-    return suggestions;
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao buscar sugest�es: ${errorMsg}`, 'error');
-    throw error;
-  }
-}
-
-// Utils para alertas
-export const alertUtils = {
+// Utils para alertas de preço
+export const priceAlertUtils = {
   /**
-   * Formatar crit�rios do alerta em texto leg�vel
+   * Formatar limiar de alerta
    */
-  formatCriteria: (alert: PropertyAlert): string => {
-    const criteria = [];
-    
-    if (alert.location) criteria.push(`?? ${alert.location}`);
-    if (alert.propertyType && alert.propertyType !== 'any') {
-      criteria.push(`?? ${alert.propertyType}`);
-    }
-    if (alert.bedrooms) criteria.push(`??? ${alert.bedrooms}+ quartos`);
-    if (alert.bathrooms) criteria.push(`?? ${alert.bathrooms}+ banheiros`);
-    if (alert.minPrice || alert.maxPrice) {
-      const min = alert.minPrice ? `�${alert.minPrice.toLocaleString()}` : '0';
-      const max = alert.maxPrice ? `�${alert.maxPrice.toLocaleString()}` : '?';
-      criteria.push(`?? ${min} - ${max}`);
-    }
-    
-    return criteria.join(' � ');
+  formatThreshold: (alert: PropertyAlert): string => {
+    return `${alert.alertThresholdPercentage}% ou mais de redução`;
   },
 
   /**
-   * Verificar se alerta tem novos resultados
+   * Formatar informações do alerta
    */
-  hasNewMatches: (alert: PropertyAlert): boolean => {
-    return alert.newMatches > 0;
+  formatAlertInfo: (alert: PropertyAlert): string => {
+    const parts = [];
+    
+    parts.push(`📍 ${alert.propertyLocation}`);
+    parts.push(`💰 €${alert.currentPrice.toLocaleString('pt-PT')}`);
+    parts.push(`📉 Alerta: ${alert.alertThresholdPercentage}%`);
+    
+    return parts.join(' • ');
   },
 
   /**
-   * Calcular performance do alerta
+   * Verificar se alerta tem notificações recentes
    */
-  calculatePerformance: (alert: PropertyAlert): 'excellent' | 'good' | 'poor' | 'none' => {
-    if (alert.matchCount === 0) return 'none';
-    if (alert.matchCount >= 10) return 'excellent';
-    if (alert.matchCount >= 5) return 'good';
-    return 'poor';
+  hasRecentActivity: (alert: PropertyAlert): boolean => {
+    if (!alert.lastTriggered) return false;
+    const hoursSinceTriggered = (Date.now() - new Date(alert.lastTriggered).getTime()) / (1000 * 60 * 60);
+    return hoursSinceTriggered < 24;
   },
 
   /**
-   * Verificar se alerta pode receber SMS
+   * Obter status do alerta
    */
-  canReceiveSms: (alert: PropertyAlert): boolean => {
-    return alert.smsNotifications;
+  getAlertStatus: (alert: PropertyAlert): 'active' | 'inactive' | 'triggered' => {
+    if (!alert.isActive) return 'inactive';
+    if (alert.notificationCount > 0) return 'triggered';
+    return 'active';
+  },
+
+  /**
+   * Formatar última atividade
+   */
+  formatLastActivity: (alert: PropertyAlert): string => {
+    if (!alert.lastTriggered) return 'Nunca disparado';
+    
+    const date = new Date(alert.lastTriggered);
+    const now = new Date();
+    const diffHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffHours < 1) return 'Disparado recentemente';
+    if (diffHours < 24) return `Disparado há ${diffHours}h`;
+    
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `Disparado há ${diffDays}d`;
+    
+    return `Disparado em ${date.toLocaleDateString('pt-PT')}`;
   }
 };
 
 // Log apenas quando carrega em desenvolvimento
 if (import.meta.env.DEV) {
-  logToTerminal('Alerts Service carregado');
+  logToTerminal('Price Alerts Service carregado');
 }

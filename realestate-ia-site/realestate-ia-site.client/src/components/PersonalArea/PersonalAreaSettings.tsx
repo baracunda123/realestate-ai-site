@@ -3,28 +3,21 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Switch } from '../ui/switch';
-import { Separator } from '../ui/separator';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
-import { Badge } from '../ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
-import { User, Mail, Phone, Shield, Bell, Crown, Edit, Save, X } from 'lucide-react';
-import type { User as UserType, NotificationSettings } from '../../types/PersonalArea';
+import { User, Mail, Phone, Shield, Edit, Save, X } from 'lucide-react';
+import type { User as UserType } from '../../types/PersonalArea';
 import { formatDate } from '../../utils/PersonalArea';
 import { toast } from 'sonner';
 
 interface PersonalAreaSettingsProps {
   user: UserType;
-  notifications: NotificationSettings;
-  onUpdateNotifications: (settings: NotificationSettings) => void;
   onUpdateProfile?: (profileData: Partial<UserType>) => void;
   onDeleteAccount?: () => void;
 }
 
 export function PersonalAreaSettings({ 
   user, 
-  notifications, 
-  onUpdateNotifications,
   onUpdateProfile,
   onDeleteAccount 
 }: PersonalAreaSettingsProps) {
@@ -52,14 +45,6 @@ export function PersonalAreaSettings({
       phone: user.phone
     });
     setIsEditingProfile(false);
-  };
-
-  const handleNotificationChange = (key: keyof NotificationSettings, value: boolean) => {
-    const newSettings = { ...notifications, [key]: value };
-    onUpdateNotifications(newSettings);
-    toast.success('Definições actualizadas!', {
-      description: `Notificações ${value ? 'activadas' : 'desactivadas'} para ${key}.`,
-    });
   };
 
   return (
@@ -175,95 +160,6 @@ export function PersonalAreaSettings({
                   <span className="text-deep-mocha">{user.phone}</span>
                 </div>
               )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Notification Settings */}
-      <Card className="border border-pale-clay-deep bg-pure-white shadow-clay-deep">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Bell className="h-5 w-5 text-burnt-peach-dark" />
-            <span className="text-deep-mocha">Definições de Notificação</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-medium text-foreground">Notificações por Email</h4>
-                <p className="text-sm text-muted-foreground">
-                  Receba atualizações e alertas por email
-                </p>
-              </div>
-              <Switch
-                checked={notifications.email}
-                onCheckedChange={(checked) => handleNotificationChange('email', checked)}
-              />
-            </div>
-
-            <Separator className="bg-pale-clay-medium" />
-
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-medium text-foreground">Notificações SMS</h4>
-                <p className="text-sm text-muted-foreground">
-                  Receba alertas urgentes por SMS
-                </p>
-              </div>
-              <Switch
-                checked={notifications.sms}
-                onCheckedChange={(checked) => handleNotificationChange('sms', checked)}
-              />
-            </div>
-
-            <Separator className="bg-pale-clay-medium" />
-
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-medium text-foreground">Alertas de Preço</h4>
-                <p className="text-sm text-muted-foreground">
-                  Seja notificado sobre mudanças de preço
-                </p>
-              </div>
-              <Switch
-                checked={notifications.priceAlerts}
-                onCheckedChange={(checked) => handleNotificationChange('priceAlerts', checked)}
-              />
-            </div>
-
-            <Separator className="bg-pale-clay-medium" />
-
-            <div className="flex items-center justify-between">
-              <div>
-                <h4 className="font-medium text-foreground">Novas Propriedades</h4>
-                <p className="text-sm text-muted-foreground">
-                  Receba notificações sobre novos anúncios
-                </p>
-              </div>
-              <Switch
-                checked={notifications.newListings}
-                onCheckedChange={(checked) => handleNotificationChange('newListings', checked)}
-              />
-            </div>
-
-            <Separator className="bg-pale-clay-medium" />
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div>
-                  <h4 className="font-medium text-foreground">Insights de Mercado</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Análises e tendências do mercado imobiliário
-                  </p>
-                </div>
-              </div>
-              <Switch
-                checked={notifications.marketInsights}
-                onCheckedChange={(checked) => handleNotificationChange('marketInsights', checked)}
-disabled={false}
-              />
             </div>
           </div>
         </CardContent>

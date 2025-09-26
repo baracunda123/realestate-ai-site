@@ -4,23 +4,20 @@ import { PersonalArea } from './components/PersonalArea';
 import { Footer } from './components/Footer';
 import { toast } from 'sonner';
 import { Toaster } from './components/ui/sonner';
-import { type PropertyAlert } from './types/PersonalArea';
 import { type SearchFilters as SearchFiltersType, DEFAULT_SEARCH_FILTERS } from './types/SearchFilters';
 import { type Property } from './types/property';
 import { getCurrentUser, logout, authUtils } from './api/auth.service';
 import { createSafeDate } from './utils/PersonalArea';
-import { useDebounce } from './hooks/useOptimizedCallbacks';
 import type { UserProfile } from './api/client';
-import { getAlertMatches } from './api/alerts.service';
+import { getFavoriteProperties, addToFavorites, removeFromFavorites } from './api/favorites.service';
+import { usePriceAlerts } from './hooks/usePriceAlerts';
 
 // Lazy load components for better performance
 const SearchFilters = lazy(() => import('./components/SearchFilters').then(m => ({ default: m.SearchFilters })));
 const PropertyGrid = lazy(() => import('./components/PropertyGrid').then(m => ({ default: m.PropertyGrid })));
-const PropertyModal = lazy(() => import('./components/PropertyModal').then(m => ({ default: m.PropertyModal })));
 const MapView = lazy(() => import('./components/MapView').then(m => ({ default: m.MapView })));
 const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
 const WelcomeScreen = lazy(() => import('./components/WelcomeScreen').then(m => ({ default: m.WelcomeScreen })));
-const AlertResults = lazy(() => import('./components/AlertResults').then(m => ({ default: m.AlertResults })));
 
 // Loading components otimizados
 const LoadingSpinner = () => (
@@ -30,7 +27,7 @@ const LoadingSpinner = () => (
 );
 
 // View types
-type ViewType = 'home' | 'personal' | 'alert-results';
+type ViewType = 'home' | 'personal';
 type ViewMode = 'grid' | 'map';
 type AuthTab = 'signin' | 'signup';
 
@@ -44,7 +41,6 @@ interface ExtendedUserProfile extends UserProfile {
 
 export default function App() {
   // Property-related state
-  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
   const [favorites, setFavorites] = useState<Property[]>([]);
   const [searchResults, setSearchResults] = useState<Property[] | null>(null);
   
@@ -55,12 +51,6 @@ export default function App() {
   
   // Navigation state
   const [currentView, setCurrentView] = useState<ViewType>('home');
-  const [selectedAlert, setSelectedAlert] = useState<PropertyAlert | null>(null);
-  
-  // Alert results state (API)
-  const [alertProperties, setAlertProperties] = useState<Property[] | null>(null);
-  const [alertLoading, setAlertLoading] = useState(false);
-  const [alertError, setAlertError] = useState<string | null>(null);
   
   // AI state
   const [aiText, setAiText] = useState<string>('');
@@ -71,7 +61,39 @@ export default function App() {
   const [user, setUser] = useState<ExtendedUserProfile | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authDefaultTab, setAuthDefaultTab] = useState<AuthTab>('signin');
-  
+
+  // Hook para gerenciar alertas de preço
+  const {
+    alerts,
+    hasAlertForPropertyId,
+    createAlertForProperty,
+    removeAlertForProperty,
+    removeAlert,
+    updateAlertThreshold,
+    refreshAlerts
+  } = usePriceAlerts();
+
+  // Wrapper functions para compatibilidade com PersonalArea
+  const handleDeleteAlert = useCallback(async (alertId: string) => {
+    try {
+      await removeAlert(alertId);
+      toast.success('Alerta removido');
+    } catch (error) {
+      console.error('Erro ao remover alerta:', error);
+      toast.error('Erro ao remover alerta');
+    }
+  }, [removeAlert]);
+
+  const handleUpdateAlert = useCallback(async (alertId: string, threshold: number) => {
+    try {
+      await updateAlertThreshold(alertId, threshold);
+      toast.success(`Alerta atualizado`);
+    } catch (error) {
+      console.error('Erro ao atualizar alerta:', error);
+      toast.error('Erro ao atualizar alerta');
+    }
+  }, [updateAlertThreshold]);
+
   // Memoized values para evitar recálculos
   const isDefaultState = useMemo((): boolean => {
     const isDefaultFilters = 
@@ -87,18 +109,32 @@ export default function App() {
   }, [searchFilters, searchQuery]);
 
   const showWelcomeScreen = useMemo(() => 
-    !user || (user && isDefaultState && currentView === 'home'), 
-    [user, isDefaultState, currentView]
+    !user || (user && isDefaultState && currentView === 'home' && searchResults === null), 
+    [user, isDefaultState, currentView, searchResults]
   );
 
-  // Initialize authentication and favorites
+  // Load favorites when user logs in
+  const loadFavorites = useCallback(async () => {
+    if (!user) {
+      setFavorites([]);
+      return;
+    }
+    
+    try {
+      const userFavorites = await getFavoriteProperties();
+      setFavorites(userFavorites);
+    } catch (error) {
+      console.error('Erro ao carregar favoritos:', error);
+      setFavorites([]);
+    }
+  }, [user]);
+
+  // Initialize authentication
   useEffect(() => {
     const initializeApp = async () => {
-      // Check authentication
       try {
         const currentUser = await getCurrentUser();
         if (currentUser) {
-          // Extend user profile com campos calculados para compatibilidade
           const extendedUser: ExtendedUserProfile = {
             ...currentUser,
             name: currentUser.fullName || currentUser.name || '',
@@ -108,41 +144,17 @@ export default function App() {
           setUser(extendedUser);
         }
       } catch {
-        // Silenciar erro de inicialização
         authUtils.clearTokens();
-      }
-
-      // Load favorites from localStorage
-      try {
-        const savedFavorites = localStorage.getItem('hf_favorites');
-        if (savedFavorites) {
-          const parsed = JSON.parse(savedFavorites);
-          // Validar estrutura dos favoritos
-          if (Array.isArray(parsed)) {
-            setFavorites(parsed.filter(fav => fav && fav.id));
-          }
-        }
-      } catch {
-        // Silenciar erro de favoritos
-        setFavorites([]);
       }
     };
 
     initializeApp();
   }, []);
 
-  // Persist favorites to localStorage - debounced para performance
-  const debouncedSaveFavorites = useDebounce((favs: Property[]) => {
-    try {
-      localStorage.setItem('hf_favorites', JSON.stringify(favs));
-    } catch {
-      // Silenciar erro de localStorage
-    }
-  }, 500);
-
+  // Load favorites when user changes
   useEffect(() => {
-    debouncedSaveFavorites(favorites);
-  }, [favorites, debouncedSaveFavorites]);
+    loadFavorites();
+  }, [loadFavorites]);
 
   // Handle URL navigation
   useEffect(() => {
@@ -151,12 +163,6 @@ export default function App() {
       
       if (hash === '#personal' && user) {
         setCurrentView('personal');
-      } else if (hash === '#alert-results' && user && selectedAlert) {
-        setCurrentView('alert-results');
-      } else if (hash === '#alert-results' && user && !selectedAlert) {
-        // Redirect to personal if trying to access alert results without selected alert
-        setCurrentView('personal');
-        window.location.hash = '#personal';
       } else {
         setCurrentView('home');
         if (hash && hash !== '#') {
@@ -166,39 +172,18 @@ export default function App() {
     };
 
     window.addEventListener('hashchange', handleHashChange);
-    handleHashChange(); // Check initial hash
+    handleHashChange();
 
     return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [user, selectedAlert]);
+  }, [user]);
 
   // Redirect to home if user logs out while in protected views
   useEffect(() => {
-    if (!user && (currentView === 'personal' || currentView === 'alert-results')) {
+    if (!user && currentView === 'personal') {
       setCurrentView('home');
-      setSelectedAlert(null);
       window.location.hash = '';
     }
   }, [user, currentView]);
-
-  // Fetch alert results from API when entering alert-results view
-  useEffect(() => {
-    const fetchAlertProperties = async () => {
-      if (currentView !== 'alert-results' || !selectedAlert) return;
-      setAlertLoading(true);
-      setAlertError(null);
-      try {
-        const resp = await getAlertMatches(selectedAlert.id, 1, 50, false);
-        setAlertProperties(resp.properties || []);
-      } catch (e) {
-        setAlertProperties([]);
-        setAlertError('Não foi possível carregar os resultados do alerta.');
-      } finally {
-        setAlertLoading(false);
-      }
-    };
-
-    fetchAlertProperties();
-  }, [currentView, selectedAlert]);
 
   // Optimized callbacks
   const resetToDefaults = useCallback(() => {
@@ -220,48 +205,72 @@ export default function App() {
     }
   }, [user]);
 
-  const navigateToHome = useCallback(() => {
-    // Reset everything to default state to ensure WelcomeScreen is shown
-    resetToDefaults();
+  const navigateToHome = useCallback(( reset: boolean = true ) => {
+    if (reset) {
+      resetToDefaults();
+    }
     setCurrentView('home');
     window.location.hash = '';
   }, [resetToDefaults]);
 
-  const navigateToAlertResults = useCallback((alert: PropertyAlert) => {
-    setSelectedAlert(alert);
-    setCurrentView('alert-results');
-    window.location.hash = '#alert-results';
-  }, []);
-
-  const navigateBackFromAlertResults = useCallback(() => {
-    setSelectedAlert(null);
-    setCurrentView('personal');
-    window.location.hash = '#personal';
-  }, []);
-
-  // Property handlers - otimizados
-  const toggleFavorite = useCallback((property: Property) => {
-    const exists = favorites.some(p => p.id === property.id);
-    
-    if (!exists) {
-      if (!user) {
-        setAuthDefaultTab('signin');
-        setIsAuthModalOpen(true);
-        return;
-      }
-      
+  // Property handlers - usando API
+  const toggleFavorite = useCallback(async (property: Property) => {
+    if (!user) {
+      setAuthDefaultTab('signin');
+      setIsAuthModalOpen(true);
+      return;
     }
     
-    setFavorites(prev => 
-      exists 
-        ? prev.filter(p => p.id !== property.id) 
-        : [...prev, property]
-    );
-
-    toast.success(exists ? 'Removido dos favoritos' : 'Adicionado aos favoritos', {
-      description: property.title || 'Propriedade atualizada',
-    });
+    const isFav = favorites.some(p => p.id === property.id);
+    
+    try {
+      if (isFav) {
+        const success = await removeFromFavorites(property.id);
+        if (success) {
+          setFavorites(prev => prev.filter(p => p.id !== property.id));
+          toast.success('Removido dos favoritos', {
+            description: property.title || 'Propriedade removida'
+          });
+        }
+      } else {
+        const success = await addToFavorites(property.id);
+        if (success) {
+          setFavorites(prev => [...prev, property]);
+          toast.success('Adicionado aos favoritos', {
+            description: property.title || 'Propriedade adicionada'
+          });
+        }
+      }
+    } catch {
+      toast.error('Erro ao alterar favorito', {
+        description: 'Tente novamente'
+      });
+    }
   }, [favorites, user]);
+
+  // Handler para criar/remover alertas de preço
+  const handleCreatePriceAlert = useCallback(async (property: Property) => {
+    if (!user) {
+      setAuthDefaultTab('signin');
+      setIsAuthModalOpen(true);
+      return;
+    }
+    
+    try {
+      const hasAlert = hasAlertForPropertyId(property.id);
+      
+      if (hasAlert) {
+        await removeAlertForProperty(property.id);
+        toast.success('Alerta removido');
+      } else {
+        await createAlertForProperty(property, 5); // Default 5%
+        toast.success('Alerta criado');
+      }
+    } catch (error) {
+      console.error('Erro ao gerenciar alerta:', error);
+      toast.error('Erro ao gerenciar alerta');
+    }
+  }, [user, hasAlertForPropertyId, removeAlertForProperty, createAlertForProperty]);
 
   // Search handlers - otimizados
   const handleExampleSearch = useCallback((query: string) => {
@@ -294,13 +303,9 @@ export default function App() {
       setAiText(result.aiResponse || '');
       setSearchQuery(query);
       
-      // Se filters foram fornecidos, aplicá-los
       if (filters) {
         setSearchFilters(filters);
       }
-      
-      if (currentView !== 'home') setCurrentView('home');
-      if (window.location.hash) window.location.hash = '';
       
       if (result.properties?.length === 0) {
         toast.info('Nenhum resultado encontrado', { 
@@ -317,7 +322,6 @@ export default function App() {
       setAiError('Não foi possível obter resposta da IA no momento.');
       setSearchQuery(query);
       
-      // Se filters foram fornecidos, aplicá-los mesmo com erro
       if (filters) {
         setSearchFilters(filters);
       }
@@ -345,7 +349,6 @@ export default function App() {
           avatar: currentUser.avatarUrl
         };
         setUser(extendedUser);
-        
 
         toast.success(`Bem-vindo, ${currentUser.fullName || currentUser.name || 'utilizador'}!`, {
             description: 'Inicio de sessão efetuado com sucesso.',
@@ -354,12 +357,13 @@ export default function App() {
     } catch {
       toast.error('Erro ao carregar dados do utilizador');
     }
-  }, []);
+  }, [[]]);
 
   const handleLogout = useCallback(async () => {
     try {
       await logout();
       setUser(null);
+      setFavorites([]);
       setCurrentView('home');
       resetToDefaults();
       window.location.hash = '';
@@ -370,6 +374,7 @@ export default function App() {
     } catch {
       authUtils.clearTokens();
       setUser(null);
+      setFavorites([]);
       toast.error('Erro no logout, mas desconectado localmente.');
     }
   }, [resetToDefaults]);
@@ -390,7 +395,6 @@ export default function App() {
     avatar: extendedUser.avatar || extendedUser.avatarUrl,
     avatarUrl: extendedUser.avatarUrl,
     phoneNumber: extendedUser.phoneNumber,
-    credits: extendedUser.credits,
     isEmailVerified: extendedUser.isEmailVerified,
     createdAt: createSafeDate(extendedUser.createdAt),
     updatedAt: extendedUser.updatedAt ? createSafeDate(extendedUser.updatedAt) : undefined
@@ -415,30 +419,19 @@ export default function App() {
       />
       
       <main className="flex-1 site-container py-8">
-        {currentView === 'alert-results' && user && selectedAlert ? (
-          <Suspense fallback={<LoadingSpinner />}>
-            {alertLoading ? (
-              <LoadingSpinner />
-            ) : (
-              <AlertResults
-                alert={selectedAlert}
-                properties={alertProperties || []}
-                onBack={navigateBackFromAlertResults}
-                onPropertySelect={setSelectedProperty}
-                favorites={favorites}
-                onToggleFavorite={toggleFavorite}
-              />
-            )}
-          </Suspense>
-        ) : currentView === 'personal' && user ? (
+        {currentView === 'personal' && user ? (
           <PersonalArea
             user={convertToUser(user)}
-            onPropertySelect={setSelectedProperty}
-            onNavigateToAlertResults={navigateToAlertResults}
             onNavigateToHome={navigateToHome}
             onExecuteSearch={handleSubmitSearch}
             favorites={favorites}
             onToggleFavorite={toggleFavorite}
+            hasActiveSearch={!isDefaultState && searchResults !== null}
+            onCreatePriceAlert={handleCreatePriceAlert}
+            hasAlertForPropertyId={hasAlertForPropertyId}
+            alerts={alerts}
+            onDeleteAlert={handleDeleteAlert}
+            onUpdateAlert={handleUpdateAlert}
           />
         ) : showWelcomeScreen ? (
           <Suspense fallback={<LoadingSpinner />}>
@@ -450,7 +443,7 @@ export default function App() {
           </Suspense>
         ) : (
           user && (
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={< LoadingSpinner />}>
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 <div className="lg:col-span-1 space-y-6">
                   <SearchFilters
@@ -464,15 +457,16 @@ export default function App() {
                       filters={searchFilters}
                       searchQuery={searchQuery}
                       serverResults={searchResults || undefined}
-                      onPropertySelect={setSelectedProperty}
                       favorites={favorites}
                       onToggleFavorite={toggleFavorite}
+                      onCreatePriceAlert={handleCreatePriceAlert}
+                      hasAlertForPropertyId={hasAlertForPropertyId}
                     />
                   ) : (
                     <MapView
                       filters={searchFilters}
                       searchQuery={searchQuery}
-                      onPropertySelect={setSelectedProperty}
+                      onPropertySelect={() => {}} // Desabilitado temporariamente
                     />
                   )}
                 </div>
@@ -483,16 +477,6 @@ export default function App() {
       </main>
 
       <Footer />
-
-      {/* Modals */}
-      {selectedProperty && (
-        <Suspense fallback={null}>
-          <PropertyModal
-            property={selectedProperty}
-            onClose={() => setSelectedProperty(null)}
-          />
-        </Suspense>
-      )}
 
       <Suspense fallback={null}>
         <AuthModal

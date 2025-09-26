@@ -2,7 +2,6 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using realestate_ia_site.Server.Domain.ValueObjects;
 using realestate_ia_site.Server.Domain.Events;
-using realestate_ia_site.Server.Domain.Models;
 using AddressVO = realestate_ia_site.Server.Domain.ValueObjects.Address;
 
 namespace realestate_ia_site.Server.Domain.Entities
@@ -13,7 +12,10 @@ namespace realestate_ia_site.Server.Domain.Entities
         [Key]
         [Column("id")] // Especifica o nome exato da coluna na BD
         public string Id { get; set; } = string.Empty;
-        
+
+        [Column("source_site")]
+        public string? SourceSite { get; set; }
+
         [Column("title")]
         public string? Title { get; set; }
         
@@ -72,6 +74,7 @@ namespace realestate_ia_site.Server.Domain.Entities
         
         [Column("updatedAt")]
         public DateTime UpdatedAt { get; set; }
+
 
         // Helpers para Value Objects (não persistidos diretamente)
         public Money? GetMoneyPrice(string currency = "EUR") => Price.HasValue ? Money.From(Price.Value, currency) : null;

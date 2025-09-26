@@ -7,6 +7,7 @@ using System.Threading.RateLimiting;
 using realestate_ia_site.Server.Application.SearchAI;
 using realestate_ia_site.Server.Application.PropertyAlerts;
 using realestate_ia_site.Server.Application.PropertySearch;
+using realestate_ia_site.Server.Application.Recommendations;
 using realestate_ia_site.Server.Application.AI.Interfaces;
 using realestate_ia_site.Server.Application.Payments.Interfaces;
 using realestate_ia_site.Server.Application.Payments;
@@ -25,11 +26,11 @@ using realestate_ia_site.Server.Infrastructure.Notifications;
 using realestate_ia_site.Server.Infrastructure.Events;
 using realestate_ia_site.Server.Infrastructure.Payments;
 using realestate_ia_site.Server.Infrastructure.Configurations;
-using realestate_ia_site.Server.Infrastructure.RealTime;
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Application.Auth;
 using realestate_ia_site.Server.Application.PropertySearch.Filters;
 using realestate_ia_site.Server.Application.Security;
+using realestate_ia_site.Server.Infrastructure.BackgroundServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,16 +38,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
 builder.Logging.AddDebug();
-
-// Add Application Insights for Azure
-builder.Services.AddApplicationInsightsTelemetry();
-
-// Enhanced logging configuration
-builder.Logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
-builder.Logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
-builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting", LogLevel.Information);
-builder.Logging.AddFilter("realestate_ia_site.Server", LogLevel.Information);
-builder.Logging.SetMinimumLevel(LogLevel.Information);
 
 // SECURITY: Load environment variables for production
 if (builder.Environment.IsProduction())
@@ -135,6 +126,22 @@ builder.Services.AddAuthentication(options =>
             return Task.CompletedTask;
         }
     };
+
+    // SIGNALR: JWT Authentication para hubs
+    options.Events.OnMessageReceived = context =>
+    {
+        var accessToken = context.Request.Query["access_token"];
+
+        // Se é request para hub SignalR
+        var path = context.HttpContext.Request.Path;
+        if (!string.IsNullOrEmpty(accessToken) && 
+            path.StartsWithSegments("/hubs"))
+        {
+            context.Token = accessToken;
+        }
+
+        return Task.CompletedTask;
+    };
 });
 
 // Enhanced Rate Limiter
@@ -215,6 +222,7 @@ builder.Services.AddSingleton<SecurityAuditService>();
 // Application services
 builder.Services.AddScoped<SearchAIOrchestrator>();
 builder.Services.AddScoped<PropertyAlertService>();
+builder.Services.AddScoped<PropertyRecommendationService>();
 builder.Services.AddScoped<IPropertySearchService, PropertySearchService>();
 builder.Services.AddScoped<AuthService>();
 
@@ -226,8 +234,10 @@ builder.Services.AddScoped<PropertyAIService>();
 builder.Services.AddScoped<LocationAIService>();
 builder.Services.AddScoped<IConversationContextService, ConversationContextService>();
 
-// Configurations (Stripe etc.)
+// Configurations (Stripe ScraperOptions)
 builder.Services.AddSingleton<StripeOptions>();
+builder.Services.Configure<realestate_ia_site.Server.Configuration.ScraperOptions>(
+    builder.Configuration.GetSection(realestate_ia_site.Server.Configuration.ScraperOptions.SectionName));
 
 // Payments
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
@@ -254,20 +264,35 @@ builder.Services.AddScoped<IPropertyFilter, TopPicksFilter>();
 
 // Notifications
 builder.Services.Configure<EmailConfiguration>(builder.Configuration.GetSection("Email"));
-builder.Services.Configure<SmsConfiguration>(builder.Configuration.GetSection("Sms"));
 builder.Services.AddScoped<IEmailService, EmailService>();
-builder.Services.AddScoped<ISmsService, TwilioSmsService>();
+
+// SIGNALR: Serviço de notificações em tempo real
+builder.Services.AddScoped<IRealtimeNotificationService, RealtimeNotificationService>();
+
+// SIGNALR: Configuração do SignalR com autenticação
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = builder.Environment.IsDevelopment();
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
+    options.KeepAliveInterval = TimeSpan.FromSeconds(15);
+    options.HandshakeTimeout = TimeSpan.FromSeconds(15);
+    options.MaximumReceiveMessageSize = 32 * 1024; // 32KB
+});
 
 // Domain events
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
-builder.Services.AddScoped<IDomainEventHandler<PropertyCreatedEvent>, PropertyAlertEventHandler>();
 builder.Services.AddScoped<IDomainEventHandler<PropertyPriceChangedEvent>, PropertyAlertEventHandler>();
-builder.Services.AddScoped<IDomainEventHandler<PropertyCreatedEvent>, RealTimePropertyEventHandler>();
-builder.Services.AddScoped<IDomainEventHandler<PropertyPriceChangedEvent>, RealTimePropertyEventHandler>();
 
-// Real-time notifications
-builder.Services.AddSignalRNotifications();
-builder.Services.AddScoped<ISystemNotificationService, SystemNotificationService>();
+// NOVOS EVENT HANDLERS PARA RECOMENDAÇÕES INTELIGENTES
+builder.Services.AddScoped<IDomainEventHandler<FavoriteAddedEvent>, UserBehaviorEventHandler>();
+builder.Services.AddScoped<IDomainEventHandler<SavedSearchCreatedEvent>, UserBehaviorEventHandler>();
+builder.Services.AddScoped<IDomainEventHandler<SearchExecutedEvent>, UserBehaviorEventHandler>();
+
+// BACKGROUND SERVICES PARA RECOMENDAÇÕES PROATIVAS
+builder.Services.AddHostedService<RecommendationBackgroundService>();
+
+// BACKGROUND SERVICES PARA ALERTAS DE PROPRIEDADES
+builder.Services.AddHostedService<PropertyAlertBackgroundService>();
 
 // API basics
 builder.Services.AddControllers();
@@ -371,12 +396,14 @@ app.UseAuthorization();
 app.UseCors();
 
 app.MapControllers();
-app.MapSignalRHubs();
+
+// SIGNALR: Mapear hubs (DEPOIS da autenticação e autorização)
+app.MapHub<NotificationHub>("/hubs/notifications");
 
 if (!app.Environment.IsDevelopment())
 {
     app.MapFallbackToFile("/index.html");
 }
 
-Console.WriteLine("=== APPLICATION READY ===");
+Console.WriteLine("APPLICATION READY");
 app.Run();

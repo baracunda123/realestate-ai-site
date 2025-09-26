@@ -3,6 +3,8 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Text.Json;
 using realestate_ia_site.Server.Application.Security;
+using realestate_ia_site.Server.Configuration;
+using Microsoft.Extensions.Options;
 
 namespace realestate_ia_site.Server.Middleware
 {
@@ -11,6 +13,7 @@ namespace realestate_ia_site.Server.Middleware
         private readonly RequestDelegate _next;
         private readonly SecurityAuditService _auditService;
         private readonly ILogger<SecurityMiddleware> _logger;
+        private readonly ScraperOptions _scraperOptions;
 
         // Enhanced patterns para detectar ataques
         private static readonly Regex SqlInjectionPattern = new(@"(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|TRUNCATE|GRANT|REVOKE)\b|;|--|\/\*|\*\/|'|\x00|\x1a)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -18,7 +21,7 @@ namespace realestate_ia_site.Server.Middleware
         private static readonly Regex PathTraversalPattern = new(@"(\.\.\/|\.\.\\|%2e%2e%2f|%2e%2e%5c)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex CommandInjectionPattern = new(@"(\||&&|;|`|\$\(|\${|<\(|>\()", RegexOptions.Compiled);
 
-        // Suspicious User-Agent patterns
+        // Suspicious User-Agent patterns (excluding our scraper)
         private static readonly string[] SuspiciousUserAgents = {
             "sqlmap", "nikto", "nmap", "masscan", "nessus", "burpsuite", "owasp",
             "dirbuster", "gobuster", "python-requests", "curl", "wget", "scanner",
@@ -28,65 +31,30 @@ namespace realestate_ia_site.Server.Middleware
         // Maximum request size (5MB)
         private const long MaxRequestSize = 5 * 1024 * 1024;
 
-        public SecurityMiddleware(RequestDelegate next, SecurityAuditService auditService, ILogger<SecurityMiddleware> logger)
+        public SecurityMiddleware(RequestDelegate next, SecurityAuditService auditService, ILogger<SecurityMiddleware> logger, IOptions<ScraperOptions> scraperOptions)
         {
             _next = next;
             _auditService = auditService;
             _logger = logger;
+            _scraperOptions = scraperOptions.Value;
         }
 
         public async Task InvokeAsync(HttpContext context)
         {
             try
             {
-                // Check request size
-                if (context.Request.ContentLength > MaxRequestSize)
+                // Check if this is a valid scraper request
+                if (IsValidScraperRequest(context))
                 {
-                    _auditService.LogSuspiciousActivity("Request size too large", $"Size: {context.Request.ContentLength} bytes");
-                    context.Response.StatusCode = 413; // Payload Too Large
-                    await context.Response.WriteAsync("Request too large");
+                    _logger.LogInformation("Valid scraper request detected for {Path}", context.Request.Path);
+                    // Add security headers and continue without security validation
+                    AddSecurityHeaders(context);
+                    await _next(context);
                     return;
                 }
 
-                // Verificar User-Agent suspeito
-                var userAgent = context.Request.Headers["User-Agent"].ToString();
-                if (IsSuspiciousUserAgent(userAgent))
-                {
-                    _auditService.LogSuspiciousActivity("Suspicious User-Agent", userAgent);
-                    // Continue but log - don't block as some legitimate clients might trigger this
-                }
-
-                // Verificar headers suspeitos
-                ValidateSuspiciousHeaders(context);
-
-                // Verificar path traversal na URL
-                if (PathTraversalPattern.IsMatch(context.Request.Path))
-                {
-                    _auditService.LogSuspiciousActivity("Path traversal attempt", context.Request.Path);
-                    context.Response.StatusCode = 400;
-                    await context.Response.WriteAsync("Invalid request path");
-                    return;
-                }
-
-                // Verificar parâmetros e corpo da requisição
-                var validationResult = await ValidateRequestSecurity(context);
-                if (!validationResult.IsValid)
-                {
-                    context.Response.StatusCode = 400;
-                    context.Response.ContentType = "application/json";
-                    var response = JsonSerializer.Serialize(new
-                    {
-                        message = "Request contains potentially malicious content",
-                        errors = validationResult.Errors
-                    });
-                    await context.Response.WriteAsync(response);
-                    return;
-                }
-
-                // Adicionar headers de segurança se ainda não existirem
-                AddSecurityHeaders(context);
-
-                await _next(context);
+                // Continue with normal security validation for non-scraper requests
+                await ProcessNormalRequest(context);
             }
             catch (Exception ex)
             {
@@ -102,11 +70,106 @@ namespace realestate_ia_site.Server.Middleware
             }
         }
 
+        private bool IsValidScraperRequest(HttpContext context)
+        {
+            // Check if the path is in the allowed scraper endpoints
+            if (!_scraperOptions.IsAllowedEndpoint(context.Request.Path))
+            {
+                return false;
+            }
+
+            // Check for valid API key in header
+            var apiKey = context.Request.Headers["X-API-Key"].FirstOrDefault() ??
+                        context.Request.Headers["X-Scraper-Key"].FirstOrDefault();
+
+            if (!_scraperOptions.IsValidApiKey(apiKey))
+            {
+                _auditService.LogSuspiciousActivity("Invalid scraper API key attempt", 
+                    $"Path: {context.Request.Path}, IP: {context.Connection.RemoteIpAddress}");
+                return false;
+            }
+
+            // Optional: Check User-Agent (more lenient for scraper)
+            var userAgent = context.Request.Headers["User-Agent"].ToString();
+            if (!string.IsNullOrEmpty(_scraperOptions.UserAgent) && 
+                !userAgent.Contains(_scraperOptions.UserAgent, StringComparison.OrdinalIgnoreCase))
+            {
+                _auditService.LogSuspiciousActivity("Scraper with invalid User-Agent", 
+                    $"Expected: {_scraperOptions.UserAgent}, Got: {userAgent}");
+            }
+
+            // Log successful scraper authentication
+            _auditService.LogSecurityEvent(SecurityEventType.ScraperAuthenticated, 
+                "Valid scraper request authenticated", 
+                new { Path = context.Request.Path.Value, UserAgent = userAgent });
+
+            return true;
+        }
+
+        private async Task ProcessNormalRequest(HttpContext context)
+        {
+            // Check request size
+            if (context.Request.ContentLength > MaxRequestSize)
+            {
+                _auditService.LogSuspiciousActivity("Request size too large", $"Size: {context.Request.ContentLength} bytes");
+                context.Response.StatusCode = 413; // Payload Too Large
+                await context.Response.WriteAsync("Request too large");
+                return;
+            }
+
+            // Verificar User-Agent suspeito
+            var userAgent = context.Request.Headers["User-Agent"].ToString();
+            if (IsSuspiciousUserAgent(userAgent))
+            {
+                _auditService.LogSuspiciousActivity("Suspicious User-Agent", userAgent);
+                // Continue but log - don't block as some legitimate clients might trigger this
+            }
+
+            // Verificar headers suspeitos
+            ValidateSuspiciousHeaders(context);
+
+            // Verificar path traversal na URL
+            if (PathTraversalPattern.IsMatch(context.Request.Path))
+            {
+                _auditService.LogSuspiciousActivity("Path traversal attempt", context.Request.Path);
+                context.Response.StatusCode = 400;
+                await context.Response.WriteAsync("Invalid request path");
+                return;
+            }
+
+            // Verificar parâmetros e corpo da requisição
+            var validationResult = await ValidateRequestSecurity(context);
+            if (!validationResult.IsValid)
+            {
+                context.Response.StatusCode = 400;
+                context.Response.ContentType = "application/json";
+                var response = JsonSerializer.Serialize(new
+                {
+                    message = "Request contains potentially malicious content",
+                    errors = validationResult.Errors
+                });
+                await context.Response.WriteAsync(response);
+                return;
+            }
+
+            // Adicionar headers de segurança se ainda não existirem
+            AddSecurityHeaders(context);
+
+            await _next(context);
+        }
+
         private bool IsSuspiciousUserAgent(string userAgent)
         {
             if (string.IsNullOrEmpty(userAgent)) return true;
 
             userAgent = userAgent.ToLowerInvariant();
+
+            // Don't flag our scraper as suspicious
+            if (!string.IsNullOrEmpty(_scraperOptions.UserAgent) && 
+                userAgent.Contains(_scraperOptions.UserAgent.ToLowerInvariant()))
+            {
+                return false;
+            }
 
             return SuspiciousUserAgents.Any(pattern => userAgent.Contains(pattern)) ||
                    userAgent.Length < 10 || // Too short
@@ -376,4 +439,3 @@ namespace realestate_ia_site.Server.Middleware
         public List<string> Errors { get; set; } = new();
     }
 }
-    

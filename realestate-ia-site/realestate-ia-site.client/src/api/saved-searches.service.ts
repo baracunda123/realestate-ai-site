@@ -17,23 +17,15 @@ interface SavedSearchDetailsResponse extends SavedSearch {
   }>;
 }
 
-interface SavedSearchExecuteResponse {
-  properties: Property[];
-  totalCount: number;
-  newCount: number;
-  aiResponse?: string;
-  executedAt: string;
-}
-
-// Fun��o simples para logs
+// Função simples para logs
 function logToTerminal(message: string, level: 'info' | 'warn' | 'error' = 'info') {
   const timestamp = new Date().toLocaleTimeString();
-  const prefix = level === 'error' ? '?' : level === 'warn' ? '??' : '??';
+  const prefix = level === 'error' ? '❌' : level === 'warn' ? '⚠️' : '🔍';
   console.log(`${prefix} [${timestamp}] SAVED_SEARCHES: ${message}`);
 }
 
 /**
- * Obter todas as pesquisas salvas do usu�rio
+ * Obter todas as pesquisas salvas do usuário
  */
 export async function getSavedSearches(): Promise<SavedSearchesResponse> {
   logToTerminal('Buscando pesquisas salvas do usuário');
@@ -128,37 +120,11 @@ export async function deleteSavedSearch(searchId: string): Promise<{ success: bo
       `/api/saved-searches/${searchId}`
     );
     
-    logToTerminal(`Pesquisa salva exclu�da`);
+    logToTerminal(`Pesquisa salva excluída`);
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
     logToTerminal(`Erro ao excluir pesquisa salva: ${errorMsg}`, 'error');
-    throw error;
-  }
-}
-
-/**
- * Executar uma pesquisa salva
- */
-export async function executeSavedSearch(
-  searchId: string,
-  updateResults: boolean = true
-): Promise<SavedSearchExecuteResponse> {
-  logToTerminal(`Executando pesquisa salva: ${searchId}`);
-
-  const params = new URLSearchParams();
-  if (updateResults) params.append('updateResults', 'true');
-
-  try {
-    const response = await apiClient.post<SavedSearchExecuteResponse>(
-      `/api/saved-searches/${searchId}/execute?${params.toString()}`
-    );
-    
-    logToTerminal(`Pesquisa executada: ${response.properties.length} propriedades encontradas`);
-    return response;
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao executar pesquisa salva: ${errorMsg}`, 'error');
     throw error;
   }
 }
@@ -207,7 +173,7 @@ export async function markSavedSearchAsViewed(searchId: string): Promise<{ succe
 }
 
 /**
- * Obter estat�sticas das pesquisas salvas do usu�rio
+ * Obter estatísticas das pesquisas salvas do usuário
  */
 export async function getSavedSearchesStats(): Promise<{
   totalSearches: number;
@@ -226,7 +192,7 @@ export async function getSavedSearchesStats(): Promise<{
     newResults: number;
   }>;
 }> {
-  logToTerminal('Buscando estat�sticas das pesquisas salvas');
+  logToTerminal('Buscando estatísticas das pesquisas salvas');
 
   try {
     const stats = await apiClient.get<{
@@ -247,11 +213,11 @@ export async function getSavedSearchesStats(): Promise<{
       }>;
     }>('/api/saved-searches/stats');
     
-    logToTerminal(`Estat�sticas: ${stats.totalSearches} pesquisas, ${stats.newResults} novos resultados`);
+    logToTerminal(`Estatísticas: ${stats.totalSearches} pesquisas, ${stats.newResults} novos resultados`);
     return stats;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao buscar estat�sticas: ${errorMsg}`, 'error');
+    logToTerminal(`Erro ao buscar estatísticas: ${errorMsg}`, 'error');
     throw error;
   }
 }
@@ -261,9 +227,7 @@ export async function getSavedSearchesStats(): Promise<{
  */
 export async function convertSearchToAlert(
   searchId: string,
-  alertName?: string,
-  emailNotifications: boolean = true,
-  smsNotifications: boolean = false
+  alertName: string
 ): Promise<{ alertId: string; message: string }> {
   logToTerminal(`Convertendo pesquisa salva em alerta: ${searchId}`);
 
@@ -271,9 +235,7 @@ export async function convertSearchToAlert(
     const response = await apiClient.post<{ alertId: string; message: string }>(
       `/api/saved-searches/${searchId}/convert-to-alert`,
       {
-        alertName,
-        emailNotifications,
-        smsNotifications
+        alertName
       }
     );
     
@@ -289,23 +251,23 @@ export async function convertSearchToAlert(
 // Utils para pesquisas salvas
 export const savedSearchUtils = {
   /**
-   * Formatar filtros da pesquisa em texto leg�vel
+   * Formatar filtros da pesquisa em texto legível
    */
   formatFilters: (search: SavedSearch): string => {
     const filters = [];
     
-    if (search.filters.location) filters.push(`?? ${search.filters.location}`);
+    if (search.filters.location) filters.push(`📍 ${search.filters.location}`);
     if (search.filters.propertyType && search.filters.propertyType !== 'any') {
-      filters.push(`?? ${search.filters.propertyType}`);
+      filters.push(`🏠 ${search.filters.propertyType}`);
     }
-    if (search.filters.bedrooms) filters.push(`??? ${search.filters.bedrooms}+ quartos`);
+    if (search.filters.bedrooms) filters.push(`🛏️ ${search.filters.bedrooms}+ quartos`);
     if (search.filters.priceRange) {
       const [min, max] = search.filters.priceRange;
-      filters.push(`?? �${min.toLocaleString()} - �${max.toLocaleString()}`);
+      filters.push(`💰 €${min.toLocaleString()} - €${max.toLocaleString()}`);
     }
-    if (search.filters.hasGarage) filters.push(`?? Com garagem`);
+    if (search.filters.hasGarage) filters.push(`🚗 Com garagem`);
     
-    return filters.join(' � ') || 'Sem filtros espec�ficos';
+    return filters.join(' • ') || 'Sem filtros específicos';
   },
 
   /**
@@ -326,7 +288,7 @@ export const savedSearchUtils = {
   },
 
   /**
-   * Gerar sugest�o de nome baseado na query e filtros
+   * Gerar sugestão de nome baseado na query e filtros
    */
   generateName: (query: string, filters: SavedSearch['filters']): string => {
     const parts = [];

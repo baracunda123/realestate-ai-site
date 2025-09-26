@@ -2,7 +2,6 @@
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Domain.Entities;
-using realestate_ia_site.Server.Domain.Models;
 using realestate_ia_site.Server.Application.Common.Events;
 using realestate_ia_site.Server.Domain.Events;
 using realestate_ia_site.Server.Application.Common.Interfaces;
@@ -27,6 +26,11 @@ namespace realestate_ia_site.Server.Data
         public DbSet<PropertyAlert> PropertyAlerts { get; set; }
         public DbSet<PropertyPriceHistory> PropertyPriceHistories { get; set; }
         public DbSet<UserLoginSession> UserLoginSessions { get; set; }
+        public DbSet<Favorite> Favorites { get; set; }
+        public DbSet<SavedSearch> SavedSearches { get; set; }
+        public DbSet<PropertyRecommendation> PropertyRecommendations { get; set; }
+        public DbSet<PropertyAlertNotification> PropertyAlertNotifications { get; set; }
+        public DbSet<UserSearchHistory> UserSearchHistories { get; set; }
         public DbSet<User> Users => Set<User>();
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -93,6 +97,151 @@ namespace realestate_ia_site.Server.Data
                 entity.HasIndex(e => e.EventType);
                 entity.HasIndex(e => e.CreatedAt);
             });
+
+            // Configurações para Favorites
+            builder.Entity<Favorite>(entity =>
+            {
+                entity.HasIndex(e => new { e.UserId, e.PropertyId }).IsUnique();
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.PropertyId);
+                entity.HasIndex(e => e.CreatedAt);
+
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Property)
+                      .WithMany()
+                      .HasForeignKey(e => e.PropertyId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Configurações para SavedSearch (simplified)
+            builder.Entity<SavedSearch>(entity =>
+            {
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.CreatedAt);
+
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.Property(e => e.MinPrice)
+                      .HasPrecision(18, 2);
+
+                entity.Property(e => e.MaxPrice)
+                      .HasPrecision(18, 2);
+            });
+
+            // Configurações para PropertyAlert - Nova estrutura simplificada
+            builder.Entity<PropertyAlert>(entity =>
+            {
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.PropertyId);
+                entity.HasIndex(e => new { e.UserId, e.PropertyId }).IsUnique(); // Um alerta por utilizador por propriedade
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.CreatedAt);
+                entity.HasIndex(e => e.LastTriggered);
+
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Property)
+                      .WithMany()
+                      .HasForeignKey(e => e.PropertyId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.Property(e => e.CurrentPrice)
+                      .HasPrecision(18, 2);
+            });
+
+            // Configurações para PropertyRecommendation
+            builder.Entity<PropertyRecommendation>(entity =>
+            {
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.PropertyId);
+                entity.HasIndex(e => new { e.UserId, e.PropertyId });
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.Score);
+                entity.HasIndex(e => e.CreatedAt);
+
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Property)
+                      .WithMany()
+                      .HasForeignKey(e => e.PropertyId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Configurações para PropertyAlertNotification
+            builder.Entity<PropertyAlertNotification>(entity =>
+            {
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.PropertyId);
+                entity.HasIndex(e => e.AlertId);
+                entity.HasIndex(e => new { e.UserId, e.PropertyId });
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => e.AlertType);
+                entity.HasIndex(e => e.CreatedAt);
+                entity.HasIndex(e => e.ReadAt);
+
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Property)
+                      .WithMany()
+                      .HasForeignKey(e => e.PropertyId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.Property(e => e.PropertyPrice)
+                      .HasPrecision(18, 2);
+
+                entity.Property(e => e.OldPrice)
+                      .HasPrecision(18, 2);
+            });
+
+            // Configurações para PropertyPriceHistory
+            builder.Entity<PropertyPriceHistory>(entity =>
+            {
+                entity.HasIndex(e => e.PropertyId);
+                entity.HasIndex(e => e.ChangedAt);
+                entity.HasIndex(e => new { e.PropertyId, e.ChangedAt });
+
+                entity.HasOne(e => e.Property)
+                      .WithMany()
+                      .HasForeignKey(e => e.PropertyId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.Property(e => e.OldPrice)
+                      .HasPrecision(18, 2);
+
+                entity.Property(e => e.NewPrice)
+                      .HasPrecision(18, 2);
+            });
+
+            // Configurações para UserSearchHistory (otimizado para performance)
+            builder.Entity<UserSearchHistory>(entity =>
+            {
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.SessionId);
+                entity.HasIndex(e => e.CreatedAt);
+                entity.HasIndex(e => new { e.UserId, e.CreatedAt }); // Para queries por utilizador ordenadas por data
+
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.SetNull); // Manter histórico mesmo se utilizador for eliminado
+            });
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
@@ -106,8 +255,27 @@ namespace realestate_ia_site.Server.Data
                 entry.Entity.UpdatedAt = DateTime.UtcNow;
             }
 
+            // Atualizar timestamps para SavedSearch
+            var savedSearchEntries = ChangeTracker.Entries<SavedSearch>()
+                .Where(e => e.State == EntityState.Modified);
+
+            foreach (var entry in savedSearchEntries)
+            {
+                entry.Entity.UpdatedAt = DateTime.UtcNow;
+            }
+
+            // Atualizar timestamps para PropertyRecommendation
+            var recommendationEntries = ChangeTracker.Entries<PropertyRecommendation>()
+                .Where(e => e.State == EntityState.Modified);
+
+            foreach (var entry in recommendationEntries)
+            {
+                entry.Entity.UpdatedAt = DateTime.UtcNow;
+            }
+
             var domainEvents = new List<IDomainEvent>();
 
+            // Eventos de propriedades
             foreach (var entry in ChangeTracker.Entries<Property>())
             {
                 if (entry.State == EntityState.Added)
@@ -127,6 +295,37 @@ namespace realestate_ia_site.Server.Data
                         PropertyPriceHistories.Add(outcome.History!);
                         domainEvents.Add(outcome.Event!);
                     }
+                }
+            }
+
+            // NOVOS EVENTOS: Favoritos e Pesquisas Guardadas
+            foreach (var entry in ChangeTracker.Entries<Favorite>())
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    // Buscar a propriedade para incluir no evento
+                    var property = await Properties.FirstOrDefaultAsync(p => p.Id == entry.Entity.PropertyId, cancellationToken);
+                    if (property != null)
+                    {
+                        domainEvents.Add(new FavoriteAddedEvent
+                        {
+                            UserId = entry.Entity.UserId,
+                            PropertyId = entry.Entity.PropertyId,
+                            Property = property
+                        });
+                    }
+                }
+            }
+
+            foreach (var entry in ChangeTracker.Entries<SavedSearch>())
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    domainEvents.Add(new SavedSearchCreatedEvent
+                    {
+                        UserId = entry.Entity.UserId,
+                        SavedSearch = entry.Entity
+                    });
                 }
             }
 

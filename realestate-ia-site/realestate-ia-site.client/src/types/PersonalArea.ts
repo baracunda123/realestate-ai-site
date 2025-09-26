@@ -2,7 +2,7 @@ import type { Property } from './property';
 
 // User interface alinhada com Entity User da BD
 export interface User {
-  // Campos obrigat�rios da BD
+  // Campos obrigatórios da BD
   id: string;
   email: string;
   
@@ -48,36 +48,43 @@ export interface SavedSearch {
   newResults: number;
 }
 
-// PropertyAlert alinhado com BD Model PropertyAlert
+// PropertyAlert simplificado - apenas alertas de redução de preço
 export interface PropertyAlert {
-  // Campos da BD
   id: string;
   userId: string;
-  name: string;
-  location: string | null;
-  propertyType: string | null;
-  minPrice: number | null;
-  maxPrice: number | null;
-  bedrooms: number | null;
-  bathrooms: number | null;
-  emailNotifications: boolean;
-  smsNotifications: boolean;
-  priceDropAlerts: boolean;
-  newListingAlerts: boolean;
+  propertyId: string;
+  propertyTitle: string;
+  propertyLocation: string;
+  currentPrice: number;
+  alertThresholdPercentage: number; // % de redução necessária
   isActive: boolean;
   createdAt: Date;
   lastTriggered: Date | null;
-  matchCount: number;
-  newMatches: number;
+  notificationCount: number;
+
+  // Campos calculados para UI
+  property?: Property;
+  formattedThreshold?: string;
+}
+
+// DTO para notificações de redução de preço
+export interface PropertyAlertNotification {
+  id: string;
+  propertyId: string;
+  propertyTitle: string;
+  propertyLocation: string;
+  currentPrice: number;
+  oldPrice: number;
+  savingsAmount: number;
+  savingsPercentage: number;
+  createdAt: Date;
+  isRead: boolean;
   
   // Campos calculados para UI
-  priceRange?: [number, number]; // Derivado de minPrice/maxPrice
-  notifications?: {
-    email: boolean;
-    sms: boolean;
-    priceDrops: boolean;
-    newListings: boolean;
-  };
+  property?: Property;
+  isRecent?: boolean;
+  formattedTime?: string;
+  formattedSavings?: string;
 }
 
 // ViewHistory - estrutura para histórico de visualizações
@@ -113,12 +120,7 @@ export interface UserLoginSession {
 
 // Notification settings para utilizador
 export interface NotificationSettings {
-  email: boolean;
-  sms: boolean;
   priceAlerts: boolean;
-  newListings: boolean;
-  marketInsights: boolean;
-  weeklyDigest: boolean;
   alertFrequency: 'immediate' | 'daily' | 'weekly';
 }
 
@@ -139,8 +141,7 @@ export interface ActivityItem {
 // Component Props interfaces
 export interface PersonalAreaProps {
   user: User;
-  onPropertySelect: (property: Property) => void;
-  onNavigateToAlertResults?: (alert: PropertyAlert) => void;
+  onPropertySelect?: (property: Property) => void;
   favorites: Property[];
   onToggleFavorite: (property: Property) => void;
 }
@@ -162,23 +163,20 @@ export interface SavedSearchesResponse {
   totalCount: number;
 }
 
-// Create/Update request types para alertas
-export interface CreateAlertRequest {
-  name: string;
-  location?: string;
-  propertyType?: string;
-  minPrice?: number;
-  maxPrice?: number;
-  bedrooms?: number;
-  bathrooms?: number;
-  emailNotifications?: boolean;
-  smsNotifications?: boolean;
-  priceDropAlerts?: boolean;
-  newListingAlerts?: boolean;
+export interface AlertNotificationsResponse {
+  notifications: PropertyAlertNotification[];
+  totalCount: number;
+  unreadCount: number;
 }
 
-export interface UpdateAlertRequest extends Partial<CreateAlertRequest> {
-  id: string;
+// Create/Update request types para alertas de preço
+export interface CreatePriceAlertRequest {
+  propertyId: string;
+  alertThresholdPercentage?: number; // Default 5%
+}
+
+export interface UpdatePriceAlertRequest {
+  alertThresholdPercentage?: number;
   isActive?: boolean;
 }
 
@@ -186,6 +184,7 @@ export interface CreateSavedSearchRequest {
   name: string;
   query: string;
   filters: SavedSearch['filters'];
+  results: number;
 }
 
 // Create/Update request types para perfil de utilizador
@@ -197,8 +196,71 @@ export interface UpdateUserProfileRequest {
 
 // Create/Update request types para definições de notificação
 export interface UpdateNotificationSettingsRequest {
-  emailNotifications?: boolean;
-  smsNotifications?: boolean;
-  priceDropAlerts?: boolean;
-  newListingAlerts?: boolean;
+  priceAlerts?: boolean;
+  alertFrequency?: 'immediate' | 'daily' | 'weekly';
 }
+
+// Utility functions para alertas de preço
+export const PriceAlertUtils = {
+  /**
+   * Formatar percentual de desconto mínimo
+   */
+  formatThreshold(percentage: number): string {
+    return `${percentage}% ou mais`;
+  },
+
+  /**
+   * Formatar poupança
+   */
+  formatSavings(amount: number, percentage: number): string {
+    return `€${amount.toLocaleString('pt-PT')} (-${percentage.toFixed(1)}%)`;
+  },
+
+  /**
+   * Verificar se a notificação é recente (menos de 1 hora)
+   */
+  isRecent(createdAt: Date | string): boolean {
+    const created = new Date(createdAt);
+    const now = new Date();
+    const diffMinutes = (now.getTime() - created.getTime()) / (1000 * 60);
+    return diffMinutes < 60;
+  },
+
+  /**
+   * Formatar tempo relativo
+   */
+  formatRelativeTime(createdAt: Date | string): string {
+    const created = new Date(createdAt);
+    const now = new Date();
+    const diffMinutes = Math.floor((now.getTime() - created.getTime()) / (1000 * 60));
+
+    if (diffMinutes < 1) return 'Agora mesmo';
+    if (diffMinutes < 60) return `${diffMinutes}min atrás`;
+    
+    const diffHours = Math.floor(diffMinutes / 60);
+    if (diffHours < 24) return `${diffHours}h atrás`;
+    
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays < 7) return `${diffDays}d atrás`;
+    
+    return created.toLocaleDateString('pt-PT');
+  },
+
+  /**
+   * Calcular cor do alerta baseado na poupança
+   */
+  getSavingsColor(percentage: number): string {
+    if (percentage >= 20) return 'text-green-600';
+    if (percentage >= 10) return 'text-yellow-600';
+    return 'text-orange-600';
+  },
+
+  /**
+   * Obter ícone baseado na poupança
+   */
+  getSavingsIcon(percentage: number): string {
+    if (percentage >= 20) return '🎉';
+    if (percentage >= 10) return '💰';
+    return '📉';
+  }
+};
