@@ -27,8 +27,7 @@ import {
 } from '../api/alerts.service';
 import { 
   getSavedSearches as getSavedSearchesService,
-  deleteSavedSearch as deleteSavedSearchService,
-  executeSavedSearch
+  deleteSavedSearch as deleteSavedSearchService
 } from '../api/saved-searches.service';
 import { useNotifications } from '../hooks/useNotifications';
 
