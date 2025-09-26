@@ -261,8 +261,7 @@ class ApiClient {
   constructor(baseURL: string = '') {
     SecureTokenManager.initialize();
 
-      const apiUrl = baseURL || import.meta.env.VITE_API_URL || '';
-
+    const apiUrl = baseURL || import.meta.env?.VITE_API_URL || '';
 
     this.client = axios.create({
       baseURL: apiUrl,
@@ -425,7 +424,7 @@ const apiClient = new ApiClient();
 
 // LOG: Quando o client carrega
 try {
-  if (process.env.NODE_ENV === 'development') {
+  if (import.meta.env?.DEV) {
     logClient('ApiClient carregado e simplificado - sem extractResponseData');
   }
 } catch {
