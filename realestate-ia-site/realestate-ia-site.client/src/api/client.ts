@@ -219,7 +219,6 @@ class ClientRateLimit {
   }
 }
 
-// Função para renovar token - SIMPLIFICADA
 async function refreshAccessToken(): Promise<TokenResponse | null> {
   if (SecureTokenManager.getIsRefreshing()) {
     return null;
