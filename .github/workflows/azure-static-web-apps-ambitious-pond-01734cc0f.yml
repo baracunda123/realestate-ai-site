@@ -6,12 +6,6 @@ on:
       - main
     paths:
       - 'realestate-ia-site/realestate-ia-site.client/**'
-  pull_request:
-    types: [opened, synchronize, reopened, closed]
-    branches:
-      - main
-    paths:
-      - 'realestate-ia-site/realestate-ia-site.client/**'
 
 jobs:
   build_and_deploy_job:
@@ -63,3 +57,4 @@ jobs:
         uses: Azure/static-web-apps-deploy@v1
         with:
           action: "close"
+
