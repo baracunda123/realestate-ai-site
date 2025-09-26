@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
@@ -146,7 +146,7 @@ export function DashboardAlertNotifications({
     markAsRead,
     markAllAsRead,
     refresh
-  } = useNotifications(30000); // Polling a cada 30 segundos
+  } = useNotifications(); // Polling a cada 30 segundos
 
   // Limitar as notificações exibidas
   const displayNotifications = notifications.slice(0, limit);

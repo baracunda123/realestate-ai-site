@@ -1,17 +1,8 @@
-import React from 'react';
 import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { MapPin, Layers, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
-import { type SearchFilters } from '../types/SearchFilters';
-import { type Property } from '../types/property'; 
 
-interface MapViewProps {
-  filters: SearchFilters;
-  searchQuery: string;
-  onPropertySelect: (property: Property) => void;
-}
-
-export function MapView({ filters, searchQuery, onPropertySelect }: MapViewProps) {
+export function MapView() {
   // Mock property locations for the map
   const mapProperties = [
     { id: '1', lat: 47.6062, lng: -122.3321, price: '$850K', title: 'Modern Downtown Loft' },

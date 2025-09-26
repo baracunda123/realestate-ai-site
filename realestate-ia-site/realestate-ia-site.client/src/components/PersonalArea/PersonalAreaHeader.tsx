@@ -1,4 +1,3 @@
-import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import type { User } from '../../types/PersonalArea';
 import { formatDate } from '../../utils/PersonalArea';

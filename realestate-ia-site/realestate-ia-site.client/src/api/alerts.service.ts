@@ -5,7 +5,6 @@ import type {
   CreatePriceAlertRequest, 
   UpdatePriceAlertRequest,
   AlertsResponse,
-  PropertyAlertNotification,
   AlertNotificationsResponse
 } from "../types/PersonalArea";
 

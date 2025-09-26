@@ -70,7 +70,6 @@ export default function App() {
     removeAlertForProperty,
     removeAlert,
     updateAlertThreshold,
-    refreshAlerts
   } = usePriceAlerts();
 
   // Wrapper functions para compatibilidade com PersonalArea
@@ -443,7 +442,7 @@ export default function App() {
           </Suspense>
         ) : (
           user && (
-            <Suspense fallback={< LoadingSpinner />}>
+            <Suspense fallback={<LoadingSpinner />}>
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 <div className="lg:col-span-1 space-y-6">
                   <SearchFilters
@@ -463,11 +462,7 @@ export default function App() {
                       hasAlertForPropertyId={hasAlertForPropertyId}
                     />
                   ) : (
-                    <MapView
-                      filters={searchFilters}
-                      searchQuery={searchQuery}
-                      onPropertySelect={() => {}} // Desabilitado temporariamente
-                    />
+                    <MapView />
                   )}
                 </div>
               </div>

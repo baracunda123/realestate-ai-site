@@ -1,14 +1,10 @@
-import React from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 import { Button } from './ui/button';
-import { Badge } from './ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger, DropdownMenuLabel } from './ui/dropdown-menu';
 import { 
   User, 
   LogOut, 
-  Crown, 
   ChevronDown, 
-  Shield,
   UserCircle,
   Mail
 } from 'lucide-react';
@@ -49,13 +45,13 @@ export function UserProfileDropdown({ user, onLogout, onNavigateToPersonal }: Us
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="flex items-center space-x-2 hover:bg-pale-clay-light">
           <Avatar className="h-8 w-8 border-2 border-pale-clay-deep">
-            <AvatarImage src={user.avatar} alt={user.name || user.fullName || user.email} />
+            <AvatarImage src={user.avatar} alt={user.name ||  user.email} />
             <AvatarFallback className="bg-pale-clay text-deep-mocha text-sm">
-              {user.name || user.fullName || user.email.split(' ').map(n => n[0]).join('')}
+              {user.name ||  user.email.split(' ').map(n => n[0]).join('')}
             </AvatarFallback>
           </Avatar>
           <div className="hidden md:flex items-center space-x-1">
-            <span className="text-deep-mocha">{user.name || user.fullName || user.email.split(' ')[0]}</span>
+            <span className="text-deep-mocha">{user.name ||  user.email.split(' ')[0]}</span>
             <ChevronDown className="h-3 w-3 text-warm-taupe" />
           </div>
         </Button>
@@ -65,13 +61,13 @@ export function UserProfileDropdown({ user, onLogout, onNavigateToPersonal }: Us
         <div className="px-4 py-3 bg-gradient-to-r from-pale-clay-light to-porcelain-soft">
           <div className="flex items-center space-x-3">
             <Avatar className="h-12 w-12 border-2 border-burnt-peach-light">
-              <AvatarImage src={user.avatar} alt={user.name || user.fullName || user.email} />
+              <AvatarImage src={user.avatar} alt={user.name ||  user.email} />
               <AvatarFallback className="bg-burnt-peach-lighter text-deep-mocha font-medium">
-                {user.name || user.fullName || user.email.split(' ').map(n => n[0]).join('')}
+                {user.name ||  user.email.split(' ').map(n => n[0]).join('')}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1">
-              <p className="font-medium text-deep-mocha">{user.name || user.fullName || user.email}</p>
+              <p className="font-medium text-deep-mocha">{user.name ||  user.email}</p>
               <p className="text-xs text-warm-taupe">{user.email}</p>
             </div>
           </div>

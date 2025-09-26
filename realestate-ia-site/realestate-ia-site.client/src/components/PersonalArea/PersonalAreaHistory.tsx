@@ -1,4 +1,3 @@
-import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Clock, Eye, ArrowRight } from 'lucide-react';
@@ -13,7 +12,6 @@ interface PersonalAreaHistoryProps {
 }
 
 export function PersonalAreaHistory({ 
-  user, 
   viewHistory, 
   onGoToHome 
 }: PersonalAreaHistoryProps) {

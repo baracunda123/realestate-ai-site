@@ -1,8 +1,8 @@
-// useSignalR.ts - Hook para gestão da conexão SignalR
+// useSignalR.ts - Hook para gestï¿½o da conexï¿½o SignalR
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import signalRService, { type SignalRNotification } from '../services/signalr.service';
-import apiClient from '../api/client';
+import apiClient, { SecureTokenManager } from '../api/client';
 
 interface UseSignalRReturn {
   isConnected: boolean;
@@ -17,7 +17,7 @@ interface UseSignalRReturn {
 }
 
 /**
- * Hook para gestão da conexão SignalR e notificações em tempo real
+ * Hook para gestï¿½o da conexï¿½o SignalR e notificaï¿½ï¿½es em tempo real
  */
 export function useSignalR(): UseSignalRReturn {
   const [isConnected, setIsConnected] = useState(false);
@@ -29,24 +29,24 @@ export function useSignalR(): UseSignalRReturn {
   const mountedRef = useRef(true);
   const hasShownConnectionToast = useRef(false);
 
-  // Função para conectar
+  // Funï¿½ï¿½o para conectar
   const connect = useCallback(async () => {
     if (!apiClient.isAuthenticated()) {
-      console.log('?? Utilizador não autenticado, não conectando SignalR');
+      console.log('?? Utilizador nï¿½o autenticado, nï¿½o conectando SignalR');
       return;
     }
 
     if (isConnecting || isConnected) {
-      console.log('?? SignalR já está conectado ou conectando');
+      console.log('?? SignalR jï¿½ estï¿½ conectado ou conectando');
       return;
     }
 
     try {
       setIsConnecting(true);
       
-      const token = apiClient.getToken();
+      const token = SecureTokenManager.getAccessToken();
       if (!token) {
-        throw new Error('Token de autenticação não encontrado');
+        throw new Error('Token de autenticaï¿½ï¿½o nï¿½o encontrado');
       }
 
       const success = await signalRService.initialize(token);
@@ -58,10 +58,10 @@ export function useSignalR(): UseSignalRReturn {
           setIsConnected(true);
           setConnectionState('Connected');
           
-          // Mostrar toast apenas uma vez por sessão
+          // Mostrar toast apenas uma vez por sessï¿½o
           if (!hasShownConnectionToast.current) {
-            toast.success('?? Notificações em tempo real ativadas!', {
-              description: 'Receberá alertas de redução de preço instantaneamente',
+            toast.success('?? Notificaï¿½ï¿½es em tempo real ativadas!', {
+              description: 'Receberï¿½ alertas de reduï¿½ï¿½o de preï¿½o instantaneamente',
               duration: 3000
             });
             hasShownConnectionToast.current = true;
@@ -79,7 +79,7 @@ export function useSignalR(): UseSignalRReturn {
     }
   }, [isConnecting, isConnected]);
 
-  // Função para desconectar
+  // Funï¿½ï¿½o para desconectar
   const disconnect = useCallback(async () => {
     try {
       await signalRService.disconnect();
@@ -95,16 +95,16 @@ export function useSignalR(): UseSignalRReturn {
     }
   }, []);
 
-  // Função para confirmar notificação
+  // Funï¿½ï¿½o para confirmar notificaï¿½ï¿½o
   const acknowledgeNotification = useCallback(async (notificationId: string) => {
     try {
       await signalRService.acknowledgeNotification(notificationId);
     } catch (error) {
-      console.error('? Erro ao confirmar notificação:', error);
+      console.error('? Erro ao confirmar notificaï¿½ï¿½o:', error);
     }
   }, []);
 
-  // Função para limpar notificações locais
+  // Funï¿½ï¿½o para limpar notificaï¿½ï¿½es locais
   const clearNotifications = useCallback(() => {
     setNotifications([]);
   }, []);
@@ -113,24 +113,24 @@ export function useSignalR(): UseSignalRReturn {
   useEffect(() => {
     if (!mountedRef.current) return;
 
-    // Handler para nova notificação de preço
+    // Handler para nova notificaï¿½ï¿½o de preï¿½o
     const handleNewPriceAlert = (data: SignalRNotification) => {
       if (!mountedRef.current) return;
       
-      console.log('?? Nova notificação de preço:', data);
+      console.log('?? Nova notificaï¿½ï¿½o de preï¿½o:', data);
       
       setNotifications(prev => [data, ...prev.slice(0, 19)]); // Manter apenas 20 mais recentes
       setUnreadCount(prev => prev + 1);
       
       // Mostrar toast
-      toast.success(data.message || '?? Redução de preço detectada!', {
+      toast.success(data.message || '?? Reduï¿½ï¿½o de preï¿½o detectada!', {
         description: 'Clique para ver detalhes',
         duration: 5000,
         action: {
           label: 'Ver',
           onClick: () => {
-            // Redirecionar para área pessoal ou mostrar detalhes
-            console.log('Abrir detalhes da notificação:', data);
+            // Redirecionar para ï¿½rea pessoal ou mostrar detalhes
+            console.log('Abrir detalhes da notificaï¿½ï¿½o:', data);
           }
         }
       });
@@ -144,14 +144,14 @@ export function useSignalR(): UseSignalRReturn {
       
       setNotifications(prev => [data, ...prev.slice(0, 19)]);
       
-      // Toast mais suave para criação de alerta
-      toast.info(data.message || '?? Alerta de preço criado!', {
-        description: 'Será notificado de reduções de preço',
+      // Toast mais suave para criaï¿½ï¿½o de alerta
+      toast.info(data.message || '?? Alerta de preï¿½o criado!', {
+        description: 'Serï¿½ notificado de reduï¿½ï¿½es de preï¿½o',
         duration: 3000
       });
     };
 
-    // Handler para atualização da contagem
+    // Handler para atualizaï¿½ï¿½o da contagem
     const handleUnreadCountUpdate = (data: SignalRNotification) => {
       if (!mountedRef.current) return;
       
@@ -162,7 +162,7 @@ export function useSignalR(): UseSignalRReturn {
       }
     };
 
-    // Handler para reconexão
+    // Handler para reconexï¿½o
     const handleReconnected = (data: any) => {
       if (!mountedRef.current) return;
       
@@ -170,13 +170,13 @@ export function useSignalR(): UseSignalRReturn {
       setIsConnected(true);
       setConnectionState('Connected');
       
-      toast.success('?? Conexão restaurada!', {
-        description: 'Notificações em tempo real reativadas',
+      toast.success('?? Conexï¿½o restaurada!', {
+        description: 'Notificaï¿½ï¿½es em tempo real reativadas',
         duration: 2000
       });
     };
 
-    // Handler para desconexão
+    // Handler para desconexï¿½o
     const handleClosed = (data: any) => {
       if (!mountedRef.current) return;
       
@@ -185,14 +185,14 @@ export function useSignalR(): UseSignalRReturn {
       setConnectionState('Disconnected');
       
       if (data.error) {
-        toast.warning('?? Conexão perdida', {
+        toast.warning('?? Conexï¿½o perdida', {
           description: 'Tentando reconectar automaticamente...',
           duration: 3000
         });
       }
     };
 
-    // Handler para tentativa de reconexão
+    // Handler para tentativa de reconexï¿½o
     const handleReconnecting = (data: any) => {
       if (!mountedRef.current) return;
       
@@ -219,7 +219,7 @@ export function useSignalR(): UseSignalRReturn {
     };
   }, []);
 
-  // Conectar automaticamente quando houver autenticação
+  // Conectar automaticamente quando houver autenticaï¿½ï¿½o
   useEffect(() => {
     if (apiClient.isAuthenticated()) {
       connect();
@@ -234,7 +234,7 @@ export function useSignalR(): UseSignalRReturn {
     };
   }, [connect, disconnect, isConnected]);
 
-  // Atualizar estado da conexão periodicamente
+  // Atualizar estado da conexï¿½o periodicamente
   useEffect(() => {
     const interval = setInterval(() => {
       if (mountedRef.current) {
@@ -263,7 +263,7 @@ export function useSignalR(): UseSignalRReturn {
 }
 
 /**
- * Hook simplificado apenas para contagem de não lidas (substitui useUnreadNotificationsCount)
+ * Hook simplificado apenas para contagem de nï¿½o lidas (substitui useUnreadNotificationsCount)
  */
 export function useUnreadNotificationsCount(): {
   unreadCount: number;
@@ -272,7 +272,7 @@ export function useUnreadNotificationsCount(): {
   const { unreadCount, isConnected, isConnecting } = useSignalR();
   
   // Se o SignalR estiver conectado, usar a contagem em tempo real
-  // Caso contrário, isLoading = true para indicar que não temos dados em tempo real
+  // Caso contrï¿½rio, isLoading = true para indicar que nï¿½o temos dados em tempo real
   return {
     unreadCount: isConnected ? unreadCount : 0,
     isLoading: isConnecting || !isConnected

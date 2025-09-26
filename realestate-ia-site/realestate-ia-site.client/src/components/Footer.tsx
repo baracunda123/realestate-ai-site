@@ -1,4 +1,3 @@
-import React from 'react';
 import { Home, Mail } from 'lucide-react';
 
 export function Footer() {
