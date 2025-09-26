@@ -48,6 +48,7 @@ export default defineConfig({
         // Otimizações básicas de build
         target: 'es2020',
         minify: 'terser',
+        outDir: 'dist',
         rollupOptions: {
             output: {
                 // Chunk splitting simples
