@@ -47,7 +47,7 @@ export default defineConfig({
     build: {
         // Otimizações básicas de build
         target: 'es2020',
-        minify: 'terser',
+        minify: 'esbuild',
         outDir: 'dist',
         rollupOptions: {
             output: {

@@ -1,6 +1,7 @@
 // signalr.service.ts - Serviço para notificações em tempo real
 import { HubConnection, HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 import { authUtils } from './auth.service';
+//import type { UserProfile } from './client';
 
 interface PropertyAlertNotification {
   alertId: string;
@@ -60,33 +61,6 @@ interface NotificationListeners {
   connectionStateChanged: Array<(connected: boolean) => void>;
 }
 
-// Adicionar uma interface para o authUtils com os métodos necessários
-interface AuthUtils {
-  clearTokens: () => void;
-  isAuthenticated: () => boolean;
-  getCurrentUser: () => { id: string; email: string; [key: string]: unknown } | null;
-  getSessionId: () => string;
-  getAccessToken?: () => string | null;
-}
-
-// Extend authUtils para incluir o método necessário
-const extendedAuthUtils = {
-  ...authUtils,
-  getAccessToken: (): string | null => {
-    // Implementar uma forma de obter o token - pode ser via localStorage ou cookie
-    try {
-      const storedData = localStorage.getItem('auth_tokens');
-      if (storedData) {
-        const parsed = JSON.parse(storedData);
-        return parsed.accessToken || null;
-      }
-      return null;
-    } catch {
-      return null;
-    }
-  }
-} as AuthUtils & { getAccessToken: () => string | null };
-
 class SignalRService {
   private connection: HubConnection | null = null;
   private listeners: NotificationListeners = {
@@ -103,16 +77,27 @@ class SignalRService {
   }
 
   private setupConnection() {
-    const apiUrl = (import.meta as { env: { VITE_API_BASE_URL?: string; DEV?: boolean } }).env.VITE_API_BASE_URL || '';
+    const apiUrl = import.meta.env?.VITE_API_BASE_URL || '';
     const hubUrl = `${apiUrl}/notificationHub`;
 
     this.connection = new HubConnectionBuilder()
       .withUrl(hubUrl, {
-        accessTokenFactory: () => extendedAuthUtils.getAccessToken() || '',
+        accessTokenFactory: () => {
+          try {
+            const storedData = localStorage.getItem('auth_tokens');
+            if (storedData) {
+              const parsed = JSON.parse(storedData);
+              return parsed.accessToken || '';
+            }
+          } catch {
+            // ignore
+          }
+          return '';
+        },
         withCredentials: true
       })
       .withAutomaticReconnect()
-      .configureLogging((import.meta as { env: { DEV?: boolean } }).env.DEV ? LogLevel.Information : LogLevel.Warning)
+      .configureLogging(import.meta.env?.DEV ? LogLevel.Information : LogLevel.Warning)
       .build();
 
     this.setupEventHandlers();
@@ -123,18 +108,18 @@ class SignalRService {
     if (!this.connection) return;
 
     this.connection.onclose((error?: Error) => {
-      console.log('?? SignalR: Conexão fechada', error);
+      console.log('SignalR: Conexão fechada', error);
       this.notifyConnectionStateChanged(false);
       this.stopPing();
     });
 
     this.connection.onreconnecting((error?: Error) => {
-      console.log('?? SignalR: Reconectando...', error);
+      console.log('SignalR: Reconectando...', error);
       this.notifyConnectionStateChanged(false);
     });
 
     this.connection.onreconnected(() => {
-      console.log('? SignalR: Reconectado');
+      console.log('SignalR: Reconectado');
       this.notifyConnectionStateChanged(true);
       this.startPing();
       this.rejoinGroups();
@@ -145,22 +130,22 @@ class SignalRService {
     if (!this.connection) return;
 
     this.connection.on('PropertyAlert', (notification: PropertyAlertNotification) => {
-      console.log('?? Nova propriedade encontrada:', notification);
+      console.log('Nova propriedade encontrada:', notification);
       this.notifyListeners('propertyAlert', notification);
     });
 
     this.connection.on('PriceChange', (notification: PriceChangeNotification) => {
-      console.log('?? Mudança de preço:', notification);
+      console.log('Mudança de preço:', notification);
       this.notifyListeners('priceChange', notification);
     });
 
     this.connection.on('SystemNotification', (notification: SystemNotification) => {
-      console.log('?? Notificação do sistema:', notification);
+      console.log('Notificação do sistema:', notification);
       this.notifyListeners('systemNotification', notification);
     });
 
     this.connection.on('PropertyUpdate', (notification: PropertyUpdateNotification) => {
-      console.log('?? Atualização de propriedade:', notification);
+      console.log('Atualização de propriedade:', notification);
       this.notifyListeners('propertyUpdate', notification);
     });
 
@@ -181,14 +166,14 @@ class SignalRService {
     try {
       await this.connection!.start();
       
-      console.log('? SignalR: Conectado');
+      console.log('SignalR: Conectado');
       this.notifyConnectionStateChanged(true);
       this.startPing();
       await this.joinPropertyAlertsGroup();
       
       return true;
     } catch (error) {
-      console.error('? SignalR: Erro ao conectar', error);
+      console.error('SignalR: Erro ao conectar', error);
       this.notifyConnectionStateChanged(false);
       return false;
     }
@@ -198,7 +183,7 @@ class SignalRService {
     if (this.connection) {
       this.stopPing();
       await this.connection.stop();
-      console.log('?? SignalR: Desconectado');
+      console.log('SignalR: Desconectado');
     }
   }
 
@@ -209,7 +194,7 @@ class SignalRService {
         try {
           await this.connection.invoke('Ping');
         } catch (error) {
-          console.error('? SignalR: Erro no ping', error);
+          console.error('SignalR: Erro no ping', error);
         }
       }
     }, 30000);
@@ -226,7 +211,7 @@ class SignalRService {
     try {
       await this.joinPropertyAlertsGroup();
     } catch (error) {
-      console.error('? SignalR: Erro ao reentrar nos grupos', error);
+      console.error('SignalR: Erro ao reentrar nos grupos', error);
     }
   }
 
@@ -235,9 +220,9 @@ class SignalRService {
     if (this.connection?.state === 'Connected') {
       try {
         await this.connection.invoke('JoinPropertyAlertsGroup');
-        console.log('? SignalR: Entrou no grupo de alertas');
+        console.log(' SignalR: Entrou no grupo de alertas');
       } catch (error) {
-        console.error('? SignalR: Erro ao entrar no grupo', error);
+        console.error(' SignalR: Erro ao entrar no grupo', error);
       }
     }
   }
@@ -246,9 +231,9 @@ class SignalRService {
     if (this.connection?.state === 'Connected') {
       try {
         await this.connection.invoke('LeavePropertyAlertsGroup');
-        console.log('?? SignalR: Saiu do grupo de alertas');
+        console.log(' SignalR: Saiu do grupo de alertas');
       } catch (error) {
-        console.error('? SignalR: Erro ao sair do grupo', error);
+        console.error(' SignalR: Erro ao sair do grupo', error);
       }
     }
   }
@@ -302,10 +287,9 @@ class SignalRService {
     const listeners = this.listeners[type];
     listeners.forEach(callback => {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (callback as any)(data);
       } catch (error) {
-        console.error(`? SignalR: Erro no listener ${type}:`, error);
+        console.error(` SignalR: Erro no listener ${type}:`, error);
       }
     });
   }
@@ -328,7 +312,7 @@ class SignalRService {
     const isPropertyAlert = 'alertName' in notification;
     
     return {
-      title: isPropertyAlert ? `?? ${notification.alertName}` : `?? ${notification.title}`,
+      title: isPropertyAlert ? ` ${notification.alertName}` : ` ${notification.title}`,
       description: isPropertyAlert ? notification.message : notification.message,
       action: isPropertyAlert ? {
         label: 'Ver Propriedade',
@@ -353,6 +337,6 @@ export type {
 };
 
 // Auto-conectar quando autenticado
-if (extendedAuthUtils.isAuthenticated()) {
+if (authUtils.isAuthenticated()) {
   signalRService.connect().catch(console.error);
 }
