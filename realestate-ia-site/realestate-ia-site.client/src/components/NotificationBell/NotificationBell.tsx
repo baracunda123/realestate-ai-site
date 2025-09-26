@@ -1,4 +1,3 @@
-import React from 'react';
 import { Bell } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
@@ -11,8 +10,8 @@ interface NotificationBellProps {
 }
 
 /**
- * Componente de sininho para notificações na barra de navegação
- * Mostra um badge com a contagem de notificações não lidas
+ * Componente de sininho para notificaï¿½ï¿½es na barra de navegaï¿½ï¿½o
+ * Mostra um badge com a contagem de notificaï¿½ï¿½es nï¿½o lidas
  */
 export function NotificationBell({ 
   onClick, 
@@ -28,7 +27,7 @@ export function NotificationBell({
       onClick={onClick}
       className={`relative ${className}`}
       disabled={isLoading}
-      title={`${unreadCount > 0 ? `${unreadCount} notificação${unreadCount > 1 ? 'ões' : ''} não lida${unreadCount > 1 ? 's' : ''}` : 'Notificações'}`}
+      title={`${unreadCount > 0 ? `${unreadCount} notificaï¿½ï¿½o${unreadCount > 1 ? 'ï¿½es' : ''} nï¿½o lida${unreadCount > 1 ? 's' : ''}` : 'Notificaï¿½ï¿½es'}`}
     >
       <Bell className="h-5 w-5" />
       {unreadCount > 0 && (

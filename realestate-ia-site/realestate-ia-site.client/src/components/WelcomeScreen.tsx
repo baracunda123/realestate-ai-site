@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Badge } from './ui/badge';
-import { Home, Search, MapPin, Filter, Star, ArrowRight, TrendingUp, Users, Heart, Sparkles, Check, Crown, Zap } from 'lucide-react';
+import { Home, Search, MapPin, Filter, Star, ArrowRight, TrendingUp, Users, Heart, Sparkles } from 'lucide-react';
 
 import type { User } from '../types/PersonalArea';
 
@@ -13,7 +13,7 @@ interface WelcomeScreenProps {
   onStartSignup: () => void;
 }
 
-export function WelcomeScreen({ onExampleSearch, user, onStartSignup }: WelcomeScreenProps) {
+export function WelcomeScreen({ onExampleSearch, user }: WelcomeScreenProps) {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
   const [counters, setCounters] = useState({
@@ -240,7 +240,7 @@ export function WelcomeScreen({ onExampleSearch, user, onStartSignup }: WelcomeS
                 { icon: Sparkles, text: "IA Integrada" },
                 { icon: MapPin, text: "Mapa Interativo" },
                 { icon: Filter, text: "Filtros Inteligentes" }
-              ].map((badge, index) => (
+              ].map((badge) => (
                 <motion.div
                   key={badge.text}
                   whileHover={{ scale: 1.08, y: -3 }}

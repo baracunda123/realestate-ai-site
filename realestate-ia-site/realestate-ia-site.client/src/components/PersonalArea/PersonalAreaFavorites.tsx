@@ -1,4 +1,3 @@
-import React from 'react';
 import { Heart } from 'lucide-react';
 import type { Property } from '../../types/property';
 import { PropertyCard } from '../PropertyCard';
