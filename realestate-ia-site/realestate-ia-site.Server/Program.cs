@@ -304,8 +304,7 @@ var allowedOrigins = Environment.GetEnvironmentVariable("ALLOWED_ORIGINS")?.Spli
                     ?? (builder.Environment.IsDevelopment()
                         ? new[] { "https://localhost:64222" }
                         : new[] {
-                            "https://residai-ezgzdjfrc9fdcfez.canadacentral-01.azurewebsites.net",
-                            "https://residai-server.azurewebsites.net"
+                            "https://ambitious-pond-01734cc0f.2.azurestaticapps.net"
                         });
 
 builder.Services.AddCors(options =>
