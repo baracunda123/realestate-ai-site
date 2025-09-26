@@ -34,6 +34,8 @@
   "mimeTypes": {
     ".js": "application/javascript",
     ".mjs": "application/javascript",
+    ".tsx": "application/javascript",
+    ".ts": "application/javascript",
     ".css": "text/css",
     ".json": "application/json",
     ".png": "image/png",
