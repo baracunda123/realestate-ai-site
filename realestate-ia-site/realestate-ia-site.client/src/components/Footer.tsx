@@ -13,7 +13,7 @@ export function Footer() {
                 <Home className="h-4 w-4 text-white" />
               </div>
               <h3 className="text-lg font-semibold text-deep-mocha">
-                HomeFinder AI
+                ResideAI
               </h3>
             </div>
             <p className="text-sm text-cocoa-taupe max-w-xs">
