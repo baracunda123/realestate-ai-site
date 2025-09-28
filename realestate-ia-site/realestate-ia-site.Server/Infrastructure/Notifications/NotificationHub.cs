@@ -116,7 +116,7 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
         }
 
         /// <summary>
-        /// Método para debug - mostrar informações da conexão
+        /// Metodo para debug - mostrar informações da conexão
         /// </summary>
         public async Task GetConnectionInfo()
         {
@@ -133,6 +133,22 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
             await Clients.Caller.SendAsync("ConnectionInfo", connectionInfo);
             
             _logger.LogInformation("Connection info requested: {@ConnectionInfo}", connectionInfo);
+        }
+
+        /// <summary>
+        /// Metodo Ping para verificar conectividade
+        /// </summary>
+        public async Task Ping()
+        {
+            try
+            {
+                await Clients.Caller.SendAsync("Pong", DateTime.UtcNow);
+                _logger.LogDebug("Ping responded for user {UserId}", GetCurrentUserId());
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error responding to ping for user {UserId}", GetCurrentUserId());
+            }
         }
     }
 }

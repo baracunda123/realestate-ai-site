@@ -13,12 +13,14 @@ interface PersonalAreaAlertsProps {
   alerts: PropertyAlert[];
   onDeleteAlert: (alertId: string) => void;
   onUpdateAlert?: (alertId: string, threshold: number) => void;
+  onNavigateToHome?: () => void; // Add navigation prop
 }
 
 export function PersonalAreaAlerts({
   alerts,
   onDeleteAlert,
-  onUpdateAlert
+  onUpdateAlert,
+  onNavigateToHome
 }: PersonalAreaAlertsProps) {
 
   if (alerts.length === 0) {
@@ -28,7 +30,7 @@ export function PersonalAreaAlerts({
         title="Nenhum alerta de preço ativo"
         description="Crie alertas de redução de preço clicando no sininho das propriedades que lhe interessam. Será notificado quando o preço baixar."
         actionLabel="Explorar Propriedades"
-        onAction={() => window.location.href = '/'}
+        onAction={onNavigateToHome || (() => window.location.href = '/')}
       />
     );
   }

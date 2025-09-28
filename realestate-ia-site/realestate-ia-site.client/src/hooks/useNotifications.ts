@@ -19,20 +19,26 @@ interface UseNotificationsReturn {
 }
 
 /**
- * Hook para gestão de notificações com SignalR (substitui o sistema de polling)
+ * Hook para gestão de notificações com SignalR
  */
 export function useNotifications(): UseNotificationsReturn {
   const [notifications, setNotifications] = useState<PropertyAlertNotification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const mountedRef = useRef(true);
 
   // Usar SignalR para notificações em tempo real
-  const { 
-    unreadCount, 
-    isConnected, 
-    notifications: signalRNotifications 
-  } = useSignalR();
+  const { isConnected } = useSignalR({
+    autoConnect: false,
+    showToasts: true
+  });
+
+  // Calcular unreadCount localmente a partir das notificações
+  useEffect(() => {
+    const count = notifications.filter(n => !n.isRead).length;
+    setUnreadCount(count);
+  }, [notifications]);
 
   // Carregar notificações iniciais
   const loadNotifications = useCallback(async (showLoading = true) => {
@@ -114,14 +120,19 @@ export function useNotifications(): UseNotificationsReturn {
     };
   }, [loadNotifications]);
 
-  // Processar notificações do SignalR
+  // Refresh quando SignalR conecta (indica que pode haver novas notificações)
   useEffect(() => {
-    if (signalRNotifications.length > 0 && isConnected) {
-      // Quando chegar nova notificação via SignalR, fazer refresh das notificações
-      // para ter os dados mais atualizados da base de dados
-      refresh();
+    if (isConnected) {
+      // Pequeno delay para dar tempo ao backend processar
+      const timeoutId = setTimeout(() => {
+        if (mountedRef.current) {
+          refresh();
+        }
+      }, 2000);
+
+      return () => clearTimeout(timeoutId);
     }
-  }, [signalRNotifications, isConnected, refresh]);
+  }, [isConnected, refresh]);
 
   return {
     notifications,
@@ -136,16 +147,54 @@ export function useNotifications(): UseNotificationsReturn {
 
 /**
  * Hook simplificado para apenas contagem de notificações não lidas
- * NOVA VERSÃO: Usa SignalR em vez de polling
+ * Usa as notificações carregadas para calcular o unreadCount
  */
 export function useUnreadNotificationsCount(): {
   unreadCount: number;
   isLoading: boolean;
 } {
-  const { unreadCount, isConnected, isConnecting } = useSignalR();
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const mountedRef = useRef(true);
+
+  // Carregar apenas a contagem
+  useEffect(() => {
+    const loadUnreadCount = async () => {
+      if (!mountedRef.current) return;
+      
+      try {
+        const notifications = await getRecentNotifications(50); // Carregar mais para ter contagem precisa
+        if (mountedRef.current) {
+          const count = notifications.filter(n => !n.isRead).length;
+          setUnreadCount(count);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Erro ao carregar contagem de notificações:', error);
+        if (mountedRef.current) {
+          setUnreadCount(0);
+          setIsLoading(false);
+        }
+      }
+    };
+
+    loadUnreadCount();
+
+    // Polling a cada 30 segundos para atualizar contagem
+    const interval = setInterval(() => {
+      if (mountedRef.current) {
+        loadUnreadCount();
+      }
+    }, 30000);
+
+    return () => {
+      clearInterval(interval);
+      mountedRef.current = false;
+    };
+  }, []);
   
   return {
     unreadCount,
-    isLoading: isConnecting || !isConnected
+    isLoading
   };
 }

@@ -243,6 +243,7 @@ export function PersonalArea({
             alerts={alerts}
             onDeleteAlert={handleDeleteAlert}
             onUpdateAlert={handleUpdateAlert}
+            onNavigateToHome={onNavigateToHome}
           />
         </TabsContent>
 
