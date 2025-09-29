@@ -6,8 +6,7 @@ import { signalr as logger } from '../utils/logger';
 import type { 
   PropertyAlertNotification,
   PriceChangeNotification,
-  SystemNotification,
-  PropertyUpdateNotification
+  SystemNotification
 } from '../api/signalr.service';
 import { authUtils } from '../api/auth.service';
 
@@ -31,7 +30,7 @@ interface UseSignalRReturn {
  * Hook para gestão da conexão SignalR e notificações em tempo real
  */
 export function useSignalR(options: UseSignalROptions = {}): UseSignalRReturn {
-  const { autoConnect = true, showToasts = true } = options;
+  const { showToasts = true } = options;
   
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
@@ -62,7 +61,6 @@ export function useSignalR(options: UseSignalROptions = {}): UseSignalRReturn {
         
         if (success) {
           hasConnectedRef.current = true;
-          // Remover toast de conexão - utilizador não precisa saber
         }
       }
       
@@ -74,7 +72,6 @@ export function useSignalR(options: UseSignalROptions = {}): UseSignalRReturn {
         setIsConnecting(false);
         setIsConnected(false);
         setConnectionState('Disconnected');
-        // Remover toast de erro - falha silenciosa
       }
       
       return false;
@@ -136,11 +133,9 @@ export function useSignalR(options: UseSignalROptions = {}): UseSignalRReturn {
       
       setIsConnected(connected);
       setConnectionState(signalRService.connectionState);
-      
-      // Remover toast de reconexão - deve ser silencioso
     };
 
-    // Handler para alertas de propriedade (MANTER - é o que interessa ao utilizador)
+    // Handler para alertas de propriedade
     const handlePropertyAlert = (notification: PropertyAlertNotification) => {
       if (!mountedRef.current) return;
       
@@ -154,14 +149,13 @@ export function useSignalR(options: UseSignalROptions = {}): UseSignalRReturn {
             label: 'Ver',
             onClick: () => {
               logger.info(`Abrir propriedade: ${notification.propertyId}`);
-              // TODO: Navegar para a propriedade
             }
           }
         });
       }
     };
 
-    // Handler para mudanças de preço (MANTER - útil ao utilizador)  
+    // Handler para mudanças de preço  
     const handlePriceChange = (notification: PriceChangeNotification) => {
       if (!mountedRef.current) return;
       
@@ -176,7 +170,7 @@ export function useSignalR(options: UseSignalROptions = {}): UseSignalRReturn {
       }
     };
 
-    // Handler para notificações do sistema (MANTER - importante)
+    // Handler para notificações do sistema
     const handleSystemNotification = (notification: SystemNotification) => {
       if (!mountedRef.current) return;
       
@@ -211,17 +205,11 @@ export function useSignalR(options: UseSignalROptions = {}): UseSignalRReturn {
 
   // Auto-conectar se solicitado e autenticado
   useEffect(() => {
-    // REMOVER auto-conexão - só conectar quando explicitamente solicitado
-    // if (autoConnect && authUtils.isAuthenticated() && !isConnected && !isConnecting) {
-    //   logger.info('Auto-conectando...');
-    //   connect();
-    // }
-
     // Cleanup no desmonte
     return () => {
       mountedRef.current = false;
     };
-  }, []); // Remove dependências para não auto-conectar
+  }, []);
 
   // Atualizar estado da conexão periodicamente
   useEffect(() => {
@@ -233,7 +221,7 @@ export function useSignalR(options: UseSignalROptions = {}): UseSignalRReturn {
         setConnectionState(currentState);
         setIsConnected(currentlyConnected);
       }
-    }, 5000); // Verificar a cada 5 segundos
+    }, 5000);
 
     return () => clearInterval(interval);
   }, []);

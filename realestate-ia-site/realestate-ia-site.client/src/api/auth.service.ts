@@ -291,6 +291,35 @@ export async function changePassword(data: ChangePasswordRequest): Promise<Passw
 }
 
 /**
+ * Login com Google
+ */
+export async function googleLogin(credential: string): Promise<AuthResult> {
+  try {
+    const requestData = {
+      accessToken: credential,
+      provider: 'Google'
+    };
+
+    const response = await apiClient.post<AuthResult>('/api/auth/google-login', requestData);
+
+    // Salvar tokens automaticamente se login foi bem-sucedido
+    if (response.success && response.token && response.user) {
+      apiClient.saveAuthTokens(response.token, response.user);
+    }
+     
+    return response;
+  } catch (error: unknown) {
+    logger.error('Erro no login com Google', error as Error);
+    
+    return {
+      success: false,
+      message: getErrorMessage(error),
+      errors: [getErrorMessage(error)]
+    };
+  }
+}
+
+/**
  * Atualizar perfil do utilizador
  */
 export async function updateProfile(data: UpdateProfileRequest): Promise<UserProfile> {

@@ -184,7 +184,7 @@ export default function App() {
               logger.warn('Falha ao validar sessão - usuário não encontrado', 'APP');
               authUtils.clearTokens();
             }
-          } catch (error) {
+          } catch  {
             if (!isCleanup) {
               logger.warn('Falha ao restaurar sessão', 'APP');
               authUtils.clearTokens();
@@ -228,13 +228,13 @@ export default function App() {
     if (hasActiveAlerts && !signalRConnected) {
       // Tem alertas mas SignalR não está conectado - conectar silenciosamente
       logger.info('Alertas ativos detectados - conectando SignalR silenciosamente', 'APP');
-      connectSignalR().catch(error => {
+      connectSignalR().catch(() => {
         logger.warn('Falha ao conectar SignalR automaticamente', 'APP');
       });
     } else if (!hasActiveAlerts && signalRConnected) {
       // Não tem alertas mas SignalR está conectado - desconectar
       logger.info('Nenhum alerta ativo - desconectando SignalR', 'APP');
-      disconnectSignalR().catch(error => {
+      disconnectSignalR().catch(() => {
         logger.warn('Falha ao desconectar SignalR', 'APP');
       });
     }
@@ -360,7 +360,7 @@ export default function App() {
         if (!signalRConnected) {
           try {
             await connectSignalR();
-          } catch (error) {
+          } catch {
             logger.warn('Falha ao ativar SignalR', 'APP');
             // Não mostrar erro ao utilizador - alerta funciona mesmo sem SignalR
           }
@@ -574,7 +574,7 @@ export default function App() {
           </Suspense>
         ) : (
           user && (
-            <Suspense fallback={< Loading Spinner />}>
+            <Suspense fallback={<LoadingSpinner />}>
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 <div className="lg:col-span-1 space-y-6">
                   <SearchFilters

@@ -225,6 +225,7 @@ builder.Services.AddScoped<PropertyAlertService>();
 builder.Services.AddScoped<PropertyRecommendationService>();
 builder.Services.AddScoped<IPropertySearchService, PropertySearchService>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<GoogleAuthService>();
 
 // AI
 builder.Services.AddSingleton<IOpenAIService, OpenAIService>();

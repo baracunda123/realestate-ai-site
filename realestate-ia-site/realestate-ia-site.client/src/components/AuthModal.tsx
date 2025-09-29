@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from './ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Button } from './ui/button';
@@ -13,13 +13,14 @@ import {
   Eye, 
   EyeOff, 
   Sparkles,
-  Chrome,
   AlertCircle,
   CheckCircle,
   Loader2,
   MailCheck
 } from 'lucide-react';
 import { login, register, type LoginPayload, type RegisterPayload } from '../api/auth.service';
+import googleAuthService from '../api/google-auth.service';
+import { client as logger } from '../utils/logger';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -65,11 +66,34 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [formData, setFormData] = useState<FormData>(INITIAL_FORM_DATA);
 
+  // Ref para o container do botão do Google
+  const googleButtonRef = useRef<HTMLDivElement>(null);
+
   // Reset form when modal opens/closes or tab changes
   useEffect(() => {
     if (isOpen) {
+      logger.info('Modal de autenticação aberto');
       setActiveTab(defaultTab);
       resetForm();
+      
+      // Inicializar Google Auth quando o modal abrir
+      googleAuthService.initialize().then(success => {
+        if (success) {
+          logger.info('Google Auth inicializado com sucesso');
+          // Renderizar botão do Google
+          if (googleButtonRef.current) {
+            googleAuthService.renderButtonIn(
+              googleButtonRef.current,
+              handleGoogleSuccess,
+              handleGoogleError
+            );
+          }
+        } else {
+          logger.error('Falha na inicialização do Google Auth');
+        }
+      }).catch(error => {
+        logger.error('Erro na inicialização do Google Auth', error);
+      });
     }
   }, [isOpen, defaultTab]);
 
@@ -126,6 +150,20 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
     return error.message || 'Internal server error. Please try again.';
   };
 
+  const handleGoogleSuccess = () => {
+    setSuccess('Login com Google realizado com sucesso!');
+    resetForm();
+    
+    setTimeout(() => {
+      onSuccess?.();
+      onClose();
+    }, 1500);
+  };
+
+  const handleGoogleError = (error: string) => {
+    setError(error);
+  };
+
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -149,7 +187,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
           onClose();
         }, 1500);
       } else {
-          setError(result.message || result.errors?.join('. ') || 'Erro inesperado no login.');
+        setError(result.message || result.errors?.join('. ') || 'Erro inesperado no login.');
       }
     } catch (error) {
       console.error('Login error:', error);
@@ -307,6 +345,21 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
           .no-password-reveal::-webkit-textfield-decoration-container { display: none; }
           .no-password-reveal::-webkit-credentials-auto-fill-button { visibility: hidden; display: none; pointer-events: none; }
           .no-password-reveal::-webkit-contacts-auto-fill-button { visibility: hidden; display: none; pointer-events: none; }
+          
+          /* Estilo para o botão do Google */
+          .google-button-container [role="button"] {
+            width: 100% !important;
+            height: 48px !important;
+            border-radius: 12px !important;
+            border: 1px solid #e2e8f0 !important;
+            transition: all 0.2s ease !important;
+          }
+          
+          .google-button-container [role="button"]:hover {
+            border-color: #d97706 !important;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+            transform: translateY(-1px) !important;
+          }
         `}
       </style>
       
@@ -392,7 +445,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
               <div className="text-center">
                 <Button 
                   variant="ghost" 
-                  className="text-sm text-warm-taupe hover:bg-pale-clay-light hover:text-deep-mocha rounded-lg transition-colors"
+                  className="text-sm text-warm-taupe hover:bg-pale-clay-light hover:text-deep-moca rounded-lg transition-colors"
                   disabled={isLoading}
                 >
                   Esqueceu a palavra-passe?
@@ -463,7 +516,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
                   <Label htmlFor="signup-password" className="text-warm-taupe font-medium">Palavra-passe</Label>
                   {renderPasswordInput('signup-password', 'Mínimo 8 caracteres', formData.password, 'password')}
                   <p className="text-xs text-warm-taupe-light leading-relaxed text-center">
-                    Deve conter: 1 maiúscula, 1 minúscula, 1 número e 1 carácter especial
+                    Deve conter: 1 maiúscula, 1 minúscula, 1 número e 1 caracter especial
                   </p>
                 </div>
 
@@ -533,14 +586,23 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
             </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-1">
-            <Button 
-              variant="outline" 
-              className="h-12 border-pale-clay-deep hover:border-burnt-peach/50 hover:bg-pale-clay-light rounded-xl transition-all duration-200 hover:scale-105 flex items-center justify-center" 
-              disabled={isLoading}
+          <div className="grid grid-cols-1 gap-3">
+            {/* Container para o botão do Google */}
+            <div 
+              ref={googleButtonRef}
+              className="google-button-container w-full min-h-[48px] flex items-center justify-center"
+              style={{ minHeight: '48px' }}
             >
-              <Chrome className="h-5 w-5 text-warm-taupe" />
-            </Button>
+              {/* O botão do Google será renderizado aqui */}
+              {!googleButtonRef.current && (
+                <div className="w-full h-12 border border-pale-clay-deep rounded-xl flex items-center justify-center text-warm-taupe bg-clay-white">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 border-2 border-warm-taupe border-t-transparent rounded-full animate-spin"></div>
+                    <span className="text-sm">Carregando Google...</span>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
         </DialogContent>
