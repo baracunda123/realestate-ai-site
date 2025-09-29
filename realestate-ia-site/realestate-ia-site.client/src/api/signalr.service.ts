@@ -80,8 +80,7 @@ class SignalRService {
 
   private setupConnection() {
     // Melhor detecção da URL do servidor
-    const apiUrl = import.meta.env?.VITE_API_BASE_URL 
-                  || import.meta.env?.VITE_API_URL 
+    const apiUrl = import.meta.env?.VITE_API_URL 
                   || (window.location.protocol === 'https:' ? 'https://localhost:7001' : 'http://localhost:5000')
                   || '';
     

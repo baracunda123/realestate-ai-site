@@ -92,7 +92,7 @@ class SecureTokenManager {
       localStorage.removeItem(this.LAST_REFRESH_KEY);
       localStorage.setItem(this.REFRESH_COUNT_KEY, '0'); // Reset counter on successful auth
       logger.info(`Tokens salvos para: ${user.email}`);
-    } catch (error) {
+    } catch  {
         logger.error('Erro ao salvar dados do usuário');
     }
   }
@@ -346,7 +346,7 @@ async function refreshAccessToken(): Promise<TokenResponse | null> {
         }
       })
       .catch(error => {
-        logger.error('❌ Falha na renovação do token');
+        logger.error('❌ Falha na renovação do token',error);
         SecureTokenManager.markRefreshFailed();
         return null;
       });
@@ -411,7 +411,7 @@ class ApiClient {
                 logger.warn('❌ Refresh automático falhou - limpando estado');
                 SecureTokenManager.clearTokens();
               }
-            } catch (error) {
+            } catch {
               logger.warn('❌ Falha no refresh automático');
               SecureTokenManager.clearTokens();
             }
@@ -473,7 +473,7 @@ class ApiClient {
               logger.warn('❌ Falha na renovação - limpando tokens');
               SecureTokenManager.clearTokens();
             }
-          } catch (refreshError) {
+          } catch  {
             logger.error('❌ Erro na renovação - limpando tokens');
             SecureTokenManager.clearTokens();
           }
