@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import signalRService from '../api/signalr.service';
+import { signalr as logger } from '../utils/logger';
 import type { 
   PropertyAlertNotification,
   PriceChangeNotification,
@@ -67,7 +68,7 @@ export function useSignalR(options: UseSignalROptions = {}): UseSignalRReturn {
       
       return success;
     } catch (error) {
-      console.error('❌ SignalR Hook: Erro na conexão:', error);
+      logger.error('Erro na conexão', error as Error);
       
       if (mountedRef.current) {
         setIsConnecting(false);
@@ -82,7 +83,7 @@ export function useSignalR(options: UseSignalROptions = {}): UseSignalRReturn {
 
   // Função para desconectar
   const disconnect = useCallback(async () => {
-    console.log('🔌 SignalR Hook: Desconectando...');
+    logger.info('Desconectando...');
     
     try {
       await signalRService.disconnect();
@@ -94,9 +95,9 @@ export function useSignalR(options: UseSignalROptions = {}): UseSignalRReturn {
         hasConnectedRef.current = false;
       }
       
-      console.log('✅ SignalR Hook: Desconectado');
+      logger.info('Desconectado com sucesso');
     } catch (error) {
-      console.error('❌ SignalR Hook: Erro na desconexão:', error);
+      logger.error('Erro na desconexão', error as Error);
     }
   }, []);
 
@@ -105,7 +106,7 @@ export function useSignalR(options: UseSignalROptions = {}): UseSignalRReturn {
     try {
       await signalRService.acknowledgeNotification(notificationId);
     } catch (error) {
-      console.error('❌ SignalR Hook: Erro ao confirmar notificação:', error);
+      logger.error('Erro ao confirmar notificação', error as Error);
     }
   }, []);
 
@@ -113,7 +114,7 @@ export function useSignalR(options: UseSignalROptions = {}): UseSignalRReturn {
     try {
       await signalRService.requestUnreadNotifications();
     } catch (error) {
-      console.error('❌ SignalR Hook: Erro ao solicitar não lidas:', error);
+      logger.error('Erro ao solicitar não lidas', error as Error);
     }
   }, []);
 
@@ -121,7 +122,7 @@ export function useSignalR(options: UseSignalROptions = {}): UseSignalRReturn {
     try {
       await signalRService.requestConnectionInfo();
     } catch (error) {
-      console.error('❌ SignalR Hook: Erro ao solicitar info:', error);
+      logger.error('Erro ao solicitar info de conexão', error as Error);
     }
   }, []);
 
@@ -143,7 +144,7 @@ export function useSignalR(options: UseSignalROptions = {}): UseSignalRReturn {
     const handlePropertyAlert = (notification: PropertyAlertNotification) => {
       if (!mountedRef.current) return;
       
-      console.log('🏠 SignalR Hook: Novo alerta de propriedade:', notification);
+      logger.info(`Novo alerta de propriedade: ${JSON.stringify(notification)}`);
       
       if (showToasts) {
         toast.success('💰 Redução de preço detectada!', {
@@ -152,7 +153,7 @@ export function useSignalR(options: UseSignalROptions = {}): UseSignalRReturn {
           action: {
             label: 'Ver',
             onClick: () => {
-              console.log('Abrir propriedade:', notification.propertyId);
+              logger.info(`Abrir propriedade: ${notification.propertyId}`);
               // TODO: Navegar para a propriedade
             }
           }
@@ -164,7 +165,7 @@ export function useSignalR(options: UseSignalROptions = {}): UseSignalRReturn {
     const handlePriceChange = (notification: PriceChangeNotification) => {
       if (!mountedRef.current) return;
       
-      console.log('💰 SignalR Hook: Mudança de preço:', notification);
+      logger.info(`Mudança de preço: ${JSON.stringify(notification)}`);
       
       if (showToasts) {
         const changeType = notification.changeType === 'decrease' ? 'Redução' : 'Aumento';
@@ -179,7 +180,7 @@ export function useSignalR(options: UseSignalROptions = {}): UseSignalRReturn {
     const handleSystemNotification = (notification: SystemNotification) => {
       if (!mountedRef.current) return;
       
-      console.log('🔔 SignalR Hook: Notificação do sistema:', notification);
+      logger.info(`Notificação do sistema: ${JSON.stringify(notification)}`);
       
       if (showToasts) {
         const toastType = notification.type === 'error' ? 'error' : 
@@ -212,7 +213,7 @@ export function useSignalR(options: UseSignalROptions = {}): UseSignalRReturn {
   useEffect(() => {
     // REMOVER auto-conexão - só conectar quando explicitamente solicitado
     // if (autoConnect && authUtils.isAuthenticated() && !isConnected && !isConnecting) {
-    //   console.log('🚀 SignalR Hook: Auto-conectando...');
+    //   logger.info('Auto-conectando...');
     //   connect();
     // }
 

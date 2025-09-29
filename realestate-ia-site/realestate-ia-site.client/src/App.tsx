@@ -8,6 +8,7 @@ import { type SearchFilters as SearchFiltersType, DEFAULT_SEARCH_FILTERS } from 
 import { type Property } from './types/property';
 import { getCurrentUser, logout, authUtils } from './api/auth.service';
 import { createSafeDate } from './utils/PersonalArea';
+import { logger } from './utils/logger';
 import type { UserProfile } from './api/client';
 import { getFavoriteProperties, addToFavorites, removeFromFavorites } from './api/favorites.service';
 import { usePriceAlerts } from './hooks/usePriceAlerts';
@@ -91,7 +92,7 @@ export default function App() {
       await removeAlert(alertId);
       toast.success('Alerta removido');
     } catch (error) {
-      console.error('Erro ao remover alerta:', error);
+      logger.error('Erro ao remover alerta', 'PRICE_ALERTS', error as Error);
       toast.error('Erro ao remover alerta');
     }
   }, [removeAlert]);
@@ -101,7 +102,7 @@ export default function App() {
       await updateAlertThreshold(alertId, threshold);
       toast.success(`Alerta atualizado`);
     } catch (error) {
-      console.error('Erro ao atualizar alerta:', error);
+      logger.error('Erro ao atualizar alerta', 'PRICE_ALERTS', error as Error);
       toast.error('Erro ao atualizar alerta');
     }
   }, [updateAlertThreshold]);
@@ -136,7 +137,7 @@ export default function App() {
       const userFavorites = await getFavoriteProperties();
       setFavorites(userFavorites);
     } catch (error) {
-      console.error('Erro ao carregar favoritos:', error);
+      logger.error('Erro ao carregar favoritos', 'APP', error as Error);
       setFavorites([]);
     }
   }, [user]);
@@ -146,7 +147,7 @@ export default function App() {
     let isCleanup = false; // Prevent race conditions
     
     const initializeApp = async () => {
-      console.log('🚀 Inicializando aplicação...');
+      logger.info('Inicializando aplicação...', 'APP');
       setIsInitializing(true);
       
       try {
@@ -154,21 +155,17 @@ export default function App() {
         const storedUser = authUtils.getCurrentUser();
         const isAuthenticatedNow = authUtils.isAuthenticated();
         
-        console.log('📋 Estado inicial:', { 
-          hasStoredUser: !!storedUser, 
-          isAuthenticated: isAuthenticatedNow,
-          userEmail: storedUser?.email 
-        });
+        logger.info(`Estado inicial - hasStoredUser: ${!!storedUser}, isAuthenticated: ${isAuthenticatedNow}, userEmail: ${storedUser?.email}`, 'APP');
         
         // If we have user data and auth state, try to validate/refresh session
         if (storedUser && isAuthenticatedNow && !isCleanup) {
-          console.log('🔄 Tentando validar/renovar sessão existente...');
+          logger.info('Tentando validar/renovar sessão existente...', 'APP');
           
           try {
             // Try to get current user (this will trigger token refresh if needed)
             const currentUser = await getCurrentUser();
             if (currentUser && !isCleanup) {
-              console.log('✅ Sessão validada com sucesso');
+              logger.info('Sessão validada com sucesso', 'APP');
               const extendedUser: ExtendedUserProfile = {
                 ...currentUser,
                 name: currentUser.fullName || currentUser.name || '',
@@ -179,32 +176,32 @@ export default function App() {
               setHasShownWelcomeToast(true); // Mark as shown to prevent fresh login toast
               
               // Session restored silently without toast
-              console.log('🔇 Sessão restaurada silenciosamente');
+              logger.info('Sessão restaurada silenciosamente', 'APP');
               
               // NÃO conectar SignalR automaticamente na restauração
-              console.log('🔇 Sessão restaurada - SignalR permanece desativado até ser necessário');
+              logger.info('Sessão restaurada - SignalR permanece desativado até ser necessário', 'APP');
             } else if (!isCleanup) {
-              console.warn('❌ Falha ao validar sessão - usuário não encontrado');
+              logger.warn('Falha ao validar sessão - usuário não encontrado', 'APP');
               authUtils.clearTokens();
             }
           } catch (error) {
             if (!isCleanup) {
-              console.warn('❌ Falha ao restaurar sessão:', error);
+              logger.warn('Falha ao restaurar sessão', 'APP');
               authUtils.clearTokens();
             }
           }
         } else if (!isCleanup) {
-          console.log('📝 Nenhuma sessão anterior detectada - estado limpo');
+          logger.info('Nenhuma sessão anterior detectada - estado limpo', 'APP');
         }
       } catch (error) {
         if (!isCleanup) {
-          console.error('💥 Erro na inicialização da aplicação:', error);
+          logger.error('Erro na inicialização da aplicação', 'APP', error as Error);
           authUtils.clearTokens();
         }
       } finally {
         if (!isCleanup) {
           setIsInitializing(false);
-          console.log('🏁 Inicialização concluída');
+          logger.info('Inicialização concluída', 'APP');
         }
       }
     };
@@ -230,15 +227,15 @@ export default function App() {
     
     if (hasActiveAlerts && !signalRConnected) {
       // Tem alertas mas SignalR não está conectado - conectar silenciosamente
-      console.log('🔔 Alertas ativos detectados - conectando SignalR silenciosamente');
+      logger.info('Alertas ativos detectados - conectando SignalR silenciosamente', 'APP');
       connectSignalR().catch(error => {
-        console.warn('⚠️ Falha ao conectar SignalR automaticamente:', error);
+        logger.warn('Falha ao conectar SignalR automaticamente', 'APP');
       });
     } else if (!hasActiveAlerts && signalRConnected) {
       // Não tem alertas mas SignalR está conectado - desconectar
-      console.log('🔌 Nenhum alerta ativo - desconectando SignalR');
+      logger.info('Nenhum alerta ativo - desconectando SignalR', 'APP');
       disconnectSignalR().catch(error => {
-        console.warn('⚠️ Falha ao desconectar SignalR:', error);
+        logger.warn('Falha ao desconectar SignalR', 'APP');
       });
     }
   }, [user, alerts.length, signalRConnected, connectSignalR, disconnectSignalR]);
@@ -364,13 +361,13 @@ export default function App() {
           try {
             await connectSignalR();
           } catch (error) {
-            console.warn('⚠️ Falha ao ativar SignalR:', error);
+            logger.warn('Falha ao ativar SignalR', 'APP');
             // Não mostrar erro ao utilizador - alerta funciona mesmo sem SignalR
           }
         }
       }
     } catch (error) {
-      console.error('Erro ao gerenciar alerta:', error);
+      logger.error('Erro ao gerenciar alerta', 'APP', error as Error);
       toast.error('Erro ao gerenciar alerta');
     }
   }, [user, hasAlertForPropertyId, removeAlertForProperty, createAlertForProperty, alerts, signalRConnected, connectSignalR, disconnectSignalR]);
@@ -462,10 +459,10 @@ export default function App() {
         }
 
         // NÃO conectar SignalR automaticamente - só quando necessário
-        console.log('🔇 Login bem-sucedido - SignalR será ativado apenas se houver alertas');
+        logger.info('Login bem-sucedido - SignalR será ativado apenas se houver alertas', 'APP');
       }
     } catch (error) {
-      console.error('Erro ao processar sucesso de autenticação:', error);
+      logger.error('Erro ao processar sucesso de autenticação', 'APP', error as Error);
       toast.error('Erro ao carregar dados do utilizador');
     }
   }, [hasShownWelcomeToast]);
@@ -489,7 +486,7 @@ export default function App() {
         description: 'Até breve!',
       });
     } catch (error) {
-      console.error('Erro no logout:', error);
+      logger.error('Erro no logout', 'APP', error as Error);
       if (signalRConnected) {
         await disconnectSignalR(); // Tentar desconectar mesmo em caso de erro
       }

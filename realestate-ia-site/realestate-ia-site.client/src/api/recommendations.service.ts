@@ -1,5 +1,6 @@
 // recommendations.service.ts - Serviço para recomendações de propriedades
 import apiClient from "./client";
+import { logger } from "../utils/logger";
 import type { Property } from "../types/property";
 
 // Response types para recomendações
@@ -32,31 +33,24 @@ export interface RecommendationStats {
   byReason: Record<string, number>;
 }
 
-// Função simples para logs
-function logToTerminal(message: string, level: 'info' | 'warn' | 'error' = 'info') {
-  const timestamp = new Date().toLocaleTimeString();
-  const prefix = level === 'error' ? '❌' : level === 'warn' ? '⚠️' : '🔍';
-  console.log(`${prefix} [${timestamp}] RECOMMENDATIONS: ${message}`);
-}
-
 /**
  * Obter recomendações para o dashboard
  */
 export async function getDashboardRecommendations(
   limit: number = 10
 ): Promise<DashboardRecommendations> {
-  logToTerminal(`Buscando recomendações do dashboard (limite: ${limit})`);
+  logger.info(`Buscando recomendações do dashboard (limite: ${limit})`, 'RECOMMENDATIONS');
 
   try {
     const response = await apiClient.get<DashboardRecommendations>(
       `/api/recommendations/dashboard?limit=${limit}`
     );
     
-    logToTerminal(`${response.properties?.length || 0} recomendações encontradas`);
+    logger.info(`${response.properties?.length || 0} recomendações encontradas`, 'RECOMMENDATIONS');
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao buscar recomendações: ${errorMsg}`, 'error');
+    logger.error(`Erro ao buscar recomendações: ${errorMsg}`, 'RECOMMENDATIONS');
     throw error;
   }
 }
@@ -67,18 +61,18 @@ export async function getDashboardRecommendations(
 export async function markRecommendationAsViewed(
   propertyId: string
 ): Promise<{ success: boolean; message: string }> {
-  logToTerminal(`Marcando recomendação como visualizada: ${propertyId}`);
+  logger.info(`Marcando recomendação como visualizada: ${propertyId}`, 'RECOMMENDATIONS');
 
   try {
     const response = await apiClient.post<{ success: boolean; message: string }>(
       `/api/recommendations/${propertyId}/mark-viewed`
     );
     
-    logToTerminal(`Recomendação marcada como visualizada`);
+    logger.info('Recomendação marcada como visualizada', 'RECOMMENDATIONS');
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao marcar recomendação como visualizada: ${errorMsg}`, 'error');
+    logger.error(`Erro ao marcar recomendação como visualizada: ${errorMsg}`, 'RECOMMENDATIONS');
     throw error;
   }
 }
@@ -89,18 +83,18 @@ export async function markRecommendationAsViewed(
 export async function dismissRecommendation(
   propertyId: string
 ): Promise<{ success: boolean; message: string }> {
-  logToTerminal(`Descartando recomendação: ${propertyId}`);
+  logger.info(`Descartando recomendação: ${propertyId}`, 'RECOMMENDATIONS');
 
   try {
     const response = await apiClient.delete<{ success: boolean; message: string }>(
       `/api/recommendations/${propertyId}`
     );
     
-    logToTerminal(`Recomendação descartada`);
+    logger.info('Recomendação descartada', 'RECOMMENDATIONS');
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao descartar recomendação: ${errorMsg}`, 'error');
+    logger.error(`Erro ao descartar recomendação: ${errorMsg}`, 'RECOMMENDATIONS');
     throw error;
   }
 }
@@ -109,16 +103,16 @@ export async function dismissRecommendation(
  * Obter estatísticas das recomendações do usuário
  */
 export async function getRecommendationStats(): Promise<RecommendationStats> {
-  logToTerminal('Buscando estatísticas das recomendações');
+  logger.info('Buscando estatísticas das recomendações', 'RECOMMENDATIONS');
 
   try {
     const stats = await apiClient.get<RecommendationStats>('/api/recommendations/stats');
     
-    logToTerminal(`Estatísticas: ${stats.unviewed} não visualizadas, score médio: ${stats.averageScore}`);
+    logger.info(`Estatísticas: ${stats.unviewed} não visualizadas, score médio: ${stats.averageScore}`, 'RECOMMENDATIONS');
     return stats;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao buscar estatísticas: ${errorMsg}`, 'error');
+    logger.error(`Erro ao buscar estatísticas: ${errorMsg}`, 'RECOMMENDATIONS');
     throw error;
   }
 }
@@ -130,7 +124,7 @@ export async function refreshRecommendations(): Promise<{
   success: boolean;
   message: string;
 }> {
-  logToTerminal('Fazendo refresh das recomendações baseado no perfil atual');
+  logger.info('Fazendo refresh das recomendações baseado no perfil atual', 'RECOMMENDATIONS');
 
   try {
     const response = await apiClient.post<{
@@ -138,11 +132,11 @@ export async function refreshRecommendations(): Promise<{
       message: string;
     }>('/api/recommendations/refresh');
     
-    logToTerminal('Recomendações atualizadas com sucesso');
+    logger.info('Recomendações atualizadas com sucesso', 'RECOMMENDATIONS');
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao fazer refresh das recomendações: ${errorMsg}`, 'error');
+    logger.error(`Erro ao fazer refresh das recomendações: ${errorMsg}`, 'RECOMMENDATIONS');
     throw error;
   }
 }
@@ -172,7 +166,4 @@ export const recommendationUtils = {
   }
 };
 
-
-if (import.meta.env?.DEV) {
-    logToTerminal('Recommendations Service carregado');
-}
+logger.info('Recommendations Service carregado', 'RECOMMENDATIONS');

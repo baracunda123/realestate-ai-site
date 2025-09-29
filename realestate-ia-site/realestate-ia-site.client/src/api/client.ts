@@ -1,5 +1,6 @@
 // client.ts - API Client
 import axios from 'axios';
+import { client as logger } from '../utils/logger';
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -31,23 +32,6 @@ interface ApiError {
   statusCode?: number;
 }
 
-// Função segura para logs
-function logClient(message: string, level: 'info' | 'warn' | 'error' = 'info') {
-  const timestamp = new Date().toLocaleTimeString();
-  const fullMessage = `[${timestamp}] CLIENT: ${message}`;
-
-  switch (level) {
-    case 'error':
-      console.error(fullMessage);
-      break;
-    case 'warn':
-      console.warn(fullMessage);
-      break;
-    default:
-      console.log(fullMessage);
-  }
-}
-
 // Classe para gerenciamento SEGURO de tokens
 class SecureTokenManager {
   private static readonly SESSION_KEY = 'realestate_session_id';
@@ -70,28 +54,28 @@ class SecureTokenManager {
     // Reset refresh count on page load
     const refreshCount = parseInt(localStorage.getItem(this.REFRESH_COUNT_KEY) || '0');
     if (refreshCount > 0) {
-      logClient(`🔄 Resetando contador de refresh: ${refreshCount} -> 0`);
+      logger.info(`🔄 Resetando contador de refresh: ${refreshCount} -> 0`);
       localStorage.setItem(this.REFRESH_COUNT_KEY, '0');
     }
     
-    logClient(`Session inicializada: ${this.sessionId.substring(0, 8)}...`);
+    logger.info(`Session inicializada: ${this.sessionId.substring(0, 8)}...`);
     
     const authState = localStorage.getItem(this.AUTH_STATE_KEY);
     if (authState === 'authenticated' && !this.accessTokenMemory) {
-      logClient('🔄 Detectado estado de autenticação após refresh - será necessário renovar tokens');
+      logger.info('🔄 Detectado estado de autenticação após refresh - será necessário renovar tokens');
     }
   }
 
   static saveTokens(tokenResponse: TokenResponse, user: UserProfile): void {
     // Validação básica apenas
     if (!tokenResponse?.accessToken || !tokenResponse?.expiresAt || !user?.id) {
-      logClient('Dados de token inválidos fornecidos', 'warn');
+      logger.warn('Dados de token inválidos fornecidos');
       return;
     }
 
     const expiryDate = new Date(tokenResponse.expiresAt);
     if (expiryDate <= new Date()) {
-      logClient('Token já expirado', 'warn');
+      logger.warn('Token já expirado');
       return;
     }
 
@@ -107,10 +91,9 @@ class SecureTokenManager {
       // Clear any failed refresh attempts
       localStorage.removeItem(this.LAST_REFRESH_KEY);
       localStorage.setItem(this.REFRESH_COUNT_KEY, '0'); // Reset counter on successful auth
-      logClient(`Tokens salvos para: ${user.email}`);
+      logger.info(`Tokens salvos para: ${user.email}`);
     } catch (error) {
-        logClient('Erro ao salvar dados do usuário', 'error');
-        console.error(error);
+        logger.error('Erro ao salvar dados do usuário');
     }
   }
 
@@ -150,14 +133,14 @@ class SecureTokenManager {
       
       // Validação básica apenas
       if (!user.id || !user.email) {
-        logClient('Dados de usuário inválidos no storage', 'warn');
+        logger.warn('Dados de usuário inválidos no storage');
         this.clearTokens();
         return null;
       }
       
       return user;
     } catch {
-        logClient('Erro ao analisar dados do usuário', 'warn');
+        logger.warn('Erro ao analisar dados do usuário');
       this.clearTokens();
       return null;
     }
@@ -174,9 +157,9 @@ class SecureTokenManager {
       localStorage.removeItem(this.AUTH_STATE_KEY);
       localStorage.removeItem(this.LAST_REFRESH_KEY);
       localStorage.removeItem(this.REFRESH_COUNT_KEY);
-      logClient('Tokens limpos');
+      logger.info('Tokens limpos');
     } catch {
-        logClient('Erro ao limpar localStorage', 'warn');
+        logger.warn('Erro ao limpar localStorage');
     }
   }
 
@@ -192,9 +175,9 @@ class SecureTokenManager {
       localStorage.setItem(this.AUTH_STATE_KEY, 'authenticated');
       localStorage.removeItem(this.LAST_REFRESH_KEY);
       localStorage.setItem(this.REFRESH_COUNT_KEY, '0'); // Reset on successful refresh
-      logClient('Token atualizado');
+      logger.info('Token atualizado');
     } catch {
-      logClient('Erro ao atualizar estado de auth', 'warn');
+      logger.warn('Erro ao atualizar estado de auth');
     }
   }
 
@@ -203,7 +186,7 @@ class SecureTokenManager {
     const lastRefreshAttempt = localStorage.getItem(this.LAST_REFRESH_KEY);
     
     if (refreshCount >= this.MAX_REFRESH_ATTEMPTS) {
-      logClient(`❌ Limite de tentativas de refresh atingido: ${refreshCount}`, 'warn');
+      logger.warn(`❌ Limite de tentativas de refresh atingido: ${refreshCount}`);
       return false;
     }
     
@@ -214,7 +197,7 @@ class SecureTokenManager {
       
       // If less than 2 minutes since last failed attempt, don't retry
       if (timeDiff < 2 * 60 * 1000) {
-        logClient(`⏳ Aguardando cooldown de refresh: ${Math.ceil((2 * 60 * 1000 - timeDiff) / 1000)}s restantes`);
+        logger.warn(`⏳ Aguardando cooldown de refresh: ${Math.ceil((2 * 60 * 1000 - timeDiff) / 1000)}s restantes`);
         return false;
       }
     }
@@ -234,7 +217,7 @@ class SecureTokenManager {
     // Check if we have auth state - this means we should try to refresh
     const authState = localStorage.getItem(this.AUTH_STATE_KEY);
     if (authState === 'authenticated' && this.canAttemptRefresh()) {
-      logClient('Estado autenticado detectado sem token em memória - válido para refresh');
+      logger.info('Estado autenticado detectado sem token em memória - válido para refresh');
       return true;
     }
     
@@ -245,7 +228,7 @@ class SecureTokenManager {
     const currentCount = parseInt(localStorage.getItem(this.REFRESH_COUNT_KEY) || '0');
     const newCount = currentCount + 1;
     localStorage.setItem(this.REFRESH_COUNT_KEY, newCount.toString());
-    logClient(`🔢 Contador de refresh incrementado: ${newCount}/${this.MAX_REFRESH_ATTEMPTS}`);
+    logger.info(`🔢 Contador de refresh incrementado: ${newCount}/${this.MAX_REFRESH_ATTEMPTS}`);
   }
 
   static markRefreshFailed(): void {
@@ -255,13 +238,13 @@ class SecureTokenManager {
       
       const refreshCount = parseInt(localStorage.getItem(this.REFRESH_COUNT_KEY) || '0');
       if (refreshCount >= this.MAX_REFRESH_ATTEMPTS) {
-        logClient('❌ Limite de tentativas atingido - limpando estado de auth', 'error');
+        logger.error('❌ Limite de tentativas atingido - limpando estado de auth');
         localStorage.removeItem(this.AUTH_STATE_KEY);
       }
       
-      logClient('Marcada falha no refresh de token');
+      logger.info('Marcada falha no refresh de token');
     } catch {
-      logClient('Erro ao marcar falha no refresh', 'warn');
+      logger.warn('Erro ao marcar falha no refresh');
     }
   }
 
@@ -269,9 +252,9 @@ class SecureTokenManager {
     this.sessionId = uuidv4();
     try {
       localStorage.setItem(this.SESSION_KEY, this.sessionId);
-      logClient('Nova sessão gerada');
+      logger.info('Nova sessão gerada');
     } catch {
-      logClient('Erro ao regenerar sessão', 'warn');
+      logger.warn('Erro ao regenerar sessão');
     }
     return this.sessionId;
   }
@@ -310,7 +293,7 @@ class ClientRateLimit {
     }
 
     if (existing.count >= maxRequests) {
-      logClient(`⛔ Rate limit excedido para ${endpoint}: ${existing.count}/${maxRequests}`, 'warn');
+      logger.warn(`⛔ Rate limit excedido para ${endpoint}: ${existing.count}/${maxRequests}`);
       return false;
     }
 
@@ -320,7 +303,7 @@ class ClientRateLimit {
 
   static reset(): void {
     this.requests.clear();
-    logClient('Rate limit cache limpo');
+    logger.info('Rate limit cache limpo');
   }
 }
 
@@ -329,18 +312,18 @@ async function refreshAccessToken(): Promise<TokenResponse | null> {
     // If already refreshing, return the existing promise
     const existingPromise = SecureTokenManager.getRefreshPromise();
     if (existingPromise) {
-      logClient('⏳ Aguardando refresh em progresso...');
+      logger.info('⏳ Aguardando refresh em progresso...');
       return existingPromise;
     }
   }
 
   if (!SecureTokenManager.canAttemptRefresh()) {
-    logClient('❌ Refresh não permitido - limite atingido ou cooldown ativo');
+    logger.error('❌ Refresh não permitido - limite atingido ou cooldown ativo');
     return null;
   }
 
   try {
-    logClient('🔄 Tentando renovar token silenciosamente');
+    logger.info('🔄 Tentando renovar token silenciosamente');
     SecureTokenManager.setRefreshing(true);
     
     const refreshClient = axios.create({
@@ -355,16 +338,15 @@ async function refreshAccessToken(): Promise<TokenResponse | null> {
     const refreshPromise = refreshClient.post<{ message: string; token: TokenResponse }>('/api/auth/refresh-token')
       .then(response => {
         if (response.data && response.data.token) {
-          logClient('✅ Token renovado silenciosamente');
+          logger.info('✅ Token renovado silenciosamente');
           return response.data.token;
         } else {
-          logClient('❌ Resposta de renovação inválida', 'warn');
+          logger.warn('❌ Resposta de renovação inválida');
           return null;
         }
       })
       .catch(error => {
-        logClient('❌ Falha na renovação do token', 'error');
-        console.error('Refresh token error:', error);
+        logger.error('❌ Falha na renovação do token');
         SecureTokenManager.markRefreshFailed();
         return null;
       });
@@ -417,50 +399,49 @@ class ApiClient {
               localStorage.getItem('auth_state') === 'authenticated' && 
               SecureTokenManager.canAttemptRefresh()) {
             try {
-              logClient('🔄 Tentando refresh automático silencioso para request');
+              logger.info('🔄 Tentando refresh automático silencioso para request');
               const newTokens = await refreshAccessToken();
               const user = SecureTokenManager.getCurrentUser();
               
               if (newTokens && user) {
                 SecureTokenManager.updateAccessToken(newTokens.accessToken, newTokens.expiresAt);
                 accessToken = newTokens.accessToken;
-                logClient('✅ Refresh automático silencioso bem-sucedido');
+                logger.info('✅ Refresh automático silencioso bem-sucedido');
               } else {
-                logClient('❌ Refresh automático falhou - limpando estado', 'warn');
+                logger.warn('❌ Refresh automático falhou - limpando estado');
                 SecureTokenManager.clearTokens();
               }
             } catch (error) {
-              logClient('❌ Falha no refresh automático', 'warn');
-              console.warn(error);
+              logger.warn('❌ Falha no refresh automático');
               SecureTokenManager.clearTokens();
             }
           }
           
           if (accessToken) {
             config.headers['Authorization'] = `Bearer ${accessToken}`;
-            logClient(`✅ Requisição autenticada: ${config.method?.toUpperCase()} ${config.url}`);
+            logger.info(`✅ Requisição autenticada: ${config.method?.toUpperCase()} ${config.url}`);
           } else {
-            logClient(`⚪ Requisição sem token: ${config.method?.toUpperCase()} ${config.url}`);
+            logger.info(`⚪ Requisição sem token: ${config.method?.toUpperCase()} ${config.url}`);
           }
         } else {
-          logClient(`🔐 Requisição de auth: ${config.method?.toUpperCase()} ${config.url}`);
+          logger.info(`🔐 Requisição de auth: ${config.method?.toUpperCase()} ${config.url}`);
         }
         
         return config;
       },
       (error) => {
-        logClient(`Erro no interceptor de requisição: ${error.message}`, 'error');
+        logger.error(`Erro no interceptor de requisição: ${error.message}`);
         return Promise.reject(error);
       }
     );
 
     this.client.interceptors.response.use(
       (response) => {
-        logClient(`✅ Resposta SUCESSO: ${response.status} - ${response.config?.method?.toUpperCase()} ${response.config?.url}`);
+        logger.info(`✅ Resposta SUCESSO: ${response.status} - ${response.config?.method?.toUpperCase()} ${response.config?.url}`);
         return response;
       },
       async (error) => {
-        logClient(`❌ INTERCEPTOR ERRO: Status ${error.response?.status || 'SEM_STATUS'}`, 'error');
+        logger.error(`❌ INTERCEPTOR ERRO: Status ${error.response?.status || 'SEM_STATUS'}`);
         
         const originalRequest = error.config;
         
@@ -476,7 +457,7 @@ class ApiClient {
             localStorage.getItem('auth_state') === 'authenticated' &&
             SecureTokenManager.canAttemptRefresh()) {
           
-          logClient('🔄 Erro 401 - tentando renovar token');
+          logger.info('🔄 Erro 401 - tentando renovar token');
           originalRequest._retry = true;
           
           try {
@@ -486,15 +467,14 @@ class ApiClient {
             if (newTokens && user) {
               SecureTokenManager.updateAccessToken(newTokens.accessToken, newTokens.expiresAt);
               originalRequest.headers.Authorization = `Bearer ${newTokens.accessToken}`;
-              logClient('🔄 Retry da requisição com novo token');
+              logger.info('🔄 Retry da requisição com novo token');
               return this.client(originalRequest);
             } else {
-              logClient('❌ Falha na renovação - limpando tokens', 'warn');
+              logger.warn('❌ Falha na renovação - limpando tokens');
               SecureTokenManager.clearTokens();
             }
           } catch (refreshError) {
-            logClient('❌ Erro na renovação - limpando tokens', 'error');
-            console.error('Token refresh error in interceptor:', refreshError);
+            logger.error('❌ Erro na renovação - limpando tokens');
             SecureTokenManager.clearTokens();
           }
         }
@@ -582,13 +562,7 @@ if (typeof document !== 'undefined') {
   });
 }
 
-try {
-  if (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV) {
-    logClient('🚀 ApiClient carregado com proteções anti-spam melhoradas');
-  }
-} catch {
-  // Silently ignore if environment check fails
-}
+logger.info('🚀 ApiClient carregado com proteções anti-spam melhoradas');
 
 export default apiClient;
 export { ApiClient, SecureTokenManager, ClientRateLimit };

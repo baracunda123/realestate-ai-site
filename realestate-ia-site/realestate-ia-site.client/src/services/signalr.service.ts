@@ -1,5 +1,6 @@
 // signalr.service.ts - Serviço para comunicação SignalR em tempo real
 import { HubConnection, HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
+import { services } from '../utils/logger';
 
 export interface SignalRNotification {
   type: 'price_alert' | 'alert_created' | 'unread_count_update' | 'generic_message';
@@ -38,12 +39,12 @@ class SignalRService {
    */
   async initialize(accessToken: string): Promise<boolean> {
     if (this.connection && this.connection.state === 'Connected') {
-      console.log('?? SignalR já está conectado');
+      services.signalr.info('SignalR já está conectado');
       return true;
     }
 
     if (this.isConnecting) {
-      console.log('?? SignalR já está tentando conectar...');
+      services.signalr.info('SignalR já está tentando conectar...');
       return false;
     }
 
@@ -78,7 +79,7 @@ class SignalRService {
       // Conectar
       await this.connection.start();
       
-      console.log('?? SignalR conectado com sucesso');
+      services.signalr.info('SignalR conectado com sucesso');
       this.isConnecting = false;
       this.reconnectAttempts = 0;
       
@@ -88,12 +89,12 @@ class SignalRService {
       return true;
     } catch (error) {
       this.isConnecting = false;
-      console.error('? Erro ao conectar SignalR:', error);
+      services.signalr.error('Erro ao conectar SignalR', error as Error);
       
       // Tentar reconectar após delay
       if (this.reconnectAttempts < this.maxReconnectAttempts) {
         this.reconnectAttempts++;
-        console.log(`?? Tentando reconectar SignalR (${this.reconnectAttempts}/${this.maxReconnectAttempts}) em ${this.reconnectDelay}ms...`);
+        services.signalr.info(`Tentando reconectar SignalR (${this.reconnectAttempts}/${this.maxReconnectAttempts}) em ${this.reconnectDelay}ms...`);
         
         setTimeout(() => {
           this.initialize(accessToken);
@@ -111,10 +112,10 @@ class SignalRService {
     if (this.connection) {
       try {
         await this.connection.stop();
-        console.log('?? SignalR desconectado');
+        services.signalr.info('SignalR desconectado');
         this.emit('disconnected', {});
       } catch (error) {
-        console.error('? Erro ao desconectar SignalR:', error);
+        services.signalr.error('Erro ao desconectar SignalR', error as Error);
       }
       
       this.connection = null;
@@ -145,63 +146,63 @@ class SignalRService {
 
     // Evento: Nova notificação de redução de preço
     this.connection.on('NewPriceAlert', (data: SignalRNotification) => {
-      console.log('?? Nova notificação de preço recebida:', data);
+      services.signalr.info(`Nova notificação de preço recebida: ${JSON.stringify(data)}`);
       this.emit('newPriceAlert', data);
       this.emit('notification', data);
     });
 
     // Evento: Novo alerta criado
     this.connection.on('AlertCreated', (data: SignalRNotification) => {
-      console.log('?? Alerta criado:', data);
+      services.signalr.info(`Alerta criado: ${JSON.stringify(data)}`);
       this.emit('alertCreated', data);
       this.emit('notification', data);
     });
 
     // Evento: Atualização da contagem de não lidas
     this.connection.on('UnreadCountUpdate', (data: SignalRNotification) => {
-      console.log('?? Contagem não lidas atualizada:', data.unreadCount);
+      services.signalr.info(`Contagem não lidas atualizada: ${data.unreadCount}`);
       this.emit('unreadCountUpdate', data);
     });
 
     // Evento: Mensagem genérica
     this.connection.on('Message', (data: SignalRNotification) => {
-      console.log('?? Mensagem genérica recebida:', data);
+      services.signalr.info(`Mensagem genérica recebida: ${JSON.stringify(data)}`);
       this.emit('message', data);
       this.emit('notification', data);
     });
 
     // Evento: Conexão estabelecida (callback do hub)
     this.connection.on('Connected', (data: SignalRConnectionInfo) => {
-      console.log('?? Confirmação de conexão do servidor:', data);
+      services.signalr.info(`Confirmação de conexão do servidor: ${JSON.stringify(data)}`);
       this.emit('serverConnected', data);
     });
 
     // Evento: Notificação reconhecida
     this.connection.on('NotificationAcknowledged', (notificationId: string) => {
-      console.log('? Notificação reconhecida:', notificationId);
+      services.signalr.info(`Notificação reconhecida: ${notificationId}`);
       this.emit('notificationAcknowledged', { notificationId });
     });
 
     // Evento: Ping do servidor
     this.connection.on('Ping', (data: any) => {
-      console.log('?? Ping recebido do servidor:', data);
+      services.signalr.debug(`Ping recebido do servidor: ${JSON.stringify(data)}`);
       // Responder com pong se necessário
     });
 
     // Eventos de reconexão automática
     this.connection.onreconnecting((error) => {
-      console.log('?? SignalR reconectando...', error);
+      services.signalr.warn(`SignalR reconectando... ${error?.message || ''}`);
       this.emit('reconnecting', { error: error?.message });
     });
 
     this.connection.onreconnected((connectionId) => {
-      console.log('? SignalR reconectado:', connectionId);
+      services.signalr.info(`SignalR reconectado: ${connectionId}`);
       this.emit('reconnected', { connectionId });
       this.reconnectAttempts = 0;
     });
 
     this.connection.onclose((error) => {
-      console.log('? SignalR conexão fechada:', error);
+      services.signalr.warn(`SignalR conexão fechada: ${error?.message || ''}`);
       this.emit('closed', { error: error?.message });
     });
   }
@@ -214,7 +215,7 @@ class SignalRService {
       try {
         await this.connection.invoke('AcknowledgeNotification', notificationId);
       } catch (error) {
-        console.error('? Erro ao confirmar notificação:', error);
+        services.signalr.error('Erro ao confirmar notificação', error as Error);
       }
     }
   }
@@ -224,7 +225,7 @@ class SignalRService {
       try {
         await this.connection.invoke('RequestUnreadNotifications');
       } catch (error) {
-        console.error('? Erro ao solicitar notificações não lidas:', error);
+        services.signalr.error('Erro ao solicitar notificações não lidas', error as Error);
       }
     }
   }
@@ -234,7 +235,7 @@ class SignalRService {
       try {
         await this.connection.invoke('GetConnectionInfo');
       } catch (error) {
-        console.error('? Erro ao obter informações da conexão:', error);
+        services.signalr.error('Erro ao obter informações da conexão', error as Error);
       }
     }
   }
@@ -267,7 +268,7 @@ class SignalRService {
         try {
           callback(data);
         } catch (error) {
-          console.error(`? Erro no callback do evento ${event}:`, error);
+          services.signalr.error(`Erro no callback do evento ${event}`, error as Error);
         }
       });
     }

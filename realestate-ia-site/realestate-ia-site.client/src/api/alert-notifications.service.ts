@@ -1,14 +1,8 @@
 ﻿// alert-notifications.service.ts - Serviço para notificações de alertas
 import apiClient from "./client";
+import { alertNotifications as logger } from "../utils/logger";
 import type { PropertyAlertNotification } from "../types/PersonalArea";
 import { getNotifications } from "./alerts.service";
-
-// Função simples para logs
-function logToTerminal(message: string, level: 'info' | 'warn' | 'error' = 'info') {
-  const timestamp = new Date().toLocaleTimeString();
-  const prefix = level === 'error' ? '❌' : level === 'warn' ? '⚠️' : '🔔';
-  console.log(`${prefix} [${timestamp}] ALERT_NOTIFICATIONS: ${message}`);
-}
 
 /**
  * Obter notificações de alertas do usuário
@@ -23,16 +17,16 @@ export async function getAlertNotifications(limit: number = 20) {
 export async function getRecentNotifications(
   limit: number = 5
 ): Promise<PropertyAlertNotification[]> {
-  logToTerminal(`Buscando notificações recentes (limite: ${limit})`);
+  logger.info(`Buscando notificações recentes (limite: ${limit})`);
 
   try {
     const response = await getNotifications(limit);
     
-    logToTerminal(`${response.notifications?.length || 0} notificações recentes encontradas`);
+    logger.info(`${response.notifications?.length || 0} notificações recentes encontradas`);
     return response.notifications || [];
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao buscar notificações recentes: ${errorMsg}`, 'error');
+    logger.error(`Erro ao buscar notificações recentes: ${errorMsg}`);
     return []; // Retorna array vazio em caso de erro
   }
 }
@@ -43,18 +37,18 @@ export async function getRecentNotifications(
 export async function markNotificationAsRead(
   notificationId: string
 ): Promise<{ success: boolean; message: string }> {
-  logToTerminal(`Marcando notificação como lida: ${notificationId}`);
+  logger.info(`Marcando notificação como lida: ${notificationId}`);
 
   try {
     const response = await apiClient.post<{ message: string }>(
       `/api/alerts/notifications/${notificationId}/mark-read`
     );
     
-    logToTerminal(`Notificação marcada como lida`);
+    logger.info(`Notificação marcada como lida`);
     return { success: true, message: response.message };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao marcar notificação como lida: ${errorMsg}`, 'error');
+    logger.error(`Erro ao marcar notificação como lida: ${errorMsg}`);
     throw error;
   }
 }
@@ -66,18 +60,18 @@ export async function markAllNotificationsAsRead(): Promise<{
   success: boolean;
   message: string;
 }> {
-  logToTerminal('Marcando todas as notificações como lidas');
+  logger.info('Marcando todas as notificações como lidas');
 
   try {
     const response = await apiClient.post<{ message: string }>(
       '/api/alerts/notifications/mark-all-read'
     );
     
-    logToTerminal(`Todas as notificações marcadas como lidas`);
+    logger.info(`Todas as notificações marcadas como lidas`);
     return { success: true, message: response.message };
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao marcar todas as notificações como lidas: ${errorMsg}`, 'error');
+    logger.error(`Erro ao marcar todas as notificações como lidas: ${errorMsg}`);
     throw error;
   }
 }
@@ -171,6 +165,4 @@ export const alertNotificationUtils = {
 };
 
 // Log apenas quando carrega em desenvolvimento
-if (import.meta.env?.DEV) {
-  logToTerminal('Alert Notifications Service carregado (simplificado)');
-}
+logger.info('Alert Notifications Service carregado (simplificado)');

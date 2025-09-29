@@ -1,5 +1,6 @@
 // auth.service.ts - Serviço de autenticação alinhado com BD
 import apiClient from './client';
+import { auth as logger } from '../utils/logger';
 import type { TokenResponse, UserProfile } from './client';
 
 // Request interfaces para autenticação
@@ -152,7 +153,7 @@ export async function login(credentials: LoginPayload): Promise<AuthResult> {
      
     return response;
   } catch (error: unknown) {
-    console.error('Erro no login:', error);
+    logger.error('Erro no login', error as Error);
     
     return {
       success: false,
@@ -178,14 +179,14 @@ export async function register(userData: RegisterPayload): Promise<AuthResult> {
 
     const response = await apiClient.post<AuthResult>('/api/auth/register', requestData);
     
-    // Salvar tokens automaticamente se registro incluiu login autom�tico
+    // Salvar tokens automaticamente se registro incluiu login automático
     if (response.success && response.token && response.user) {
       apiClient.saveAuthTokens(response.token, response.user);
     }
     
     return response;
   } catch (error) {
-    console.error('Erro no registro:', error);
+    logger.error('Erro no registro', error as Error);
     
     return {
       success: false,
@@ -201,9 +202,9 @@ export async function register(userData: RegisterPayload): Promise<AuthResult> {
 export async function logout(): Promise<void> {
   try {
     await apiClient.post('/api/auth/logout');
-  } catch (error) {
+  } catch  {
     // Log do erro mas não falha o logout
-    console.warn('Erro no logout no servidor:', error);
+    logger.warn('Erro no logout no servidor');
   } finally {
     // Sempre limpar tokens localmente
     apiClient.clearAuthTokens();
@@ -236,7 +237,7 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
     
     return user;
   } catch (error) {
-    console.error('Erro ao obter usuário atual:', error);
+    logger.error('Erro ao obter usuário atual', error as Error);
     return null;
   }
 }
@@ -255,7 +256,7 @@ export async function refreshToken(): Promise<TokenResponse | null> {
     
     return response.token;
   } catch (error) {
-    console.error('Erro ao renovar token:', error);
+    logger.error('Erro ao renovar token', error as Error);
     apiClient.clearAuthTokens();
     return null;
   }
@@ -367,6 +368,4 @@ export async function deleteAccount(password: string): Promise<{ success: boolea
 }
 
 // Log quando o serviço carrega
-if (import.meta.env.DEV) {
-  console.log('[AUTH SERVICE] Serviço de autenticação carregado e atualizado');
-}
+logger.info('Serviço de autenticação carregado e atualizado');

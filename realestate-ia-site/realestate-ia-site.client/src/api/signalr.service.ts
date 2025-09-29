@@ -1,6 +1,8 @@
 // signalr.service.ts - Serviço para notificações em tempo real
 import { HubConnection, HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 import { authUtils } from './auth.service';
+import { signalr as logger } from '../utils/logger';
+
 //import type { UserProfile } from './client';
 
 interface PropertyAlertNotification {
@@ -85,9 +87,9 @@ class SignalRService {
     
     const hubUrl = `${apiUrl}/hubs/notifications`;
     
-    console.log('?? SignalR: Configurando conexão');
-    console.log('?? API URL:', apiUrl);
-    console.log('?? Hub URL:', hubUrl);
+    logger.info('Configurando conexão');
+    logger.debug(`API URL: ${apiUrl}`);
+    logger.debug(`Hub URL: ${hubUrl}`);
 
     this.connection = new HubConnectionBuilder()
       .withUrl(hubUrl, {
@@ -99,20 +101,20 @@ class SignalRService {
             // Tentar obter token válido
             const token = SecureTokenManager.getAccessToken();
             if (token) {
-              console.log('?? SignalR: Token obtido para autenticação');
+              logger.info('Token obtido para autenticação');
               return token;
             }
             
             // Se não tem token mas está autenticado, pode precisar fazer refresh
             if (authUtils.isAuthenticated()) {
-              console.log('?? SignalR: Usuário autenticado mas sem token válido');
+              logger.info('Usuário autenticado mas sem token válido');
               return ''; // Retorna vazio, mas tenta conectar
             }
             
-            console.log('? SignalR: Sem autenticação - não conectando');
+            logger.info('Sem autenticação - não conectando');
             return '';
           } catch (error) {
-            console.error('? SignalR: Erro ao obter token:', error);
+            logger.error('Erro ao obter token', error as Error);
             return '';
           }
         },
@@ -132,18 +134,18 @@ class SignalRService {
     if (!this.connection) return;
 
     this.connection.onclose((error?: Error) => {
-      console.log('SignalR: Conexão fechada', error);
+      logger.warn(`Conexão fechada: ${error?.message || 'unknown'}`);
       this.notifyConnectionStateChanged(false);
       this.stopPing();
     });
 
     this.connection.onreconnecting((error?: Error) => {
-      console.log('SignalR: Reconectando...', error);
+      logger.info(`Reconectando: ${error?.message || 'unknown'}`);
       this.notifyConnectionStateChanged(false);
     });
 
     this.connection.onreconnected(() => {
-      console.log('SignalR: Reconectado');
+      logger.info('Reconectado com sucesso');
       this.notifyConnectionStateChanged(true);
       this.startPing();
       this.rejoinGroups();
@@ -155,36 +157,36 @@ class SignalRService {
 
     // Handlers para notificações de propriedades
     this.connection.on('PropertyAlert', (notification: PropertyAlertNotification) => {
-      console.log('?? Nova propriedade encontrada:', notification);
+      logger.info(`Nova propriedade encontrada: ${JSON.stringify(notification)}`);
       this.notifyListeners('propertyAlert', notification);
     });
 
     this.connection.on('PriceChange', (notification: PriceChangeNotification) => {
-      console.log('?? Mudança de preço:', notification);
+      logger.info(`Mudança de preço: ${JSON.stringify(notification)}`);
       this.notifyListeners('priceChange', notification);
     });
 
     this.connection.on('SystemNotification', (notification: SystemNotification) => {
-      console.log('?? Notificação do sistema:', notification);
+      logger.info(`Notificação do sistema: ${JSON.stringify(notification)}`);
       this.notifyListeners('systemNotification', notification);
     });
 
     this.connection.on('PropertyUpdate', (notification: PropertyUpdateNotification) => {
-      console.log('?? Atualização de propriedade:', notification);
+      logger.info(`Atualização de propriedade: ${JSON.stringify(notification)}`);
       this.notifyListeners('propertyUpdate', notification);
     });
 
     // Handlers específicos do hub existente
     this.connection.on('Connected', (connectionInfo: { userId: string; connectionId: string; timestamp: string }) => {
-      console.log('? SignalR: Confirmação de conexão do servidor:', connectionInfo);
+      logger.info(`Confirmação de conexão do servidor: ${JSON.stringify(connectionInfo)}`);
     });
 
     this.connection.on('NotificationAcknowledged', (notificationId: string) => {
-      console.log('? Confirmação de notificação:', notificationId);
+      logger.info(`Confirmação de notificação: ${notificationId}`);
     });
 
     this.connection.on('UnreadNotificationsRequested', () => {
-      console.log('?? Servidor confirmou solicitação de não lidas');
+      logger.info('Servidor confirmou solicitação de não lidas');
     });
 
     this.connection.on('ConnectionInfo', (info: { 
@@ -194,7 +196,7 @@ class SignalRService {
       RemoteIpAddress?: string; 
       ConnectedAt: string; 
     }) => {
-      console.log('?? Informações de conexão:', info);
+      logger.info(`Informações de conexão: ${JSON.stringify(info)}`);
     });
 
     // Handlers para eventos de notificações específicas (usados pelo RealtimeNotificationService)
@@ -212,7 +214,7 @@ class SignalRService {
       Timestamp?: string; 
       Message?: string; 
     }) => {
-      console.log('?? Novo alerta de preço:', data);
+      logger.info(`Novo alerta de preço: ${JSON.stringify(data)}`);
       // Converter para formato esperado pelos listeners
       const notification: PropertyAlertNotification = {
         alertId: data.Notification?.AlertId || '',
@@ -231,41 +233,41 @@ class SignalRService {
 
     // Handlers padrão
     this.connection.on('Pong', (timestamp: string) => {
-      console.log('?? Pong recebido:', timestamp);
+      logger.debug(`Pong recebido: ${timestamp}`);
     });
 
     this.connection.on('Error', (errorMessage: string) => {
-      console.error('? Erro do hub:', errorMessage);
+      logger.error(`Erro do hub: ${errorMessage}`);
     });
   }
 
   async connect(): Promise<boolean> {
     // Verificar se está autenticado antes de tentar conectar
     if (!authUtils.isAuthenticated()) {
-      console.log('? SignalR: Usuário não autenticado - conexão ignorada');
+      logger.warn('Usuário não autenticado - conexão ignorada');
       return false;
     }
 
     if (!this.connection) {
-      console.log('?? SignalR: Configurando nova conexão');
+      logger.info('Configurando nova conexão');
       this.setupConnection();
     }
 
     if (this.connection!.state === 'Connected') {
-      console.log('? SignalR: Já conectado');
+      logger.info('Já conectado');
       return true;
     }
 
     try {
-      console.log('?? SignalR: Tentando conectar...');
-      console.log('?? SignalR: URL:', this.connection!.baseUrl);
-      console.log('?? SignalR: Estado de auth:', authUtils.isAuthenticated());
+      logger.info('Tentando conectar...');
+      logger.debug(`URL: ${this.connection!.baseUrl}`);
+      logger.debug(`Estado de auth: ${authUtils.isAuthenticated()}`);
       
       await this.connection!.start();
       
-      console.log('? SignalR: Conectado com sucesso!');
-      console.log('?? SignalR: ConnectionId:', this.connection!.connectionId);
-      console.log('?? SignalR: Estado:', this.connection!.state);
+      logger.info('Conectado com sucesso!');
+      logger.debug(`ConnectionId: ${this.connection!.connectionId}`);
+      logger.debug(`Estado: ${this.connection!.state}`);
       
       this.notifyConnectionStateChanged(true);
       this.startPing();
@@ -277,26 +279,23 @@ class SignalRService {
       
       return true;
     } catch (error: unknown) {
-      console.error('? SignalR: Erro ao conectar', error);
+      logger.error('Erro ao conectar', error as Error);
       
       const errorMessage = error instanceof Error ? error.message : String(error);
       
       if (errorMessage.includes('404')) {
-        console.error('?? SignalR: Hub não encontrado (404)');
-        console.error('?? Verifique: 1) Servidor rodando, 2) Hub mapeado, 3) URL correta');
+        logger.error('Hub não encontrado (404) - Verifique: 1) Servidor rodando, 2) Hub mapeado, 3) URL correta');
       } else if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
-        console.error('?? SignalR: Erro de autenticação (401)');
-        console.error('?? Verifique: 1) Token JWT válido, 2) Claims de usuário');
+        logger.error('Erro de autenticação (401) - Verifique: 1) Token JWT válido, 2) Claims de usuário');
       } else if (errorMessage.includes('negotiate')) {
-        console.error('?? SignalR: Erro na negociação');
-        console.error('?? Verifique: 1) CORS configurado, 2) Cookies habilitados');
+        logger.error('Erro na negociação - Verifique: 1) CORS configurado, 2) Cookies habilitados');
       }
       
-      console.error('?? Detalhes do erro:', {
+      logger.debug(`Detalhes do erro: ${JSON.stringify({
         message: errorMessage,
         connectionState: this.connection?.state,
         baseUrl: this.connection?.baseUrl
-      });
+      })}`);
       
       this.notifyConnectionStateChanged(false);
       return false;
@@ -307,7 +306,7 @@ class SignalRService {
     if (this.connection) {
       this.stopPing();
       await this.connection.stop();
-      console.log('SignalR: Desconectado');
+      logger.info('Desconectado');
     }
   }
 
@@ -318,7 +317,7 @@ class SignalRService {
         try {
           await this.connection.invoke('Ping');
         } catch (error) {
-          console.error('SignalR: Erro no ping', error);
+          logger.error('Erro no ping', error as Error);
         }
       }
     }, 30000);
@@ -333,7 +332,7 @@ class SignalRService {
 
   private async rejoinGroups() {
     // Grupos são gerenciados automaticamente pelo hub baseado no usuário
-    console.log('?? SignalR: Reconectado - grupos reestabelecidos automaticamente');
+    logger.info('Reconectado - grupos reestabelecidos automaticamente');
   }
 
   // Métodos simplificados (usar os métodos que existem no hub)
@@ -341,9 +340,9 @@ class SignalRService {
     if (this.connection?.state === 'Connected') {
       try {
         await this.connection.invoke('GetConnectionInfo');
-        console.log('?? SignalR: Info de conexão solicitada');
+        logger.info('Info de conexão solicitada');
       } catch (error) {
-        console.error('? SignalR: Erro ao solicitar info', error);
+        logger.error('Erro ao solicitar info', error as Error);
       }
     }
   }
@@ -352,9 +351,9 @@ class SignalRService {
     if (this.connection?.state === 'Connected') {
       try {
         await this.connection.invoke('AcknowledgeNotification', notificationId);
-        console.log('? SignalR: Notificação confirmada:', notificationId);
+        logger.info(`Notificação confirmada: ${notificationId}`);
       } catch (error) {
-        console.error('? SignalR: Erro ao confirmar notificação', error);
+        logger.error('Erro ao confirmar notificação', error as Error);
       }
     }
   }
@@ -363,9 +362,9 @@ class SignalRService {
     if (this.connection?.state === 'Connected') {
       try {
         await this.connection.invoke('RequestUnreadNotifications');
-        console.log('?? SignalR: Notificações não lidas solicitadas');
+        logger.info('Notificações não lidas solicitadas');
       } catch (error) {
-        console.error('? SignalR: Erro ao solicitar não lidas', error);
+        logger.error('Erro ao solicitar não lidas', error as Error);
       }
     }
   }
@@ -421,7 +420,7 @@ class SignalRService {
       try {
         (callback as (data: unknown) => void)(data);
       } catch (error) {
-        console.error(` SignalR: Erro no listener ${type}:`, error);
+        logger.error(`Erro no listener ${type}`, error as Error);
       }
     });
   }
@@ -467,8 +466,3 @@ export type {
   SystemNotification,
   PropertyUpdateNotification
 };
-
-// Não conectar automaticamente - deixar os componentes controlarem
-// if (authUtils.isAuthenticated()) {
-//   signalRService.connect().catch(console.error);
-// }
