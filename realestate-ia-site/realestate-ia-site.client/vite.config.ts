@@ -50,7 +50,7 @@ if (!isCI && fs.existsSync(certFilePath) && fs.existsSync(keyFilePath)) {
             key: fs.readFileSync(keyFilePath),
             cert: fs.readFileSync(certFilePath),
         };
-    } catch (error) {
+    } catch  {
         console.warn("Could not read certificates. Running without HTTPS.");
     }
 }

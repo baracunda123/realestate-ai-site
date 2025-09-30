@@ -165,43 +165,7 @@ class GoogleAuthService {
           },
           auto_select: false,
           cancel_on_tap_outside: true,
-          use_fedcm_for_prompt: false
-        });
-
-        if (!window.google.accounts.id.prompt) {
-          resolve({ success: false, error: 'Google Auth não disponível' });
-          return;
-        }
-
-        window.google.accounts.id.prompt((notification: any) => {
-          if (notification.isNotDisplayed()) {
-            const reason = notification.getNotDisplayedReason();
-            
-            // Mensagens amigáveis para o utilizador
-            let userMessage = 'Não foi possível conectar com o Google';
-            switch (reason) {
-              case 'opt_out_or_no_session':
-              case 'suppressed_by_user':
-                userMessage = 'Faça login no Google primeiro ou use o email/password';
-                break;
-              case 'browser_not_supported':
-              case 'invalid_client':
-              case 'missing_client_id':
-              case 'secure_http_required':
-              case 'unregistered_origin':
-                userMessage = 'Configuração do Google indisponível';
-                break;
-              case 'unknown_reason':
-              default:
-                userMessage = 'Google Auth temporariamente indisponível';
-                break;
-            }
-            
-            logger.info(`Google One Tap não disponível: ${reason}`);
-            resolve({ success: false, error: userMessage });
-          } else if (notification.isSkippedMoment()) {
-            resolve({ success: false, error: 'Login cancelado' });
-          }
+          use_fedcm_for_prompt: true
         });
         
       } catch (error) {
