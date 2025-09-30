@@ -204,7 +204,7 @@ export function WelcomeScreen({ onExampleSearch, user }: WelcomeScreenProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.2, duration: 0.6 }}
             >
-              Bem-vindo ao HomeFinder AI
+              Bem-vindo ao ResideAI
               {user && (
                 <motion.span 
                   className="block text-xl text-muted-foreground mt-2"

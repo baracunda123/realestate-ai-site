@@ -40,6 +40,31 @@ namespace realestate_ia_site.Server.Domain.Models
         public bool RememberMe { get; set; } = false;
     }
 
+    public class ChangePasswordRequest
+    {
+        [Required(ErrorMessage = "Senha atual é obrigatória.")]
+        public string CurrentPassword { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Nova senha é obrigatória.")]
+        [StringLength(100, MinimumLength = 8, ErrorMessage = "Senha deve ter pelo menos 8 caracteres.")]
+        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&.])[A-Za-z\d@$!%*?&.]+$", 
+            ErrorMessage = "Senha deve conter: 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial.")]
+        public string NewPassword { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Confirmação de senha é obrigatória.")]
+        [Compare("NewPassword", ErrorMessage = "Senhas não coincidem.")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+
+    public class ExternalLoginRequest
+    {
+        [Required(ErrorMessage = "Token de acesso é obrigatório")]
+        public string AccessToken { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Provider é obrigatório")]
+        public string Provider { get; set; } = string.Empty;
+    }
+
     public class AuthResult
     {
         public bool Success { get; set; }
@@ -49,10 +74,24 @@ namespace realestate_ia_site.Server.Domain.Models
         public UserProfile? User { get; set; }
 
         public static AuthResult SuccessResult(TokenResponse token, UserProfile user, string message = "")
-            => new() { Success = true, Token = token, User = user, Message = message };
+        {
+            return new AuthResult
+            {
+                Success = true,
+                Message = message,
+                Token = token,
+                User = user
+            };
+        }
 
         public static AuthResult ErrorResult(params string[] errors)
-            => new() { Success = false, Errors = errors };
+        {
+            return new AuthResult
+            {
+                Success = false,
+                Errors = errors
+            };
+        }
     }
 
     public class TokenResponse
@@ -73,27 +112,5 @@ namespace realestate_ia_site.Server.Domain.Models
         public int Credits { get; set; }
         public string? Subscription { get; set; }
         public DateTime CreatedAt { get; set; }
-    }
-
-    public class RefreshTokenRequest
-    {
-        [Required]
-        public string RefreshToken { get; set; } = string.Empty;
-    }
-
-    public class ChangePasswordRequest
-    {
-        [Required(ErrorMessage = "Senha atual é obrigatória.")]
-        public string CurrentPassword { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Nova senha é obrigatória.")]
-        [StringLength(100, MinimumLength = 8, ErrorMessage = "Senha deve ter pelo menos 8 caracteres.")]
-        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&.])[A-Za-z\d@$!%*?&.]+$", 
-            ErrorMessage = "Senha deve conter: 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial.")]
-        public string NewPassword { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Confirmação de senha é obrigatória.")]
-        [Compare("NewPassword", ErrorMessage = "Senhas não coincidem.")]
-        public string ConfirmPassword { get; set; } = string.Empty;
     }
 }

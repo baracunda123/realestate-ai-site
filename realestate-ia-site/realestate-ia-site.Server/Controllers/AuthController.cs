@@ -24,6 +24,7 @@ namespace realestate_ia_site.Server.Controllers
     {
         private readonly UserManager<User> _userManager;
         private readonly AuthService _authService;
+        private readonly GoogleAuthService _googleAuthService;
         private readonly SecurityAuditService _auditService;
         private readonly IConfiguration _configuration;
         private readonly ILogger<AuthController> _logger;
@@ -31,12 +32,14 @@ namespace realestate_ia_site.Server.Controllers
         public AuthController(
             UserManager<User> userManager,
             AuthService authService,
+            GoogleAuthService googleAuthService,
             SecurityAuditService auditService,
             IConfiguration configuration,
             ILogger<AuthController> logger)
         {
             _userManager = userManager;
             _authService = authService;
+            _googleAuthService = googleAuthService;
             _auditService = auditService;
             _configuration = configuration;
             _logger = logger;
@@ -137,6 +140,86 @@ namespace realestate_ia_site.Server.Controllers
             {
                 _logger.LogError(ex, "Error during login for email: {Email}", request.Email);
                 _auditService.LogSuspiciousActivity("Login exception", $"Email: {request.Email}, Error: {ex.Message}");
+                return StatusCode(500, new { message = "Erro interno do servidor" });
+            }
+        }
+
+        [HttpPost("google-login")]
+        public async Task<IActionResult> GoogleLogin([FromBody] ExternalLoginRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("Iniciando processo de Google Login...");
+                _logger.LogInformation("Request Provider: {Provider}", request.Provider);
+                _logger.LogInformation("Request AccessToken presente: {HasToken}", !string.IsNullOrEmpty(request.AccessToken));
+                
+                if (!ModelState.IsValid)
+                {
+                    _logger.LogWarning("ModelState inválido para Google login");
+                    foreach (var modelError in ModelState)
+                    {
+                        _logger.LogWarning("ModelState Error - Key: {Key}, Errors: {Errors}", 
+                            modelError.Key, string.Join(", ", modelError.Value?.Errors.Select(e => e.ErrorMessage) ?? new string[0]));
+                    }
+                    _auditService.LogSuspiciousActivity("Invalid Google login data", $"Provider: {request.Provider}");
+                    return BadRequest(ModelState);
+                }
+
+                if (request.Provider != "Google")
+                {
+                    _logger.LogWarning("Provider inválido: {Provider}", request.Provider);
+                    _auditService.LogSuspiciousActivity("Invalid provider for Google login", $"Provider: {request.Provider}");
+                    return BadRequest(new { message = "Provider inválido" });
+                }
+
+                _logger.LogInformation("Validando token do Google...");
+                
+                // Validar token do Google
+                var externalLoginInfo = await _googleAuthService.ValidateGoogleTokenAsync(request.AccessToken);
+                if (externalLoginInfo == null)
+                {
+                    _logger.LogWarning("Validação do token Google falhou");
+                    _auditService.LogSuspiciousActivity("Invalid Google token", "Google token validation failed");
+                    return BadRequest(new { message = "Token do Google inválido" });
+                }
+
+                _logger.LogInformation("Token Google validado com sucesso!");
+                _logger.LogInformation("Processando login externo...");
+
+                var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
+                var (result, tokens) = await _authService.ExternalLoginAsync(externalLoginInfo, ip);
+                
+                _logger.LogInformation("Resultado do login externo - Success: {Success}, Message: {Message}", 
+                    result.Success, result.Message);
+                
+                if (!result.Success)
+                {
+                    var email = externalLoginInfo.Principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "unknown";
+                    _logger.LogWarning("Falha no login externo para email: {Email}, Errors: {Errors}", 
+                        email, string.Join(", ", result.Errors ?? new[] { "Unknown error" }));
+                    _auditService.LogFailedLogin(email, string.Join(", ", result.Errors ?? new[] { "Google authentication failed" }));
+                    return BadRequest(result);
+                }
+
+                _logger.LogInformation("Login externo bem-sucedido!");
+                
+                if (tokens != null)
+                {
+                    SetRefreshCookie(tokens);
+                    _auditService.LogSuccessfulLogin(result.User!.Id, result.User.Email);
+                    _logger.LogInformation("Tokens salvos e cookie de refresh definido");
+                }
+
+                var response = AuthResult.SuccessResult(tokens != null ? MaskRefresh(tokens) : new TokenResponse(), result.User!, result.Message ?? string.Empty);
+                _logger.LogInformation("Google login concluído com sucesso para usuário: {Email}", result.User?.Email);
+                
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro inesperado durante Google login");
+                _logger.LogError("Tipo do erro: {ErrorType}, Mensagem: {Message}", ex.GetType().Name, ex.Message);
+                _auditService.LogSuspiciousActivity("Google login exception", $"Error: {ex.Message}");
                 return StatusCode(500, new { message = "Erro interno do servidor" });
             }
         }

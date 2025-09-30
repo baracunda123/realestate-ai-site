@@ -1,5 +1,6 @@
 // properties.service.ts - Serviço atualizado sem o controller properties que foi removido
 import apiClient from "./client";
+import { properties as logger } from "../utils/logger";
 import type { Property } from "../types/property";
 
 // Interfaces específicas para API de pesquisa (sem properties controller)
@@ -33,13 +34,6 @@ interface FavoritePropertiesResponse {
   hasPreviousPage: boolean;
 }
 
-// Função simples para logs
-function logToTerminal(message: string, level: 'info' | 'warn' | 'error' = 'info') {
-  const timestamp = new Date().toLocaleTimeString();
-  const prefix = level === 'error' ? '❌' : level === 'warn' ? '⚠️' : '🔍';
-  console.log(`${prefix} [${timestamp}] PROPERTIES: ${message}`);
-}
-
 /**
  * Pesquisa avançada com IA
  */
@@ -50,7 +44,7 @@ export async function searchProperties({
   filters,
   signal
 }: SearchAIRequest & { signal?: AbortSignal }): Promise<SearchAIResponse> {
-  logToTerminal(`Pesquisa IA: "${searchQuery}" | Auth: ${apiClient.isAuthenticated()}`);
+  logger.info(`Pesquisa IA: "${searchQuery}" | Auth: ${apiClient.isAuthenticated()}`);
 
   const request = { 
     query: searchQuery,
@@ -66,11 +60,11 @@ export async function searchProperties({
       { signal }
     );
 
-    logToTerminal(`IA encontrou ${data.properties?.length || 0} propriedades`);
+    logger.info(`IA encontrou ${data.properties?.length || 0} propriedades`);
     return data;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro na pesquisa IA: ${errorMsg}`, 'error');
+    logger.error(`Erro na pesquisa IA: ${errorMsg}`);
     throw error;
   }
 }
@@ -79,16 +73,16 @@ export async function searchProperties({
  * Obter propriedades favoritas do usuário (usa FavoritesController)
  */
 export async function getFavoriteProperties(): Promise<FavoritePropertiesResponse> {
-  logToTerminal('Buscando propriedades favoritas');
+  logger.info('Buscando propriedades favoritas');
 
   try {
     const response = await apiClient.get<FavoritePropertiesResponse>('/api/favorites');
     
-    logToTerminal(`${response.favorites?.length || 0} propriedades favoritas encontradas`);
+    logger.info(`${response.favorites?.length || 0} propriedades favoritas encontradas`);
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao buscar favoritas: ${errorMsg}`, 'error');
+    logger.error(`Erro ao buscar favoritas: ${errorMsg}`);
     throw error;
   }
 }
@@ -97,7 +91,7 @@ export async function getFavoriteProperties(): Promise<FavoritePropertiesRespons
  * Adicionar propriedade aos favoritos (usa FavoritesController)
  */
 export async function addToFavorites(propertyId: string): Promise<{ success: boolean; message: string }> {
-  logToTerminal(`Adicionando aos favoritos: ${propertyId}`);
+  logger.info(`Adicionando aos favoritos: ${propertyId}`);
 
   try {
     const response = await apiClient.post<{ success: boolean; message: string }>(
@@ -105,11 +99,11 @@ export async function addToFavorites(propertyId: string): Promise<{ success: boo
       { propertyId }
     );
     
-    logToTerminal(`Propriedade adicionada aos favoritos`);
+    logger.info(`Propriedade adicionada aos favoritos`);
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao adicionar favorita: ${errorMsg}`, 'error');
+    logger.error(`Erro ao adicionar favorita: ${errorMsg}`);
     throw error;
   }
 }
@@ -118,18 +112,18 @@ export async function addToFavorites(propertyId: string): Promise<{ success: boo
  * Remover propriedade dos favoritos (usa FavoritesController)
  */
 export async function removeFromFavorites(propertyId: string): Promise<{ success: boolean; message: string }> {
-  logToTerminal(`Removendo dos favoritos: ${propertyId}`);
+  logger.info(`Removendo dos favoritos: ${propertyId}`);
 
   try {
     const response = await apiClient.delete<{ success: boolean; message: string }>(
       `/api/favorites/${propertyId}`
     );
     
-    logToTerminal(`Propriedade removida dos favoritos`);
+    logger.info(`Propriedade removida dos favoritos`);
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao remover favorita: ${errorMsg}`, 'error');
+    logger.error(`Erro ao remover favorita: ${errorMsg}`);
     throw error;
   }
 }
@@ -190,6 +184,4 @@ export const propertyUtils = {
 };
 
 // Log apenas quando carrega em desenvolvimento
-if ((import.meta as any).env?.DEV) {
-  logToTerminal('Properties Service carregado e atualizado (sem controller properties)');
-}
+logger.info('Properties Service carregado e atualizado (sem controller properties)');

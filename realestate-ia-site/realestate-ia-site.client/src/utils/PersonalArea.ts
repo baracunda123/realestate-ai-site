@@ -1,4 +1,5 @@
 import type { User, PropertyAlert, SavedSearch } from '../types/PersonalArea';
+import { personalArea } from '../utils/logger';
 
 // Format price in European format (EUR)
 export const formatPrice = (price: number): string => {
@@ -44,7 +45,7 @@ export const formatDate = (date: Date | string | number | undefined | null): str
       year: 'numeric'
     }).format(parsedDate);
   } catch (error) {
-    console.error('Error formatting date:', error);
+    personalArea.error('Error formatting date', error as Error);
     return 'Data inválida';
   }
 };
@@ -64,7 +65,7 @@ export const formatDateBR = (date: Date | string | number | undefined | null): s
       year: 'numeric'
     }).format(parsedDate);
   } catch (error) {
-    console.error('Error formatting date:', error);
+    personalArea.error('Error formatting date', error as Error);
     return 'Data inválida';
   }
 };
@@ -86,7 +87,7 @@ export const formatDateTimeBR = (date: Date | string | number | undefined | null
       minute: '2-digit'
     }).format(parsedDate);
   } catch (error) {
-    console.error('Error formatting date:', error);
+    personalArea.error('Error formatting date', error as Error);
     return 'Data inválida';
   }
 };
@@ -105,7 +106,7 @@ export const getDaysAgo = (date: Date | string | number | undefined | null): str
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     return diffDays === 1 ? '1 dia atrás' : `${diffDays} dias atrás`;
   } catch (error) {
-    console.error('Error calculating days ago:', error);
+    personalArea.error('Error calculating days ago', error as Error);
     return 'Data inválida';
   }
 };

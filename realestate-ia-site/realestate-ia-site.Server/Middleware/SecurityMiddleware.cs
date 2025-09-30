@@ -15,17 +15,21 @@ namespace realestate_ia_site.Server.Middleware
         private readonly ILogger<SecurityMiddleware> _logger;
         private readonly ScraperOptions _scraperOptions;
 
-        // Enhanced patterns para detectar ataques
-        private static readonly Regex SqlInjectionPattern = new(@"(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|TRUNCATE|GRANT|REVOKE)\b|;|--|\/\*|\*\/|'|\x00|\x1a)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-        private static readonly Regex XssPattern = new(@"(<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>|<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>|javascript:|on\w+\s*=|<object|<embed|<applet)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        // Enhanced patterns para detectar ataques (mais específicos para reduzir falsos positivos)
+        private static readonly Regex SqlInjectionPattern = new(@"(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|TRUNCATE|GRANT|REVOKE)\s+|\s+(OR|AND)\s+[\'\""]\d+[\'\""]\s*=\s*[\'\""]\d+[\'\""]\s*|;\s*-{2}|\/\*.*?\*\/|\x00|\x1a)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex XssPattern = new(@"(<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>|<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>|javascript\s*:|on(load|click|error|focus|blur|change|submit|mouseover|mouseout)\s*=|<object\b|<embed\b|<applet\b)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex PathTraversalPattern = new(@"(\.\.\/|\.\.\\|%2e%2e%2f|%2e%2e%5c)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-        private static readonly Regex CommandInjectionPattern = new(@"(\||&&|;|`|\$\(|\${|<\(|>\()", RegexOptions.Compiled);
+        private static readonly Regex CommandInjectionPattern = new(@"(\|\s*[a-zA-Z]|&&\s*[a-zA-Z]|;\s*[a-zA-Z]|`[^`]*`|\$\([^)]*\)|\$\{[^}]*\}|<\([^)]*\)|>\([^)]*\))", RegexOptions.Compiled);
 
         // Suspicious User-Agent patterns (excluding our scraper)
         private static readonly string[] SuspiciousUserAgents = {
             "sqlmap", "nikto", "nmap", "masscan", "nessus", "burpsuite", "owasp",
-            "dirbuster", "gobuster", "python-requests", "curl", "wget", "scanner",
-            "bot", "crawler", "spider", "scraper", "hack", "exploit", "test"
+            "dirbuster", "gobuster", "scanner", "hack", "exploit"
+        };
+
+        // Paths that should have more lenient validation (auth endpoints, etc.)
+        private static readonly string[] LenientValidationPaths = {
+            "/api/auth/", "/api/properties/", "/api/favorites/", "/api/search/"
         };
 
         // Maximum request size (5MB)
@@ -137,19 +141,34 @@ namespace realestate_ia_site.Server.Middleware
                 return;
             }
 
-            // Verificar parâmetros e corpo da requisição
+            // Verificar parâmetros e corpo da requisição (mais leniente para certos endpoints)
             var validationResult = await ValidateRequestSecurity(context);
             if (!validationResult.IsValid)
             {
-                context.Response.StatusCode = 400;
-                context.Response.ContentType = "application/json";
-                var response = JsonSerializer.Serialize(new
+                // Para endpoints de auth, só bloquear se for realmente malicioso
+                bool isLenientPath = LenientValidationPaths.Any(path => context.Request.Path.StartsWithSegments(path));
+                
+                if (!isLenientPath || validationResult.Errors.Any(e => e.Contains("SQL injection") || e.Contains("Command injection")))
                 {
-                    message = "Request contains potentially malicious content",
-                    errors = validationResult.Errors
-                });
-                await context.Response.WriteAsync(response);
-                return;
+                    _auditService.LogSuspiciousActivity("Malicious content blocked", 
+                        $"Path: {context.Request.Path}, Errors: {string.Join(", ", validationResult.Errors)}");
+                    
+                    context.Response.StatusCode = 400;
+                    context.Response.ContentType = "application/json";
+                    var response = JsonSerializer.Serialize(new
+                    {
+                        message = "Request contains potentially malicious content",
+                        errors = validationResult.Errors
+                    });
+                    await context.Response.WriteAsync(response);
+                    return;
+                }
+                else
+                {
+                    // Log but don't block for lenient paths with minor issues
+                    _logger.LogInformation("Security validation warning on lenient path: {Path}, Errors: {Errors}", 
+                        context.Request.Path.Value, string.Join(", ", validationResult.Errors));
+                }
             }
 
             // Adicionar headers de segurança se ainda não existirem

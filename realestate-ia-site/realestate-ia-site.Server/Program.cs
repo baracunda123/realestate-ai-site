@@ -225,6 +225,7 @@ builder.Services.AddScoped<PropertyAlertService>();
 builder.Services.AddScoped<PropertyRecommendationService>();
 builder.Services.AddScoped<IPropertySearchService, PropertySearchService>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<GoogleAuthService>();
 
 // AI
 builder.Services.AddSingleton<IOpenAIService, OpenAIService>();
@@ -314,7 +315,7 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(allowedOrigins)
               .AllowCredentials()
               .AllowAnyMethod()
-              .WithHeaders("Content-Type", "Authorization", "X-Session-ID")
+              .WithHeaders("Content-Type", "Authorization", "X-Session-ID", "X-Requested-With")
               .WithExposedHeaders("X-Total-Count", "X-Page-Count")
               .SetPreflightMaxAge(TimeSpan.FromMinutes(10));
     });
@@ -349,12 +350,13 @@ app.Use(async (context, next) =>
         if (app.Environment.IsDevelopment())
         {
             context.Response.Headers.ContentSecurityPolicy =
-                "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src 'self' https: http: ws: wss:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;";
+                "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; connect-src 'self' https: http: ws: wss:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:;";
         }
         else
         {
+            // More permissive for Google Auth in production
             context.Response.Headers.ContentSecurityPolicy =
-                "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' https:; img-src 'self' data: https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none';";
+                "default-src 'self'; script-src 'self' https://accounts.google.com; style-src 'self' 'unsafe-inline'; connect-src 'self' https:; img-src 'self' data: https:; font-src 'self' data:; object-src 'none'; base-uri 'self'; frame-ancestors 'none';";
         }
 
         context.Response.Headers.XContentTypeOptions = "nosniff";
@@ -386,13 +388,15 @@ app.UseHttpsRedirection();
 // Global exception handling should be early in the pipeline
 app.UseGlobalExceptionHandling();
 
+// CORS must come before authentication/authorization
+app.UseCors();
+
 // Security Middleware order is important
 app.UseMiddleware<SessionMiddleware>();
 app.UseMiddleware<SecurityMiddleware>();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
-app.UseCors();
 
 app.MapControllers();
 

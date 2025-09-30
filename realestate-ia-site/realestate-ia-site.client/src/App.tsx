@@ -8,9 +8,11 @@ import { type SearchFilters as SearchFiltersType, DEFAULT_SEARCH_FILTERS } from 
 import { type Property } from './types/property';
 import { getCurrentUser, logout, authUtils } from './api/auth.service';
 import { createSafeDate } from './utils/PersonalArea';
+import { logger } from './utils/logger';
 import type { UserProfile } from './api/client';
 import { getFavoriteProperties, addToFavorites, removeFromFavorites } from './api/favorites.service';
 import { usePriceAlerts } from './hooks/usePriceAlerts';
+import { useSignalR } from './hooks/useSignalR';
 
 // Lazy load components for better performance
 const SearchFilters = lazy(() => import('./components/SearchFilters').then(m => ({ default: m.SearchFilters })));
@@ -61,6 +63,8 @@ export default function App() {
   const [user, setUser] = useState<ExtendedUserProfile | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authDefaultTab, setAuthDefaultTab] = useState<AuthTab>('signin');
+  const [isInitializing, setIsInitializing] = useState(true);
+  const [hasShownWelcomeToast, setHasShownWelcomeToast] = useState(false);
 
   // Hook para gerenciar alertas de preço
   const {
@@ -72,13 +76,23 @@ export default function App() {
     updateAlertThreshold,
   } = usePriceAlerts();
 
+  // Hook para gerenciar SignalR (notificações em tempo real)
+  const {
+    isConnected: signalRConnected,
+    connect: connectSignalR,
+    disconnect: disconnectSignalR
+  } = useSignalR({
+    autoConnect: false, // NUNCA conectar automaticamente
+    showToasts: true    // Mostrar toasts para notificações
+  });
+
   // Wrapper functions para compatibilidade com PersonalArea
   const handleDeleteAlert = useCallback(async (alertId: string) => {
     try {
       await removeAlert(alertId);
       toast.success('Alerta removido');
     } catch (error) {
-      console.error('Erro ao remover alerta:', error);
+      logger.error('Erro ao remover alerta', 'PRICE_ALERTS', error as Error);
       toast.error('Erro ao remover alerta');
     }
   }, [removeAlert]);
@@ -88,7 +102,7 @@ export default function App() {
       await updateAlertThreshold(alertId, threshold);
       toast.success(`Alerta atualizado`);
     } catch (error) {
-      console.error('Erro ao atualizar alerta:', error);
+      logger.error('Erro ao atualizar alerta', 'PRICE_ALERTS', error as Error);
       toast.error('Erro ao atualizar alerta');
     }
   }, [updateAlertThreshold]);
@@ -108,8 +122,8 @@ export default function App() {
   }, [searchFilters, searchQuery]);
 
   const showWelcomeScreen = useMemo(() => 
-    !user || (user && isDefaultState && currentView === 'home' && searchResults === null), 
-    [user, isDefaultState, currentView, searchResults]
+    !isInitializing && (!user || (user && isDefaultState && currentView === 'home' && searchResults === null)), 
+    [user, isDefaultState, currentView, searchResults, isInitializing]
   );
 
   // Load favorites when user logs in
@@ -123,37 +137,108 @@ export default function App() {
       const userFavorites = await getFavoriteProperties();
       setFavorites(userFavorites);
     } catch (error) {
-      console.error('Erro ao carregar favoritos:', error);
+      logger.error('Erro ao carregar favoritos', 'APP', error as Error);
       setFavorites([]);
     }
   }, [user]);
 
   // Initialize authentication
   useEffect(() => {
+    let isCleanup = false; // Prevent race conditions
+    
     const initializeApp = async () => {
+      logger.info('Inicializando aplicação...', 'APP');
+      setIsInitializing(true);
+      
       try {
-        const currentUser = await getCurrentUser();
-        if (currentUser) {
-          const extendedUser: ExtendedUserProfile = {
-            ...currentUser,
-            name: currentUser.fullName || currentUser.name || '',
-            phone: currentUser.phoneNumber || '',
-            avatar: currentUser.avatarUrl,
-          };
-          setUser(extendedUser);
+        // First, check if we have a user in localStorage
+        const storedUser = authUtils.getCurrentUser();
+        const isAuthenticatedNow = authUtils.isAuthenticated();
+        
+        logger.info(`Estado inicial - hasStoredUser: ${!!storedUser}, isAuthenticated: ${isAuthenticatedNow}, userEmail: ${storedUser?.email}`, 'APP');
+        
+        // If we have user data and auth state, try to validate/refresh session
+        if (storedUser && isAuthenticatedNow && !isCleanup) {
+          logger.info('Tentando validar/renovar sessão existente...', 'APP');
+          
+          try {
+            // Try to get current user (this will trigger token refresh if needed)
+            const currentUser = await getCurrentUser();
+            if (currentUser && !isCleanup) {
+              logger.info('Sessão validada com sucesso', 'APP');
+              const extendedUser: ExtendedUserProfile = {
+                ...currentUser,
+                name: currentUser.fullName || currentUser.name || '',
+                phone: currentUser.phoneNumber || '',
+                avatar: currentUser.avatarUrl,
+              };
+              setUser(extendedUser);
+              setHasShownWelcomeToast(true); // Mark as shown to prevent fresh login toast
+              
+              // Session restored silently without toast
+              logger.info('Sessão restaurada silenciosamente', 'APP');
+              
+              // NÃO conectar SignalR automaticamente na restauração
+              logger.info('Sessão restaurada - SignalR permanece desativado até ser necessário', 'APP');
+            } else if (!isCleanup) {
+              logger.warn('Falha ao validar sessão - usuário não encontrado', 'APP');
+              authUtils.clearTokens();
+            }
+          } catch  {
+            if (!isCleanup) {
+              logger.warn('Falha ao restaurar sessão', 'APP');
+              authUtils.clearTokens();
+            }
+          }
+        } else if (!isCleanup) {
+          logger.info('Nenhuma sessão anterior detectada - estado limpo', 'APP');
         }
-      } catch {
-        authUtils.clearTokens();
+      } catch (error) {
+        if (!isCleanup) {
+          logger.error('Erro na inicialização da aplicação', 'APP', error as Error);
+          authUtils.clearTokens();
+        }
+      } finally {
+        if (!isCleanup) {
+          setIsInitializing(false);
+          logger.info('Inicialização concluída', 'APP');
+        }
       }
     };
 
     initializeApp();
-  }, []);
+
+    // Cleanup function to prevent race conditions
+    return () => {
+      isCleanup = true;
+    };
+  }, []); // No dependencies to prevent re-runs
 
   // Load favorites when user changes
   useEffect(() => {
     loadFavorites();
   }, [loadFavorites]);
+
+  // Monitorar alertas e gerenciar conexão SignalR
+  useEffect(() => {
+    if (!user) return;
+
+    const hasActiveAlerts = alerts.length > 0;
+    
+    if (hasActiveAlerts && !signalRConnected) {
+      // Tem alertas mas SignalR não está conectado - conectar silenciosamente
+      logger.info('Alertas ativos detectados - conectando SignalR silenciosamente', 'APP');
+      connectSignalR().catch(() => {
+        logger.warn('Falha ao conectar SignalR automaticamente', 'APP');
+      });
+    } else if (!hasActiveAlerts && signalRConnected) {
+      // Não tem alertas mas SignalR está conectado - desconectar
+      logger.info('Nenhum alerta ativo - desconectando SignalR', 'APP');
+      disconnectSignalR().catch(() => {
+        logger.warn('Falha ao desconectar SignalR', 'APP');
+      });
+    }
+  }, [user, alerts.length, signalRConnected, connectSignalR, disconnectSignalR]);
 
   // Handle URL navigation
   useEffect(() => {
@@ -261,15 +346,31 @@ export default function App() {
       if (hasAlert) {
         await removeAlertForProperty(property.id);
         toast.success('Alerta removido');
+        
+        // Se não há mais alertas, desconectar SignalR silenciosamente
+        const remainingAlerts = alerts.filter(a => a.propertyId !== property.id);
+        if (remainingAlerts.length === 0 && signalRConnected) {
+          await disconnectSignalR();
+        }
       } else {
         await createAlertForProperty(property, 5); // Default 5%
         toast.success('Alerta criado');
+        
+        // Primeira vez criando alerta - conectar SignalR silenciosamente
+        if (!signalRConnected) {
+          try {
+            await connectSignalR();
+          } catch {
+            logger.warn('Falha ao ativar SignalR', 'APP');
+            // Não mostrar erro ao utilizador - alerta funciona mesmo sem SignalR
+          }
+        }
       }
     } catch (error) {
-      console.error('Erro ao gerenciar alerta:', error);
+      logger.error('Erro ao gerenciar alerta', 'APP', error as Error);
       toast.error('Erro ao gerenciar alerta');
     }
-  }, [user, hasAlertForPropertyId, removeAlertForProperty, createAlertForProperty]);
+  }, [user, hasAlertForPropertyId, removeAlertForProperty, createAlertForProperty, alerts, signalRConnected, connectSignalR, disconnectSignalR]);
 
   // Search handlers - otimizados
   const handleExampleSearch = useCallback((query: string) => {
@@ -349,34 +450,53 @@ export default function App() {
         };
         setUser(extendedUser);
 
-        toast.success(`Bem-vindo, ${currentUser.fullName || currentUser.name || 'utilizador'}!`, {
+        // Only show welcome toast for fresh logins if we haven't already shown welcome back
+        if (!hasShownWelcomeToast) {
+          toast.success(`Bem-vindo, ${currentUser.fullName || currentUser.name || 'utilizador'}!`, {
             description: 'Inicio de sessão efetuado com sucesso.',
-        });
+          });
+          setHasShownWelcomeToast(true);
+        }
+
+        // NÃO conectar SignalR automaticamente - só quando necessário
+        logger.info('Login bem-sucedido - SignalR será ativado apenas se houver alertas', 'APP');
       }
-    } catch {
+    } catch (error) {
+      logger.error('Erro ao processar sucesso de autenticação', 'APP', error as Error);
       toast.error('Erro ao carregar dados do utilizador');
     }
-  }, [[]]);
+  }, [hasShownWelcomeToast]);
 
   const handleLogout = useCallback(async () => {
     try {
+      // Desconectar SignalR se estiver conectado
+      if (signalRConnected) {
+        await disconnectSignalR();
+      }
+      
       await logout();
       setUser(null);
       setFavorites([]);
       setCurrentView('home');
       resetToDefaults();
+      setHasShownWelcomeToast(false);
       window.location.hash = '';
       
       toast.success('Logout realizado com sucesso!', {
         description: 'Até breve!',
       });
-    } catch {
+    } catch (error) {
+      logger.error('Erro no logout', 'APP', error as Error);
+      if (signalRConnected) {
+        await disconnectSignalR(); // Tentar desconectar mesmo em caso de erro
+      }
       authUtils.clearTokens();
       setUser(null);
       setFavorites([]);
+      setHasShownWelcomeToast(false);
       toast.error('Erro no logout, mas desconectado localmente.');
     }
-  }, [resetToDefaults]);
+  }, [resetToDefaults, disconnectSignalR, signalRConnected]);
 
   // Modal handlers - otimizados
   const openAuthModal = useCallback((tab: AuthTab = 'signin') => {
@@ -398,6 +518,18 @@ export default function App() {
     createdAt: createSafeDate(extendedUser.createdAt),
     updatedAt: extendedUser.updatedAt ? createSafeDate(extendedUser.updatedAt) : undefined
   }), []);
+
+  // Show loading spinner during initialization
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <LoadingSpinner />
+          <p className="mt-4 text-muted-foreground">Carregando aplicação...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

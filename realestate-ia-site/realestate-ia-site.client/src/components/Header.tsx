@@ -310,7 +310,7 @@ export function Header({
               </div>
               <div>
                 <span className="text-xl font-semibold text-title">
-                  HomeFinder AI
+                  ResideAI
                 </span>
                 <div className="text-xs text-clay-secondary -mt-0.5">
                   Encontre seu lar ideal

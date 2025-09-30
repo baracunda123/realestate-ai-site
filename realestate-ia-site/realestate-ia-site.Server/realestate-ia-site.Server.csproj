@@ -22,7 +22,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Google.Apis.Auth" Version="1.71.0" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.23.0" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="9.0.8" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.8" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.8" />
     <PackageReference Include="Microsoft.AspNetCore.SpaProxy">
@@ -48,10 +50,6 @@
 	    <ProjectReference Include="..\realestate-ia-site.client\realestate-ia-site.client.esproj" Condition="'$(Configuration)'=='Debug'">
 		    <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
 	    </ProjectReference>
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Infrastructure\Hubs\" />
     </ItemGroup>
 
 </Project>

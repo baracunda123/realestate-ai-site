@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
+import { priceAlerts as logger } from '../utils/logger';
 import type { Property } from '../types/property';
 import type { PropertyAlert, CreatePriceAlertRequest } from '../types/PersonalArea';
 import {
@@ -36,8 +37,8 @@ export function usePriceAlerts(): UsePriceAlertsReturn {
             setIsLoading(true);
             const response = await getUserAlerts();
             setAlerts(response.alerts || []);
-        } catch (error) {
-            console.error('Erro ao carregar alertas:', error);
+        } catch {
+            logger.error('Erro ao carregar alertas');
             setAlerts([]);
         } finally {
             setIsLoading(false);
@@ -71,8 +72,8 @@ export function usePriceAlerts(): UsePriceAlertsReturn {
             const newAlert = await createPriceAlert(request);
 
             setAlerts(prev => [...prev, newAlert]);
-        } catch (error) {
-            console.error('Erro ao criar alerta:', error);
+        } catch  {
+            logger.error('Erro ao criar alerta');
             toast.error('Erro ao criar alerta de preço');
         }
     }, [hasAlertForPropertyId]);
@@ -82,8 +83,8 @@ export function usePriceAlerts(): UsePriceAlertsReturn {
         try {
             await deleteAlertByProperty(propertyId);
             setAlerts(prev => prev.filter(alert => alert.propertyId !== propertyId));
-        } catch (error) {
-            console.error('Erro ao remover alerta:', error);
+        } catch  {
+            logger.error('Erro ao remover alerta');
             toast.error('Erro ao remover alerta');
         }
     }, []);
@@ -94,8 +95,8 @@ export function usePriceAlerts(): UsePriceAlertsReturn {
             await deleteAlert(alertId);
             setAlerts(prev => prev.filter(alert => alert.id !== alertId));
             // Toast removido - será mostrado apenas nos handlers wrapper
-        } catch (error) {
-            console.error('Erro ao remover alerta:', error);
+        } catch {
+            logger.error('Erro ao remover alerta');
             toast.error('Erro ao remover alerta');
         }
     }, []);
@@ -106,8 +107,8 @@ export function usePriceAlerts(): UsePriceAlertsReturn {
             const updatedAlert = await updateAlert(alertId, { alertThresholdPercentage: threshold });
             setAlerts(prev => prev.map(alert => alert.id === alertId ? updatedAlert : alert));
             // Toast removido - será mostrado apenas nos handlers wrapper
-        } catch (error) {
-            console.error('Erro ao atualizar alerta:', error);
+        } catch  {
+            logger.error('Erro ao atualizar alerta');
             toast.error('Erro ao atualizar alerta');
         }
     }, []);
@@ -116,8 +117,8 @@ export function usePriceAlerts(): UsePriceAlertsReturn {
     const checkAlertForProperty = useCallback(async (propertyId: string): Promise<boolean> => {
         try {
             return await hasAlertForProperty(propertyId);
-        } catch (error) {
-            console.error('Erro ao verificar alerta:', error);
+        } catch  {
+            logger.error('Erro ao verificar alerta');
             return false;
         }
     }, []);
@@ -160,8 +161,8 @@ export function usePriceAlertStatus(propertyId: string): {
                 if (mounted) {
                     setHasAlert(exists);
                 }
-            } catch (error) {
-                console.error('Erro ao verificar alerta:', error);
+            } catch  {
+                logger.error('Erro ao verificar alerta');
                 if (mounted) {
                     setHasAlert(false);
                 }

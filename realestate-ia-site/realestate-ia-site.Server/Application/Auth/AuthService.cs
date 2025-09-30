@@ -104,6 +104,133 @@ public class AuthService
         return (AuthResult.SuccessResult(tokens, MapToUserProfile(user), "Login realizado com sucesso"), tokens);
     }
 
+    public async Task<(AuthResult result, TokenResponse? tokens)> ExternalLoginAsync(ExternalLoginInfo externalLoginInfo, string? ip, CancellationToken ct = default)
+    {
+        _logger.LogInformation("[ExternalLogin] Iniciando login externo...");
+        
+        var email = externalLoginInfo.Principal.FindFirstValue(ClaimTypes.Email);
+        var name = externalLoginInfo.Principal.FindFirstValue(ClaimTypes.Name);
+        var givenName = externalLoginInfo.Principal.FindFirstValue(ClaimTypes.GivenName);
+        var surname = externalLoginInfo.Principal.FindFirstValue(ClaimTypes.Surname);
+        var picture = externalLoginInfo.Principal.FindFirstValue("picture");
+
+        _logger.LogInformation("[ExternalLogin] Claims extraídos - Email: {Email}, Name: {Name}, Provider: {Provider}", 
+            email, name, externalLoginInfo.LoginProvider);
+
+        if (string.IsNullOrEmpty(email))
+        {
+            _logger.LogWarning("[ExternalLogin] Email não fornecido pelo provider={Provider}", externalLoginInfo.LoginProvider);
+            return (AuthResult.ErrorResult("Email é obrigatório para criar conta."), null);
+        }
+
+        _logger.LogInformation("[ExternalLogin] Procurando utilizador existente com login externo...");
+        
+        // Verificar se já existe um utilizador com este login externo
+        var user = await _userManager.FindByLoginAsync(externalLoginInfo.LoginProvider, externalLoginInfo.ProviderKey);
+        
+        if (user != null)
+        {
+            _logger.LogInformation("[ExternalLogin] Utilizador encontrado com login externo existente - ID: {UserId}", user.Id);
+            
+            // Utilizador já existe com este login externo
+            user.UpdateLastLogin(ip);
+            await _userManager.UpdateAsync(user);
+            await CreateLoginSessionAsync(user, ip, ct);
+            var tokens = await GenerateTokensAsync(user, ct);
+            _logger.LogInformation("[ExternalLogin] Login externo bem-sucedido utilizador={UserId} provider={Provider}", user.Id, externalLoginInfo.LoginProvider);
+            return (AuthResult.SuccessResult(tokens, MapToUserProfile(user), "Login realizado com sucesso"), tokens);
+        }
+
+        _logger.LogInformation("[ExternalLogin] Procurando utilizador existente por email...");
+        
+        // Verificar se já existe um utilizador com este email
+        user = await _userManager.FindByEmailAsync(email);
+        
+        if (user != null)
+        {
+            _logger.LogInformation("[ExternalLogin] Utilizador encontrado por email - ID: {UserId}, associando login externo...", user.Id);
+            
+            // Associar o login externo ao utilizador existente
+            var addLoginResult = await _userManager.AddLoginAsync(user, externalLoginInfo);
+            if (!addLoginResult.Succeeded)
+            {
+                _logger.LogWarning("[ExternalLogin] Falha ao associar login externo utilizador={UserId} provider={Provider} errors={Errors}", 
+                    user.Id, externalLoginInfo.LoginProvider, string.Join(';', addLoginResult.Errors.Select(e => e.Code)));
+                return (AuthResult.ErrorResult("Erro ao associar conta externa."), null);
+            }
+
+            _logger.LogInformation("[ExternalLogin] Login externo associado com sucesso!");
+
+            // Atualizar avatar se não tiver
+            if (string.IsNullOrEmpty(user.AvatarUrl) && !string.IsNullOrEmpty(picture))
+            {
+                user.AvatarUrl = picture;
+                await _userManager.UpdateAsync(user);
+                _logger.LogInformation("[ExternalLogin] Avatar atualizado para o utilizador");
+            }
+
+            user.UpdateLastLogin(ip);
+            await _userManager.UpdateAsync(user);
+            await CreateLoginSessionAsync(user, ip, ct);
+            var tokens = await GenerateTokensAsync(user, ct);
+            _logger.LogInformation("[ExternalLogin] Login externo associado utilizador={UserId} provider={Provider}", user.Id, externalLoginInfo.LoginProvider);
+            return (AuthResult.SuccessResult(tokens, MapToUserProfile(user), "Login realizado com sucesso"), tokens);
+        }
+
+        _logger.LogInformation("[ExternalLogin] Criando novo utilizador...");
+
+        // Criar novo utilizador
+        var fullName = !string.IsNullOrEmpty(name) ? name.Trim() : $"{givenName} {surname}".Trim();
+        if (string.IsNullOrEmpty(fullName))
+        {
+            fullName = email.Split('@')[0]; // Fallback para parte do email antes do @
+        }
+
+        _logger.LogInformation("[ExternalLogin] Dados do novo utilizador - Email: {Email}, FullName: {FullName}", email, fullName);
+
+        user = new User
+        {
+            UserName = email.ToLowerInvariant(),
+            Email = email.ToLowerInvariant(),
+            FullName = fullName,
+            AvatarUrl = picture,
+            AccountStatus = AccountStatus.Active, // Conta externa já é considerada verificada
+            EmailConfirmed = true, // Email já verificado pelo provider externo
+            CreatedAt = DateTime.UtcNow,
+            TokenIdentifier = Guid.NewGuid().ToString()
+        };
+
+        var createResult = await _userManager.CreateAsync(user);
+        if (!createResult.Succeeded)
+        {
+            _logger.LogWarning("[ExternalLogin] Falha ao criar utilizador externo email={Email} provider={Provider} errors={Errors}", 
+                email, externalLoginInfo.LoginProvider, string.Join(';', createResult.Errors.Select(e => e.Code)));
+            return (AuthResult.ErrorResult(createResult.Errors.Select(e => e.Description).ToArray()), null);
+        }
+
+        _logger.LogInformation("[ExternalLogin] Utilizador criado com sucesso - ID: {UserId}", user.Id);
+
+        var addLoginResult2 = await _userManager.AddLoginAsync(user, externalLoginInfo);
+        if (!addLoginResult2.Succeeded)
+        {
+            _logger.LogWarning("[ExternalLogin] Falha ao associar login externo ao novo utilizador utilizador={UserId} provider={Provider} errors={Errors}", 
+                user.Id, externalLoginInfo.LoginProvider, string.Join(';', addLoginResult2.Errors.Select(e => e.Code)));
+            
+            // Limpar utilizador criado em caso de erro
+            await _userManager.DeleteAsync(user);
+            return (AuthResult.ErrorResult("Erro ao criar conta externa."), null);
+        }
+
+        _logger.LogInformation("[ExternalLogin] Login externo associado ao novo utilizador");
+
+        user.UpdateLastLogin(ip);
+        await _userManager.UpdateAsync(user);
+        await CreateLoginSessionAsync(user, ip, ct);
+        var newUserTokens = await GenerateTokensAsync(user, ct);
+        _logger.LogInformation("[ExternalLogin] Novo utilizador criado com login externo utilizador={UserId} provider={Provider}", user.Id, externalLoginInfo.LoginProvider);
+        return (AuthResult.SuccessResult(newUserTokens, MapToUserProfile(user), "Conta criada com sucesso"), newUserTokens);
+    }
+
     public async Task<AuthResult> LogoutAsync(string userId, CancellationToken ct = default)
     {
         var user = await _userManager.FindByIdAsync(userId);

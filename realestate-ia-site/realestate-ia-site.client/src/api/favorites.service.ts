@@ -1,5 +1,6 @@
 // favorites.service.ts - Serviço simples para favoritos usando a API
 import apiClient from './client';
+import { favorites as logger } from '../utils/logger';
 import type { Property } from '../types/property';
 
 // Response types do backend
@@ -25,7 +26,7 @@ export async function getFavoriteProperties(): Promise<Property[]> {
     const response = await apiClient.get<FavoritePropertiesResponse>('/api/favorites');
     return response.favorites || [];
   } catch (error) {
-    console.error('Erro ao buscar favoritos:', error);
+    logger.error('Erro ao buscar favoritos', error as Error);
     return [];
   }
 }
@@ -38,7 +39,7 @@ export async function addToFavorites(propertyId: string): Promise<boolean> {
     await apiClient.post<SuccessResponse>('/api/favorites', { propertyId });
     return true;
   } catch (error) {
-    console.error('Erro ao adicionar favorito:', error);
+    logger.error('Erro ao adicionar favorito', error as Error);
     return false;
   }
 }
@@ -51,7 +52,7 @@ export async function removeFromFavorites(propertyId: string): Promise<boolean> 
     await apiClient.delete<SuccessResponse>(`/api/favorites/${propertyId}`);
     return true;
   } catch (error) {
-    console.error('Erro ao remover favorito:', error);
+    logger.error('Erro ao remover favorito', error as Error);
     return false;
   }
 }
@@ -64,7 +65,7 @@ export async function isFavorite(propertyId: string): Promise<boolean> {
     const response = await apiClient.get<{isFavorite: boolean}>(`/api/favorites/${propertyId}/status`);
     return response.isFavorite;
   } catch (error) {
-    console.error('Erro ao verificar favorito:', error);
+    logger.error('Erro ao verificar favorito', error as Error);
     return false;
   }
 }

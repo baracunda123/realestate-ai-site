@@ -1,5 +1,6 @@
 // alerts.service.ts - Serviço para alertas de redução de preço
 import apiClient from "./client";
+import { priceAlerts as logger } from "../utils/logger";
 import type { 
   PropertyAlert, 
   CreatePriceAlertRequest, 
@@ -8,20 +9,13 @@ import type {
   AlertNotificationsResponse
 } from "../types/PersonalArea";
 
-// Função simples para logs
-function logToTerminal(message: string, level: 'info' | 'warn' | 'error' = 'info') {
-  const timestamp = new Date().toLocaleTimeString();
-  const prefix = level === 'error' ? '❌' : level === 'warn' ? '⚠️' : '🔔';
-  console.log(`${prefix} [${timestamp}] PRICE ALERTS: ${message}`);
-}
-
 /**
  * Obter todos os alertas de redução de preço do usuário
  */
 export async function getUserAlerts(
   includeInactive: boolean = false
 ): Promise<AlertsResponse> {
-  logToTerminal(`Buscando alertas de preço (incluir inativos: ${includeInactive})`);
+  logger.info(`Buscando alertas de preço (incluir inativos: ${includeInactive})`);
 
   const params = new URLSearchParams();
   if (includeInactive) params.append('includeInactive', 'true');
@@ -29,11 +23,11 @@ export async function getUserAlerts(
   try {
     const response = await apiClient.get<AlertsResponse>(`/api/alerts?${params.toString()}`);
     
-    logToTerminal(`${response.alerts?.length || 0} alertas encontrados (${response.activeCount} ativos)`);
+    logger.info(`${response.alerts?.length || 0} alertas encontrados (${response.activeCount} ativos)`);
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao buscar alertas: ${errorMsg}`, 'error');
+    logger.error(`Erro ao buscar alertas: ${errorMsg}`);
     throw error;
   }
 }
@@ -42,16 +36,16 @@ export async function getUserAlerts(
  * Obter detalhes de um alerta específico
  */
 export async function getAlertById(alertId: string): Promise<PropertyAlert> {
-  logToTerminal(`Buscando alerta: ${alertId}`);
+  logger.info(`Buscando alerta: ${alertId}`);
 
   try {
     const alert = await apiClient.get<PropertyAlert>(`/api/alerts/${alertId}`);
     
-    logToTerminal(`Alerta encontrado: ${alert.propertyTitle}`);
+    logger.info(`Alerta encontrado: ${alert.propertyTitle}`);
     return alert;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao buscar alerta ${alertId}: ${errorMsg}`, 'error');
+    logger.error(`Erro ao buscar alerta ${alertId}: ${errorMsg}`);
     throw error;
   }
 }
@@ -60,16 +54,16 @@ export async function getAlertById(alertId: string): Promise<PropertyAlert> {
  * Criar novo alerta de redução de preço
  */
 export async function createPriceAlert(alertData: CreatePriceAlertRequest): Promise<PropertyAlert> {
-  logToTerminal(`Criando alerta de preço para propriedade: ${alertData.propertyId}`);
+  logger.info(`Criando alerta de preço para propriedade: ${alertData.propertyId}`);
 
   try {
     const alert = await apiClient.post<PropertyAlert>('/api/alerts', alertData);
     
-    logToTerminal(`Alerta de preço criado: ${alert.id}`);
+    logger.info(`Alerta de preço criado: ${alert.id}`);
     return alert;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao criar alerta: ${errorMsg}`, 'error');
+    logger.error(`Erro ao criar alerta: ${errorMsg}`);
     throw error;
   }
 }
@@ -81,16 +75,16 @@ export async function updateAlert(
   alertId: string,
   updates: UpdatePriceAlertRequest
 ): Promise<PropertyAlert> {
-  logToTerminal(`Atualizando alerta: ${alertId}`);
+  logger.info(`Atualizando alerta: ${alertId}`);
 
   try {
     const alert = await apiClient.put<PropertyAlert>(`/api/alerts/${alertId}`, updates);
     
-    logToTerminal(`Alerta atualizado: ${alert.id}`);
+    logger.info(`Alerta atualizado: ${alert.id}`);
     return alert;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao atualizar alerta: ${errorMsg}`, 'error');
+    logger.error(`Erro ao atualizar alerta: ${errorMsg}`);
     throw error;
   }
 }
@@ -99,18 +93,18 @@ export async function updateAlert(
  * Excluir alerta
  */
 export async function deleteAlert(alertId: string): Promise<{ success: boolean; message: string }> {
-  logToTerminal(`Excluindo alerta: ${alertId}`);
+  logger.info(`Excluindo alerta: ${alertId}`);
 
   try {
     const response = await apiClient.delete<{ success: boolean; message: string }>(
       `/api/alerts/${alertId}`
     );
     
-    logToTerminal(`Alerta excluído`);
+    logger.info(`Alerta excluído`);
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao excluir alerta: ${errorMsg}`, 'error');
+    logger.error(`Erro ao excluir alerta: ${errorMsg}`);
     throw error;
   }
 }
@@ -119,18 +113,18 @@ export async function deleteAlert(alertId: string): Promise<{ success: boolean; 
  * Excluir alerta por propriedade
  */
 export async function deleteAlertByProperty(propertyId: string): Promise<{ success: boolean; message: string }> {
-  logToTerminal(`Excluindo alerta para propriedade: ${propertyId}`);
+  logger.info(`Excluindo alerta para propriedade: ${propertyId}`);
 
   try {
     const response = await apiClient.delete<{ success: boolean; message: string }>(
       `/api/alerts/property/${propertyId}`
     );
     
-    logToTerminal(`Alerta excluído para propriedade`);
+    logger.info(`Alerta excluído para propriedade`);
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao excluir alerta da propriedade: ${errorMsg}`, 'error');
+    logger.error(`Erro ao excluir alerta da propriedade: ${errorMsg}`);
     throw error;
   }
 }
@@ -139,16 +133,16 @@ export async function deleteAlertByProperty(propertyId: string): Promise<{ succe
  * Verificar se existe alerta para uma propriedade
  */
 export async function hasAlertForProperty(propertyId: string): Promise<boolean> {
-  logToTerminal(`Verificando alerta para propriedade: ${propertyId}`);
+  logger.info(`Verificando alerta para propriedade: ${propertyId}`);
 
   try {
     const hasAlert = await apiClient.get<boolean>(`/api/alerts/property/${propertyId}/exists`);
     
-    logToTerminal(`Propriedade ${hasAlert ? 'tem' : 'não tem'} alerta`);
+    logger.info(`Propriedade ${hasAlert ? 'tem' : 'não tem'} alerta`);
     return hasAlert;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao verificar alerta: ${errorMsg}`, 'error');
+    logger.error(`Erro ao verificar alerta: ${errorMsg}`);
     return false; // Retorna false em caso de erro
   }
 }
@@ -157,18 +151,18 @@ export async function hasAlertForProperty(propertyId: string): Promise<boolean> 
  * Obter notificações de redução de preço
  */
 export async function getNotifications(limit: number = 20): Promise<AlertNotificationsResponse> {
-  logToTerminal(`Buscando notificações de preço (limite: ${limit})`);
+  logger.info(`Buscando notificações de preço (limite: ${limit})`);
 
   try {
     const response = await apiClient.get<AlertNotificationsResponse>(
       `/api/alerts/notifications?limit=${limit}`
     );
     
-    logToTerminal(`${response.notifications?.length || 0} notificações encontradas (${response.unreadCount} não lidas)`);
+    logger.info(`${response.notifications?.length || 0} notificações encontradas (${response.unreadCount} não lidas)`);
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao buscar notificações: ${errorMsg}`, 'error');
+    logger.error(`Erro ao buscar notificações: ${errorMsg}`);
     throw error;
   }
 }
@@ -190,7 +184,7 @@ export const priceAlertUtils = {
     
     parts.push(`📍 ${alert.propertyLocation}`);
     parts.push(`💰 €${alert.currentPrice.toLocaleString('pt-PT')}`);
-    parts.push(`📉 Alerta: ${alert.alertThresholdPercentage}%`);
+    parts.push(`Alerta: ${alert.alertThresholdPercentage}%`);
     
     return parts.join(' • ');
   },
@@ -233,7 +227,4 @@ export const priceAlertUtils = {
   }
 };
 
-// Log apenas quando carrega em desenvolvimento
-if (import.meta.env.DEV) {
-  logToTerminal('Price Alerts Service carregado');
-}
+logger.info('Price Alerts Service carregado');
