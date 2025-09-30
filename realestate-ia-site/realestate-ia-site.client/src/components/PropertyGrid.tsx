@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { createSavedSearch } from '../api/saved-searches.service';
 import { type CreateSavedSearchRequest } from '../types/PersonalArea';
 import apiClient from '../api/client';
+import { logger } from '../utils/logger';
 
 interface PropertyGridProps {
   filters: SearchFilters;
@@ -20,6 +21,7 @@ interface PropertyGridProps {
   onToggleFavorite?: (property: Property) => void;
   onCreatePriceAlert?: (property: Property) => void;
   hasAlertForPropertyId?: (propertyId: string) => boolean;
+  onPropertyView?: (property: Property) => void;
 }
 
 // Calculate simple text relevance score for ranking
@@ -62,7 +64,8 @@ export function PropertyGrid({
   favorites = [], 
   onToggleFavorite,
   onCreatePriceAlert,
-  hasAlertForPropertyId
+  hasAlertForPropertyId,
+  onPropertyView
 }: PropertyGridProps) {
   // State for save search dialog
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
@@ -208,7 +211,7 @@ export function PropertyGrid({
       setIsSaveDialogOpen(false);
       setSaveSearchName('');
     } catch (error) {
-      console.error('Erro ao guardar pesquisa:', error);
+      logger.error('Erro ao guardar pesquisa', 'PROPERTY_GRID', error as Error);
       toast.error('Erro ao guardar pesquisa', {
         description: 'Tente novamente em alguns instantes.'
       });
@@ -350,6 +353,7 @@ export function PropertyGrid({
               onToggleFavorite={onToggleFavorite}
               onCreatePriceAlert={onCreatePriceAlert}
               hasPriceAlert={hasAlertForPropertyId ? hasAlertForPropertyId(property.id) : false}
+              onPropertyView={onPropertyView}
             />
           </div>
         ))}

@@ -8,6 +8,7 @@ interface PersonalAreaFavoritesProps {
   onToggleFavorite?: (property: Property) => void;
   onCreatePriceAlert?: (property: Property) => void;
   hasAlertForPropertyId?: (propertyId: string) => boolean;
+  onPropertyView?: (property: Property) => void;
 }
 
 export function PersonalAreaFavorites({
@@ -15,6 +16,7 @@ export function PersonalAreaFavorites({
   onToggleFavorite,
   onCreatePriceAlert,
   hasAlertForPropertyId,
+  onPropertyView,
 }: PersonalAreaFavoritesProps) {
   if (favorites.length === 0) {
     return (
@@ -51,6 +53,7 @@ export function PersonalAreaFavorites({
             property={property}
             onToggleFavorite={onToggleFavorite}
             onCreatePriceAlert={onCreatePriceAlert}
+            onPropertyView={onPropertyView}
             isFavorite={true}
             hasPriceAlert={hasAlertForPropertyId ? hasAlertForPropertyId(property.id) : false}
           />

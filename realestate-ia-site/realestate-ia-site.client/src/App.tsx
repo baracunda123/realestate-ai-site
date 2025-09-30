@@ -372,6 +372,13 @@ export default function App() {
     }
   }, [user, hasAlertForPropertyId, removeAlertForProperty, createAlertForProperty, alerts, signalRConnected, connectSignalR, disconnectSignalR]);
 
+  // Handler para visualização de propriedades
+  const handlePropertyView = useCallback((property: Property) => {
+    // This callback will be used to refresh view history if needed
+    // For now, it's just a placeholder since the tracking happens in PropertyCard
+    logger.info(`Property viewed: ${property.title}`, 'APP');
+  }, []);
+
   // Search handlers - otimizados
   const handleExampleSearch = useCallback((query: string) => {
     if (!user) {
@@ -574,7 +581,7 @@ export default function App() {
           </Suspense>
         ) : (
           user && (
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={< LoadingSpinner />}>
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 <div className="lg:col-span-1 space-y-6">
                   <SearchFilters
@@ -592,9 +599,16 @@ export default function App() {
                       onToggleFavorite={toggleFavorite}
                       onCreatePriceAlert={handleCreatePriceAlert}
                       hasAlertForPropertyId={hasAlertForPropertyId}
+                      onPropertyView={handlePropertyView}
                     />
                   ) : (
-                    <MapView />
+                    <MapView 
+                      properties={searchResults || []}
+                      searchQuery={searchQuery}
+                      onPropertySelect={handlePropertyView}
+                      onToggleFavorite={toggleFavorite}
+                      favorites={favorites}
+                    />
                   )}
                 </div>
               </div>

@@ -26,7 +26,7 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
                 return new ParsedLocation { City = string.Empty, State = string.Empty, County = string.Empty, CivilParish = string.Empty };
             }
 
-            var cacheKey = $"{locationText}_{countryCode}";
+            var cacheKey = $"location_{locationText}_{countryCode}";
             if (_cache.TryGetValue(cacheKey, out ParsedLocation? cachedResult) && cachedResult != null)
             {
                 _logger.LogDebug("Localização encontrada no cache: {Location}", locationText);
@@ -85,6 +85,77 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
             }
         }
 
+        /// <summary>
+        /// Obter coordenadas geográficas aproximadas para uma propriedade
+        /// Usa cache eficiente para evitar chamadas repetidas à API
+        /// </summary>
+        public async Task<PropertyCoordinates?> GetPropertyCoordinatesAsync(string propertyId, string? address, string? city, string? county, string? state, string countryCode = "PT")
+        {
+            // Construir endereço completo para geocoding
+            var addressParts = new List<string>();
+            
+            if (!string.IsNullOrWhiteSpace(address)) addressParts.Add(address);
+            if (!string.IsNullOrWhiteSpace(city)) addressParts.Add(city);
+            if (!string.IsNullOrWhiteSpace(county)) addressParts.Add(county);
+            if (!string.IsNullOrWhiteSpace(state)) addressParts.Add(state);
+            
+            var fullAddress = string.Join(", ", addressParts);
+            
+            if (string.IsNullOrWhiteSpace(fullAddress))
+            {
+                _logger.LogWarning("Endereço insuficiente para geocoding da propriedade {PropertyId}", propertyId);
+                return null;
+            }
+
+            var cacheKey = $"coordinates_{fullAddress}_{countryCode}";
+            if (_cache.TryGetValue(cacheKey, out PropertyCoordinates? cachedCoordinates) && cachedCoordinates != null)
+            {
+                _logger.LogDebug("Coordenadas encontradas no cache para: {Address}", fullAddress);
+                return cachedCoordinates;
+            }
+
+            try
+            {
+                _logger.LogDebug("Fazendo geocoding para propriedade {PropertyId}: {Address}", propertyId, fullAddress);
+
+                var result = await MakeGeocodingRequestWithCoordinates(fullAddress, countryCode);
+
+                if (result != null && result.Geometry?.Location != null)
+                {
+                    var coordinates = new PropertyCoordinates
+                    {
+                        PropertyId = propertyId,
+                        Latitude = (decimal)result.Geometry.Location.Lat,
+                        Longitude = (decimal)result.Geometry.Location.Lng,
+                        Address = fullAddress,
+                        FormattedAddress = result.FormattedAddress,
+                        AccuracyLevel = DetermineAccuracyLevel(result)
+                    };
+
+                    // Cache por 7 dias - endereços não mudam frequentemente
+                    _cache.Set(cacheKey, coordinates, TimeSpan.FromDays(7));
+                    
+                    _logger.LogInformation("Coordenadas obtidas para {PropertyId}: {Lat}, {Lng} (Precisão: {Accuracy})",
+                        propertyId, coordinates.Latitude, coordinates.Longitude, coordinates.AccuracyLevel);
+
+                    return coordinates;
+                }
+                else
+                {
+                    _logger.LogWarning("Não foi possível obter coordenadas para {PropertyId}: {Address}", propertyId, fullAddress);
+                    
+                    // Cache resultado negativo por menos tempo
+                    _cache.Set<PropertyCoordinates?>(cacheKey, null, TimeSpan.FromHours(6));
+                    return null;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao obter coordenadas para propriedade {PropertyId}: {Address}", propertyId, fullAddress);
+                return null;
+            }
+        }
+
         private async Task<GeocodeResult?> MakeGeocodingRequest(string locationText, string countryCode)
         {
             var encodedAddress = Uri.EscapeDataString(locationText);
@@ -106,6 +177,40 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
             return geocodeResponse.Results.First();
         }
 
+        private async Task<GeocodeResult?> MakeGeocodingRequestWithCoordinates(string locationText, string countryCode)
+        {
+            var encodedAddress = Uri.EscapeDataString(locationText);
+            var url = $"https://maps.googleapis.com/maps/api/geocode/json?address={encodedAddress}&key={_apiKey}&region={countryCode.ToLower()}&language=pt";
+
+            var response = await _httpClient.GetAsync(url);
+            response.EnsureSuccessStatusCode();
+
+            var jsonContent = await response.Content.ReadAsStringAsync();
+            var geocodeResponse = JsonSerializer.Deserialize<GeocodeResponseWithGeometry>(jsonContent);
+
+            if (geocodeResponse?.Status != "OK" || geocodeResponse.Results == null || !geocodeResponse.Results.Any())
+            {
+                _logger.LogWarning("Nenhum resultado encontrado para geocoding: {Location}. Status: {Status}",
+                    locationText, geocodeResponse?.Status);
+                return null;
+            }
+
+            return geocodeResponse.Results.First();
+        }
+
+        private string DetermineAccuracyLevel(GeocodeResult result)
+        {
+            if (result.AddressComponents == null) return "LOW";
+
+            var hasStreetNumber = result.AddressComponents.Any(c => c.Types?.Contains("street_number") == true);
+            var hasRoute = result.AddressComponents.Any(c => c.Types?.Contains("route") == true);
+            var hasLocality = result.AddressComponents.Any(c => c.Types?.Contains("locality") == true);
+
+            if (hasStreetNumber && hasRoute) return "HIGH";
+            if (hasRoute || hasLocality) return "MEDIUM";
+            return "LOW";
+        }
+
         private ParsedLocation ExtractCityStateCountyCivilParish(GeocodeResult result)
         {
             string city = string.Empty;
@@ -121,34 +226,32 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
             foreach (var component in result.AddressComponents)
             {
                 if (component.Types == null) continue;
-                Console.WriteLine($"Processing component: {component.LongName} with types: {string.Join(", ", component.Types)}");
-
 
                 // Procurar por distrito/estado - administrative_area_level_1
                 if (component.Types.Contains("administrative_area_level_1"))
                 {
                     state = component.LongName ?? string.Empty;
-                    _logger.LogInformation("Estado/Distrito encontrado: {State}", state);
+                    _logger.LogDebug("Estado/Distrito encontrado: {State}", state);
                 }
 
                 // Procurar por concelho/county - administrative_area_level_2
                 if (component.Types.Contains("administrative_area_level_2"))
                 {
                     county = component.LongName ?? string.Empty;
-                    _logger.LogInformation("Concelho/County encontrado: {County}", county);
+                    _logger.LogDebug("Concelho/County encontrado: {County}", county);
                 }
 
                 // Procurar por freguesia - múltiplas estratégias
                 if (component.Types.Contains("administrative_area_level_3"))
                 {
                     civilParish = component.LongName ?? string.Empty;
-                    _logger.LogInformation("Freguesia (admin_level_3) encontrada: {CivilParish}", civilParish);
+                    _logger.LogDebug("Freguesia (admin_level_3) encontrada: {CivilParish}", civilParish);
                 }
                 // Procurar por cidade - locality tem prioridade
                 if (component.Types.Contains("locality"))
                 {
                     city = component.LongName ?? string.Empty;
-                    _logger.LogInformation("Cidade (locality) encontrada: {City}", city);
+                    _logger.LogDebug("Cidade (locality) encontrada: {City}", city);
                 }
             }
 
@@ -233,6 +336,15 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
         public List<GeocodeResult> Results { get; set; } = new();
     }
 
+    public class GeocodeResponseWithGeometry
+    {
+        [JsonPropertyName("status")]
+        public string Status { get; set; } = string.Empty;
+
+        [JsonPropertyName("results")]
+        public List<GeocodeResult> Results { get; set; } = new();
+    }
+
     public class GeocodeResult
     {
         [JsonPropertyName("address_components")]
@@ -240,6 +352,27 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
 
         [JsonPropertyName("formatted_address")]
         public string FormattedAddress { get; set; } = string.Empty;
+
+        [JsonPropertyName("geometry")]
+        public GeocodeGeometry? Geometry { get; set; }
+    }
+
+    public class GeocodeGeometry
+    {
+        [JsonPropertyName("location")]
+        public GeocodeLocation? Location { get; set; }
+
+        [JsonPropertyName("location_type")]
+        public string LocationType { get; set; } = string.Empty;
+    }
+
+    public class GeocodeLocation
+    {
+        [JsonPropertyName("lat")]
+        public double Lat { get; set; }
+
+        [JsonPropertyName("lng")]
+        public double Lng { get; set; }
     }
 
     public class AddressComponent
@@ -260,5 +393,16 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
         public string State { get; set; } = string.Empty;
         public string County { get; set; } = string.Empty;
         public string CivilParish { get; set; } = string.Empty;
+    }
+
+    // Novo DTO para coordenadas de propriedades
+    public class PropertyCoordinates
+    {
+        public string PropertyId { get; set; } = string.Empty;
+        public decimal Latitude { get; set; }
+        public decimal Longitude { get; set; }
+        public string Address { get; set; } = string.Empty;
+        public string FormattedAddress { get; set; } = string.Empty;
+        public string AccuracyLevel { get; set; } = string.Empty; // HIGH, MEDIUM, LOW
     }
 }
