@@ -50,10 +50,10 @@ export function Footer() {
             <div className="flex items-center space-x-2 justify-center md:justify-start">
               <Mail className="h-4 w-4 text-cocoa-taupe" />
               <a 
-                href="mailto:support@homefinder.ai"
+                href="mailto:support@resideai.pt"
                 className="text-sm text-cocoa-taupe hover:text-burnt-peach transition-colors duration-200"
               >
-                support@homefinder.ai
+                support@resideai.pt
               </a>
             </div>
           </div>
