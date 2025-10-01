@@ -50,12 +50,21 @@ namespace realestate_ia_site.Server.Controllers
 
             try
             {
-                // 1. Verificar se já existe
+                // 1. Verificar se já existe (incluindo items hidden)
                 var existing = await _context.PropertyViewHistories
                     .FirstOrDefaultAsync(h => h.UserId == userId && h.PropertyId == request.PropertyId);
 
                 if (existing != null)
                 {
+                    // Se estava hidden, reativar
+                    if (existing.IsHidden)
+                    {
+                        existing.IsHidden = false;
+                        existing.HiddenAt = null;
+                        _logger.LogInformation("Reactivated hidden property {PropertyId} for user {UserId}", 
+                            request.PropertyId, userId);
+                    }
+                    
                     // Atualizar: move para o topo e incrementa contador
                     existing.ViewedAt = DateTime.UtcNow;
                     existing.ViewCount++;
@@ -67,7 +76,7 @@ namespace realestate_ia_site.Server.Controllers
                 {
                     // 2. ANTES de adicionar novo, verificar limite e remover antigos se necessário
                     var currentHistoryItems = await _context.PropertyViewHistories
-                        .Where(h => h.UserId == userId)
+                        .Where(h => h.UserId == userId && !h.IsHidden) // Só contar os não hidden para o limite
                         .OrderBy(h => h.ViewedAt) // Mais antigos primeiro
                         .ToListAsync();
 
@@ -89,7 +98,8 @@ namespace realestate_ia_site.Server.Controllers
                         UserId = userId,
                         PropertyId = request.PropertyId,
                         ViewedAt = DateTime.UtcNow,
-                        ViewCount = 1
+                        ViewCount = 1,
+                        IsHidden = false
                     };
 
                     _context.PropertyViewHistories.Add(newHistory);
@@ -227,6 +237,66 @@ namespace realestate_ia_site.Server.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting view history for user {UserId}", userId);
+                return StatusCode(500, new { message = "Erro interno do servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Reativar uma propriedade que estava oculta no histórico
+        /// </summary>
+        [HttpPatch("{historyId}/reactivate")]
+        [ProducesResponseType(typeof(TrackViewResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<TrackViewResponse>> ReactivateViewHistory([FromRoute] string historyId)
+        {
+            var userId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized(new { message = "Usuário não autenticado" });
+
+            if (string.IsNullOrEmpty(historyId))
+                return BadRequest(new { message = "HistoryId é obrigatório" });
+
+            _logger.LogInformation("Reactivating view history item {HistoryId} for user {UserId}", 
+                historyId, userId);
+
+            try
+            {
+                // Buscar o item do histórico
+                var historyItem = await _context.PropertyViewHistories
+                    .FirstOrDefaultAsync(h => h.Id == historyId && h.UserId == userId && h.IsHidden);
+
+                if (historyItem == null)
+                {
+                    _logger.LogWarning("Hidden view history item {HistoryId} not found for user {UserId}", 
+                        historyId, userId);
+                    return NotFound(new { message = "Item do histórico não encontrado ou não está oculto" });
+                }
+
+                // Reativar
+                historyItem.IsHidden = false;
+                historyItem.HiddenAt = null;
+                historyItem.ViewedAt = DateTime.UtcNow;
+                historyItem.ViewCount++;
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Successfully reactivated view history item {HistoryId} for user {UserId}", 
+                    historyId, userId);
+
+                return Ok(new TrackViewResponse
+                {
+                    Success = true,
+                    Message = "Propriedade reativada com sucesso",
+                    ViewCount = historyItem.ViewCount
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reactivating view history item {HistoryId} for user {UserId}", 
+                    historyId, userId);
                 return StatusCode(500, new { message = "Erro interno do servidor" });
             }
         }

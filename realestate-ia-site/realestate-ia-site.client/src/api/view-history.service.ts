@@ -83,6 +83,12 @@ export async function getViewHistory(limit?: number, forceRefresh = false): Prom
 export async function trackPropertyView(property: Property): Promise<TrackViewResponse> {
   viewHistoryLogger.info(`Registrando visualização: ${property.id}`);
 
+  // Verificar se a propriedade estava hidden antes de processar
+  const wasHidden = viewHistoryCache.wasPropertyHidden(property.id);
+  if (wasHidden) {
+    viewHistoryLogger.info(`Propriedade ${property.id} estava hidden, será reativada`);
+  }
+
   // 1. CACHE OTIMISTA - Resposta imediata com propriedade completa
   viewHistoryCache.addOptimistic(property);
 
@@ -97,7 +103,12 @@ export async function trackPropertyView(property: Property): Promise<TrackViewRe
     // 3. SYNC CACHE IMEDIATO - Forçar refresh para garantir dados atualizados
     await getViewHistory(10, true);
     
-    viewHistoryLogger.info(`Visualização registrada. Total: ${response.viewCount}`);
+    if (wasHidden) {
+      viewHistoryLogger.info(`Propriedade ${property.id} reativada com sucesso. Total: ${response.viewCount}`);
+    } else {
+      viewHistoryLogger.info(`Visualização registrada. Total: ${response.viewCount}`);
+    }
+    
     return response;
   } catch (error) {
     const err = error as Error;
@@ -106,7 +117,7 @@ export async function trackPropertyView(property: Property): Promise<TrackViewRe
     // Retornar sucesso mesmo com erro de servidor (cache otimista funcionou)
     return {
       success: false,
-      message: 'Registrado localmente, sync pendente',
+      message: wasHidden ? 'Propriedade reativada localmente, sync pendente' : 'Registrado localmente, sync pendente',
       viewCount: 1
     };
   }
