@@ -4,7 +4,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
-import { User, Mail, Shield, Edit, Save, X } from 'lucide-react';
+import { User, Mail, Edit, Save, X } from 'lucide-react';
 import type { User as UserType } from '../../types/PersonalArea';
 import { formatDate } from '../../utils/PersonalArea';
 import { toast } from 'sonner';
@@ -185,48 +185,7 @@ export function PersonalAreaSettings({
             </div>
           </div>
         </CardContent>
-      </Card>
-
-      {/* Account Security */}
-      <Card className="border border-pale-clay-deep bg-pure-white shadow-clay-deep">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Shield className="h-5 w-5 text-burnt-peach-dark" />
-            <span className="text-deep-mocha">Segurança da Conta</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-pale-clay-light rounded-lg border border-pale-clay-deep">
-            <div>
-              <h4 className="font-medium text-foreground">Palavra-passe</h4>
-              <p className="text-sm text-muted-foreground">
-                Última alteração há 30 dias
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              className="border-pale-clay-deep hover:bg-pale-clay-light"
-            >
-              Alterar Palavra-passe
-            </Button>
-          </div>
-
-          <div className="flex items-center justify-between p-4 bg-pale-clay-light rounded-lg border border-pale-clay-deep">
-            <div>
-              <h4 className="font-medium text-foreground">Autenticação de Dois Fatores</h4>
-              <p className="text-sm text-muted-foreground">
-                Adicione uma camada extra de segurança
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              className="border-pale-clay-deep hover:bg-pale-clay-light"
-            >
-              Configurar 2FA
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      </Card>    
 
       {/* Danger Zone */}
       <Card className="border border-error-gentle bg-error-soft shadow-clay-deep">
