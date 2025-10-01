@@ -377,6 +377,29 @@ app.Use(async (context, next) =>
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
+// Configure static files for uploaded content
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(
+        Path.Combine(app.Environment.WebRootPath, "uploads")),
+    RequestPath = "/uploads",
+    OnPrepareResponse = ctx =>
+    {
+        // Set cache headers for uploaded files
+        ctx.Context.Response.Headers.CacheControl = "public,max-age=604800"; // 7 days
+        
+        // Add security headers for images
+        if (ctx.File.Name.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
+            ctx.File.Name.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase) ||
+            ctx.File.Name.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
+            ctx.File.Name.EndsWith(".gif", StringComparison.OrdinalIgnoreCase) ||
+            ctx.File.Name.EndsWith(".webp", StringComparison.OrdinalIgnoreCase))
+        {
+            ctx.Context.Response.Headers.ContentType = "image/*";
+        }
+    }
+});
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

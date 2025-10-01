@@ -161,12 +161,21 @@ public class AuthService
 
             _logger.LogInformation("[ExternalLogin] Login externo associado com sucesso!");
 
-            // Atualizar avatar se não tiver
-            if (string.IsNullOrEmpty(user.AvatarUrl) && !string.IsNullOrEmpty(picture))
+            // Atualizar avatar se não tiver ou se o Google forneceu uma nova imagem
+            if (!string.IsNullOrEmpty(picture) && 
+                (string.IsNullOrEmpty(user.AvatarUrl) || user.AvatarUrl != picture))
             {
                 user.AvatarUrl = picture;
                 await _userManager.UpdateAsync(user);
                 _logger.LogInformation("[ExternalLogin] Avatar atualizado para o utilizador");
+            }
+
+            // Atualizar nome se não tiver
+            if (string.IsNullOrEmpty(user.FullName) && !string.IsNullOrEmpty(name))
+            {
+                user.FullName = name.Trim();
+                await _userManager.UpdateAsync(user);
+                _logger.LogInformation("[ExternalLogin] Nome completo atualizado para o utilizador");
             }
 
             user.UpdateLastLogin(ip);

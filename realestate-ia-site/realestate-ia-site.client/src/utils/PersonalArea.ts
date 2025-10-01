@@ -337,3 +337,51 @@ export const searchUtils = {
     return 'Poucos resultados';
   }
 };
+
+/**
+ * Função auxiliar para obter iniciais de qualquer string de nome
+ * Usado para compatibilidade com outros componentes
+ */
+export function getInitialsFromName(name: string): string {
+  if (!name?.trim()) return 'U';
+  
+  const words = name.trim().split(' ').filter(word => word.length > 0);
+  
+  if (words.length >= 2) {
+    return (words[0][0] + words[1][0]).toUpperCase();
+  }
+  
+  if (words.length === 1) {
+    return words[0].substring(0, 2).toUpperCase();
+  }
+  
+  return 'U';
+}
+
+/**
+ * Função auxiliar para obter iniciais de email (fallback)
+ */
+export function getInitialsFromEmail(email: string): string {
+  if (!email?.trim()) return 'U';
+  
+  const emailPart = email.split('@')[0];
+  return emailPart.substring(0, 2).toUpperCase();
+}
+
+/**
+ * Função universal para obter iniciais compatível com qualquer input
+ */
+export function getUniversalInitials(input: { name?: string; fullName?: string; email?: string }): string {
+  // Prioridade: fullName > name > email
+  const displayName = input.fullName?.trim() || input.name?.trim();
+  
+  if (displayName) {
+    return getInitialsFromName(displayName);
+  }
+  
+  if (input.email) {
+    return getInitialsFromEmail(input.email);
+  }
+  
+  return 'U';
+}
