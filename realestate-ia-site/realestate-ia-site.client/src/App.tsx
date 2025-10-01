@@ -17,7 +17,6 @@ import { useSignalR } from './hooks/useSignalR';
 // Lazy load components for better performance
 const SearchFilters = lazy(() => import('./components/SearchFilters').then(m => ({ default: m.SearchFilters })));
 const PropertyGrid = lazy(() => import('./components/PropertyGrid').then(m => ({ default: m.PropertyGrid })));
-const MapView = lazy(() => import('./components/MapView').then(m => ({ default: m.MapView })));
 const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
 const WelcomeScreen = lazy(() => import('./components/WelcomeScreen').then(m => ({ default: m.WelcomeScreen })));
 
@@ -30,7 +29,6 @@ const LoadingSpinner = () => (
 
 // View types
 type ViewType = 'home' | 'personal';
-type ViewMode = 'grid' | 'map';
 type AuthTab = 'signin' | 'signup';
 
 // Extended user interface para uso interno com BD UserProfile
@@ -49,7 +47,6 @@ export default function App() {
   // Search and filter state - usando novos tipos
   const [searchFilters, setSearchFilters] = useState<SearchFiltersType>(DEFAULT_SEARCH_FILTERS);
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   
   // Navigation state
   const [currentView, setCurrentView] = useState<ViewType>('home');
@@ -542,8 +539,6 @@ export default function App() {
     <div className="min-h-screen bg-background flex flex-col">
       <Header
         searchQuery={searchQuery}
-        viewMode={viewMode}
-        setViewMode={setViewMode}
         user={user}
         onOpenAuth={openAuthModal}
         onLogout={handleLogout}
@@ -590,26 +585,16 @@ export default function App() {
                   />
                 </div>
                 <div className="lg:col-span-3">
-                  {viewMode === 'grid' ? (
-                    <PropertyGrid
-                      filters={searchFilters}
-                      searchQuery={searchQuery}
-                      serverResults={searchResults || undefined}
-                      favorites={favorites}
-                      onToggleFavorite={toggleFavorite}
-                      onCreatePriceAlert={handleCreatePriceAlert}
-                      hasAlertForPropertyId={hasAlertForPropertyId}
-                      onPropertyView={handlePropertyView}
-                    />
-                  ) : (
-                    <MapView 
-                      properties={searchResults || []}
-                      searchQuery={searchQuery}
-                      onPropertySelect={handlePropertyView}
-                      onToggleFavorite={toggleFavorite}
-                      favorites={favorites}
-                    />
-                  )}
+                  <PropertyGrid
+                    filters={searchFilters}
+                    searchQuery={searchQuery}
+                    serverResults={searchResults || undefined}
+                    favorites={favorites}
+                    onToggleFavorite={toggleFavorite}
+                    onCreatePriceAlert={handleCreatePriceAlert}
+                    hasAlertForPropertyId={hasAlertForPropertyId}
+                    onPropertyView={handlePropertyView}
+                  />
                 </div>
               </div>
             </Suspense>
