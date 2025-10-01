@@ -116,7 +116,64 @@ namespace realestate_ia_site.Server.Controllers
         }
 
         /// <summary>
-        /// Obter histórico de visualizações do usuário
+        /// Ocultar item específico do histórico de visualizações (soft delete)
+        /// </summary>
+        [HttpPatch("{historyId}/remove")]
+        [ProducesResponseType(typeof(RemoveFromHistoryResponse), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public async Task<ActionResult<RemoveFromHistoryResponse>> HideFromHistory([FromRoute] string historyId)
+        {
+            var userId = GetCurrentUserId();
+            if (string.IsNullOrEmpty(userId))
+                return Unauthorized(new { message = "Usuário não autenticado" });
+
+            if (string.IsNullOrEmpty(historyId))
+                return BadRequest(new { message = "HistoryId é obrigatório" });
+
+            _logger.LogInformation("Hiding view history item {HistoryId} for user {UserId}", 
+                historyId, userId);
+
+            try
+            {
+                // Buscar o item do histórico
+                var historyItem = await _context.PropertyViewHistories
+                    .FirstOrDefaultAsync(h => h.Id == historyId && h.UserId == userId);
+
+                if (historyItem == null)
+                {
+                    _logger.LogWarning("View history item {HistoryId} not found for user {UserId}", 
+                        historyId, userId);
+                    return NotFound(new { message = "Item do histórico não encontrado" });
+                }
+
+                // Marcar como oculto ao invés de eliminar
+                historyItem.IsHidden = true;
+                historyItem.HiddenAt = DateTime.UtcNow;
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogInformation("Successfully hid view history item {HistoryId} for user {UserId}", 
+                    historyId, userId);
+
+                return Ok(new RemoveFromHistoryResponse
+                {
+                    Success = true,
+                    Message = "Item removido do histórico com sucesso"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error hiding view history item {HistoryId} for user {UserId}", 
+                    historyId, userId);
+                return StatusCode(500, new { message = "Erro interno do servidor" });
+            }
+        }
+
+        /// <summary>
+        /// Obter histórico de visualizações do usuário (excluindo itens ocultos)
         /// </summary>
         [HttpGet]
         [ProducesResponseType(typeof(ViewHistoryResponse), StatusCodes.Status200OK)]
@@ -134,7 +191,7 @@ namespace realestate_ia_site.Server.Controllers
             {
                 var query = _context.PropertyViewHistories
                     .Include(h => h.Property)
-                    .Where(h => h.UserId == userId)
+                    .Where(h => h.UserId == userId && !h.IsHidden) // Excluir itens ocultos
                     .OrderByDescending(h => h.ViewedAt);
 
                 if (limit.HasValue && limit.Value > 0)
@@ -155,10 +212,10 @@ namespace realestate_ia_site.Server.Controllers
                     })
                     .ToListAsync();
 
-                // Calcular totalViews diretamente da BD já que não enviamos ViewCount no DTO
+                // Calcular totalViews apenas dos itens não ocultos
                 var totalViews = await query.SumAsync(h => h.ViewCount);
 
-                _logger.LogInformation("Found {Count} view history items for user {UserId}", history.Count, userId);
+                _logger.LogInformation("Found {Count} view history items for user {UserId} (excluding hidden)", history.Count, userId);
 
                 return Ok(new ViewHistoryResponse
                 {

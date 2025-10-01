@@ -18,6 +18,13 @@ namespace realestate_ia_site.Server.Application.DTOs.ViewHistory
         public int ViewCount { get; set; }
     }
 
+    // Response para remover/ocultar do histórico
+    public class RemoveFromHistoryResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+    }
+
     // Item do histórico de visualizações - SIMPLIFICADO
     public class ViewHistoryItemDto
     {

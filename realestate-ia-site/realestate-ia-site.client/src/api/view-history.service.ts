@@ -113,23 +113,23 @@ export async function trackPropertyView(property: Property): Promise<TrackViewRe
 }
 
 /**
- * Remover item do histórico (apenas frontend)
+ * Ocultar item do histórico (soft delete - marca como oculto na BD)
  */
 export async function removeFromViewHistory(historyId: string): Promise<{ success: boolean; message: string }> {
-  viewHistoryLogger.info(`Removendo item do histórico: ${historyId}`);
+  viewHistoryLogger.info(`Ocultando item do histórico: ${historyId}`);
 
   try {
-    // Remove apenas do cache local
+    // Chamar API para marcar como oculto
+    const response = await apiClient.patch<{ success: boolean; message: string }>(`/api/view-history/${historyId}/remove`);
+    
+    // Remover também do cache local para resposta imediata
     viewHistoryCache.removeFromCache(historyId);
     
-    viewHistoryLogger.info('Item removido do histórico');
-    return {
-      success: true,
-      message: 'Item removido do histórico'
-    };
+    viewHistoryLogger.info('Item ocultado do histórico');
+    return response;
   } catch (error) {
     const err = error as Error;
-    viewHistoryLogger.error(`Erro ao remover item ${historyId}`, err);
+    viewHistoryLogger.error(`Erro ao ocultar item ${historyId}`, err);
     throw error;
   }
 }

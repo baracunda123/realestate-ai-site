@@ -125,7 +125,7 @@ export function PersonalArea({
     }
   };
 
-  // Handler para remover item do histórico (apenas frontend)
+  // Handler para remover item do histórico
   const handleRemoveFromHistory = async (historyId: string) => {
     try {
       await removeFromViewHistory(historyId);

@@ -26,6 +26,12 @@ namespace realestate_ia_site.Server.Domain.Entities
         [Column("view_count")]
         public int ViewCount { get; set; } = 1;
 
+        [Column("is_hidden")]
+        public bool IsHidden { get; set; } = false;
+
+        [Column("hidden_at")]
+        public DateTime? HiddenAt { get; set; }
+
         // Navigation properties
         public virtual User User { get; set; } = null!;
         public virtual Property Property { get; set; } = null!;
