@@ -90,10 +90,8 @@ export interface PropertyAlertNotification {
 // Definições de tipos específicos para histórico de visualizações - SIMPLIFICADO
 export interface ViewHistoryItem {
   id: string;
-  propertyId: string;
-  propertyTitle: string;
   viewedAt: string;
-  viewCount: number;
+  property: Property; // Propriedade completa como nos favoritos
 }
 
 // UserLoginSession alinhado com BD Entity

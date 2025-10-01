@@ -30,7 +30,9 @@ import {
   deleteSavedSearch as deleteSavedSearchService
 } from '../api/saved-searches.service';
 import { 
-  getViewHistory as getViewHistoryService
+  getViewHistory as getViewHistoryService,
+  trackPropertyView,
+  removeFromViewHistory
 } from '../api/view-history.service';
 import { useNotifications } from '../hooks/useNotifications';
 
@@ -87,12 +89,13 @@ export function PersonalArea({
     loadData();
   }, []);
 
-  // Carregar histórico quando a aba for ativada
+  // Carregar histórico quando a aba for ativada OU quando houver mudança
   useEffect(() => {
-    if (activeTab === 'history' && viewHistory.length === 0 && !isLoadingHistory) {
+    if (activeTab === 'history') {
+      // Sempre carregar quando entrar na aba de histórico
       loadViewHistory();
     }
-  }, [activeTab, viewHistory.length, isLoadingHistory]);
+  }, [activeTab]);
 
   const loadViewHistory = async () => {
     setIsLoadingHistory(true);
@@ -108,10 +111,32 @@ export function PersonalArea({
   };
 
   // Handler para refrescar histórico após nova visualização
-  const handlePropertyView = async () => {
-    // Refresh history if we're on the history tab
-    if (activeTab === 'history') {
-      await loadViewHistory();
+  const handlePropertyView = async (property: Property) => {
+    try {
+      // Track the view
+      await trackPropertyView(property);
+      
+      // Refresh history IMEDIATAMENTE se estamos na aba de histórico
+      if (activeTab === 'history') {
+        await loadViewHistory();
+      }
+    } catch (error) {
+      console.error('Failed to track property view:', error);
+    }
+  };
+
+  // Handler para remover item do histórico (apenas frontend)
+  const handleRemoveFromHistory = async (historyId: string) => {
+    try {
+      await removeFromViewHistory(historyId);
+      
+      // Atualizar lista local imediatamente
+      setViewHistory(prev => prev.filter(item => item.id !== historyId));
+      
+      toast.success('Item removido do histórico');
+    } catch (error) {
+      console.error('Failed to remove from history:', error);
+      toast.error('Erro ao remover item do histórico');
     }
   };
 
@@ -283,9 +308,14 @@ export function PersonalArea({
           <PersonalAreaHistory
             user={user}
             viewHistory={viewHistory}
-            onGoToHome={() => onNavigateToHome?.()}
+            onPropertyView={handlePropertyView}
+            onToggleFavorite={onToggleFavorite}
+            onCreatePriceAlert={onCreatePriceAlert}
+            hasAlertForPropertyId={hasAlertForPropertyId}
+            favorites={favorites}
             isLoading={isLoadingHistory}
             onRefresh={loadViewHistory}
+            onRemoveFromHistory={handleRemoveFromHistory}
           />
         </TabsContent>
 
