@@ -3,12 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../ui/alert-dialog';
-import { User, Mail, Phone, Shield, Edit, Save, X } from 'lucide-react';
+import { User, Mail, Edit, Save, X } from 'lucide-react';
 import type { User as UserType } from '../../types/PersonalArea';
 import { formatDate } from '../../utils/PersonalArea';
 import { toast } from 'sonner';
+import AvatarUpload from './AvatarUpload';
+import { updateProfile } from '../../api/auth.service';
 
 interface PersonalAreaSettingsProps {
   user: UserType;
@@ -23,28 +24,53 @@ export function PersonalAreaSettings({
 }: PersonalAreaSettingsProps) {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileData, setProfileData] = useState({
-    name: user.name || user.fullName || user.email,
-    email: user.email,
-    phone: user.phone
+    name: user.name || user.fullName || user.email
   });
 
-  const handleSaveProfile = () => {
-    if (onUpdateProfile) {
-      onUpdateProfile(profileData);
+  const handleSaveProfile = async () => {
+    try {
+      // Atualizar perfil via API
+      await updateProfile({
+        fullName: profileData.name
+      });
+
+      if (onUpdateProfile) {
+        onUpdateProfile({
+          ...user,
+          fullName: profileData.name,
+          name: profileData.name
+        });
+      }
+      
+      setIsEditingProfile(false);
+      toast.success('Perfil atualizado com sucesso!', {
+        description: 'As suas informações foram guardadas.',
+      });
+    } catch (error: unknown) {
+      console.error('Erro ao atualizar perfil:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro inesperado';
+      toast.error('Erro ao atualizar perfil', {
+        description: errorMessage,
+      });
     }
-    setIsEditingProfile(false);
-    toast.success('Perfil atualizado com sucesso!', {
-      description: 'As suas informações foram guardadas.',
-    });
   };
 
   const handleCancelEdit = () => {
     setProfileData({
-      name: user.name || user.fullName || user.email,
-      email: user.email,
-      phone: user.phone
+      name: user.name || user.fullName || user.email
     });
     setIsEditingProfile(false);
+  };
+
+  const handleAvatarUpdate = async (avatarUrl: string) => {
+    // Atualizar o estado local do usuário
+    if (onUpdateProfile) {
+      onUpdateProfile({
+        ...user,
+        avatarUrl,
+        avatar: avatarUrl
+      });
+    }
   };
 
   return (
@@ -92,20 +118,40 @@ export function PersonalAreaSettings({
           </div>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="flex items-center space-x-4">
-            <Avatar className="h-20 w-20 border-2 border-pale-clay-deep">
-              <AvatarImage src={user.avatar} alt={user.name || user.fullName || user.email} />
-              <AvatarFallback className="bg-pale-clay-light text-deep-mocha text-xl">
-                {user.name || user.fullName || user.email.split(' ').map(n => n[0]).join('')}
-              </AvatarFallback>
-            </Avatar>
-            <div>
+          <div className="flex items-center space-x-6">
+            {/* Avatar com Upload */}
+            <div className="flex flex-col items-center space-y-3">
+              <AvatarUpload
+                user={user}
+                onAvatarUpdate={handleAvatarUpdate}
+                size="xl"
+                showEditButton={true}
+              />
+              <div className="text-center max-w-xs">
+                <p className="text-xs text-muted-foreground">
+                  Clique na imagem ou arraste um ficheiro
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Formatos: JPG, PNG, GIF, WebP (máx. 5MB)
+                </p>
+              </div>
+            </div>
+
+            {/* Informações do Usuário */}
+            <div className="flex-1 min-w-0">
               <div className="flex items-center space-x-2 mb-2">
-                <h2 className="text-xl font-medium text-foreground">{user.name || user.fullName || user.email}</h2>
+                <h2 className="text-xl font-medium text-foreground truncate">
+                  {user.name || user.fullName || user.email}
+                </h2>
               </div>
               <p className="text-sm text-muted-foreground">
                 Membro desde {formatDate(user.createdAt)}
               </p>
+              {user.isEmailVerified && (
+                <p className="text-sm text-success-strong mt-1">
+                  ✓ Email verificado
+                </p>
+              )}
             </div>
           </div>
 
@@ -129,82 +175,17 @@ export function PersonalAreaSettings({
 
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
-              {isEditingProfile ? (
-                <Input
-                  id="email"
-                  type="email"
-                  value={profileData.email}
-                  onChange={(e) => setProfileData({ ...profileData, email: e.target.value })}
-                  className="border-pale-clay-deep focus:border-burnt-peach"
-                />
-              ) : (
-                <div className="flex items-center space-x-2 p-2 bg-pale-clay-light rounded-lg border border-pale-clay-deep">
-                  <Mail className="h-4 w-4 text-cocoa-taupe" />
-                  <span className="text-deep-mocha">{user.email}</span>
-                </div>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="phone">Telemóvel</Label>
-              {isEditingProfile ? (
-                <Input
-                  id="phone"
-                  value={profileData.phone}
-                  onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                  className="border-pale-clay-deep focus:border-burnt-peach"
-                />
-              ) : (
-                <div className="flex items-center space-x-2 p-2 bg-pale-clay-light rounded-lg border border-pale-clay-deep">
-                  <Phone className="h-4 w-4 text-cocoa-taupe" />
-                  <span className="text-deep-mocha">{user.phone}</span>
-                </div>
-              )}
+              <div className="flex items-center space-x-2 p-2 bg-pale-clay-light rounded-lg border border-pale-clay-deep">
+                <Mail className="h-4 w-4 text-cocoa-taupe" />
+                <span className="text-deep-mocha">{user.email}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                O email não pode ser alterado
+              </p>
             </div>
           </div>
         </CardContent>
-      </Card>
-
-      {/* Account Security */}
-      <Card className="border border-pale-clay-deep bg-pure-white shadow-clay-deep">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2">
-            <Shield className="h-5 w-5 text-burnt-peach-dark" />
-            <span className="text-deep-mocha">Segurança da Conta</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-pale-clay-light rounded-lg border border-pale-clay-deep">
-            <div>
-              <h4 className="font-medium text-foreground">Palavra-passe</h4>
-              <p className="text-sm text-muted-foreground">
-                Última alteração há 30 dias
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              className="border-pale-clay-deep hover:bg-pale-clay-light"
-            >
-              Alterar Palavra-passe
-            </Button>
-          </div>
-
-          <div className="flex items-center justify-between p-4 bg-pale-clay-light rounded-lg border border-pale-clay-deep">
-            <div>
-              <h4 className="font-medium text-foreground">Autenticação de Dois Fatores</h4>
-              <p className="text-sm text-muted-foreground">
-                Adicione uma camada extra de segurança
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              className="border-pale-clay-deep hover:bg-pale-clay-light"
-            >
-              Configurar 2FA
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      </Card>    
 
       {/* Danger Zone */}
       <Card className="border border-error-gentle bg-error-soft shadow-clay-deep">

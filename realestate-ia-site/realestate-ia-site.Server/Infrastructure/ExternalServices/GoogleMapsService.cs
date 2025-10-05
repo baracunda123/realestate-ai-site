@@ -26,7 +26,7 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
                 return new ParsedLocation { City = string.Empty, State = string.Empty, County = string.Empty, CivilParish = string.Empty };
             }
 
-            var cacheKey = $"{locationText}_{countryCode}";
+            var cacheKey = $"location_{locationText}_{countryCode}";
             if (_cache.TryGetValue(cacheKey, out ParsedLocation? cachedResult) && cachedResult != null)
             {
                 _logger.LogDebug("Localização encontrada no cache: {Location}", locationText);
@@ -121,34 +121,32 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
             foreach (var component in result.AddressComponents)
             {
                 if (component.Types == null) continue;
-                Console.WriteLine($"Processing component: {component.LongName} with types: {string.Join(", ", component.Types)}");
-
 
                 // Procurar por distrito/estado - administrative_area_level_1
                 if (component.Types.Contains("administrative_area_level_1"))
                 {
                     state = component.LongName ?? string.Empty;
-                    _logger.LogInformation("Estado/Distrito encontrado: {State}", state);
+                    _logger.LogDebug("Estado/Distrito encontrado: {State}", state);
                 }
 
                 // Procurar por concelho/county - administrative_area_level_2
                 if (component.Types.Contains("administrative_area_level_2"))
                 {
                     county = component.LongName ?? string.Empty;
-                    _logger.LogInformation("Concelho/County encontrado: {County}", county);
+                    _logger.LogDebug("Concelho/County encontrado: {County}", county);
                 }
 
                 // Procurar por freguesia - múltiplas estratégias
                 if (component.Types.Contains("administrative_area_level_3"))
                 {
                     civilParish = component.LongName ?? string.Empty;
-                    _logger.LogInformation("Freguesia (admin_level_3) encontrada: {CivilParish}", civilParish);
+                    _logger.LogDebug("Freguesia (admin_level_3) encontrada: {CivilParish}", civilParish);
                 }
                 // Procurar por cidade - locality tem prioridade
                 if (component.Types.Contains("locality"))
                 {
                     city = component.LongName ?? string.Empty;
-                    _logger.LogInformation("Cidade (locality) encontrada: {City}", city);
+                    _logger.LogDebug("Cidade (locality) encontrada: {City}", city);
                 }
             }
 

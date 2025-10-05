@@ -1,0 +1,2 @@
+# This file ensures the uploads/avatars directory is preserved in git
+# Avatar images uploaded by users will be stored here

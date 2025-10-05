@@ -4,6 +4,8 @@ import { Badge } from './ui/badge';
 import { Button } from './ui/button';
 import { Heart, MapPin, Bed, Bath, Square, Calendar, Bell } from 'lucide-react';
 import { type Property } from '../types/property';
+import { trackPropertyView } from '../api/view-history.service';
+import { logger } from '../utils/logger';
 
 interface PropertyCardProps {
   property: Property;
@@ -11,6 +13,7 @@ interface PropertyCardProps {
   onToggleFavorite?: (property: Property) => void;
   onCreatePriceAlert?: (property: Property) => void;
   hasPriceAlert?: boolean;
+  onPropertyView?: (property: Property) => void;
 }
 
 function PropertyCardComponent({ 
@@ -18,7 +21,8 @@ function PropertyCardComponent({
   isFavorite = false, 
   onToggleFavorite,
   onCreatePriceAlert,
-  hasPriceAlert = false
+  hasPriceAlert = false,
+  onPropertyView
 }: PropertyCardProps) {
   // Memoized formatters
   const formatPrice = useCallback((price: number) => {
@@ -79,6 +83,30 @@ function PropertyCardComponent({
     e.stopPropagation();
     if (onCreatePriceAlert) onCreatePriceAlert(property);
   }, [onCreatePriceAlert, property]);
+
+  const handleViewMoreClick = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    try {
+      // 2. Callback para UI se necessário
+      if (onPropertyView) {
+        onPropertyView(property);
+      }
+      
+      // 1. HÍBRIDO: Cache otimista + Sync servidor (uma só chamada)
+      trackPropertyView(property).catch(() => 
+        logger.warn('Falha ao registrar visualização', 'PROPERTY_CARD')
+      );
+      
+    } catch (error) {
+      logger.warn('Falha ao registrar visualização', 'PROPERTY_CARD');
+    }
+    
+    // 3. Abrir link
+    if (property.link) {
+      window.open(property.link, '_blank', 'noopener,noreferrer');
+    }
+  }, [property, onPropertyView]);
 
   // Safe calculations with null checks
   const pricePerSqm = property.price && property.area ? Math.round(property.price / property.area) : 0;
@@ -203,12 +231,7 @@ function PropertyCardComponent({
                   variant="outline"
                   size="sm"
                   className="btn-ver-mais h-6 text-xs px-2 py-0 border-pale-clay-deep text-warm-taupe transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-burnt-peach/20"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (property.link) {
-                      window.open(property.link, '_blank', 'noopener,noreferrer');
-                    }
-                  }}
+                  onClick={handleViewMoreClick}
                 >
                   Ver mais
                 </Button>

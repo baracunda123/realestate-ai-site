@@ -7,6 +7,7 @@ import {
   markAllNotificationsAsRead
 } from '../api/alert-notifications.service';
 import { useSignalR } from './useSignalR';
+import { logger } from '../utils/logger';
 
 interface UseNotificationsReturn {
   notifications: PropertyAlertNotification[];
@@ -53,7 +54,7 @@ export function useNotifications(): UseNotificationsReturn {
         setNotifications(notificationsList);
       }
     } catch (error) {
-      console.error('Erro ao carregar notificações:', error);
+      logger.error('Erro ao carregar notificações', 'NOTIFICATIONS', error as Error);
       if (mountedRef.current) {
         setNotifications([]);
       }
@@ -86,7 +87,7 @@ export function useNotifications(): UseNotificationsReturn {
         )
       );
     } catch (error) {
-      console.error('Erro ao marcar como lida:', error);
+      logger.error('Erro ao marcar como lida', 'NOTIFICATIONS', error as Error);
       toast.error('Erro ao marcar notificação como lida');
     }
   }, []);
@@ -105,7 +106,7 @@ export function useNotifications(): UseNotificationsReturn {
       
       toast.success('Todas as notificações marcadas como lidas');
     } catch (error) {
-      console.error('Erro ao marcar todas como lidas:', error);
+      logger.error('Erro ao marcar todas como lidas', 'NOTIFICATIONS', error as Error);
       toast.error('Erro ao marcar todas as notificações como lidas');
     }
   }, []);
@@ -170,7 +171,7 @@ export function useUnreadNotificationsCount(): {
           setIsLoading(false);
         }
       } catch (error) {
-        console.error('Erro ao carregar contagem de notificações:', error);
+        logger.error('Erro ao carregar contagem de notificações', 'NOTIFICATIONS', error as Error);
         if (mountedRef.current) {
           setUnreadCount(0);
           setIsLoading(false);

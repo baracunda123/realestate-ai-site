@@ -10,6 +10,7 @@ import { getCurrentUser, logout, authUtils } from './api/auth.service';
 import { createSafeDate } from './utils/PersonalArea';
 import { logger } from './utils/logger';
 import type { UserProfile } from './api/client';
+import type { User } from './types/PersonalArea';
 import { getFavoriteProperties, addToFavorites, removeFromFavorites } from './api/favorites.service';
 import { usePriceAlerts } from './hooks/usePriceAlerts';
 import { useSignalR } from './hooks/useSignalR';
@@ -17,7 +18,6 @@ import { useSignalR } from './hooks/useSignalR';
 // Lazy load components for better performance
 const SearchFilters = lazy(() => import('./components/SearchFilters').then(m => ({ default: m.SearchFilters })));
 const PropertyGrid = lazy(() => import('./components/PropertyGrid').then(m => ({ default: m.PropertyGrid })));
-const MapView = lazy(() => import('./components/MapView').then(m => ({ default: m.MapView })));
 const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
 const WelcomeScreen = lazy(() => import('./components/WelcomeScreen').then(m => ({ default: m.WelcomeScreen })));
 
@@ -30,7 +30,6 @@ const LoadingSpinner = () => (
 
 // View types
 type ViewType = 'home' | 'personal';
-type ViewMode = 'grid' | 'map';
 type AuthTab = 'signin' | 'signup';
 
 // Extended user interface para uso interno com BD UserProfile
@@ -49,7 +48,6 @@ export default function App() {
   // Search and filter state - usando novos tipos
   const [searchFilters, setSearchFilters] = useState<SearchFiltersType>(DEFAULT_SEARCH_FILTERS);
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<ViewMode>('grid');
   
   // Navigation state
   const [currentView, setCurrentView] = useState<ViewType>('home');
@@ -372,6 +370,13 @@ export default function App() {
     }
   }, [user, hasAlertForPropertyId, removeAlertForProperty, createAlertForProperty, alerts, signalRConnected, connectSignalR, disconnectSignalR]);
 
+  // Handler para visualização de propriedades
+  const handlePropertyView = useCallback((property: Property) => {
+    // This callback will be used to refresh view history if needed
+    // For now, it's just a placeholder since the tracking happens in PropertyCard
+    logger.info(`Property viewed: ${property.title}`, 'APP');
+  }, []);
+
   // Search handlers - otimizados
   const handleExampleSearch = useCallback((query: string) => {
     if (!user) {
@@ -519,6 +524,43 @@ export default function App() {
     updatedAt: extendedUser.updatedAt ? createSafeDate(extendedUser.updatedAt) : undefined
   }), []);
 
+  // Handler para atualizar perfil do usuário (incluindo avatar)
+  const handleUpdateProfile = useCallback(async (updatedData: Partial<User>) => {
+    if (!user) return;
+    
+    try {
+      // Convert User type to ExtendedUserProfile type for local state
+      const extendedUpdateData: Partial<ExtendedUserProfile> = {
+        ...updatedData,
+        name: updatedData.name || updatedData.fullName,
+        phone: updatedData.phone || updatedData.phoneNumber,
+        avatar: updatedData.avatar || updatedData.avatarUrl,
+        // Convert Date to string if createdAt is provided
+        createdAt: updatedData.createdAt ? updatedData.createdAt.toISOString() : undefined,
+        updatedAt: updatedData.updatedAt ? updatedData.updatedAt.toISOString() : undefined
+      };
+      
+      // Update local state immediately for better UX
+      const updatedUser = { ...user, ...extendedUpdateData };
+      setUser(updatedUser);
+      
+      // If avatar was updated, also update the auth service storage
+      if (updatedData.avatarUrl || updatedData.avatar) {
+        // Update the stored user data with new avatar
+        const { updateProfile } = await import('./api/auth.service');
+        await updateProfile({
+          avatarUrl: updatedData.avatarUrl || updatedData.avatar,
+          fullName: updatedData.fullName || updatedData.name
+        });
+      }
+      
+      logger.info('Perfil atualizado com sucesso', 'APP');
+    } catch (error) {
+      logger.error('Erro ao atualizar perfil', 'APP', error as Error);
+      toast.error('Erro ao atualizar perfil');
+    }
+  }, [user]);
+
   // Show loading spinner during initialization
   if (isInitializing) {
     return (
@@ -535,8 +577,6 @@ export default function App() {
     <div className="min-h-screen bg-background flex flex-col">
       <Header
         searchQuery={searchQuery}
-        viewMode={viewMode}
-        setViewMode={setViewMode}
         user={user}
         onOpenAuth={openAuthModal}
         onLogout={handleLogout}
@@ -563,6 +603,7 @@ export default function App() {
             alerts={alerts}
             onDeleteAlert={handleDeleteAlert}
             onUpdateAlert={handleUpdateAlert}
+            onUpdateProfile={handleUpdateProfile}
           />
         ) : showWelcomeScreen ? (
           <Suspense fallback={<LoadingSpinner />}>
@@ -574,7 +615,7 @@ export default function App() {
           </Suspense>
         ) : (
           user && (
-            <Suspense fallback={<LoadingSpinner />}>
+            <Suspense fallback={< LoadingSpinner />}>
               <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 <div className="lg:col-span-1 space-y-6">
                   <SearchFilters
@@ -583,19 +624,16 @@ export default function App() {
                   />
                 </div>
                 <div className="lg:col-span-3">
-                  {viewMode === 'grid' ? (
-                    <PropertyGrid
-                      filters={searchFilters}
-                      searchQuery={searchQuery}
-                      serverResults={searchResults || undefined}
-                      favorites={favorites}
-                      onToggleFavorite={toggleFavorite}
-                      onCreatePriceAlert={handleCreatePriceAlert}
-                      hasAlertForPropertyId={hasAlertForPropertyId}
-                    />
-                  ) : (
-                    <MapView />
-                  )}
+                  <PropertyGrid
+                    filters={searchFilters}
+                    searchQuery={searchQuery}
+                    serverResults={searchResults || undefined}
+                    favorites={favorites}
+                    onToggleFavorite={toggleFavorite}
+                    onCreatePriceAlert={handleCreatePriceAlert}
+                    hasAlertForPropertyId={hasAlertForPropertyId}
+                    onPropertyView={handlePropertyView}
+                  />
                 </div>
               </div>
             </Suspense>

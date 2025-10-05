@@ -87,19 +87,11 @@ export interface PropertyAlertNotification {
   formattedSavings?: string;
 }
 
-// ViewHistory - estrutura para histórico de visualizações
+// Definições de tipos específicos para histórico de visualizações - SIMPLIFICADO
 export interface ViewHistoryItem {
   id: string;
-  userId?: string;
-  propertyId: string;
-  propertyTitle: string;
-  location: string;
-  price: number;
-  viewedAt: Date;
-  viewCount: number;
-  propertyType?: string;
-  bedrooms?: number;
-  bathrooms?: number;
+  viewedAt: string;
+  property: Property; // Propriedade completa como nos favoritos
 }
 
 // UserLoginSession alinhado com BD Entity

@@ -17,6 +17,13 @@ namespace realestate_ia_site.Server.Controllers
         public string Email { get; set; } = string.Empty;
     }
 
+    public class UpdateProfileRequest
+    {
+        public string? FullName { get; set; }
+        public string? PhoneNumber { get; set; }
+        public string? AvatarUrl { get; set; }
+    }
+
     [ApiController]
     [Route("api/[controller]")]
     [EnableRateLimiting("AuthPolicy")]
@@ -28,6 +35,7 @@ namespace realestate_ia_site.Server.Controllers
         private readonly SecurityAuditService _auditService;
         private readonly IConfiguration _configuration;
         private readonly ILogger<AuthController> _logger;
+        private readonly IWebHostEnvironment _environment;
 
         public AuthController(
             UserManager<User> userManager,
@@ -35,7 +43,8 @@ namespace realestate_ia_site.Server.Controllers
             GoogleAuthService googleAuthService,
             SecurityAuditService auditService,
             IConfiguration configuration,
-            ILogger<AuthController> logger)
+            ILogger<AuthController> logger,
+            IWebHostEnvironment environment)
         {
             _userManager = userManager;
             _authService = authService;
@@ -43,6 +52,7 @@ namespace realestate_ia_site.Server.Controllers
             _auditService = auditService;
             _configuration = configuration;
             _logger = logger;
+            _environment = environment;
         }
 
         private void SetRefreshCookie(TokenResponse tokens)
@@ -328,6 +338,169 @@ namespace realestate_ia_site.Server.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting user profile");
+                return StatusCode(500, new { message = "Erro interno do servidor" });
+            }
+        }
+
+        [HttpPost("upload-avatar")]
+        [Authorize]
+        public async Task<IActionResult> UploadAvatar(IFormFile file)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _auditService.LogInvalidTokenAccess("upload-avatar", "Missing user ID in token");
+                    return NotFound(new { message = "Usuário não encontrado" });
+                }
+
+                if (file == null || file.Length == 0)
+                {
+                    return BadRequest(new { success = false, error = "Nenhum arquivo enviado" });
+                }
+
+                // Validar tipo de arquivo
+                var allowedTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp" };
+                if (!allowedTypes.Contains(file.ContentType.ToLower()))
+                {
+                    return BadRequest(new { success = false, error = "Tipo de arquivo não suportado. Use JPG, PNG, GIF ou WebP." });
+                }
+
+                // Validar tamanho (máximo 5MB)
+                const long maxFileSize = 5 * 1024 * 1024; // 5MB
+                if (file.Length > maxFileSize)
+                {
+                    return BadRequest(new { success = false, error = "A imagem deve ter no máximo 5MB" });
+                }
+
+                // Criar diretório se não existir
+                var uploadsDir = Path.Combine(_environment.WebRootPath, "uploads", "avatars");
+                if (!Directory.Exists(uploadsDir))
+                {
+                    Directory.CreateDirectory(uploadsDir);
+                }
+
+                // Gerar nome único para o arquivo
+                var fileExtension = Path.GetExtension(file.FileName);
+                var fileName = $"{userId}_{Guid.NewGuid()}{fileExtension}";
+                var filePath = Path.Combine(uploadsDir, fileName);
+
+                // Salvar arquivo
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                // Construir URL do avatar
+                var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                var avatarUrl = $"{baseUrl}/uploads/avatars/{fileName}";
+
+                // Atualizar usuário
+                var user = await _userManager.FindByIdAsync(userId);
+                if (user != null)
+                {
+                    // Deletar avatar anterior se existir
+                    if (!string.IsNullOrEmpty(user.AvatarUrl) && user.AvatarUrl.Contains("/uploads/avatars/"))
+                    {
+                        var oldFileName = Path.GetFileName(user.AvatarUrl);
+                        var oldFilePath = Path.Combine(uploadsDir, oldFileName);
+                        if (System.IO.File.Exists(oldFilePath))
+                        {
+                            try
+                            {
+                                System.IO.File.Delete(oldFilePath);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, "Erro ao deletar avatar anterior: {FilePath}", oldFilePath);
+                            }
+                        }
+                    }
+
+                    user.AvatarUrl = avatarUrl;
+                    user.UpdatedAt = DateTime.UtcNow;
+                    await _userManager.UpdateAsync(user);
+
+                    _auditService.LogSecurityEvent(SecurityEventType.LoginSuccess, "Avatar updated successfully", new { UserId = userId, AvatarUrl = avatarUrl });
+                    _logger.LogInformation("Avatar atualizado para usuário {UserId}: {AvatarUrl}", userId, avatarUrl);
+                }
+
+                return Ok(new { success = true, url = avatarUrl, message = "Avatar atualizado com sucesso" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro no upload do avatar para usuário {UserId}", GetCurrentUserId());
+                return StatusCode(500, new { success = false, error = "Erro interno do servidor" });
+            }
+        }
+
+        [HttpPut("profile")]
+        [Authorize]
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _auditService.LogInvalidTokenAccess("update-profile", "Missing user ID in token");
+                    return NotFound(new { message = "Usuário não encontrado" });
+                }
+
+                var user = await _userManager.FindByIdAsync(userId);
+                if (user == null)
+                {
+                    _auditService.LogSuspiciousActivity("Profile update for non-existent user", $"UserId: {userId}");
+                    return NotFound(new { message = "Usuário não encontrado" });
+                }
+
+                // Atualizar campos
+                if (!string.IsNullOrWhiteSpace(request.FullName))
+                {
+                    user.FullName = request.FullName.Trim();
+                }
+
+                if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
+                {
+                    user.PhoneNumber = request.PhoneNumber.Trim();
+                }
+
+                if (!string.IsNullOrWhiteSpace(request.AvatarUrl))
+                {
+                    user.AvatarUrl = request.AvatarUrl;
+                }
+
+                user.UpdatedAt = DateTime.UtcNow;
+                var result = await _userManager.UpdateAsync(user);
+
+                if (!result.Succeeded)
+                {
+                    _auditService.LogSuspiciousActivity("Failed profile update", $"UserId: {userId}, Errors: {string.Join(", ", result.Errors.Select(e => e.Code))}");
+                    return BadRequest(new { message = "Erro ao atualizar perfil", errors = result.Errors.Select(e => e.Description).ToArray() });
+                }
+
+                _auditService.LogSecurityEvent(SecurityEventType.LoginSuccess, "Profile updated successfully", new { UserId = userId });
+
+                var profile = new UserProfile
+                {
+                    Id = user.Id,
+                    Email = user.Email ?? string.Empty,
+                    FullName = user.FullName,
+                    AvatarUrl = user.AvatarUrl,
+                    IsEmailVerified = user.IsEmailVerified,
+                    Credits = user.CreditsAsInt,
+                    Subscription = user.Subscription,
+                    CreatedAt = user.CreatedAt
+                };
+
+                return Ok(profile);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating user profile");
                 return StatusCode(500, new { message = "Erro interno do servidor" });
             }
         }

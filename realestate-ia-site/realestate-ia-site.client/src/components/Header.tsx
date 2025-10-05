@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Map, Grid3X3, Home, User, MessageCircle } from 'lucide-react';
+import { Search, Home, User, MessageCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { UserProfileDropdown } from './UserProfileDropdown';
@@ -26,8 +26,6 @@ interface ConversationMessage {
 
 interface HeaderProps {
   searchQuery: string;
-  viewMode: 'grid' | 'map';
-  setViewMode: (mode: 'grid' | 'map') => void;
   user: ExtendedUserProfile | null;
   onOpenAuth: () => void;
   onLogout: () => void;
@@ -42,8 +40,6 @@ interface HeaderProps {
 
 export function Header({
   searchQuery,
-  viewMode,
-  setViewMode,
   user,
   onOpenAuth,
   onLogout,
@@ -208,39 +204,6 @@ export function Header({
     );
   };
 
-  const renderViewModeToggle = () => {
-    if (currentView !== 'home' || !user) return null;
-
-    return (
-      <div className="hidden md:flex items-center bg-muted rounded-lg p-1 border border-clay-medium">
-        <Button
-          variant={viewMode === 'grid' ? 'secondary' : 'ghost'}
-          size="sm"
-          onClick={() => setViewMode('grid')}
-          className={`h-8 w-8 p-0 ${
-            viewMode === 'grid' 
-              ? 'bg-card border border-clay-medium shadow-clay-soft' 
-              : 'hover:bg-clay-soft'
-          }`}
-        >
-          <Grid3X3 className="h-4 w-4" />
-        </Button>
-        <Button
-          variant={viewMode === 'map' ? 'secondary' : 'ghost'}
-          size="sm"
-          onClick={() => setViewMode('map')}
-          className={`h-8 w-8 p-0 ${
-            viewMode === 'map' 
-              ? 'bg-card border border-clay-medium shadow-clay-soft' 
-              : 'hover:bg-clay-soft'
-          }`}
-        >
-          <Map className="h-4 w-4" />
-        </Button>
-      </div>
-    );
-  };
-
   const renderUserSection = () => {
     if (user) {
       // Convert to expected format for UserProfileDropdown
@@ -325,10 +288,6 @@ export function Header({
 
           {/* Right Side Controls */}
           <div className="flex items-center space-x-3">
-
-            {/* View Mode Toggle */}
-            {renderViewModeToggle()}
-
             {/* User Section */}
             {renderUserSection()}
           </div>

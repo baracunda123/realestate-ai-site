@@ -31,6 +31,7 @@ namespace realestate_ia_site.Server.Data
         public DbSet<PropertyRecommendation> PropertyRecommendations { get; set; }
         public DbSet<PropertyAlertNotification> PropertyAlertNotifications { get; set; }
         public DbSet<UserSearchHistory> UserSearchHistories { get; set; }
+        public DbSet<PropertyViewHistory> PropertyViewHistories { get; set; }
         public DbSet<User> Users => Set<User>();
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -241,6 +242,26 @@ namespace realestate_ia_site.Server.Data
                       .WithMany()
                       .HasForeignKey(e => e.UserId)
                       .OnDelete(DeleteBehavior.SetNull); // Manter histórico mesmo se utilizador for eliminado
+            });
+
+            // Configurações para PropertyViewHistory (otimizado para performance)
+            builder.Entity<PropertyViewHistory>(entity =>
+            {
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.PropertyId);
+                entity.HasIndex(e => new { e.UserId, e.PropertyId }).IsUnique(); // Um registro por usuário por propriedade
+                entity.HasIndex(e => new { e.UserId, e.ViewedAt }); // Para queries por usuário ordenadas por data
+                entity.HasIndex(e => e.ViewedAt);
+
+                entity.HasOne(e => e.User)
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Property)
+                      .WithMany()
+                      .HasForeignKey(e => e.PropertyId)
+                      .OnDelete(DeleteBehavior.Cascade);
             });
         }
 

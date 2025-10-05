@@ -29,6 +29,11 @@ import {
   getSavedSearches as getSavedSearchesService,
   deleteSavedSearch as deleteSavedSearchService
 } from '../api/saved-searches.service';
+import { 
+  getViewHistory as getViewHistoryService,
+  trackPropertyView,
+  removeFromViewHistory
+} from '../api/view-history.service';
 import { useNotifications } from '../hooks/useNotifications';
 
 interface PersonalAreaProps {
@@ -43,6 +48,7 @@ interface PersonalAreaProps {
   alerts?: PropertyAlert[];
   onDeleteAlert?: (alertId: string) => Promise<void>
   onUpdateAlert?: (alertId: string, threshold: number) => Promise<void>
+  onUpdateProfile?: (profileData: Partial<User>) => void; // Add this prop
 }
 
 export function PersonalArea({ 
@@ -56,21 +62,25 @@ export function PersonalArea({
   hasAlertForPropertyId,
   alerts = [],
   onDeleteAlert,
-  onUpdateAlert
+  onUpdateAlert,
+  onUpdateProfile // Add this parameter
 }: PersonalAreaProps) {
   // UI state
   const [activeTab, setActiveTab] = useState('dashboard');
   
-  // Data state - apenas para saved searches agora
+  // Data state
   const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
+  const [viewHistory, setViewHistory] = useState<ViewHistoryItem[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   // Hook para notificações com refresh automático
   const { unreadCount } = useNotifications();
 
-  // Carregar pesquisas salvas ao montar
+  // Carregar dados ao montar
   useEffect(() => {
     const loadData = async () => {
       try {
+        // Carregar pesquisas salvas
         const searchesResp = await getSavedSearchesService();
         setSavedSearches(searchesResp.searches || []);
       } catch {
@@ -80,6 +90,57 @@ export function PersonalArea({
 
     loadData();
   }, []);
+
+  // Carregar histórico quando a aba for ativada OU quando houver mudança
+  useEffect(() => {
+    if (activeTab === 'history') {
+      // Sempre carregar quando entrar na aba de histórico
+      loadViewHistory();
+    }
+  }, [activeTab]);
+
+  const loadViewHistory = async () => {
+    setIsLoadingHistory(true);
+    try {
+      const historyResp = await getViewHistoryService();
+      setViewHistory(historyResp.viewHistory || []);
+    } catch (error) {
+      console.error('Failed to load view history:', error);
+      setViewHistory([]);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
+  // Handler para refrescar histórico após nova visualização
+  const handlePropertyView = async (property: Property) => {
+    try {
+      // Track the view
+      await trackPropertyView(property);
+      
+      // Refresh history IMEDIATAMENTE se estamos na aba de histórico
+      if (activeTab === 'history') {
+        await loadViewHistory();
+      }
+    } catch (error) {
+      console.error('Failed to track property view:', error);
+    }
+  };
+
+  // Handler para remover item do histórico
+  const handleRemoveFromHistory = async (historyId: string) => {
+    try {
+      await removeFromViewHistory(historyId);
+      
+      // Atualizar lista local imediatamente
+      setViewHistory(prev => prev.filter(item => item.id !== historyId));
+      
+      toast.success('Item removido do histórico');
+    } catch (error) {
+      console.error('Failed to remove from history:', error);
+      toast.error('Erro ao remover item do histórico');
+    }
+  };
 
   // Handler para deletar alerta - usar função passada por prop ou fallback
   const handleDeleteAlert = async (alertId: string) => {
@@ -150,9 +211,6 @@ export function PersonalArea({
       toast.error('Erro ao executar pesquisa');
     }
   };
-
-  // Sem histórico por enquanto
-  const viewHistory: ViewHistoryItem[] = [];
 
   return (
     <div className="max-w-7xl mx-auto p-6 space-y-6">
@@ -225,6 +283,7 @@ export function PersonalArea({
             onToggleFavorite={onToggleFavorite}
             onCreatePriceAlert={onCreatePriceAlert}
             hasAlertForPropertyId={hasAlertForPropertyId}
+            onPropertyView={handlePropertyView}
           />
         </TabsContent>
 
@@ -251,13 +310,21 @@ export function PersonalArea({
           <PersonalAreaHistory
             user={user}
             viewHistory={viewHistory}
-            onGoToHome={() => setActiveTab('dashboard')}
+            onPropertyView={handlePropertyView}
+            onToggleFavorite={onToggleFavorite}
+            onCreatePriceAlert={onCreatePriceAlert}
+            hasAlertForPropertyId={hasAlertForPropertyId}
+            favorites={favorites}
+            isLoading={isLoadingHistory}
+            onRefresh={loadViewHistory}
+            onRemoveFromHistory={handleRemoveFromHistory}
           />
         </TabsContent>
 
         <TabsContent value="settings">
           <PersonalAreaSettings
             user={user}
+            onUpdateProfile={onUpdateProfile}
           />
         </TabsContent>
       </Tabs>
