@@ -361,13 +361,11 @@ async function refreshAccessToken(): Promise<TokenResponse | null> {
 class ApiClient {
   private client: AxiosInstance;
 
-  constructor(baseURL: string = '') {
+  constructor(baseURL: string = import.meta.env.VITE_API_URL || '') {
     SecureTokenManager.initialize();
 
-    const apiUrl = baseURL || (typeof import.meta !== 'undefined' && import.meta.env ? import.meta.env.VITE_API_URL : '') || '';
-
     this.client = axios.create({
-      baseURL: apiUrl,
+      baseURL: baseURL,
       withCredentials: true,
       timeout: 15000, // Reduced timeout
       headers: {
