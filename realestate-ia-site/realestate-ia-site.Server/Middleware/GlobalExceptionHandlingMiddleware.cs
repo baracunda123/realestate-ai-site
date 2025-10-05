@@ -38,7 +38,23 @@ namespace realestate_ia_site.Server.Middleware
             }
             catch (Exception ex)
             {
-                await HandleExceptionAsync(context, ex);
+                // AZURE FIX: Handle cases where services might not be available during startup
+                try
+                {
+                    await HandleExceptionAsync(context, ex);
+                }
+                catch (Exception handlerEx)
+                {
+                    // If error handler fails, log to console and return basic error
+                    Console.WriteLine($"Error handler failed: {handlerEx.Message}");
+                    
+                    if (!context.Response.HasStarted)
+                    {
+                        context.Response.StatusCode = 500;
+                        context.Response.ContentType = "application/json";
+                        await context.Response.WriteAsync("{\"error\":\"Internal server error\"}");
+                    }
+                }
             }
         }
 

@@ -34,6 +34,29 @@ using realestate_ia_site.Server.Infrastructure.BackgroundServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// AZURE: Configure paths for Azure App Service
+if (builder.Environment.IsProduction())
+{
+    var contentRoot = Directory.GetCurrentDirectory();
+    var webRoot = Path.Combine(contentRoot, "wwwroot");
+    
+    builder.Configuration.SetBasePath(contentRoot);
+    
+    // Ensure wwwroot exists in production
+    if (!Directory.Exists(webRoot))
+    {
+        try
+        {
+            Directory.CreateDirectory(webRoot);
+            Console.WriteLine($"Created wwwroot directory: {webRoot}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Warning: Could not create wwwroot directory: {ex.Message}");
+        }
+    }
+}
+
 // AZURE: Enhanced logging configuration for Azure App Service
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
@@ -327,6 +350,8 @@ var app = builder.Build();
 Console.WriteLine("=== APPLICATION STARTUP ===");
 Console.WriteLine($"Environment: {app.Environment.EnvironmentName}");
 Console.WriteLine($"Machine: {Environment.MachineName}");
+Console.WriteLine($"ContentRootPath: {app.Environment.ContentRootPath}");
+Console.WriteLine($"WebRootPath: {app.Environment.WebRootPath ?? "NULL"}");
 
 try
 {
@@ -377,28 +402,51 @@ app.Use(async (context, next) =>
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
-// Configure static files for uploaded content
-app.UseStaticFiles(new StaticFileOptions
+// AZURE FIX: Configure uploads directory only if WebRootPath is available
+if (!string.IsNullOrEmpty(app.Environment.WebRootPath))
 {
-    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(
-        Path.Combine(app.Environment.WebRootPath, "uploads")),
-    RequestPath = "/uploads",
-    OnPrepareResponse = ctx =>
+    var uploadsPath = Path.Combine(app.Environment.WebRootPath, "uploads");
+    
+    // Ensure uploads directory exists
+    if (!Directory.Exists(uploadsPath))
     {
-        // Set cache headers for uploaded files
-        ctx.Context.Response.Headers.CacheControl = "public,max-age=604800"; // 7 days
-        
-        // Add security headers for images
-        if (ctx.File.Name.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
-            ctx.File.Name.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase) ||
-            ctx.File.Name.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
-            ctx.File.Name.EndsWith(".gif", StringComparison.OrdinalIgnoreCase) ||
-            ctx.File.Name.EndsWith(".webp", StringComparison.OrdinalIgnoreCase))
+        try
         {
-            ctx.Context.Response.Headers.ContentType = "image/*";
+            Directory.CreateDirectory(uploadsPath);
+            Console.WriteLine($"Created uploads directory: {uploadsPath}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Failed to create uploads directory: {ex.Message}");
         }
     }
-});
+    
+    // Configure static files for uploaded content
+    app.UseStaticFiles(new StaticFileOptions
+    {
+        FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsPath),
+        RequestPath = "/uploads",
+        OnPrepareResponse = ctx =>
+        {
+            // Set cache headers for uploaded files
+            ctx.Context.Response.Headers.CacheControl = "public,max-age=604800"; // 7 days
+            
+            // Add security headers for images
+            if (ctx.File.Name.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) ||
+                ctx.File.Name.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase) ||
+                ctx.File.Name.EndsWith(".png", StringComparison.OrdinalIgnoreCase) ||
+                ctx.File.Name.EndsWith(".gif", StringComparison.OrdinalIgnoreCase) ||
+                ctx.File.Name.EndsWith(".webp", StringComparison.OrdinalIgnoreCase))
+            {
+                ctx.Context.Response.Headers.ContentType = "image/*";
+            }
+        }
+    });
+}
+else
+{
+    Console.WriteLine("⚠️ WebRootPath is null - skipping uploads directory configuration");
+}
 
 if (app.Environment.IsDevelopment())
 {
@@ -422,6 +470,15 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// AZURE: Health check endpoint
+app.MapGet("/api/health", () => Results.Ok(new
+{
+    status = "healthy",
+    timestamp = DateTime.UtcNow,
+    environment = app.Environment.EnvironmentName,
+    version = typeof(Program).Assembly.GetName().Version?.ToString() ?? "Unknown"
+})).AllowAnonymous();
 
 // SIGNALR: Mapear hubs (DEPOIS da autenticação e autorização)
 app.MapHub<NotificationHub>("/hubs/notifications");
