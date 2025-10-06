@@ -9,7 +9,7 @@ export interface UploadResponse {
 }
 
 /**
- * Serviço para upload de imagem de perfil
+ * ServiÃ§o para upload de imagem de perfil
  */
 export class UploadService {
   /**
@@ -33,12 +33,12 @@ export class UploadService {
         };
       }
 
-      // Validar tamanho (máximo 5MB)
+      // Validar tamanho (maximo 5MB)
       const maxSize = 5 * 1024 * 1024; // 5MB
       if (file.size > maxSize) {
         return {
           success: false,
-          error: 'A imagem deve ter no máximo 5MB'
+          error: 'A imagem deve ter no maximo 5MB'
         };
       }
 
@@ -55,7 +55,7 @@ export class UploadService {
         },
       });
 
-      logger.info('Upload concluído com sucesso');
+      logger.info('Upload concluido com sucesso');
       return response;
 
     } catch (error: unknown) {
@@ -89,7 +89,7 @@ export class UploadService {
   }
 
   /**
-   * Validar dimensões da imagem
+   * Validar dimensoes da imagem
    */
   static validateImageDimensions(file: File, maxWidth: number = 1024, maxHeight: number = 1024): Promise<boolean> {
     return new Promise((resolve) => {
@@ -103,7 +103,7 @@ export class UploadService {
   }
 
   /**
-   * Redimensionar imagem se necessário
+   * Redimensionar imagem se necessario
    */
   static resizeImage(file: File, maxWidth: number = 400, maxHeight: number = 400, quality: number = 0.8): Promise<File> {
     return new Promise((resolve, reject) => {
@@ -112,7 +112,7 @@ export class UploadService {
       const img = new Image();
 
       img.onload = () => {
-        // Calcular novas dimensões mantendo aspect ratio
+        // Calcular novas dimensoes mantendo aspect ratio
         let { width, height } = img;
         
         if (width > height) {

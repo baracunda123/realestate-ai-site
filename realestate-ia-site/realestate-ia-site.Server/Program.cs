@@ -368,8 +368,9 @@ catch (Exception ex)
 // Enhanced Security headers
 app.Use(async (context, next) =>
 {
-    var enableSecurityHeaders = Environment.GetEnvironmentVariable("ENABLE_SECURITY_HEADERS") != "false";
-
+    var enableSecurityHeaders = Environment.GetEnvironmentVariable("ENABLE_SECURITY_HEADERS")?.ToLower() == "true"
+                               || builder.Configuration.GetValue<bool>("Security:EnableSecurityHeaders", true);
+    
     if (enableSecurityHeaders)
     {
         if (app.Environment.IsDevelopment())
@@ -445,7 +446,7 @@ if (!string.IsNullOrEmpty(app.Environment.WebRootPath))
 }
 else
 {
-    Console.WriteLine("⚠️ WebRootPath is null - skipping uploads directory configuration");
+    Console.WriteLine("WebRootPath is null - skipping uploads directory configuration");
 }
 
 if (app.Environment.IsDevelopment())

@@ -1,4 +1,4 @@
-// signalr.service.ts - ServiÁo para notificaÁıes em tempo real
+// signalr.service.ts - Servi√ßo para notifica√ß√µes em tempo real
 import { HubConnection, HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 import { authUtils } from './auth.service';
 import { signalr as logger } from '../utils/logger';
@@ -79,14 +79,14 @@ class SignalRService {
   }
 
   private setupConnection() {
-    // Melhor detecÁ„o da URL do servidor
+    // Melhor detec√ß√£o da URL do servidor
     const apiUrl = import.meta.env?.VITE_API_URL 
                   || (window.location.protocol === 'https:' ? 'https://localhost:7001' : 'http://localhost:5000')
                   || '';
     
     const hubUrl = `${apiUrl}/hubs/notifications`;
     
-    logger.info('Configurando conex„o');
+    logger.info('Configurando conex√£o');
     logger.debug(`API URL: ${apiUrl}`);
     logger.debug(`Hub URL: ${hubUrl}`);
 
@@ -94,23 +94,23 @@ class SignalRService {
       .withUrl(hubUrl, {
         accessTokenFactory: async () => {
           try {
-            // Importar dinamicamente o SecureTokenManager para evitar dependÍncia circular
+            // Importar dinamicamente o SecureTokenManager para evitar depend√™ncia circular
             const { SecureTokenManager } = await import('./client');
             
-            // Tentar obter token v·lido
+            // Tentar obter token v√°lido
             const token = SecureTokenManager.getAccessToken();
             if (token) {
-              logger.info('Token obtido para autenticaÁ„o');
+              logger.info('Token obtido para autentica√ß√£o');
               return token;
             }
             
-            // Se n„o tem token mas est· autenticado, pode precisar fazer refresh
+            // Se n√£o tem token mas est√° autenticado, pode precisar fazer refresh
             if (authUtils.isAuthenticated()) {
-              logger.info('Usu·rio autenticado mas sem token v·lido');
+              logger.info('Usu√°rio autenticado mas sem token v√°lido');
               return ''; // Retorna vazio, mas tenta conectar
             }
             
-            logger.info('Sem autenticaÁ„o - n„o conectando');
+            logger.info('Sem autentica√ß√£o - n√£o conectando');
             return '';
           } catch (error) {
             logger.error('Erro ao obter token', error as Error);
@@ -118,7 +118,7 @@ class SignalRService {
           }
         },
         withCredentials: true,
-        skipNegotiation: false, // Permite negociaÁ„o para melhor compatibilidade
+        skipNegotiation: false, // Permite negocia√ß√£o para melhor compatibilidade
         transport: undefined // Deixa o SignalR escolher o melhor transporte
       })
       .withAutomaticReconnect([0, 2000, 10000, 30000])
@@ -133,7 +133,7 @@ class SignalRService {
     if (!this.connection) return;
 
     this.connection.onclose((error?: Error) => {
-      logger.warn(`Conex„o fechada: ${error?.message || 'unknown'}`);
+      logger.warn(`Conex√£o fechada: ${error?.message || 'unknown'}`);
       this.notifyConnectionStateChanged(false);
       this.stopPing();
     });
@@ -154,38 +154,38 @@ class SignalRService {
   private setupNotificationHandlers() {
     if (!this.connection) return;
 
-    // Handlers para notificaÁıes de propriedades
+    // Handlers para notifica√ß√µes de propriedades
     this.connection.on('PropertyAlert', (notification: PropertyAlertNotification) => {
       logger.info(`Nova propriedade encontrada: ${JSON.stringify(notification)}`);
       this.notifyListeners('propertyAlert', notification);
     });
 
     this.connection.on('PriceChange', (notification: PriceChangeNotification) => {
-      logger.info(`MudanÁa de preÁo: ${JSON.stringify(notification)}`);
+      logger.info(`Mudan√ßa de pre√ßo: ${JSON.stringify(notification)}`);
       this.notifyListeners('priceChange', notification);
     });
 
     this.connection.on('SystemNotification', (notification: SystemNotification) => {
-      logger.info(`NotificaÁ„o do sistema: ${JSON.stringify(notification)}`);
+      logger.info(`Notifica√ß√£o do sistema: ${JSON.stringify(notification)}`);
       this.notifyListeners('systemNotification', notification);
     });
 
     this.connection.on('PropertyUpdate', (notification: PropertyUpdateNotification) => {
-      logger.info(`AtualizaÁ„o de propriedade: ${JSON.stringify(notification)}`);
+      logger.info(`Atualiza√ß√£o de propriedade: ${JSON.stringify(notification)}`);
       this.notifyListeners('propertyUpdate', notification);
     });
 
-    // Handlers especÌficos do hub existente
+    // Handlers espec√≠ficos do hub existente
     this.connection.on('Connected', (connectionInfo: { userId: string; connectionId: string; timestamp: string }) => {
-      logger.info(`ConfirmaÁ„o de conex„o do servidor: ${JSON.stringify(connectionInfo)}`);
+      logger.info(`Confirma√ß√£o de conex√£o do servidor: ${JSON.stringify(connectionInfo)}`);
     });
 
     this.connection.on('NotificationAcknowledged', (notificationId: string) => {
-      logger.info(`ConfirmaÁ„o de notificaÁ„o: ${notificationId}`);
+      logger.info(`Confirma√ß√£o de notifica√ß√£o: ${notificationId}`);
     });
 
     this.connection.on('UnreadNotificationsRequested', () => {
-      logger.info('Servidor confirmou solicitaÁ„o de n„o lidas');
+      logger.info('Servidor confirmou solicita√ß√£o de n√£o lidas');
     });
 
     this.connection.on('ConnectionInfo', (info: { 
@@ -195,10 +195,10 @@ class SignalRService {
       RemoteIpAddress?: string; 
       ConnectedAt: string; 
     }) => {
-      logger.info(`InformaÁıes de conex„o: ${JSON.stringify(info)}`);
+      logger.info(`Informa√ß√µes de conex√£o: ${JSON.stringify(info)}`);
     });
 
-    // Handlers para eventos de notificaÁıes especÌficas (usados pelo RealtimeNotificationService)
+    // Handlers para eventos de notifica√ß√µes espec√≠ficas (usados pelo RealtimeNotificationService)
     this.connection.on('NewPriceAlert', (data: { 
       Type: string; 
       Notification?: { 
@@ -213,24 +213,24 @@ class SignalRService {
       Timestamp?: string; 
       Message?: string; 
     }) => {
-      logger.info(`Novo alerta de preÁo: ${JSON.stringify(data)}`);
+      logger.info(`Novo alerta de pre√ßo: ${JSON.stringify(data)}`);
       // Converter para formato esperado pelos listeners
       const notification: PropertyAlertNotification = {
         alertId: data.Notification?.AlertId || '',
-        alertName: data.Notification?.AlertName || 'Alerta de PreÁo',
+        alertName: data.Notification?.AlertName || 'Alerta de Pre√ßo',
         propertyId: data.Notification?.PropertyId || '',
         propertyTitle: data.Notification?.PropertyTitle || '',
         propertyPrice: data.Notification?.NewPrice || 0,
         propertyLocation: data.Notification?.PropertyLocation || '',
         propertyImageUrl: data.Notification?.PropertyImageUrl || '',
         createdAt: data.Timestamp || new Date().toISOString(),
-        message: data.Message || 'Nova reduÁ„o de preÁo detectada!',
+        message: data.Message || 'Nova redu√ß√£o de pre√ßo detectada!',
         metadata: data.Notification || {}
       };
       this.notifyListeners('propertyAlert', notification);
     });
 
-    // Handlers padr„o
+    // Handlers padr√£o
     this.connection.on('Pong', (timestamp: string) => {
       logger.debug(`Pong recebido: ${timestamp}`);
     });
@@ -241,19 +241,19 @@ class SignalRService {
   }
 
   async connect(): Promise<boolean> {
-    // Verificar se est· autenticado antes de tentar conectar
+    // Verificar se est√° autenticado antes de tentar conectar
     if (!authUtils.isAuthenticated()) {
-      logger.warn('Usu·rio n„o autenticado - conex„o ignorada');
+      logger.warn('Usu√°rio n√£o autenticado - conex√£o ignorada');
       return false;
     }
 
     if (!this.connection) {
-      logger.info('Configurando nova conex„o');
+      logger.info('Configurando nova conex√£o');
       this.setupConnection();
     }
 
     if (this.connection!.state === 'Connected') {
-      logger.info('J· conectado');
+      logger.info('J√° conectado');
       return true;
     }
 
@@ -271,7 +271,7 @@ class SignalRService {
       this.notifyConnectionStateChanged(true);
       this.startPing();
       
-      // Aguardar um pouco antes de solicitar info de conex„o
+      // Aguardar um pouco antes de solicitar info de conex√£o
       setTimeout(() => {
         this.requestConnectionInfo();
       }, 1000);
@@ -283,11 +283,11 @@ class SignalRService {
       const errorMessage = error instanceof Error ? error.message : String(error);
       
       if (errorMessage.includes('404')) {
-        logger.error('Hub n„o encontrado (404) - Verifique: 1) Servidor rodando, 2) Hub mapeado, 3) URL correta');
+        logger.error('Hub n√£o encontrado (404) - Verifique: 1) Servidor rodando, 2) Hub mapeado, 3) URL correta');
       } else if (errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
-        logger.error('Erro de autenticaÁ„o (401) - Verifique: 1) Token JWT v·lido, 2) Claims de usu·rio');
+        logger.error('Erro de autentica√ß√£o (401) - Verifique: 1) Token JWT v√°lido, 2) Claims de usu√°rio');
       } else if (errorMessage.includes('negotiate')) {
-        logger.error('Erro na negociaÁ„o - Verifique: 1) CORS configurado, 2) Cookies habilitados');
+        logger.error('Erro na negocia√ß√£o - Verifique: 1) CORS configurado, 2) Cookies habilitados');
       }
       
       logger.debug(`Detalhes do erro: ${JSON.stringify({
@@ -330,16 +330,16 @@ class SignalRService {
   }
 
   private async rejoinGroups() {
-    // Grupos s„o gerenciados automaticamente pelo hub baseado no usu·rio
+    // Grupos s√£o gerenciados automaticamente pelo hub baseado no usu√°rio
     logger.info('Reconectado - grupos reestabelecidos automaticamente');
   }
 
-  // MÈtodos simplificados (usar os mÈtodos que existem no hub)
+  // M√©todos simplificados (usar os m√©todos que existem no hub)
   async requestConnectionInfo(): Promise<void> {
     if (this.connection?.state === 'Connected') {
       try {
         await this.connection.invoke('GetConnectionInfo');
-        logger.info('Info de conex„o solicitada');
+        logger.info('Info de conex√£o solicitada');
       } catch (error) {
         logger.error('Erro ao solicitar info', error as Error);
       }
@@ -350,9 +350,9 @@ class SignalRService {
     if (this.connection?.state === 'Connected') {
       try {
         await this.connection.invoke('AcknowledgeNotification', notificationId);
-        logger.info(`NotificaÁ„o confirmada: ${notificationId}`);
+        logger.info(`Notifica√ß√£o confirmada: ${notificationId}`);
       } catch (error) {
-        logger.error('Erro ao confirmar notificaÁ„o', error as Error);
+        logger.error('Erro ao confirmar notifica√ß√£o', error as Error);
       }
     }
   }
@@ -361,14 +361,14 @@ class SignalRService {
     if (this.connection?.state === 'Connected') {
       try {
         await this.connection.invoke('RequestUnreadNotifications');
-        logger.info('NotificaÁıes n„o lidas solicitadas');
+        logger.info('Notifica√ß√µes n√£o lidas solicitadas');
       } catch (error) {
-        logger.error('Erro ao solicitar n„o lidas', error as Error);
+        logger.error('Erro ao solicitar n√£o lidas', error as Error);
       }
     }
   }
 
-  // MÈtodos para listeners
+  // M√©todos para listeners
   onPropertyAlert(callback: NotificationCallback<PropertyAlertNotification>) {
     this.listeners.propertyAlert.push(callback);
     return () => this.removeListener('propertyAlert', callback);
@@ -428,7 +428,7 @@ class SignalRService {
     this.notifyListeners('connectionStateChanged', connected);
   }
 
-  // Estado da conex„o
+  // Estado da conex√£o
   get isConnected(): boolean {
     return this.connection?.state === 'Connected';
   }
@@ -437,7 +437,7 @@ class SignalRService {
     return this.connection?.state || 'Disconnected';
   }
 
-  // Utilit·rio para notificaÁıes (simplificado)
+  // Utilit√°rio para notifica√ß√µes (simplificado)
   static formatNotificationForToast(notification: SystemNotification | PropertyAlertNotification) {
     const isPropertyAlert = 'alertName' in notification;
     
@@ -455,7 +455,7 @@ class SignalRService {
   }
 }
 
-// Inst‚ncia singleton
+// Inst√¢ncia singleton
 const signalRService = new SignalRService();
 
 export default signalRService;

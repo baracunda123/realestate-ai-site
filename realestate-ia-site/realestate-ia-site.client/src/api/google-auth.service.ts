@@ -1,4 +1,4 @@
-// google-auth.service.ts - ServiÁo para autenticaÁ„o com Google
+// google-auth.service.ts - Servio para autentica√ß√£o com Google
 import { googleLogin } from './auth.service';
 import { client as logger } from '../utils/logger';
 
@@ -30,7 +30,7 @@ class GoogleAuthService {
     this.clientId = import.meta.env?.VITE_GOOGLE_CLIENT_ID || '';
     
     if (!this.clientId) {
-      logger.warn('Google Client ID n„o configurado');
+      logger.warn('Google Client ID no configurado');
     } else {
       logger.info(`Google Client ID configurado: ${this.clientId.substring(0, 20)}...`);
     }
@@ -42,7 +42,7 @@ class GoogleAuthService {
     }
     
     if (!this.clientId) {
-      logger.error('Google Client ID È obrigatÛrio');
+      logger.error('Google Client ID e obrigatorio');
       return false;
     }
 
@@ -97,12 +97,12 @@ class GoogleAuthService {
     });
   }
 
-  // MÈtodo para renderizar bot„o diretamente num container
+  // MÔøΩtodo para renderizar botÔøΩo diretamente num container
   async renderButtonIn(container: HTMLElement, onSuccess: () => void, onError: (error: string) => void): Promise<void> {
     if (!this.isInitialized) {
       const initialized = await this.initialize();
       if (!initialized) {
-        onError('Falha na inicializaÁ„o do Google Auth');
+        onError('Falha na inicializa√ß√£o do Google Auth');
         return;
       }
     }
@@ -126,7 +126,7 @@ class GoogleAuthService {
         }
       });
 
-      // Limpar container e renderizar bot„o
+      // Limpar container e renderizar bot√£o
       container.innerHTML = '';
       window.google.accounts.id.renderButton(container, {
         theme: 'outline',
@@ -137,8 +137,8 @@ class GoogleAuthService {
       });
       
     } catch (error) {
-      logger.error('Erro ao renderizar bot„o do Google', error as Error);
-      onError('Erro ao carregar bot„o do Google');
+      logger.error('Erro ao renderizar bot√£o do Google', error as Error);
+      onError('Erro ao carregar botÔøΩo do Google');
     }
   }
 
@@ -146,7 +146,7 @@ class GoogleAuthService {
     if (!this.isInitialized) {
       const initialized = await this.initialize();
       if (!initialized) {
-        return { success: false, error: 'Falha na inicializaÁ„o do Google Auth' };
+        return { success: false, error: 'Falha na inicializa√ß√£o do Google Auth' };
       }
     }
 
@@ -180,8 +180,8 @@ class GoogleAuthService {
       const credential = response.credential;
       
       if (!credential) {
-        logger.error('Credential n„o encontrado na resposta do Google');
-        return { success: false, error: 'Resposta inv·lida do Google' };
+        logger.error('Credencial nao encontrada na resposta do Google');
+        return { success: false, error: 'Resposta inv√°lida do Google' };
       }
 
       const result = await googleLogin(credential);
@@ -191,7 +191,8 @@ class GoogleAuthService {
         return { success: true };
       } else {
         const errorMessage = result.message?.includes('Token') ? 
-          'Erro na autenticaÁ„o - tente novamente' : 
+          'Erro na autentica√ß√£o - tente novamente' : 
+          'Erro no login';
           result.message || 'Erro no login';
         return { success: false, error: errorMessage };
       }

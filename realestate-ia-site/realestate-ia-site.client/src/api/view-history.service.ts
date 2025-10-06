@@ -1,11 +1,11 @@
-// view-history.service.ts - Serviço simplificado para histórico de visualizações
+// view-history.service.ts - ServiÃ§o simplificado para histÃ³rico de visualizaÃ§Ãµes
 import apiClient from "./client";
 import type { ViewHistoryItem } from "../types/PersonalArea";
 import type { Property } from "../types/property";
 import { logger } from '../utils/logger';
 import { viewHistoryCache } from '../utils/viewHistoryLocal';
 
-// Response types específicos para histórico de visualizações
+// Response types especÃ­ficos para histÃ³rico de visualizaÃ§Ãµes
 interface ViewHistoryResponse {
   viewHistory: ViewHistoryItem[];
   totalCount: number;
@@ -22,7 +22,7 @@ interface TrackViewResponse {
   viewCount: number;
 }
 
-// Logger específico para view history
+// Logger especÃ­fico para view history
 const viewHistoryLogger = {
   info: (message: string) => logger.info(message, 'VIEW_HISTORY'),
   warn: (message: string) => logger.warn(message, 'VIEW_HISTORY'),
@@ -31,12 +31,12 @@ const viewHistoryLogger = {
 }
 
 /**
- * Obter histórico de visualizações
+ * Obter histÃ³rico de visualizaÃ§Ãµes
  */
 export async function getViewHistory(limit?: number, forceRefresh = false): Promise<ViewHistoryResponse> {
-  viewHistoryLogger.info('Buscando histórico de visualizações');
+  viewHistoryLogger.info('Buscando histÃ³rico de visualizaÃ§Ãµes');
 
-  // Se não forçar refresh e cache não está desatualizado, usar cache
+  // Se nï¿½o forï¿½ar refresh e cache nï¿½o estï¿½ desatualizado, usar cache
   if (!forceRefresh && !viewHistoryCache.isCacheStale()) {
     const cachedData = viewHistoryCache.getCache();
     if (cachedData.length > 0) {
@@ -44,7 +44,7 @@ export async function getViewHistory(limit?: number, forceRefresh = false): Prom
       return {
         viewHistory: cachedData,
         totalCount: cachedData.length,
-        totalViews: 0 // Não calculamos mais totalViews no frontend
+        totalViews: 0 // NÃ£o calculamos mais totalViews no frontend
       };
     }
   }
@@ -61,7 +61,7 @@ export async function getViewHistory(limit?: number, forceRefresh = false): Prom
     // Atualizar cache com dados do servidor
     viewHistoryCache.setCacheFromServer(response.viewHistory);
     
-    viewHistoryLogger.info(`${response.viewHistory?.length || 0} visualizações encontradas do servidor`);
+    viewHistoryLogger.info(`${response.viewHistory?.length || 0} visualizaÃ§Ãµes encontradas do servidor`);
     return response;
   } catch (error) {
     const err = error as Error;
@@ -78,15 +78,15 @@ export async function getViewHistory(limit?: number, forceRefresh = false): Prom
 }
 
 /**
- * Registrar visualização de propriedade
+ * Registrar visualizaÃ§Ã£o de propriedade
  */
 export async function trackPropertyView(property: Property): Promise<TrackViewResponse> {
-  viewHistoryLogger.info(`Registrando visualização: ${property.id}`);
+  viewHistoryLogger.info(`Registrando visualizaÃ§Ã£o: ${property.id}`);
 
   // Verificar se a propriedade estava hidden antes de processar
   const wasHidden = viewHistoryCache.wasPropertyHidden(property.id);
   if (wasHidden) {
-    viewHistoryLogger.info(`Propriedade ${property.id} estava hidden, será reativada`);
+    viewHistoryLogger.info(`Propriedade ${property.id} estava hidden, serÃ¡ reativada`);
   }
 
   // 1. CACHE OTIMISTA - Resposta imediata com propriedade completa
@@ -100,13 +100,13 @@ export async function trackPropertyView(property: Property): Promise<TrackViewRe
 
     const response = await apiClient.post<TrackViewResponse>('/api/view-history/track', trackData);
     
-    // 3. SYNC CACHE IMEDIATO - Forçar refresh para garantir dados atualizados
+    // 3. SYNC CACHE IMEDIATO - ForÃ§ar refresh para garantir dados atualizados
     await getViewHistory(10, true);
     
     if (wasHidden) {
       viewHistoryLogger.info(`Propriedade ${property.id} reativada com sucesso. Total: ${response.viewCount}`);
     } else {
-      viewHistoryLogger.info(`Visualização registrada. Total: ${response.viewCount}`);
+      viewHistoryLogger.info(`VisualizaÃ§Ã£o registrada. Total: ${response.viewCount}`);
     }
     
     return response;
@@ -124,19 +124,19 @@ export async function trackPropertyView(property: Property): Promise<TrackViewRe
 }
 
 /**
- * Ocultar item do histórico (soft delete - marca como oculto na BD)
+ * Ocultar item do histÃ³rico (soft delete - marca como oculto na BD)
  */
 export async function removeFromViewHistory(historyId: string): Promise<{ success: boolean; message: string }> {
-  viewHistoryLogger.info(`Ocultando item do histórico: ${historyId}`);
+  viewHistoryLogger.info(`Ocultando item do histÃ³rico: ${historyId}`);
 
   try {
     // Chamar API para marcar como oculto
     const response = await apiClient.patch<{ success: boolean; message: string }>(`/api/view-history/${historyId}/remove`);
     
-    // Remover também do cache local para resposta imediata
+    // Remover tambÃ©m do cache local para resposta imediata
     viewHistoryCache.removeFromCache(historyId);
     
-    viewHistoryLogger.info('Item ocultado do histórico');
+    viewHistoryLogger.info('Item ocultado do histÃ³rico');
     return response;
   } catch (error) {
     const err = error as Error;
