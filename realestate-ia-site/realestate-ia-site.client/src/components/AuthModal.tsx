@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { login, register, type LoginPayload, type RegisterPayload } from '../api/auth.service';
 import googleAuthService from '../api/google-auth.service';
-import { client as logger } from '../utils/logger';
+import { client as logger, auth as authLogger } from '../utils/logger';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -190,7 +190,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
         setError(result.message || result.errors?.join('. ') || 'Erro inesperado no login.');
       }
     } catch (error) {
-      console.error('Login error:', error);
+      authLogger.error('Login error', error as Error);
       setError(extractErrorMessage(error as ApiError));
     } finally {
       setIsLoading(false);
@@ -229,7 +229,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
         setError(result.message || 'Registration failed. Please try again.');
       }
     } catch (error) {
-      console.error('Registration error:', error);
+      authLogger.error('Registration error', error as Error);
       setError(extractErrorMessage(error as ApiError));
     } finally {
       setIsLoading(false);

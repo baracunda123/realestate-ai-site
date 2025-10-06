@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import UploadService from '../../api/upload.service';
 import { getUserInitials } from '../../utils/PersonalArea';
 import type { User } from '../../types/PersonalArea';
+import { logger } from '../../utils/logger';
 
 interface AvatarUploadProps {
   user: User;
@@ -71,7 +72,7 @@ export function AvatarUpload({
       }
 
     } catch (error: unknown) {
-      console.error('Erro no upload:', error);
+      logger.error('Erro no upload de avatar', 'AVATAR_UPLOAD', error as Error);
       
       const errorMessage = error instanceof Error ? error.message : 'Falha ao fazer upload da imagem';
       

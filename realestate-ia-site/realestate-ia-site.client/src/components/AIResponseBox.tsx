@@ -16,9 +16,9 @@ interface AIResponseBoxProps {
   loading?: boolean;
   error?: string | null;
   userQuery?: string;
-  onNewQuery?: () => void; // Callback simples para nova query
-  onClose?: () => void; // Callback para fechar
-  onReopen?: () => void; // Callback para reabrir
+  onNewQuery?: () => void;
+  onClose?: () => void;
+  onReopen?: () => void;
   conversationHistory?: ConversationMessage[];
   onUpdateHistory?: (history: ConversationMessage[]) => void;
 }
@@ -28,51 +28,19 @@ export function AIResponseBox({
   text, 
   loading = false, 
   error = null, 
-  userQuery,
-  onNewQuery,
+  userQuery: _userQuery,
+  onNewQuery: _onNewQuery,
   onClose,
   onReopen: _onReopen,
   conversationHistory = [],
-  onUpdateHistory
+  onUpdateHistory: _onUpdateHistory
 }: AIResponseBoxProps) {
   const [localHistory, setLocalHistory] = useState<ConversationMessage[]>([]);
   const conversationEndRef = useRef<HTMLDivElement>(null);
   const conversationContainerRef = useRef<HTMLDivElement>(null);
   const aiBoxRef = useRef<HTMLDivElement>(null);
 
-  // Add user query to history quando onNewQuery é chamado
-  useEffect(() => {
-    if (userQuery && onNewQuery && onUpdateHistory) {
-      const userMessage: ConversationMessage = {
-        id: `user-${Date.now()}`,
-        type: 'user',
-        content: userQuery,
-        timestamp: new Date()
-      };
-      
-      const newHistory = [...conversationHistory, userMessage];
-      setLocalHistory(newHistory);
-      onUpdateHistory(newHistory);
-    }
-  }, [onNewQuery]); // Disparar quando callback muda
-
-  // Add AI response to history
-  useEffect(() => {
-    if (text && !loading && !error && onUpdateHistory) {
-      const aiMessage: ConversationMessage = {
-        id: `ai-${Date.now()}`,
-        type: 'ai',
-        content: text,
-        timestamp: new Date()
-      };
-      
-      const newHistory = [...conversationHistory, aiMessage];
-      setLocalHistory(newHistory);
-      onUpdateHistory(newHistory);
-    }
-  }, [text, loading, error]);
-
-  // Sync with external history
+  // Sync with external history (this is now the single source of truth)
   useEffect(() => {
     setLocalHistory(conversationHistory);
   }, [conversationHistory]);
@@ -89,17 +57,15 @@ export function AIResponseBox({
         }, 100);
       }
     }
-  }, [localHistory.length, loading]);
+  }, [localHistory.length, loading, open]);
 
-  // Scroll to bottom immediately when chat opens - use container scroll
+  // Scroll to bottom immediately when chat opens
   useEffect(() => {
     if (open && conversationContainerRef.current) {
-      // Scroll to bottom immediately when opening - no animation
       const container = conversationContainerRef.current;
-      container.style.scrollBehavior = 'auto'; // Disable smooth scrolling temporarily
+      container.style.scrollBehavior = 'auto';
       container.scrollTop = container.scrollHeight;
       
-      // Re-enable smooth scrolling for future interactions
       setTimeout(() => {
         if (conversationContainerRef.current) {
           conversationContainerRef.current.style.scrollBehavior = 'smooth';
@@ -115,28 +81,23 @@ export function AIResponseBox({
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Element;
       
-      // Não fecha se clicou no próprio AIResponseBox
       if (aiBoxRef.current && aiBoxRef.current.contains(target)) {
         return;
       }
       
-      // Não fecha se clicou no botão do chat
       const chatButton = target.closest('[aria-label="Abrir chat IA"]');
       if (chatButton) {
         return;
       }
       
-      // Não fecha se clicou na barra de pesquisa
       const searchInput = target.closest('input[placeholder*="procura"]');
       if (searchInput) {
         return;
       }
       
-      // Se chegou aqui, foi clique fora - fecha o chat
       onClose();
     };
 
-    // Adiciona o listener após um pequeno delay para evitar fechamento imediato
     const timeoutId = setTimeout(() => {
       document.addEventListener('mousedown', handleClickOutside);
     }, 100);
@@ -147,7 +108,6 @@ export function AIResponseBox({
     };
   }, [open, onClose]);
 
-  // Don't render anything when closed
   if (!open) {
     return null;
   }
@@ -176,7 +136,7 @@ export function AIResponseBox({
   };
 
   const hasHistory = localHistory.length > 0;
-  const showConversationMode = onUpdateHistory && (hasHistory || userQuery);
+  const showConversationMode = hasHistory;
 
   return (
     <div 
@@ -203,45 +163,35 @@ export function AIResponseBox({
               ref={conversationContainerRef}
               className="max-h-96 overflow-auto pr-1"
             >
-              {hasHistory ? (
-                <div className="space-y-1">
-                  {localHistory.map(renderMessage)}
-                  
-                  {loading && (
-                    <div className="mb-4 mr-4">
-                      <div className="flex gap-3 justify-start">
-                        <div className="max-w-[85%] rounded-lg p-3 bg-pure-white border border-pale-clay-deep">
-                          <div className="flex items-center gap-2 text-sm text-warm-taupe">
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          </div>
+              <div className="space-y-1">
+                {localHistory.map(renderMessage)}
+                
+                {loading && (
+                  <div className="mb-4 mr-4">
+                    <div className="flex gap-3 justify-start">
+                      <div className="max-w-[85%] rounded-lg p-3 bg-pure-white border border-pale-clay-deep">
+                        <div className="flex items-center gap-2 text-sm text-warm-taupe">
+                          <Loader2 className="h-4 w-4 animate-spin" />
                         </div>
                       </div>
                     </div>
-                  )}
-
-                  {error && (
-                    <div className="mb-4 mr-4">
-                      <div className="flex gap-3 justify-start">
-                        <div className="max-w-[85%] rounded-lg p-3 bg-pure-white border border-pale-clay-deep">
-                          <div className="text-sm text-error-strong">
-                            {error}
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  
-                  <div ref={conversationEndRef} />
-                </div>
-              ) : (
-                <div className="text-sm text-warm-taupe leading-relaxed text-center py-8 px-4">
-                  <div className="w-12 h-12 rounded-full bg-pale-clay flex items-center justify-center mx-auto mb-3">
-                    <Sparkles className="h-6 w-6 text-burnt-peach" />
                   </div>
-                  <div className="font-medium text-deep-mocha mb-1">Bem-vindo ao Chat IA</div>
-                  <div>Descreva o que procura e a IA ajudará a interpretar a sua pesquisa.</div>
-                </div>
-              )}
+                )}
+
+                {error && (
+                  <div className="mb-4 mr-4">
+                    <div className="flex gap-3 justify-start">
+                      <div className="max-w-[85%] rounded-lg p-3 bg-pure-white border border-pale-clay-deep">
+                        <div className="text-sm text-error-strong">
+                          {error}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div ref={conversationEndRef} />
+              </div>
             </div>
           ) : (
             <div className="text-sm text-warm-taupe leading-relaxed whitespace-pre-wrap max-h-48 overflow-auto pr-1">

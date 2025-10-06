@@ -10,6 +10,7 @@ import { formatDate } from '../../utils/PersonalArea';
 import { toast } from 'sonner';
 import AvatarUpload from './AvatarUpload';
 import { updateProfile } from '../../api/auth.service';
+import { personalArea as logger } from '../../utils/logger';
 
 interface PersonalAreaSettingsProps {
   user: UserType;
@@ -47,7 +48,7 @@ export function PersonalAreaSettings({
         description: 'As suas informações foram guardadas.',
       });
     } catch (error: unknown) {
-      console.error('Erro ao atualizar perfil:', error);
+      logger.error('Erro ao atualizar perfil', error as Error);
       const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro inesperado';
       toast.error('Erro ao atualizar perfil', {
         description: errorMessage,
