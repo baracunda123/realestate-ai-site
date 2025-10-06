@@ -23,6 +23,7 @@ import {
   recommendationUtils,
   type RecommendedProperty 
 } from '../../api/recommendations.service';
+import { recommendations as logger } from '../../utils/logger';
 
 interface RecommendationCardProps {
   recommendation: RecommendedProperty;
@@ -48,7 +49,7 @@ function RecommendationCard({
         }
         window.open(recommendation.link, '_blank', 'noopener,noreferrer');
       } catch (error) {
-        console.error('Erro ao marcar como visualizada:', error);
+        logger.error('Erro ao marcar como visualizada', error as Error);
       } finally {
         setProcessing(false);
       }
@@ -61,7 +62,7 @@ function RecommendationCard({
       onDismiss(recommendation.propertyId);
       toast.success('Recomendação removida');
     } catch (error) {
-      console.error('Erro ao descartar recomendação:', error);
+      logger.error('Erro ao descartar recomendação', error as Error);
       toast.error('Erro ao remover recomendação');
     }
   };
@@ -183,7 +184,7 @@ export function DashboardRecommendations({
       const response = await getDashboardRecommendations(limit);
       setRecommendations(response.properties || []);
     } catch (error) {
-      console.error('Erro ao carregar recomendações:', error);
+      logger.error('Erro ao carregar recomendações', error as Error);
       setRecommendations([]);
     } finally {
       if (showLoading) setLoading(false);

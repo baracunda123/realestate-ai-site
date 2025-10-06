@@ -6,6 +6,7 @@ import type {
   SavedSearchesResponse 
 } from "../types/PersonalArea";
 import type { Property } from "../types/property";
+import { logger } from '../utils/logger';
 
 // Response types especificas para pesquisas salvas
 interface SavedSearchDetailsResponse extends SavedSearch {
@@ -14,30 +15,23 @@ interface SavedSearchDetailsResponse extends SavedSearch {
     date: string;
     resultCount: number;
     newResults: number;
-  }>;
-}
-
-// Função simples para logs
-function logToTerminal(message: string, level: 'info' | 'warn' | 'error' = 'info') {
-  const timestamp = new Date().toLocaleTimeString();
-  const prefix = level === 'error' ? '❌' : level === 'warn' ? '⚠️' : '🔍';
-  console.log(`${prefix} [${timestamp}] SAVED_SEARCHES: ${message}`);
+  }>[];
 }
 
 /**
  * Obter todas as pesquisas salvas do usuário
  */
 export async function getSavedSearches(): Promise<SavedSearchesResponse> {
-  logToTerminal('Buscando pesquisas salvas do usuário');
+  logger.info('Buscando pesquisas salvas do usuário', 'SAVED_SEARCHES');
 
   try {
     const response = await apiClient.get<SavedSearchesResponse>('/api/saved-searches');
     
-    logToTerminal(`${response.searches?.length || 0} pesquisas salvas encontradas`);
+    logger.info(`${response.searches?.length || 0} pesquisas salvas encontradas`, 'SAVED_SEARCHES');
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao buscar pesquisas salvas: ${errorMsg}`, 'error');
+    logger.error(`Erro ao buscar pesquisas salvas: ${errorMsg}`, 'SAVED_SEARCHES', error as Error);
     throw error;
   }
 }
@@ -50,7 +44,7 @@ export async function getSavedSearchById(
   includeResults: boolean = false,
   includeHistory: boolean = false
 ): Promise<SavedSearchDetailsResponse> {
-  logToTerminal(`Buscando pesquisa salva: ${searchId}`);
+  logger.info(`Buscando pesquisa salva: ${searchId}`, 'SAVED_SEARCHES');
 
   const params = new URLSearchParams();
   if (includeResults) params.append('includeResults', 'true');
@@ -61,11 +55,11 @@ export async function getSavedSearchById(
       `/api/saved-searches/${searchId}?${params.toString()}`
     );
     
-    logToTerminal(`Pesquisa salva encontrada: ${search.name}`);
+    logger.info(`Pesquisa salva encontrada: ${search.name}`, 'SAVED_SEARCHES');
     return search;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao buscar pesquisa salva ${searchId}: ${errorMsg}`, 'error');
+    logger.error(`Erro ao buscar pesquisa salva ${searchId}: ${errorMsg}`, 'SAVED_SEARCHES', error as Error);
     throw error;
   }
 }
@@ -74,16 +68,16 @@ export async function getSavedSearchById(
  * Criar nova pesquisa salva
  */
 export async function createSavedSearch(searchData: CreateSavedSearchRequest): Promise<SavedSearch> {
-  logToTerminal(`Criando nova pesquisa salva: ${searchData.name}`);
+  logger.info(`Criando nova pesquisa salva: ${searchData.name}`, 'SAVED_SEARCHES');
 
   try {
     const search = await apiClient.post<SavedSearch>('/api/saved-searches', searchData);
     
-    logToTerminal(`Pesquisa salva criada: ${search.id}`);
+    logger.info(`Pesquisa salva criada: ${search.id}`, 'SAVED_SEARCHES');
     return search;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao criar pesquisa salva: ${errorMsg}`, 'error');
+    logger.error(`Erro ao criar pesquisa salva: ${errorMsg}`, 'SAVED_SEARCHES', error as Error);
     throw error;
   }
 }
@@ -95,16 +89,16 @@ export async function updateSavedSearch(
   searchId: string,
   updates: Partial<CreateSavedSearchRequest>
 ): Promise<SavedSearch> {
-  logToTerminal(`Atualizando pesquisa salva: ${searchId}`);
+  logger.info(`Atualizando pesquisa salva: ${searchId}`, 'SAVED_SEARCHES');
 
   try {
     const search = await apiClient.put<SavedSearch>(`/api/saved-searches/${searchId}`, updates);
     
-    logToTerminal(`Pesquisa salva atualizada: ${search.id}`);
+    logger.info(`Pesquisa salva atualizada: ${search.id}`, 'SAVED_SEARCHES');
     return search;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao atualizar pesquisa salva: ${errorMsg}`, 'error');
+    logger.error(`Erro ao atualizar pesquisa salva: ${errorMsg}`, 'SAVED_SEARCHES', error as Error);
     throw error;
   }
 }
@@ -113,18 +107,18 @@ export async function updateSavedSearch(
  * Excluir pesquisa salva
  */
 export async function deleteSavedSearch(searchId: string): Promise<{ success: boolean; message: string }> {
-  logToTerminal(`Excluindo pesquisa salva: ${searchId}`);
+  logger.info(`Excluindo pesquisa salva: ${searchId}`, 'SAVED_SEARCHES');
 
   try {
     const response = await apiClient.delete<{ success: boolean; message: string }>(
       `/api/saved-searches/${searchId}`
     );
     
-    logToTerminal(`Pesquisa salva excluída`);
+    logger.info(`Pesquisa salva excluída`, 'SAVED_SEARCHES');
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao excluir pesquisa salva: ${errorMsg}`, 'error');
+    logger.error(`Erro ao excluir pesquisa salva: ${errorMsg}`, 'SAVED_SEARCHES', error as Error);
     throw error;
   }
 }
@@ -136,18 +130,18 @@ export async function duplicateSavedSearch(
   searchId: string,
   newName?: string
 ): Promise<SavedSearch> {
-  logToTerminal(`Duplicando pesquisa salva: ${searchId}`);
+  logger.info(`Duplicando pesquisa salva: ${searchId}`, 'SAVED_SEARCHES');
 
   try {
     const search = await apiClient.post<SavedSearch>(`/api/saved-searches/${searchId}/duplicate`, {
       newName: newName || undefined
     });
     
-    logToTerminal(`Pesquisa salva duplicada: ${search.id}`);
+    logger.info(`Pesquisa salva duplicada: ${search.id}`, 'SAVED_SEARCHES');
     return search;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao duplicar pesquisa salva: ${errorMsg}`, 'error');
+    logger.error(`Erro ao duplicar pesquisa salva: ${errorMsg}`, 'SAVED_SEARCHES', error as Error);
     throw error;
   }
 }
@@ -156,18 +150,18 @@ export async function duplicateSavedSearch(
  * Marcar pesquisa salva como visualizada (limpar badge "novos resultados")
  */
 export async function markSavedSearchAsViewed(searchId: string): Promise<{ success: boolean; message: string }> {
-  logToTerminal(`Marcando pesquisa salva como visualizada: ${searchId}`);
+  logger.info(`Marcando pesquisa salva como visualizada: ${searchId}`, 'SAVED_SEARCHES');
 
   try {
     const response = await apiClient.post<{ success: boolean; message: string }>(
       `/api/saved-searches/${searchId}/mark-viewed`
     );
     
-    logToTerminal(`Pesquisa salva marcada como visualizada`);
+    logger.info(`Pesquisa salva marcada como visualizada`, 'SAVED_SEARCHES');
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao marcar pesquisa como visualizada: ${errorMsg}`, 'error');
+    logger.error(`Erro ao marcar pesquisa como visualizada: ${errorMsg}`, 'SAVED_SEARCHES', error as Error);
     throw error;
   }
 }
@@ -192,7 +186,7 @@ export async function getSavedSearchesStats(): Promise<{
     newResults: number;
   }>;
 }> {
-  logToTerminal('Buscando estatísticas das pesquisas salvas');
+  logger.info('Buscando estatísticas das pesquisas salvas', 'SAVED_SEARCHES');
 
   try {
     const stats = await apiClient.get<{
@@ -213,11 +207,11 @@ export async function getSavedSearchesStats(): Promise<{
       }>;
     }>('/api/saved-searches/stats');
     
-    logToTerminal(`Estatísticas: ${stats.totalSearches} pesquisas, ${stats.newResults} novos resultados`);
+    logger.info(`Estatísticas: ${stats.totalSearches} pesquisas, ${stats.newResults} novos resultados`, 'SAVED_SEARCHES');
     return stats;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao buscar estatísticas: ${errorMsg}`, 'error');
+    logger.error(`Erro ao buscar estatísticas: ${errorMsg}`, 'SAVED_SEARCHES', error as Error);
     throw error;
   }
 }
@@ -229,7 +223,7 @@ export async function convertSearchToAlert(
   searchId: string,
   alertName: string
 ): Promise<{ alertId: string; message: string }> {
-  logToTerminal(`Convertendo pesquisa salva em alerta: ${searchId}`);
+  logger.info(`Convertendo pesquisa salva em alerta: ${searchId}`, 'SAVED_SEARCHES');
 
   try {
     const response = await apiClient.post<{ alertId: string; message: string }>(
@@ -239,11 +233,11 @@ export async function convertSearchToAlert(
       }
     );
     
-    logToTerminal(`Pesquisa convertida em alerta: ${response.alertId}`);
+    logger.info(`Pesquisa convertida em alerta: ${response.alertId}`, 'SAVED_SEARCHES');
     return response;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logToTerminal(`Erro ao converter pesquisa em alerta: ${errorMsg}`, 'error');
+    logger.error(`Erro ao converter pesquisa em alerta: ${errorMsg}`, 'SAVED_SEARCHES', error as Error);
     throw error;
   }
 }
@@ -323,7 +317,4 @@ export const savedSearchUtils = {
   }
 };
 
-// Log apenas quando carrega em desenvolvimento
-if (import.meta.env.DEV) {
-  logToTerminal('Saved Searches Service carregado');
-}
+logger.info('Saved Searches Service carregado');

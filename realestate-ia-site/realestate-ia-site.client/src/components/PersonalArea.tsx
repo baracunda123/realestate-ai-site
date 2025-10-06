@@ -21,6 +21,7 @@ import { PersonalAreaAlerts } from './PersonalArea/PersonalAreaAlerts';
 import { PersonalAreaHistory } from './PersonalArea/PersonalAreaHistory';
 import { PersonalAreaSettings } from './PersonalArea/PersonalAreaSettings';
 import { toast } from 'sonner';
+import { personalArea as logger } from '../utils/logger';
 import { 
   deleteAlert as deleteAlertService,
   updateAlert as updateAlertService
@@ -99,19 +100,6 @@ export function PersonalArea({
     }
   }, [activeTab]);
 
-  const loadViewHistory = async () => {
-    setIsLoadingHistory(true);
-    try {
-      const historyResp = await getViewHistoryService();
-      setViewHistory(historyResp.viewHistory || []);
-    } catch (error) {
-      console.error('Failed to load view history:', error);
-      setViewHistory([]);
-    } finally {
-      setIsLoadingHistory(false);
-    }
-  };
-
   // Handler para refrescar histórico após nova visualização
   const handlePropertyView = async (property: Property) => {
     try {
@@ -123,7 +111,7 @@ export function PersonalArea({
         await loadViewHistory();
       }
     } catch (error) {
-      console.error('Failed to track property view:', error);
+      logger.error('Failed to track property view', error as Error);
     }
   };
 
@@ -137,8 +125,21 @@ export function PersonalArea({
       
       toast.success('Item removido do histórico');
     } catch (error) {
-      console.error('Failed to remove from history:', error);
+      logger.error('Failed to remove from history', error as Error);
       toast.error('Erro ao remover item do histórico');
+    }
+  };
+
+  const loadViewHistory = async () => {
+    setIsLoadingHistory(true);
+    try {
+      const historyResp = await getViewHistoryService();
+      setViewHistory(historyResp.viewHistory || []);
+    } catch (error) {
+      logger.error('Failed to load view history', error as Error);
+      setViewHistory([]);
+    } finally {
+      setIsLoadingHistory(false);
     }
   };
 
