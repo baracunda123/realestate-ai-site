@@ -1,4 +1,4 @@
-// google-auth.service.ts - Servio para autenticação com Google
+// google-auth.service.ts - Serviço para autenticação com Google
 import { googleLogin } from './auth.service';
 import { client as logger } from '../utils/logger';
 
@@ -97,7 +97,7 @@ class GoogleAuthService {
     });
   }
 
-  // M�todo para renderizar bot�o diretamente num container
+  // Método para renderizar botão diretamente num container
   async renderButtonIn(container: HTMLElement, onSuccess: () => void, onError: (error: string) => void): Promise<void> {
     if (!this.isInitialized) {
       const initialized = await this.initialize();
@@ -138,7 +138,7 @@ class GoogleAuthService {
       
     } catch (error) {
       logger.error('Erro ao renderizar botão do Google', error as Error);
-      onError('Erro ao carregar bot�o do Google');
+      onError('Erro ao carregar botão do Google');
     }
   }
 

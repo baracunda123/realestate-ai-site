@@ -31,6 +31,7 @@ using realestate_ia_site.Server.Application.Auth;
 using realestate_ia_site.Server.Application.PropertySearch.Filters;
 using realestate_ia_site.Server.Application.Security;
 using realestate_ia_site.Server.Infrastructure.BackgroundServices;
+using realestate_ia_site.Server.Infrastructure.Storage;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -241,6 +242,30 @@ builder.Services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<Ap
 // Security Services
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton<SecurityAuditService>();
+
+// FILE STORAGE: Configure based on environment
+if (builder.Environment.IsProduction())
+{
+    // Check if Azure Storage is configured
+    var azureStorageConnectionString = Environment.GetEnvironmentVariable("AZURE_STORAGE_CONNECTION_STRING")
+                                      ?? builder.Configuration["Azure:Storage:ConnectionString"];
+    
+    if (!string.IsNullOrEmpty(azureStorageConnectionString))
+    {
+        builder.Services.AddSingleton<IFileStorageService, AzureBlobStorageService>();
+        Console.WriteLine("Using Azure Blob Storage for file uploads");
+    }
+    else
+    {
+        builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
+        Console.WriteLine("WARNING: Azure Storage not configured - using local storage (not recommended for production)");
+    }
+}
+else
+{
+    builder.Services.AddScoped<IFileStorageService, LocalFileStorageService>();
+    Console.WriteLine("Using Local Storage for file uploads (Development)");
+}
 
 // Application services
 builder.Services.AddScoped<SearchAIOrchestrator>();
