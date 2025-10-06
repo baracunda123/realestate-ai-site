@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, Home, User, MessageCircle } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
@@ -54,8 +54,8 @@ export function Header({
   const [aiOpen, setAiOpen] = useState(false);
   const [localInput, setLocalInput] = useState(searchQuery);
   const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>([]);
-  const [currentUserQuery, setCurrentUserQuery] = useState<string>('');
-  const [triggerNewQuery, setTriggerNewQuery] = useState<() => void>(() => () => {});
+  const lastProcessedQueryRef = useRef<string>('');
+  const lastProcessedAITextRef = useRef<string>('');
 
   // SIGNALR: Hook SEMPRE executado - agora usa SignalR em vez de polling
   const { unreadCount, isLoading: notificationsLoading } = useUnreadNotificationsCount();
@@ -65,9 +65,40 @@ export function Header({
     if (currentView !== 'home') {
       setLocalInput('');
     } else {
-      setLocalInput(searchQuery);
+      setLocalInput('');
     }
-  }, [currentView, searchQuery]);
+  }, [currentView]);
+
+  // Add user query to history when searchQuery changes (new search submitted)
+  useEffect(() => {
+    if (searchQuery && searchQuery !== lastProcessedQueryRef.current) {
+      const userMessage: ConversationMessage = {
+        id: `user-${Date.now()}`,
+        type: 'user',
+        content: searchQuery,
+        timestamp: new Date()
+      };
+      
+      setConversationHistory(prev => [...prev, userMessage]);
+      lastProcessedQueryRef.current = searchQuery;
+      setAiOpen(true);
+    }
+  }, [searchQuery]);
+
+  // Add AI response to history when aiText changes (new response received)
+  useEffect(() => {
+    if (aiText && !aiLoading && !aiError && aiText !== lastProcessedAITextRef.current) {
+      const aiMessage: ConversationMessage = {
+        id: `ai-${Date.now()}`,
+        type: 'ai',
+        content: aiText,
+        timestamp: new Date()
+      };
+      
+      setConversationHistory(prev => [...prev, aiMessage]);
+      lastProcessedAITextRef.current = aiText;
+    }
+  }, [aiText, aiLoading, aiError]);
 
   const handleSubmitSearch = () => {
     if (!user) { 
@@ -78,13 +109,9 @@ export function Header({
     const query = localInput.trim();
     if (!query) return;
     
-    setCurrentUserQuery(query);
     setAiOpen(true);
     onSubmitSearch?.(query);
     setLocalInput('');
-    
-    // Trigger callback para adicionar query ao histórico
-    setTriggerNewQuery(() => () => {}); 
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -102,23 +129,24 @@ export function Header({
   };
 
   const handleNavigateToHome = () => {
-    // Reset AI state only when navigating to home
+    // Reset AI state when explicitly navigating home via logo
     setAiOpen(false);
     setConversationHistory([]);
-    setCurrentUserQuery('');
-    setTriggerNewQuery(() => () => {});
+    lastProcessedQueryRef.current = '';
+    lastProcessedAITextRef.current = '';
+    setLocalInput('');
     onNavigateToHome();
   };
 
   const handleNavigateToPersonal = () => {
     // Don't reset AI state when navigating to personal area
+    // But close the AI box
+    setAiOpen(false);
     onNavigateToPersonal();
   };
 
   // Handler para navegar para área pessoal na aba de alertas
   const handleNavigateToAlerts = () => {
-    // Implementar navegação para área pessoal com aba 'alerts' ativa
-    // Por agora, navega para área pessoal (a aba será definida lá)
     onNavigateToPersonal();
   };
 
@@ -186,10 +214,7 @@ export function Header({
             error={aiError || null} 
             onClose={() => setAiOpen(false)}
             onReopen={handleReopenAI}
-            userQuery={currentUserQuery}
-            onNewQuery={triggerNewQuery}
             conversationHistory={conversationHistory}
-            onUpdateHistory={setConversationHistory}
           />
         )}
 
@@ -206,7 +231,6 @@ export function Header({
 
   const renderUserSection = () => {
     if (user) {
-      // Convert to expected format for UserProfileDropdown
       const userForDropdown = {
         id: user.id,
         name: user.name || user.fullName || '',
@@ -228,7 +252,6 @@ export function Header({
               </Button>
               )}
           
-          {/* SIGNALR: Notification Bell - agora com notificações em tempo real */}
           {user && (
             <NotificationBell 
               onClick={handleNavigateToAlerts}
