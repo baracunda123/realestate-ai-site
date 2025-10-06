@@ -326,12 +326,16 @@ async function refreshAccessToken(): Promise<TokenResponse | null> {
     logger.info('🔄 Tentando renovar token silenciosamente');
     SecureTokenManager.setRefreshing(true);
     
+    const baseURL = (import.meta as any).env?.VITE_API_URL || '';
+
     const refreshClient = axios.create({
+      baseURL, // garante que o refresh vá para a API correta em produção
       withCredentials: true,
       timeout: 10000, // Reduced timeout
       headers: {
         'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest'
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-Session-ID': SecureTokenManager.getSessionId()
       }
     });
     
@@ -361,7 +365,7 @@ async function refreshAccessToken(): Promise<TokenResponse | null> {
 class ApiClient {
   private client: AxiosInstance;
 
-  constructor(baseURL: string = import.meta.env.VITE_API_URL || '') {
+  constructor(baseURL: string = (import.meta as any).env?.VITE_API_URL || '') {
     SecureTokenManager.initialize();
     this.client = axios.create({
       baseURL: baseURL,
