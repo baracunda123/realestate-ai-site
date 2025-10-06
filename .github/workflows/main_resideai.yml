@@ -1,12 +1,14 @@
 # Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
 # More GitHub Actions for Azure: https://github.com/Azure/actions
 
-name: Build and deploy ASP.Net Core app to Azure Web App - resideai
+name: Build and deploy ASP.Net Core app to Azure Web App - residai
 
 on:
   push:
     branches:
       - main
+    paths:
+      - 'realestate-ia-site/realestate-ia-site.Server/**'
   workflow_dispatch:
 
 jobs:
@@ -23,17 +25,20 @@ jobs:
         with:
           dotnet-version: '9.x'
 
-      - name: Build with dotnet
-        run: dotnet build --configuration Release
+      - name: Restore dependencies
+        run: dotnet restore "realestate-ia-site/realestate-ia-site.Server/realestate-ia-site.Server.csproj"
 
-      - name: dotnet publish
-        run: dotnet publish -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+      - name: Build with dotnet
+        run: dotnet build "realestate-ia-site/realestate-ia-site.Server/realestate-ia-site.Server.csproj" --configuration Release --no-restore
+
+      -  name: dotnet publish
+         run: dotnet publish "realestate-ia-site/realestate-ia-site.Server/realestate-ia-site.Server.csproj" -c Release -o "${{ github.workspace }}\publish" --no-build
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: .net-app
-          path: ${{env.DOTNET_ROOT}}/myapp
+          path: ${{ github.workspace }}\publish
 
   deploy:
     runs-on: windows-latest
@@ -51,15 +56,16 @@ jobs:
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_894BBBF0A33F41E3BAEFC8D3542CB176 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_BB396FF3BA3D4B68B636DAA319D537D5 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_E2D34C49E7BB44F7A8B32257274DA0D0 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_F5BBCA78B82B480FA0F20499F6B21366 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_E2CD1CE0FC4C4E77AC820A1D7461D8EC }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_1CA43DDA05464DDCBD20D3C4F169A5DE }}
 
       - name: Deploy to Azure Web App
         id: deploy-to-webapp
         uses: azure/webapps-deploy@v3
         with:
-          app-name: 'resideai'
+          app-name: 'residai'
           slot-name: 'Production'
           package: .
-          
+
+
