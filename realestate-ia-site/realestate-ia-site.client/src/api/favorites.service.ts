@@ -1,4 +1,4 @@
-// favorites.service.ts - ServiÁo simples para favoritos usando a API
+// favorites.service.ts - Servi√ßo simples para favoritos usando a API
 import apiClient from './client';
 import { favorites as logger } from '../utils/logger';
 import type { Property } from '../types/property';
@@ -19,7 +19,7 @@ export interface SuccessResponse {
 }
 
 /**
- * Obter favoritos do usu·rio
+ * Obter favoritos do usu√°rio
  */
 export async function getFavoriteProperties(): Promise<Property[]> {
   try {
@@ -58,7 +58,7 @@ export async function removeFromFavorites(propertyId: string): Promise<boolean> 
 }
 
 /**
- * Verificar se È favorito
+ * Verificar se √© favorito
  */
 export async function isFavorite(propertyId: string): Promise<boolean> {
   try {

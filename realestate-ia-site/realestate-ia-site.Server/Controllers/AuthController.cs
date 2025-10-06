@@ -7,6 +7,7 @@ using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Domain.Models;
 using realestate_ia_site.Server.Application.Auth;
 using realestate_ia_site.Server.Application.Security;
+using realestate_ia_site.Server.Infrastructure.Storage;
 
 namespace realestate_ia_site.Server.Controllers
 {
@@ -36,6 +37,7 @@ namespace realestate_ia_site.Server.Controllers
         private readonly IConfiguration _configuration;
         private readonly ILogger<AuthController> _logger;
         private readonly IWebHostEnvironment _environment;
+        private readonly IFileStorageService _fileStorageService;
 
         public AuthController(
             UserManager<User> userManager,
@@ -44,7 +46,8 @@ namespace realestate_ia_site.Server.Controllers
             SecurityAuditService auditService,
             IConfiguration configuration,
             ILogger<AuthController> logger,
-            IWebHostEnvironment environment)
+            IWebHostEnvironment environment,
+            IFileStorageService fileStorageService)
         {
             _userManager = userManager;
             _authService = authService;
@@ -53,6 +56,7 @@ namespace realestate_ia_site.Server.Controllers
             _configuration = configuration;
             _logger = logger;
             _environment = environment;
+            _fileStorageService = fileStorageService;
         }
 
         private void SetRefreshCookie(TokenResponse tokens)
@@ -348,6 +352,7 @@ namespace realestate_ia_site.Server.Controllers
 
         [HttpPost("upload-avatar")]
         [Authorize]
+        [RequestSizeLimit(5 * 1024 * 1024)] // 5MB limit
         public async Task<IActionResult> UploadAvatar(IFormFile file)
         {
             try
@@ -357,86 +362,71 @@ namespace realestate_ia_site.Server.Controllers
                 if (string.IsNullOrEmpty(userId))
                 {
                     _auditService.LogInvalidTokenAccess("upload-avatar", "Missing user ID in token");
-                    return NotFound(new { message = "Usuário não encontrado" });
+                    return NotFound(new { success = false, error = "Usuário não encontrado" });
                 }
 
+                // Validate file
                 if (file == null || file.Length == 0)
                 {
                     return BadRequest(new { success = false, error = "Nenhum arquivo enviado" });
                 }
 
-                // Validar tipo de arquivo
+                // Validate content type
                 var allowedTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp" };
                 if (!allowedTypes.Contains(file.ContentType.ToLower()))
                 {
                     return BadRequest(new { success = false, error = "Tipo de arquivo não suportado. Use JPG, PNG, GIF ou WebP." });
                 }
 
-                // Validar tamanho (máximo 5MB)
+                // Validate size (maximum 5MB)
                 const long maxFileSize = 5 * 1024 * 1024; // 5MB
                 if (file.Length > maxFileSize)
                 {
                     return BadRequest(new { success = false, error = "A imagem deve ter no máximo 5MB" });
                 }
 
-                // Criar diretório se não existir
-                var uploadsDir = Path.Combine(_environment.WebRootPath, "uploads", "avatars");
-                if (!Directory.Exists(uploadsDir))
-                {
-                    Directory.CreateDirectory(uploadsDir);
-                }
-
-                // Gerar nome único para o arquivo
-                var fileExtension = Path.GetExtension(file.FileName);
-                var fileName = $"{userId}_{Guid.NewGuid()}{fileExtension}";
-                var filePath = Path.Combine(uploadsDir, fileName);
-
-                // Salvar arquivo
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await file.CopyToAsync(stream);
-                }
-
-                // Construir URL do avatar
-                var baseUrl = $"{Request.Scheme}://{Request.Host}";
-                var avatarUrl = $"{baseUrl}/uploads/avatars/{fileName}";
-
-                // Atualizar usuário
+                // Get user
                 var user = await _userManager.FindByIdAsync(userId);
-                if (user != null)
+                if (user == null)
                 {
-                    // Deletar avatar anterior se existir
-                    if (!string.IsNullOrEmpty(user.AvatarUrl) && user.AvatarUrl.Contains("/uploads/avatars/"))
-                    {
-                        var oldFileName = Path.GetFileName(user.AvatarUrl);
-                        var oldFilePath = Path.Combine(uploadsDir, oldFileName);
-                        if (System.IO.File.Exists(oldFilePath))
-                        {
-                            try
-                            {
-                                System.IO.File.Delete(oldFilePath);
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogWarning(ex, "Erro ao deletar avatar anterior: {FilePath}", oldFilePath);
-                            }
-                        }
-                    }
-
-                    user.AvatarUrl = avatarUrl;
-                    user.UpdatedAt = DateTime.UtcNow;
-                    await _userManager.UpdateAsync(user);
-
-                    _auditService.LogSecurityEvent(SecurityEventType.LoginSuccess, "Avatar updated successfully", new { UserId = userId, AvatarUrl = avatarUrl });
-                    _logger.LogInformation("Avatar atualizado para usuário {UserId}: {AvatarUrl}", userId, avatarUrl);
+                    return NotFound(new { success = false, error = "Usuário não encontrado" });
                 }
+
+                // Delete old avatar if exists
+                if (!string.IsNullOrEmpty(user.AvatarUrl))
+                {
+                    try
+                    {
+                        await _fileStorageService.DeleteFileAsync(user.AvatarUrl);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Erro ao deletar avatar anterior: {AvatarUrl}", user.AvatarUrl);
+                        // Continue even if deletion fails
+                    }
+                }
+
+                // Upload new avatar
+                string avatarUrl;
+                await using (var stream = file.OpenReadStream())
+                {
+                    avatarUrl = await _fileStorageService.UploadFileAsync(stream, file.FileName, file.ContentType);
+                }
+
+                // Update user
+                user.AvatarUrl = avatarUrl;
+                user.UpdatedAt = DateTime.UtcNow;
+                await _userManager.UpdateAsync(user);
+
+                _auditService.LogSecurityEvent(SecurityEventType.LoginSuccess, "Avatar updated successfully", new { UserId = userId, AvatarUrl = avatarUrl });
+                _logger.LogInformation("Avatar atualizado para usuário {UserId}: {AvatarUrl}", userId, avatarUrl);
 
                 return Ok(new { success = true, url = avatarUrl, message = "Avatar atualizado com sucesso" });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Erro no upload do avatar para usuário {UserId}", GetCurrentUserId());
-                return StatusCode(500, new { success = false, error = "Erro interno do servidor" });
+                return StatusCode(500, new { success = false, error = "Erro interno no servidor ao fazer upload da imagem" });
             }
         }
 
