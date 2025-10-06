@@ -57,11 +57,15 @@ namespace realestate_ia_site.Server.Controllers
 
         private void SetRefreshCookie(TokenResponse tokens)
         {
+            // Em produção precisamos permitir envio cross-site (Static Web App -> API)
+            // SameSite=None + Secure=true para HTTPS em domínios diferentes
+            var sameSite = _environment.IsProduction() ? SameSiteMode.None : SameSiteMode.Lax;
+
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
                 Secure = true,
-                SameSite = SameSiteMode.Strict,
+                SameSite = sameSite,
                 Expires = tokens.ExpiresAt.AddDays(29),
                 Path = "/api/auth"
             };
