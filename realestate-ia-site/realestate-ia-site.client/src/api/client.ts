@@ -4,6 +4,22 @@ import { client as logger } from '../utils/logger';
 import type { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 import { v4 as uuidv4 } from 'uuid';
 
+// Base URL único para toda a aplicação (evita cair para a origem do Static Web Apps)
+const API_BASE_URL: string = (() => {
+  try {
+    const raw = import.meta.env.VITE_API_URL || '';
+    if (raw && typeof raw === 'string' && raw.trim().length > 0) {
+      const normalized = raw.trim().replace(/\/$/, '');
+      logger.info(`API_BASE_URL definido: ${normalized}`);
+      return normalized;
+    }
+  } catch {
+    // ignore
+  }
+  logger.warn('API_BASE_URL não definido via VITE_API_URL – usando origem atual (pode quebrar refresh-token em produção)');
+  return '';
+})();
+
 interface TokenResponse {
   accessToken: string;
   refreshToken: string;
@@ -318,35 +334,43 @@ async function refreshAccessToken(): Promise<TokenResponse | null> {
   }
 
   if (!SecureTokenManager.canAttemptRefresh()) {
-    logger.error('❌ Refresh não permitido - limite atingido ou cooldown ativo');
+    logger.error('Refresh não permitido - limite atingido ou cooldown ativo');
     return null;
   }
 
   try {
-    logger.info('🔄 Tentando renovar token silenciosamente');
+    const baseURL = API_BASE_URL;
+    if (!baseURL) {
+      logger.warn('Refresh de token sem API_BASE_URL – a requisição pode ir para a origem incorreta. Defina VITE_API_URL.');
+    } else {
+      logger.info(`Tentando renovar token silenciosamente em: ${baseURL}/api/auth/refresh-token`);
+    }
+
     SecureTokenManager.setRefreshing(true);
     
     const refreshClient = axios.create({
+      baseURL, // garante que o refresh vá para a API correta em produção
       withCredentials: true,
       timeout: 10000, // Reduced timeout
       headers: {
         'Content-Type': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest'
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-Session-ID': SecureTokenManager.getSessionId()
       }
     });
     
     const refreshPromise = refreshClient.post<{ message: string; token: TokenResponse }>('/api/auth/refresh-token')
       .then(response => {
         if (response.data && response.data.token) {
-          logger.info('✅ Token renovado silenciosamente');
+          logger.info('Token renovado silenciosamente');
           return response.data.token;
         } else {
-          logger.warn('❌ Resposta de renovação inválida');
+          logger.warn('Resposta de renovação inválida');
           return null;
         }
       })
       .catch(error => {
-        logger.error('❌ Falha na renovação do token',error);
+        logger.error('Falha na renovação do token',error);
         SecureTokenManager.markRefreshFailed();
         return null;
       });
@@ -361,7 +385,7 @@ async function refreshAccessToken(): Promise<TokenResponse | null> {
 class ApiClient {
   private client: AxiosInstance;
 
-  constructor(baseURL: string = import.meta.env.VITE_API_URL || '') {
+  constructor(baseURL: string = API_BASE_URL) {
     SecureTokenManager.initialize();
     this.client = axios.create({
       baseURL: baseURL,
