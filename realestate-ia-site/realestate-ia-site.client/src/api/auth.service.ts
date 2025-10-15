@@ -179,9 +179,13 @@ export async function register(userData: RegisterPayload): Promise<AuthResult> {
 
     const response = await apiClient.post<AuthResult>('/api/auth/register', requestData);
     
-    // Salvar tokens automaticamente se registro incluiu login automático
-    if (response.success && response.token && response.user) {
+    // Apenas salvar tokens se o registro incluiu login automático (ex: OAuth)
+    // Registro normal NÃO retorna tokens - utilizador deve confirmar email primeiro
+    if (response.success && response.token && response.token.accessToken && response.user) {
+      logger.info('Registro com login automático - salvando tokens');
       apiClient.saveAuthTokens(response.token, response.user);
+    } else if (response.success) {
+      logger.info('Registro bem-sucedido - aguardando confirmação de email');
     }
     
     return response;

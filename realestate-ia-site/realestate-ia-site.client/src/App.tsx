@@ -465,10 +465,14 @@ export default function App() {
 
         // NÃO conectar SignalR automaticamente - só quando necessário
         logger.info('Login bem-sucedido - SignalR será ativado apenas se houver alertas', 'APP');
+      } else {
+        // Caso de registro sem confirmação de email - não há user profile ainda
+        logger.info('Auth success mas sem user profile - provavelmente aguardando confirmação de email', 'APP');
       }
     } catch (error) {
       logger.error('Erro ao processar sucesso de autenticação', 'APP', error as Error);
-      toast.error('Erro ao carregar dados do utilizador');
+      // Não mostrar erro - pode ser caso normal de aguardar confirmação de email
+      logger.info('Não foi possível carregar dados do utilizador - pode estar aguardando confirmação', 'APP');
     }
   }, [hasShownWelcomeToast]);
 
