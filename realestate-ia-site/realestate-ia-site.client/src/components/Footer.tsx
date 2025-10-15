@@ -27,18 +27,18 @@ export function Footer() {
               Links Úteis
             </h4>
             <div className="flex flex-col space-y-2">
-              <a 
-                href="#privacy"
-                className="text-sm text-cocoa-taupe hover:text-burnt-peach transition-colors duration-200"
+              <button 
+                onClick={() => window.alert('Política de Privacidade em breve')}
+                className="text-sm text-cocoa-taupe hover:text-burnt-peach transition-colors duration-200 text-center md:text-left"
               >
                 Política de Privacidade
-              </a>
-              <a 
-                href="#terms"
-                className="text-sm text-cocoa-taupe hover:text-burnt-peach transition-colors duration-200"
+              </button>
+              <button 
+                onClick={() => window.alert('Termos e Condições em breve')}
+                className="text-sm text-cocoa-taupe hover:text-burnt-peach transition-colors duration-200 text-center md:text-left"
               >
                 Termos e Condições
-              </a>
+              </button>
             </div>
           </div>
 

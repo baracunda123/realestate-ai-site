@@ -58,7 +58,9 @@ const INITIAL_FORM_DATA: FormData = {
 
 export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }: AuthModalProps) {
   const [activeTab, setActiveTab] = useState<'signin' | 'signup'>(defaultTab);
-  const [showPassword, setShowPassword] = useState(false);
+  const [showSignInPassword, setShowSignInPassword] = useState(false);
+  const [showSignUpPassword, setShowSignUpPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -68,6 +70,8 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
 
   // Ref para o container do botão do Google
   const googleButtonRef = useRef<HTMLDivElement>(null);
+  // Ref para o conteúdo do modal (para scroll)
+  const dialogContentRef = useRef<HTMLDivElement>(null);
 
   // Reset form when modal opens/closes or tab changes
   useEffect(() => {
@@ -99,7 +103,9 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
 
   const resetForm = () => {
     setFormData(INITIAL_FORM_DATA);
-    setShowPassword(false);
+    setShowSignInPassword(false);
+    setShowSignUpPassword(false);
+    setShowConfirmPassword(false);
     setError(null);
     setSuccess(null);
     setShowEmailConfirmation(false);
@@ -225,6 +231,13 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
         resetForm();
         setShowEmailConfirmation(true);
         setSuccess(result.message || 'Account created successfully!');
+        
+        // Scroll para o topo do modal para mostrar a mensagem de confirmação
+        setTimeout(() => {
+          if (dialogContentRef.current) {
+            dialogContentRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+          }
+        }, 100);
       } else {
         setError(result.message || 'Registration failed. Please try again.');
       }
@@ -300,40 +313,6 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
     return null;
   };
 
-  const renderPasswordInput = (id: string, placeholder: string, value: string, field: keyof FormData) => {
-    const autoCompleteValue = id.includes('signin') ? 'current-password' : 'new-password';
-    return (
-      <div className="relative">
-        <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-warm-taupe" />
-        <Input
-          id={id}
-          type={showPassword ? 'text' : 'password'}
-          placeholder={placeholder}
-          value={value}
-          onChange={(e) => handleInputChange(field, e.target.value)}
-          className="pl-10 pr-12 border-pale-clay-deep focus:border-burnt-peach focus:ring-burnt-peach/20 rounded-xl bg-clay-white h-12 no-password-reveal transition-all duration-200 text-left"
-          disabled={isLoading}
-          autoComplete={autoCompleteValue}
-          autoCorrect="off"
-          spellCheck={false}
-          data-lpignore="true"
-          data-1p-ignore="true"
-          data-bwignore="true"
-        />
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="absolute right-3 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-pale-clay-light rounded-lg transition-colors"
-          onClick={() => setShowPassword(!showPassword)}
-          disabled={isLoading}
-        >
-          {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-        </Button>
-      </div>
-    );
-  };
-
   return (
     <>
       {/* Scoped CSS to hide native password reveal/clear and autofill icons */}
@@ -364,7 +343,10 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
       </style>
       
       <Dialog open={isOpen} onOpenChange={handleClose}>
-        <DialogContent className="sm:max-w-md max-h-[85vh] overflow-y-auto scrollbar-hide border-pale-clay-deep bg-porcelain shadow-clay-strong rounded-2xl">
+        <DialogContent 
+          ref={dialogContentRef}
+          className="sm:max-w-md max-h-[85vh] overflow-y-auto scrollbar-hide border-pale-clay-deep bg-porcelain shadow-clay-strong rounded-2xl"
+        >
           <DialogHeader className="text-center pb-4">
             <div className="mx-auto w-14 h-14 gradient-primary rounded-2xl flex items-center justify-center mb-4 shadow-burnt-peach">
               <Sparkles className="h-7 w-7 text-white" />
@@ -420,7 +402,34 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
 
                 <div className="space-y-2">
                   <Label htmlFor="signin-password" className="text-warm-taupe font-medium">Palavra-passe</Label>
-                  {renderPasswordInput('signin-password', 'A sua palavra-passe', formData.password, 'password')}
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-warm-taupe" />
+                    <Input
+                      id="signin-password"
+                      type={showSignInPassword ? 'text' : 'password'}
+                      placeholder="A sua palavra-passe"
+                      value={formData.password}
+                      onChange={(e) => handleInputChange('password', e.target.value)}
+                      className="pl-10 pr-12 border-pale-clay-deep focus:border-burnt-peach focus:ring-burnt-peach/20 rounded-xl bg-clay-white h-12 no-password-reveal transition-all duration-200 text-left"
+                      disabled={isLoading}
+                      autoComplete="current-password"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-bwignore="true"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-pale-clay-light rounded-lg transition-colors"
+                      onClick={() => setShowSignInPassword(!showSignInPassword)}
+                      disabled={isLoading}
+                    >
+                      {showSignInPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </div>
 
                 <Button 
@@ -514,7 +523,34 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
 
                 <div className="space-y-2">
                   <Label htmlFor="signup-password" className="text-warm-taupe font-medium">Palavra-passe</Label>
-                  {renderPasswordInput('signup-password', 'Mínimo 8 caracteres', formData.password, 'password')}
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-warm-taupe" />
+                    <Input
+                      id="signup-password"
+                      type={showSignUpPassword ? 'text' : 'password'}
+                      placeholder="Mínimo 8 caracteres"
+                      value={formData.password}
+                      onChange={(e) => handleInputChange('password', e.target.value)}
+                      className="pl-10 pr-12 border-pale-clay-deep focus:border-burnt-peach focus:ring-burnt-peach/20 rounded-xl bg-clay-white h-12 no-password-reveal transition-all duration-200 text-left"
+                      disabled={isLoading}
+                      autoComplete="new-password"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-bwignore="true"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-pale-clay-light rounded-lg transition-colors"
+                      onClick={() => setShowSignUpPassword(!showSignUpPassword)}
+                      disabled={isLoading}
+                    >
+                      {showSignUpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
                   <p className="text-xs text-warm-taupe-light leading-relaxed text-center">
                     Deve conter: 1 maiúscula, 1 minúscula, 1 número e 1 caracter especial
                   </p>
@@ -522,7 +558,34 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
 
                 <div className="space-y-2">
                   <Label htmlFor="signup-confirm-password" className="text-warm-taupe font-medium">Confirmar Palavra-passe</Label>
-                  {renderPasswordInput('signup-confirm-password', 'Confirme a sua palavra-passe', formData.confirmPassword, 'confirmPassword')}
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-warm-taupe" />
+                    <Input
+                      id="signup-confirm-password"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      placeholder="Confirme a sua palavra-passe"
+                      value={formData.confirmPassword}
+                      onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                      className="pl-10 pr-12 border-pale-clay-deep focus:border-burnt-peach focus:ring-burnt-peach/20 rounded-xl bg-clay-white h-12 no-password-reveal transition-all duration-200 text-left"
+                      disabled={isLoading}
+                      autoComplete="new-password"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-bwignore="true"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-pale-clay-light rounded-lg transition-colors"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      disabled={isLoading}
+                    >
+                      {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="flex items-start space-x-3 justify-center">
