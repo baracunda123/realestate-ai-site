@@ -31,7 +31,6 @@ interface ResetPasswordRequest {
 
 interface ConfirmEmailRequest {
   token: string;
-  userId: string;
 }
 
 interface ChangePasswordRequest {
@@ -270,7 +269,15 @@ export async function refreshToken(): Promise<TokenResponse | null> {
  * Confirmar email
  */
 export async function confirmEmail(data: ConfirmEmailRequest): Promise<ConfirmEmailResponse> {
-  return await apiClient.post<ConfirmEmailResponse>('/api/auth/confirm-email', data);
+  try {
+    const response = await apiClient.get<ConfirmEmailResponse>(
+      `/api/auth/confirm-email/${encodeURIComponent(data.token)}`
+    );
+    return response;
+  } catch (error) {
+    logger.error('Erro ao confirmar email', error as Error);
+    throw error;
+  }
 }
 
 /**
@@ -281,7 +288,20 @@ export async function forgotPassword(data: ForgotPasswordRequest): Promise<Passw
 }
 
 /**
-  * Redefinir senha
+ * Reenviar email de confirmação
+ */
+export async function resendConfirmationEmail(email: string): Promise<{ message: string }> {
+  try {
+    const response = await apiClient.post<{ message: string }>('/api/auth/resend-confirmation', { email });
+    return response;
+  } catch (error) {
+    logger.error('Erro ao reenviar email de confirmação', error as Error);
+    throw error;
+  }
+}
+
+/**
+ * Redefinir senha
  */
 export async function resetPassword(data: ResetPasswordRequest): Promise<PasswordResetResponse> {
   return await apiClient.post<PasswordResetResponse>('/api/auth/reset-password', data);
@@ -345,13 +365,6 @@ export async function updateProfile(data: UpdateProfileRequest): Promise<UserPro
 }
 
 /**
- * Reenviar email de confirmação
- */
-export async function resendConfirmationEmail(): Promise<{ success: boolean; message: string }> {
-  return await apiClient.post<{ success: boolean; message: string }>('/api/auth/resend-confirmation');
-}
-
-/**
  * Obter sessões ativas do utilizador
  */
 export async function getActiveSessions(): Promise<Array<{
@@ -401,4 +414,4 @@ export async function deleteAccount(password: string): Promise<{ success: boolea
 }
 
 // Log quando o serviço carrega
-logger.info('Serviço de autenticação carregado e atualizado');
+logger.info('Serviço de autenticação carregado e atualizado');logger.info('Serviço de autenticação carregado e atualizado');

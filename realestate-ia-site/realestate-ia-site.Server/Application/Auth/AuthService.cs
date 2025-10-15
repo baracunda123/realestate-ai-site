@@ -363,9 +363,45 @@ public class AuthService
 
     private async Task SendEmailConfirmationAsync(User user, string token, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(user.Email)) return;
-        var link = $"{_config["App:BaseUrl"]}/api/Auth/confirm-email?userId={user.Id}&token={Uri.EscapeDataString(token)}";
-        await _emailService.SendTemplateEmailAsync("email-confirmation", user.Email, new { UserName = user.FullName, ConfirmationLink = link });
+        if (string.IsNullOrWhiteSpace(user.Email))
+        {
+            _logger.LogWarning("[Auth] Tentativa de envio de confirmação sem email userId={UserId}", user.Id);
+            return;
+        }
+
+        try
+        {
+            // Escapar corretamente o token para URL
+            var encodedToken = Uri.EscapeDataString(token);
+            
+            // URL aponta para o FRONTEND que irá validar via API
+            // Token é parte do path, não query string - mais limpo e seguro
+            var frontendUrl = _config["App:FrontendUrl"] ?? "http://localhost:5173";
+            var confirmLink = $"{frontendUrl}/confirm-email/{encodedToken}";
+            
+            _logger.LogInformation("[Auth] Enviando email de confirmação para={Email}", user.Email);
+            _logger.LogInformation("[Auth] Link de confirmação gerado (token como path parameter)");
+            
+            var emailSent = await _emailService.SendTemplateEmailAsync(
+                "email-confirmation", 
+                user.Email, 
+                new { UserName = user.FullName, ConfirmationLink = confirmLink },
+                ct
+            );
+
+            if (!emailSent)
+            {
+                _logger.LogError("[Auth] Falha ao enviar email de confirmação userId={UserId}", user.Id);
+            }
+            else
+            {
+                _logger.LogInformation("[Auth] Email de confirmação enviado com sucesso userId={UserId}", user.Id);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[Auth] Exceção ao enviar email de confirmação userId={UserId}", user.Id);
+        }
     }
 
     private static UserProfile MapToUserProfile(User user) => new()

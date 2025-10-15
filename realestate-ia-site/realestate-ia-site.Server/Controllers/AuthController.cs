@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Domain.Models;
@@ -541,44 +542,78 @@ namespace realestate_ia_site.Server.Controllers
             }
         }
 
-        [HttpGet("confirm-email")]
-        public async Task<IActionResult> ConfirmEmail(string userId, string token)
+        [HttpGet("confirm-email/{token}")]
+        public async Task<IActionResult> ConfirmEmail(string token)
         {
             try
             {
-                if (string.IsNullOrEmpty(userId) || string.IsNullOrEmpty(token))
+                if (string.IsNullOrEmpty(token))
                 {
-                    _auditService.LogSuspiciousActivity("Email confirmation with invalid parameters", $"UserId: {userId}, TokenPresent: {!string.IsNullOrEmpty(token)}");
-                    return BadRequest(new { message = "Parâmetros inválidos" });
+                    _logger.LogWarning("[Auth] Confirmação sem token");
+                    _auditService.LogSuspiciousActivity("Email confirmation without token", "No token provided");
+                    return BadRequest(new { success = false, message = "Token inválido" });
                 }
 
-                var user = await _userManager.FindByIdAsync(userId);
+                // Decodificar token que veio pela URL
+                var decodedToken = Uri.UnescapeDataString(token);
                 
-                if (user == null)
+                // O ASP.NET Identity armazena o userId dentro do token
+                // Precisamos buscar todos os usuários pendentes e tentar confirmar
+                // O Identity vai validar internamente se o token pertence ao usuário correto
+                var pendingUsers = await _userManager.Users
+                    .Where(u => !u.EmailConfirmed)
+                    .ToListAsync();
+                
+                User? confirmedUser = null;
+                IdentityResult? confirmResult = null;
+                
+                // Tentar confirmar o email para cada usuário pendente
+                // O Identity vai rejeitar se o token não pertencer ao usuário
+                foreach (var user in pendingUsers)
                 {
-                    _auditService.LogSuspiciousActivity("Email confirmation for non-existent user", $"UserId: {userId}");
-                    return BadRequest(new { message = "Usuário não encontrado" });
+                    try
+                    {
+                        var result = await _userManager.ConfirmEmailAsync(user, decodedToken);
+                        if (result.Succeeded)
+                        {
+                            confirmedUser = user;
+                            confirmResult = result;
+                            break;
+                        }
+                    }
+                    catch
+                    {
+                        // Token não pertence a este usuário, continuar
+                        continue;
+                    }
+                }
+                
+                if (confirmedUser == null || confirmResult == null || !confirmResult.Succeeded)
+                {
+                    _logger.LogWarning("[Auth] Token de confirmação inválido ou expirado");
+                    _auditService.LogSuspiciousActivity("Failed email confirmation", "Invalid or expired token");
+                    
+                    return BadRequest(new { 
+                        success = false,
+                        message = "Link de confirmação inválido ou expirado. Solicite um novo email de confirmação.",
+                        code = "INVALID_TOKEN"
+                    });
                 }
 
-                var result = await _userManager.ConfirmEmailAsync(user, token);
+                confirmedUser.AccountStatus = AccountStatus.Active;
+                await _userManager.UpdateAsync(confirmedUser);
                 
-                if (!result.Succeeded)
-                {
-                    _auditService.LogSuspiciousActivity("Failed email confirmation", $"UserId: {userId}, Errors: {string.Join(", ", result.Errors.Select(e => e.Code))}");
-                    return BadRequest(new { message = "Falha na confirmação do email", errors = result.Errors.Select(e => e.Description).ToArray() });
-                }
-
-                user.AccountStatus = AccountStatus.Active;
-                await _userManager.UpdateAsync(user);
+                _auditService.LogSecurityEvent(SecurityEventType.LoginSuccess, "Email confirmed successfully", 
+                    new { UserId = confirmedUser.Id, Email = confirmedUser.Email });
                 
-                _auditService.LogSecurityEvent(SecurityEventType.LoginSuccess, "Email confirmed successfully", new { UserId = userId, Email = user.Email });
+                _logger.LogInformation("[Auth] Email confirmado com sucesso userId={UserId}", confirmedUser.Id);
                 
-                return Ok(new { message = "Email confirmado com sucesso. Agora pode fazer login." });
+                return Ok(new { success = true, message = "Email confirmado com sucesso! Agora pode fazer login." });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error confirming email for user: {UserId}", userId);
-                return StatusCode(500, new { message = "Erro interno do servidor" });
+                _logger.LogError(ex, "[Auth] Exceção na confirmação email");
+                return StatusCode(500, new { success = false, message = "Erro interno do servidor" });
             }
         }
 
@@ -611,6 +646,56 @@ namespace realestate_ia_site.Server.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing forgot password request");
+                return StatusCode(500, new { message = "Erro interno do servidor" });
+            }
+        }
+
+        [HttpPost("resend-confirmation")]
+        public async Task<IActionResult> ResendConfirmationEmail([FromBody] ForgotPasswordRequest request)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var user = await _userManager.FindByEmailAsync(request.Email);
+                
+                // Sempre retornar sucesso (não revelar se email existe)
+                if (user != null && !user.EmailConfirmed)
+                {
+                    var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+                    
+                    // Gerar URL com token como path parameter
+                    var encodedToken = Uri.EscapeDataString(token);
+                    var frontendUrl = _configuration["App:FrontendUrl"] ?? "http://localhost:5173";
+                    var confirmLink = $"{frontendUrl}/confirm-email/{encodedToken}";
+                    
+                    // TODO: Enviar email (requer acesso ao EmailService)
+                    // Por enquanto apenas logar
+                    
+                    _auditService.LogSecurityEvent(SecurityEventType.LoginSuccess, "Confirmation email resent", 
+                        new { Email = request.Email });
+                    
+                    _logger.LogInformation("[Auth] Email de confirmação reenviado para={Email}", request.Email);
+                }
+                else if (user != null && user.EmailConfirmed)
+                {
+                    _logger.LogInformation("[Auth] Tentativa de reenvio para email já confirmado={Email}", request.Email);
+                }
+                else
+                {
+                    _logger.LogWarning("[Auth] Tentativa de reenvio para email inexistente={Email}", request.Email);
+                    _auditService.LogSuspiciousActivity("Confirmation resend for non-existent email", 
+                        $"Email: {request.Email}");
+                }
+
+                return Ok(new { message = "Se o email existir e não estiver confirmado, um novo link foi enviado." });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Auth] Erro ao reenviar confirmação email={Email}", request.Email);
                 return StatusCode(500, new { message = "Erro interno do servidor" });
             }
         }

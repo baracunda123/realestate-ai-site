@@ -1,4 +1,5 @@
 import { useState, useEffect, lazy, Suspense, useCallback, useMemo } from 'react';
+import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { Header } from './components/Header';
 import { PersonalArea } from './components/PersonalArea';
 import { Footer } from './components/Footer';
@@ -20,6 +21,7 @@ const SearchFilters = lazy(() => import('./components/SearchFilters').then(m => 
 const PropertyGrid = lazy(() => import('./components/PropertyGrid').then(m => ({ default: m.PropertyGrid })));
 const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
 const WelcomeScreen = lazy(() => import('./components/WelcomeScreen').then(m => ({ default: m.WelcomeScreen })));
+const EmailConfirmation = lazy(() => import('./components/EmailConfirmation'));
 
 // Loading components otimizados
 const LoadingSpinner = () => (
@@ -50,6 +52,8 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   
   // Navigation state
+  const location = useLocation();
+  const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<ViewType>('home');
   
   // AI state
@@ -238,34 +242,31 @@ export default function App() {
     }
   }, [user, alerts.length, signalRConnected, connectSignalR, disconnectSignalR]);
 
-  // Handle URL navigation
+  // Handle URL navigation - usando react-router
   useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash;
-      
-      if (hash === '#personal' && user) {
-        setCurrentView('personal');
-      } else {
-        setCurrentView('home');
-        if (hash && hash !== '#') {
-          window.location.hash = '';
-        }
-      }
-    };
-
-    window.addEventListener('hashchange', handleHashChange);
-    handleHashChange();
-
-    return () => window.removeEventListener('hashchange', handleHashChange);
-  }, [user]);
+    if (location.pathname === '/personal' && user) {
+      setCurrentView('personal');
+    } else if (location.pathname === '/' || location.pathname === '') {
+      setCurrentView('home');
+    }
+    
+    // Verificar se foi navegado com state para abrir modal de auth
+    const state = location.state as { openAuthModal?: boolean; defaultTab?: 'signin' | 'signup' } | null;
+    if (state?.openAuthModal) {
+      setAuthDefaultTab(state.defaultTab || 'signin');
+      setIsAuthModalOpen(true);
+      // Limpar o state para evitar reabrir o modal
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.pathname, location.state, user, navigate]);
 
   // Redirect to home if user logs out while in protected views
   useEffect(() => {
     if (!user && currentView === 'personal') {
       setCurrentView('home');
-      window.location.hash = '';
+      navigate('/');
     }
-  }, [user, currentView]);
+  }, [user, currentView, navigate]);
 
   // Optimized callbacks
   const resetToDefaults = useCallback(() => {
@@ -280,20 +281,20 @@ export default function App() {
   const navigateToPersonalArea = useCallback(() => {
     if (user) {
       setCurrentView('personal');
-      window.location.hash = '#personal';
+      navigate('/personal');
     } else {
       setAuthDefaultTab('signin');
       setIsAuthModalOpen(true);
     }
-  }, [user]);
+  }, [user, navigate]);
 
   const navigateToHome = useCallback(( reset: boolean = true ) => {
     if (reset) {
       resetToDefaults();
     }
     setCurrentView('home');
-    window.location.hash = '';
-  }, [resetToDefaults]);
+    navigate('/');
+  }, [resetToDefaults, navigate]);
 
   // Property handlers - usando API
   const toggleFavorite = useCallback(async (property: Property) => {
@@ -386,11 +387,11 @@ export default function App() {
     }
     setSearchQuery(query);
     setCurrentView('home');
-    window.location.hash = '';
+    navigate('/');
     toast.success('Pesquisa iniciada!', {
       description: `Pesquisando: "${query}"`,
     });
-  }, [user]);
+  }, [user, navigate]);
 
   const handleSubmitSearch = useCallback(async (query: string, filters?: SearchFiltersType) => {
     setAiLoading(true);
@@ -431,8 +432,10 @@ export default function App() {
         setSearchFilters(filters);
       }
       
-      if (currentView !== 'home') setCurrentView('home');
-      if (window.location.hash) window.location.hash = '';
+      if (currentView !== 'home') {
+        setCurrentView('home');
+        navigate('/');
+      }
       
       toast.error('Erro na pesquisa', {
         description: 'Tente novamente em alguns instantes.',
@@ -440,7 +443,7 @@ export default function App() {
     } finally {
       setAiLoading(false);
     }
-  }, [currentView]);
+  }, [currentView, navigate]);
 
   // Authentication handlers - otimizados
   const handleAuthSuccess = useCallback(async () => {
@@ -489,7 +492,7 @@ export default function App() {
       setCurrentView('home');
       resetToDefaults();
       setHasShownWelcomeToast(false);
-      window.location.hash = '';
+      navigate('/');
       
       toast.success('Logout realizado com sucesso!', {
         description: 'Até breve!',
@@ -505,7 +508,7 @@ export default function App() {
       setHasShownWelcomeToast(false);
       toast.error('Erro no logout, mas desconectado localmente.');
     }
-  }, [resetToDefaults, disconnectSignalR, signalRConnected]);
+  }, [resetToDefaults, disconnectSignalR, signalRConnected, navigate]);
 
   // Modal handlers - otimizados
   const openAuthModal = useCallback((tab: AuthTab = 'signin') => {
@@ -594,55 +597,83 @@ export default function App() {
       />
       
       <main className="flex-1 site-container py-8">
-        {currentView === 'personal' && user ? (
-          <PersonalArea
-            user={convertToUser(user)}
-            onNavigateToHome={navigateToHome}
-            onExecuteSearch={handleSubmitSearch}
-            favorites={favorites}
-            onToggleFavorite={toggleFavorite}
-            hasActiveSearch={!isDefaultState && searchResults !== null}
-            onCreatePriceAlert={handleCreatePriceAlert}
-            hasAlertForPropertyId={hasAlertForPropertyId}
-            alerts={alerts}
-            onDeleteAlert={handleDeleteAlert}
-            onUpdateAlert={handleUpdateAlert}
-            onUpdateProfile={handleUpdateProfile}
+        <Routes>
+          {/* Rota de confirmação de email - token como path parameter */}
+          <Route 
+            path="/confirm-email/:token" 
+            element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <EmailConfirmation />
+              </Suspense>
+            } 
           />
-        ) : showWelcomeScreen ? (
-          <Suspense fallback={<LoadingSpinner />}>
-            <WelcomeScreen
-              onExampleSearch={handleExampleSearch}
-              user={user ? convertToUser(user) : null}
-              onStartSignup={() => openAuthModal('signup')}
-            />
-          </Suspense>
-        ) : (
-          user && (
-            <Suspense fallback={< LoadingSpinner />}>
-              <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                <div className="lg:col-span-1 space-y-6">
-                  <SearchFilters
-                    filters={searchFilters}
-                    setFilters={setSearchFilters}
-                  />
+
+          {/* Rota de área pessoal */}
+          <Route 
+            path="/personal" 
+            element={
+              user ? (
+                <PersonalArea
+                  user={convertToUser(user)}
+                  onNavigateToHome={navigateToHome}
+                  onExecuteSearch={handleSubmitSearch}
+                  favorites={favorites}
+                  onToggleFavorite={toggleFavorite}
+                  hasActiveSearch={!isDefaultState && searchResults !== null}
+                  onCreatePriceAlert={handleCreatePriceAlert}
+                  hasAlertForPropertyId={hasAlertForPropertyId}
+                  alerts={alerts}
+                  onDeleteAlert={handleDeleteAlert}
+                  onUpdateAlert={handleUpdateAlert}
+                  onUpdateProfile={handleUpdateProfile}
+                />
+              ) : (
+                <div className="flex items-center justify-center p-8">
+                  <p className="text-muted-foreground">Por favor, faça login para acessar sua área pessoal.</p>
                 </div>
-                <div className="lg:col-span-3">
-                  <PropertyGrid
-                    filters={searchFilters}
-                    searchQuery={searchQuery}
-                    serverResults={searchResults || undefined}
-                    favorites={favorites}
-                    onToggleFavorite={toggleFavorite}
-                    onCreatePriceAlert={handleCreatePriceAlert}
-                    hasAlertForPropertyId={hasAlertForPropertyId}
-                    onPropertyView={handlePropertyView}
+              )
+            } 
+          />
+
+          {/* Rota principal */}
+          <Route 
+            path="/" 
+            element={
+              showWelcomeScreen ? (
+                <Suspense fallback={<LoadingSpinner />}>
+                  <WelcomeScreen
+                    onExampleSearch={handleExampleSearch}
+                    user={user ? convertToUser(user) : null}
+                    onStartSignup={() => openAuthModal('signup')}
                   />
-                </div>
-              </div>
-            </Suspense>
-          )
-        )}
+                </Suspense>
+              ) : user ? (
+                <Suspense fallback={< LoadingSpinner />}>
+                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                    <div className="lg:col-span-1 space-y-6">
+                      <SearchFilters
+                        filters={searchFilters}
+                        setFilters={setSearchFilters}
+                      />
+                    </div>
+                    <div className="lg:col-span-3">
+                      <PropertyGrid
+                        filters={searchFilters}
+                        searchQuery={searchQuery}
+                        serverResults={searchResults || undefined}
+                        favorites={favorites}
+                        onToggleFavorite={toggleFavorite}
+                        onCreatePriceAlert={handleCreatePriceAlert}
+                        hasAlertForPropertyId={hasAlertForPropertyId}
+                        onPropertyView={handlePropertyView}
+                      />
+                    </div>
+                  </div>
+                </Suspense>
+              ) : null
+            } 
+          />
+        </Routes>
       </main>
 
       <Footer />
