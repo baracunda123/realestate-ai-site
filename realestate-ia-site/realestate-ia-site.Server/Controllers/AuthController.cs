@@ -110,13 +110,16 @@ namespace realestate_ia_site.Server.Controllers
                     return BadRequest(result);
                 }
 
+                // Apenas definir cookie se tokens foram retornados (não será o caso para registro normal)
                 if (tokens != null)
                 {
                     SetRefreshCookie(tokens);
                     _auditService.LogSuccessfulLogin(result.User!.Id, result.User.Email);
+                    return Ok(AuthResult.SuccessResult(MaskRefresh(tokens), result.User!, result.Message ?? string.Empty));
                 }
 
-                return Ok(AuthResult.SuccessResult(tokens != null ? MaskRefresh(tokens) : new TokenResponse(), result.User!, result.Message ?? string.Empty));
+                // Registro bem-sucedido mas aguardando confirmação de email
+                return Ok(AuthResult.SuccessResult(new TokenResponse(), result.User!, result.Message ?? string.Empty));
             }
             catch (Exception ex)
             {

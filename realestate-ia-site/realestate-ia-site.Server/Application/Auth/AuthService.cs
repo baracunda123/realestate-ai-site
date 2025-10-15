@@ -60,11 +60,14 @@ public class AuthService
             return (AuthResult.ErrorResult(create.Errors.Select(e => e.Description).ToArray()), null);
         }
 
+        // Enviar email de confirmação
         var emailToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
         await SendEmailConfirmationAsync(user, emailToken, ct);
-        var tokens = await GenerateTokensAsync(user, ct);
-        _logger.LogInformation("[Auth] Registo efetuado utilizador={UserId} email={Email}", user.Id, user.Email);
-        return (AuthResult.SuccessResult(tokens, MapToUserProfile(user), "Registo realizado com sucesso. Verifique o email."), tokens);
+        
+        _logger.LogInformation("[Auth] Registo efetuado utilizador={UserId} email={Email} - aguardando confirmação de email", user.Id, user.Email);
+        
+        // NÃO retornar tokens - utilizador deve confirmar email primeiro
+        return (AuthResult.SuccessResult(new TokenResponse(), MapToUserProfile(user), "Registo realizado com sucesso. Por favor, verifique o seu email para confirmar a conta."), null);
     }
 
     public async Task<(AuthResult result, TokenResponse? tokens)> LoginAsync(LoginRequest request, string? ip, CancellationToken ct = default)
@@ -361,7 +364,7 @@ public class AuthService
     private async Task SendEmailConfirmationAsync(User user, string token, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(user.Email)) return;
-        var link = $"{_config["App:BaseUrl"]}/confirm-email?userId={user.Id}&token={Uri.EscapeDataString(token)}";
+        var link = $"{_config["App:BaseUrl"]}/api/Auth/confirm-email?userId={user.Id}&token={Uri.EscapeDataString(token)}";
         await _emailService.SendTemplateEmailAsync("email-confirmation", user.Email, new { UserName = user.FullName, ConfirmationLink = link });
     }
 

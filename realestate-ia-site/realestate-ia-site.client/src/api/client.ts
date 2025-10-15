@@ -231,10 +231,17 @@ class SecureTokenManager {
     }
     
     // Check if we have auth state - this means we should try to refresh
+    // APENAS permitir se temos um token válido OU se podemos tentar refresh
     const authState = localStorage.getItem(this.AUTH_STATE_KEY);
-    if (authState === 'authenticated' && this.canAttemptRefresh()) {
-      logger.info('Estado autenticado detectado sem token em memória - válido para refresh');
-      return true;
+    if (authState === 'authenticated' && this.accessTokenMemory === null) {
+      // Temos estado autenticado mas nenhum token - verificar se podemos tentar refresh
+      if (this.canAttemptRefresh()) {
+        logger.info('Estado autenticado sem token - válido para tentativa de refresh');
+        return true;
+      } else {
+        logger.warn('Estado autenticado sem token e sem possibilidade de refresh - considerado não autenticado');
+        return false;
+      }
     }
     
     return false;

@@ -15,7 +15,7 @@ FORMATO: Respostas concisas e focadas no valor para o utilizador.
 REGRAS FUNDAMENTAIS:
 - Só responde com base nos dados fornecidos
 - Não inventes informações
-- Usa PROP[X] apenas quando necessário para referir propriedades específicas
+- Usa PROPRIEDADE[X] apenas quando necessário para referir propriedades específicas
 - Mantém respostas em 2-3 parágrafos máximo";
 
         /// <summary>
@@ -35,7 +35,7 @@ Exemplos:
 $@"TAREFA ESPECÍFICA: Responder ao utilizador sobre {propertyCount} propriedades.
 {(isRefinement ? "CONTEXTO: O utilizador está a refinar resultados anteriores." : "")}
 - Sintetiza padrões, não listes todas as propriedades
-- Destaca 1-2 exemplos relevantes usando PROP[X]
+- Destaca 1-2 exemplos relevantes usando PROPRIEDADE[X]
 - Oferece próximos passos úteis";
 
         /// <summary>
