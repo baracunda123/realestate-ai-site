@@ -270,8 +270,9 @@ export async function refreshToken(): Promise<TokenResponse | null> {
  */
 export async function confirmEmail(data: ConfirmEmailRequest): Promise<ConfirmEmailResponse> {
   try {
+    // Token já vem URL-safe do backend (Base64UrlEncode), não precisa encode adicional
     const response = await apiClient.get<ConfirmEmailResponse>(
-      `/api/auth/confirm-email/${encodeURIComponent(data.token)}`
+      `/api/auth/confirm-email/${data.token}`
     );
     return response;
   } catch (error) {

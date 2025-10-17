@@ -547,6 +547,8 @@ namespace realestate_ia_site.Server.Controllers
         {
             try
             {
+                _logger.LogInformation("[Auth] Tentativa de confirmação de email - Token recebido (comprimento: {Length})", token?.Length ?? 0);
+                
                 if (string.IsNullOrEmpty(token))
                 {
                     _logger.LogWarning("[Auth] Confirmação sem token");
@@ -554,43 +556,71 @@ namespace realestate_ia_site.Server.Controllers
                     return BadRequest(new { success = false, message = "Token inválido" });
                 }
 
-                // Decodificar token que veio pela URL
-                var decodedToken = Uri.UnescapeDataString(token);
-                
-                // O ASP.NET Identity armazena o userId dentro do token
-                // Precisamos buscar todos os usuários pendentes e tentar confirmar
-                // O Identity vai validar internamente se o token pertence ao usuário correto
+                // Decodificar usando WebEncoders (biblioteca oficial Microsoft)
+                // Muito mais simples que replace manual
+                string decodedToken;
+                try
+                {
+                    var tokenBytes = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlDecode(token);
+                    decodedToken = System.Text.Encoding.UTF8.GetString(tokenBytes);
+                    
+                    _logger.LogInformation("[Auth] Token decodificado com sucesso (comprimento: {Length})", decodedToken.Length);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "[Auth] Falha ao decodificar token");
+                    return BadRequest(new { 
+                        success = false, 
+                        message = "Token inválido ou corrompido",
+                        code = "INVALID_TOKEN" 
+                    });
+                }
+
+                // Buscar apenas usuários não confirmados criados nas últimas 24 horas
+                var cutoffDate = DateTime.UtcNow.AddHours(-24);
                 var pendingUsers = await _userManager.Users
-                    .Where(u => !u.EmailConfirmed)
+                    .Where(u => !u.EmailConfirmed && u.CreatedAt > cutoffDate)
+                    .OrderByDescending(u => u.CreatedAt)
                     .ToListAsync();
+                
+                _logger.LogInformation("[Auth] Encontrados {Count} utilizadores pendentes de confirmação nas últimas 24h", pendingUsers.Count);
                 
                 User? confirmedUser = null;
                 IdentityResult? confirmResult = null;
                 
                 // Tentar confirmar o email para cada usuário pendente
-                // O Identity vai rejeitar se o token não pertencer ao usuário
                 foreach (var user in pendingUsers)
                 {
                     try
                     {
+                        _logger.LogDebug("[Auth] Tentando confirmar para userId={UserId} email={Email}", user.Id, user.Email);
+                        
                         var result = await _userManager.ConfirmEmailAsync(user, decodedToken);
+                        
                         if (result.Succeeded)
                         {
                             confirmedUser = user;
                             confirmResult = result;
+                            _logger.LogInformation("[Auth] Confirmação bem-sucedida para userId={UserId}", user.Id);
                             break;
                         }
+                        else
+                        {
+                            _logger.LogDebug("[Auth] Confirmação falhou para userId={UserId}: {Errors}", 
+                                user.Id, string.Join(", ", result.Errors.Select(e => e.Code)));
+                        }
                     }
-                    catch
+                    catch (Exception ex)
                     {
                         // Token não pertence a este usuário, continuar
+                        _logger.LogDebug("[Auth] Exceção ao tentar confirmar userId={UserId}: {Message}", user.Id, ex.Message);
                         continue;
                     }
                 }
                 
                 if (confirmedUser == null || confirmResult == null || !confirmResult.Succeeded)
                 {
-                    _logger.LogWarning("[Auth] Token de confirmação inválido ou expirado");
+                    _logger.LogWarning("[Auth] Token de confirmação inválido ou expirado - Nenhum match encontrado");
                     _auditService.LogSuspiciousActivity("Failed email confirmation", "Invalid or expired token");
                     
                     return BadRequest(new { 
@@ -600,6 +630,7 @@ namespace realestate_ia_site.Server.Controllers
                     });
                 }
 
+                // Atualizar status da conta
                 confirmedUser.AccountStatus = AccountStatus.Active;
                 await _userManager.UpdateAsync(confirmedUser);
                 
