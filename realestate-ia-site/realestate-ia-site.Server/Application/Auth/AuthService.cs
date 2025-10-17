@@ -371,18 +371,20 @@ public class AuthService
 
         try
         {
-            // O token do ASP.NET Identity já é Base64, mas contém caracteres problemáticos para URLs (+, /, =)
-            // Converter para Base64 URL-safe (RFC 4648): + -> -, / -> _, remover =
-            var urlSafeToken = token
-                .Replace('+', '-')
-                .Replace('/', '_')
-                .Replace("=", "");
+            // Usar WebEncoders (biblioteca oficial Microsoft) para encoding URL-safe
+            // Muito mais simples e seguro que replace manual
+            var urlSafeToken = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(
+                System.Text.Encoding.UTF8.GetBytes(token)
+            );
             
             _logger.LogInformation("[Auth] Token gerado - Original length: {OrigLen}, URL-safe length: {SafeLen}", 
                 token.Length, urlSafeToken.Length);
             
             // URL aponta para o FRONTEND que irá validar via API
-            var frontendUrl = _config["App:FrontendUrl"] ?? "http://localhost:5173";
+            var frontendUrl = Environment.GetEnvironmentVariable("APP_FRONTEND_URL") 
+                           ?? _config["App:FrontendUrl"] 
+                           ?? "http://localhost:5173";
+            
             var confirmLink = $"{frontendUrl}/confirm-email/{urlSafeToken}";
             
             _logger.LogInformation("[Auth] Enviando email de confirmação para={Email} frontendUrl={FrontendUrl}", 
