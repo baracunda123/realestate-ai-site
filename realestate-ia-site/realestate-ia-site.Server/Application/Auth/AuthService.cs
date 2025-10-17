@@ -371,16 +371,22 @@ public class AuthService
 
         try
         {
-            // Escapar corretamente o token para URL
-            var encodedToken = Uri.EscapeDataString(token);
+            // O token do ASP.NET Identity já é Base64, mas contém caracteres problemáticos para URLs (+, /, =)
+            // Converter para Base64 URL-safe (RFC 4648): + -> -, / -> _, remover =
+            var urlSafeToken = token
+                .Replace('+', '-')
+                .Replace('/', '_')
+                .Replace("=", "");
+            
+            _logger.LogInformation("[Auth] Token gerado - Original length: {OrigLen}, URL-safe length: {SafeLen}", 
+                token.Length, urlSafeToken.Length);
             
             // URL aponta para o FRONTEND que irá validar via API
-            // Token é parte do path, não query string - mais limpo e seguro
             var frontendUrl = _config["App:FrontendUrl"] ?? "http://localhost:5173";
-            var confirmLink = $"{frontendUrl}/confirm-email/{encodedToken}";
+            var confirmLink = $"{frontendUrl}/confirm-email/{urlSafeToken}";
             
-            _logger.LogInformation("[Auth] Enviando email de confirmação para={Email}", user.Email);
-            _logger.LogInformation("[Auth] Link de confirmação gerado (token como path parameter)");
+            _logger.LogInformation("[Auth] Enviando email de confirmação para={Email} frontendUrl={FrontendUrl}", 
+                user.Email, frontendUrl);
             
             var emailSent = await _emailService.SendTemplateEmailAsync(
                 "email-confirmation", 
