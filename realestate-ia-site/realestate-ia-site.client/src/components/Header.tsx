@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Home, User, MessageCircle } from 'lucide-react';
+import { Search, Home, User, MessageCircle, Send } from 'lucide-react';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { UserProfileDropdown } from './UserProfileDropdown';
@@ -190,6 +190,20 @@ export function Header({
               }`}
             />
           </div>
+
+          {/* Search Submit Button - Mobile Only */}
+          {user && (
+            <Button
+              size="icon"
+              variant="ghost"
+              className="md:hidden h-9 w-9 sm:h-11 sm:w-11 p-0 text-clay-secondary hover:text-title hover:bg-clay-soft border border-clay-medium rounded-lg sm:rounded-xl relative flex-shrink-0"
+              onClick={handleSubmitSearch}
+              aria-label="Pesquisar"
+              title="Pesquisar"
+            >
+              <Send className="h-3.5 w-3.5 sm:h-4.5 sm:w-4.5" />
+            </Button>
+          )}
 
           {/* Chat Icon Button */}
           {user && (
