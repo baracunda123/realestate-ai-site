@@ -10,8 +10,8 @@ interface NotificationBellProps {
 }
 
 /**
- * Componente de sininho para notifica��es na barra de navega��o
- * Mostra um badge com a contagem de notifica��es n�o lidas
+ * Componente de sininho para notificações na barra de navegação
+ * Mostra um badge com a contagem de notificações não lidas
  */
 export function NotificationBell({ 
   onClick, 
@@ -25,11 +25,11 @@ export function NotificationBell({
       variant="ghost"
       size="icon"
       onClick={onClick}
-      className={`relative ${className}`}
+      className={`relative p-0 h-9 w-9 sm:h-10 sm:w-10 ${className}`}
       disabled={isLoading}
-      title={`${unreadCount > 0 ? `${unreadCount} notifica��o${unreadCount > 1 ? '�es' : ''} n�o lida${unreadCount > 1 ? 's' : ''}` : 'Notifica��es'}`}
+      title={`${unreadCount > 0 ? `${unreadCount} notificação${unreadCount > 1 ? 'ões' : ''} não lida${unreadCount > 1 ? 's' : ''}` : 'Notificações'}`}
     >
-      <Bell className="h-5 w-5" />
+      <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
       {unreadCount > 0 && (
         <Badge 
           className="absolute -top-1 -right-1 bg-burnt-peach text-white text-xs h-5 min-w-5 flex items-center justify-center rounded-full border-2 border-white p-0"

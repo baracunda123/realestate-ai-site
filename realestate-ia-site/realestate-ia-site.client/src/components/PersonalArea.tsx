@@ -214,7 +214,7 @@ export function PersonalArea({
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6 space-y-6">
+    <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
       {/* Botão Voltar aos Resultados - apenas se houver pesquisa ativa */}
       {hasActiveSearch && (
         <div className="back-button-container flex justify-start">
@@ -233,20 +233,20 @@ export function PersonalArea({
       <PersonalAreaHeader user={user} />
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-6 h-14">
-          <TabsTrigger value="dashboard" className="w-full flex items-center space-x-2">
+        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 h-auto sm:h-14 gap-1 p-1">
+          <TabsTrigger value="dashboard" className="w-full flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-2 py-2 sm:py-0 text-xs sm:text-sm">
             <BarChart3 className="h-4 w-4" />
             <span className="hidden sm:inline">Dashboard</span>
           </TabsTrigger>
-          <TabsTrigger value="favorites" className="w-full flex items-center space-x-2">
+          <TabsTrigger value="favorites" className="w-full flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-2 py-2 sm:py-0 text-xs sm:text-sm">
             <Heart className="h-4 w-4" />
             <span className="hidden sm:inline">Favoritos</span>
           </TabsTrigger>
-          <TabsTrigger value="searches" className="w-full flex items-center space-x-2">
+          <TabsTrigger value="searches" className="w-full flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-2 py-2 sm:py-0 text-xs sm:text-sm">
             <Bookmark className="h-4 w-4" />
             <span className="hidden sm:inline">Pesquisas</span>
           </TabsTrigger>
-          <TabsTrigger value="alerts" className="w-full flex items-center space-x-2 relative">
+          <TabsTrigger value="alerts" className="w-full flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-2 py-2 sm:py-0 text-xs sm:text-sm relative">
             <Bell className="h-4 w-4" />
             <span className="hidden sm:inline">Alertas</span>
             {unreadCount > 0 && (
@@ -255,11 +255,11 @@ export function PersonalArea({
               </span>
             )}
           </TabsTrigger>
-          <TabsTrigger value="history" className="w-full flex items-center space-x-2">
+          <TabsTrigger value="history" className="w-full flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-2 py-2 sm:py-0 text-xs sm:text-sm">
             <Clock className="h-4 w-4" />
             <span className="hidden sm:inline">Histórico</span>
           </TabsTrigger>
-          <TabsTrigger value="settings" className="w-full flex items-center space-x-2">
+          <TabsTrigger value="settings" className="w-full flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-2 py-2 sm:py-0 text-xs sm:text-sm">
             <Settings className="h-4 w-4" />
             <span className="hidden sm:inline">Configurações</span>
           </TabsTrigger>

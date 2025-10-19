@@ -293,6 +293,86 @@
         background: linear-gradient(135deg, var(--porcelain) 0%, var(--porcelain-soft) 50%, var(--pale-clay-light) 100%);
         background-attachment: fixed;
     }
+    
+    /* Otimização para performance e smoothness */
+    * {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+    
+    /* Hardware acceleration para transições suaves */
+    button, a, [role="button"] {
+        transform: translateZ(0);
+        backface-visibility: hidden;
+        perspective: 1000px;
+    }
+}
+
+/* Custom Scrollbar Utilities */
+@layer utilities {
+  /* Scrollbar oculta */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Scrollbar fina e estilizada */
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  
+  /* Cores do scrollbar thumb */
+  .scrollbar-thumb-pale-clay-deep::-webkit-scrollbar-thumb {
+    background-color: var(--pale-clay-deep);
+    border-radius: 3px;
+  }
+  
+  .scrollbar-thumb-pale-clay-darker::-webkit-scrollbar-thumb {
+    background-color: var(--pale-clay-darker);
+    border-radius: 3px;
+  }
+  
+  /* Cor do track do scrollbar */
+  .scrollbar-track-transparent::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+  
+  /* Hover effect no scrollbar */
+  .hover\:scrollbar-thumb-pale-clay-darker:hover::-webkit-scrollbar-thumb {
+    background-color: var(--pale-clay-darker);
+  }
+  
+  /* Prevent overflow from shadows and effects */
+  .contain-paint {
+    contain: paint;
+  }
+  
+  /* Inset focus ring to prevent overflow */
+  .focus-ring-inset:focus-visible {
+    outline: none;
+    box-shadow: inset 0 0 0 2px var(--burnt-peach);
+  }
+  
+  /* Hardware acceleration utilities */
+  .gpu-accelerate {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000px;
+  }
+  
+  /* Smooth transitions */
+  .smooth-transition {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
 }
 
 /**
@@ -300,9 +380,7 @@
  */
 @layer base {
     :where(:not(:has([class*=" text-"]), :not(:has([class^="text-"])))) {
-        h1
-
-{
+        h1 {
     font-size: var(--text-2xl);
     font-weight: var(--font-weight-medium);
     line-height: 1.4;
@@ -363,6 +441,7 @@ input {
 a {
     color: var(--burnt-peach); /* Links - contraste AA */
     text-decoration: none;
+    transition: color 0.2s ease;
 }
 
     a:hover {
@@ -374,6 +453,7 @@ a {
 
 html {
     font-size: var(--font-size);
+    scroll-behavior: smooth;
 }
 
 /* Layout container responsivo, centralizado e consistente */
@@ -618,73 +698,6 @@ html {
     --tw-ring-color: var(--cocoa-taupe); /* Focus ring secundário */
     --tw-ring-opacity: 0.4;
 }
-
-/* Estados Active - Feedback Tátil */
-.active\:bg-burnt-deep:active {
-    background-color: var(--burnt-peach-dark);
-}
-
-.active\:bg-cocoa-deep:active {
-    background-color: var(--cocoa-taupe-dark);
-}
-
-/* Classes Utilitárias Clay - Hierarquia de Texto Acessível */
-.text-clay-primary {
-    color: var(--deep-mocha); /* Títulos, métricas - contraste AA+ */
-}
-
-.text-clay-secondary {
-    color: var(--warm-taupe); /* Descrições, subtítulos - contraste AA */
-}
-
-.text-clay-muted {
-    color: var(--warm-taupe-light); /* Texto terciário - uso limitado */
-}
-
-.text-clay-soft {
-    color: var(--warm-taupe-lighter); /* Apenas para elementos decorativos */
-}
-
-.text-burnt-primary {
-    color: var(--burnt-peach); /* Links, acentos - contraste AA */
-}
-
-.text-burnt-strong {
-    color: var(--burnt-peach-deep); /* Links hover, acentos fortes */
-}
-
-.text-cocoa-primary {
-    color: var(--cocoa-taupe); /* Elementos secundários */
-}
-
-.text-cocoa-strong {
-    color: var(--cocoa-taupe-deep); /* Elementos secundários hover */
-}
-
-/* Classes Específicas para Contraste Acessível */
-.text-title {
-    color: var(--deep-mocha); /* Títulos principais - Contraste AAA */
-}
-
-.text-description {
-    color: var(--warm-taupe); /* Descrições - Contraste AA */
-}
-
-.text-metric {
-    color: var(--deep-mocha); /* Preços, números - Contraste AAA */
-}
-
-.text-label {
-    color: var(--warm-taupe); /* Labels - Contraste AA */
-}
-
-.text-link {
-    color: var(--burnt-peach); /* Links - Contraste AA */
-}
-
-    .text-link:hover {
-        color: var(--burnt-peach-deep); /* Links hover - Contraste AA+ */
-    }
 
 /* Estilos para botão de navegação "Voltar aos Resultados" */
 .back-to-results-btn {
@@ -1064,208 +1077,85 @@ html {
   transform: translateY(-1px);
 }
 
-/* Efeitos do card principal que afetam os botões */
+/* Efeitos do card principal com transições otimizadas */
 .property-card {
-  transition: all 0.3s ease;
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
+}
+
+.property-card:hover {
+    transform: translateY(-2px) translateZ(0);
+    box-shadow: 0 8px 25px rgba(60, 47, 43, 0.12), 0 4px 10px rgba(60, 47, 43, 0.08);
 }
 
 .property-card:hover .btn-price-alert:not(.active),
 .property-card:hover .btn-favorite:not(.active) {
-  background: rgba(248, 246, 243, 0.8);
-  transform: scale(1.02);
+    background: rgba(248, 246, 243, 0.8);
+    transform: scale(1.02) translateZ(0);
 }
 
-.property-card:hover .btn-price-alert:not(.active) .bell-icon,
-.property-card:hover .btn-favorite:not(.active) .heart-icon {
-  color: var(--cocoa-taupe);
-}
-
-/* Melhorar o efeito do card principal */
-.property-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(60, 47, 43, 0.12), 0 4px 10px rgba(60, 47, 43, 0.08);
-}
-
-.property-card:hover .property-badge {
-  transform: translateY(-1px);
-}
-
-/* Efeito sutil nos ícones de localização e calendário */
-.property-info-icon {
-  transition: all 0.3s ease;
-}
-
-.property-card:hover .property-info-icon {
-  color: var(--burnt-peach);
-  transform: scale(1.1);
-}
-
-/* Adicionar estilos específicos para o botão "Ver mais" */
-.btn-ver-mais {
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.btn-ver-mais::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(229, 154, 121, 0.2), transparent);
-  transition: left 0.5s;
-}
-
-.btn-ver-mais:hover::before {
-  left: 100%;
-}
-
-.btn-ver-mais:hover {
-  background: linear-gradient(135deg, rgba(229, 154, 121, 0.1) 0%, rgba(229, 154, 121, 0.05) 100%);
-  border-color: var(--burnt-peach);
-  color: var(--burnt-peach);
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(229, 154, 121, 0.2);
-}
-
-.btn-ver-mais:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(229, 154, 121, 0.15);
-}
-
-/* Estilos para o botão de alerta de preço (sininho) */
-.btn-price-alert {
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border-radius: 50%;
-}
-
-.btn-price-alert::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle, rgba(229, 154, 121, 0.15), transparent 70%);
-  opacity: 0;
-  transform: scale(0.8);
-  transition: all 0.3s ease;
-}
-
-.btn-price-alert:hover::before {
-  opacity: 1;
-  transform: scale(1.2);
+/* Botões com transições mais suaves */
+.btn-price-alert, .btn-favorite {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    will-change: transform;
 }
 
 .btn-price-alert:hover {
-  background: rgba(229, 154, 121, 0.15);
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 6px 12px rgba(229, 154, 121, 0.25);
-}
-
-.btn-price-alert:hover .bell-icon {
-  color: var(--burnt-peach);
-  animation: bellRing 0.6s ease-in-out;
-}
-
-.btn-price-alert.active {
-  background: rgba(229, 154, 121, 0.2);
-  color: var(--burnt-peach);
-}
-
-.btn-price-alert.active .bell-icon {
-  color: var(--burnt-peach);
-  fill: currentColor;
-}
-
-.btn-price-alert:active {
-  transform: translateY(0) scale(1);
-  box-shadow: 0 2px 6px rgba(229, 154, 121, 0.2);
-}
-
-/* Estilos para o botão de favoritos (coração) */
-.btn-favorite {
-  position: relative;
-  overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  border-radius: 50%;
-}
-
-.btn-favorite::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: radial-gradient(circle, rgba(229, 154, 121, 0.15), transparent 70%);
-  opacity: 0;
-  transform: scale(0.8);
-  transition: all 0.3s ease;
-}
-
-.btn-favorite:hover::before {
-  opacity: 1;
-  transform: scale(1.2);
+    background: rgba(229, 154, 121, 0.15);
+    transform: translateY(-2px) scale(1.05) translateZ(0);
+    box-shadow: 0 6px 12px rgba(229, 154, 121, 0.25);
 }
 
 .btn-favorite:hover {
-  background: rgba(229, 154, 121, 0.15);
-  transform: translateY(-2px) scale(1.05);
-  box-shadow: 0 6px 12px rgba(229, 154, 121, 0.25);
+    background: rgba(229, 154, 121, 0.15);
+    transform: translateY(-2px) scale(1.05) translateZ(0);
+    box-shadow: 0 6px 12px rgba(229, 154, 121, 0.25);
 }
 
-.btn-favorite:hover .heart-icon {
-  color: var(--burnt-peach);
-  animation: heartBeat 0.8s ease-in-out;
-}
-
-.btn-favorite.active {
-  background: rgba(229, 154, 121, 0.2);
-  color: var(--burnt-peach);
-}
-
-.btn-favorite.active .heart-icon {
-  color: var(--burnt-peach);
-  fill: currentColor;
-  animation: heartPulse 1.5s ease-in-out infinite;
-}
-
-.btn-favorite:active {
-  transform: translateY(0) scale(1);
-  box-shadow: 0 2px 6px rgba(229, 154, 121, 0.2);
-}
-
-/* Animações personalizadas */
+/* Animações mais suaves */
 @keyframes bellRing {
-  0%, 100% { transform: rotate(0deg); }
-  10%, 30%, 50%, 70%, 90% { transform: rotate(-10deg); }
-  20%, 40%, 60%, 80% { transform: rotate(10deg); }
+  0%, 100% { transform: rotate(0deg) translateZ(0); }
+  10%, 30%, 50%, 70%, 90% { transform: rotate(-10deg) translateZ(0); }
+  20%, 40%, 60%, 80% { transform: rotate(10deg) translateZ(0); }
 }
 
 @keyframes heartBeat {
-  0%, 100% { transform: scale(1); }
-  25% { transform: scale(1.1); }
-  50% { transform: scale(1.05); }
-  75% { transform: scale(1.15); }
+  0%, 100% { transform: scale(1) translateZ(0); }
+  25% { transform: scale(1.1) translateZ(0); }
+  50% { transform: scale(1.05) translateZ(0); }
+  75% { transform: scale(1.15) translateZ(0); }
 }
 
 @keyframes heartPulse {
-  0%, 100% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.05); opacity: 0.8; }
+  0%, 100% { transform: scale(1) translateZ(0); opacity: 1; }
+  50% { transform: scale(1.05) translateZ(0); opacity: 0.8; }
+}
+
+/* Otimizações para responsividade mobile */
+@media (max-width: 640px) {
+    :root {
+        --font-size: 13px;
+    }
+    
+    .property-card {
+        transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+    }
+    
+    /* Reduzir animações em mobile para melhor performance */
+    .btn-price-alert, .btn-favorite {
+        transition: background 0.15s ease-out;
+    }
+    
+    .property-card:hover {
+        transform: none;
+    }
 }
 
 /* Estados de foco para acessibilidade */
 .btn-price-alert:focus-visible,
 .btn-favorite:focus-visible {
   outline: none;
-  ring: 2px solid rgba(229, 154, 121, 0.4);
-  ring-offset: 2px;
-  ring-offset-color: var(--pure-white);
+  box-shadow: 0 0 0 2px rgba(229, 154, 121, 0.4);
 }
 
 /* Efeitos especiais para estados ativos */

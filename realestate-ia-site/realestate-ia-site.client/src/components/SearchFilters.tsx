@@ -57,6 +57,7 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
 
   const handleManualPriceKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
+      e.preventDefault();
       applyManualPrices();
     }
   };
@@ -64,6 +65,18 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
   const resetManualPrices = () => {
     setManualPrices({ min: '', max: '' });
     updateFilter('priceRange', [0, 2000000]);
+  };
+
+  const handleResetFilters = () => {
+    setFilters({
+      priceRange: [0, 2000000],
+      bedrooms: null,
+      bathrooms: null,
+      propertyType: '',
+      location: '',
+      sortBy: 'price'
+    });
+    setManualPrices({ min: '', max: '' });
   };
 
   return (
@@ -83,30 +96,34 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
           
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1">
-              <Label className="text-xs text-warm-taupe">Preço Mínimo</Label>
+              <Label htmlFor="price-min" className="text-xs text-warm-taupe">Preço Mínimo</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-warm-taupe">€</span>
                 <Input
+                  id="price-min"
                   placeholder="0"
                   value={manualPrices.min}
                   onChange={(e) => handleManualPriceChange('min', e.target.value)}
                   onKeyPress={handleManualPriceKeyPress}
                   onBlur={applyManualPrices}
                   className="pl-8 bg-pure-white border border-pale-clay-deep text-deep-mocha placeholder:text-warm-taupe-light hover:border-burnt-peach focus:border-burnt-peach transition-colors text-sm"
+                  aria-label="Preço mínimo"
                 />
               </div>
             </div>
             <div className="space-y-1">
-              <Label className="text-xs text-warm-taupe">Preço Máximo</Label>
+              <Label htmlFor="price-max" className="text-xs text-warm-taupe">Preço Máximo</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-sm text-warm-taupe">€</span>
                 <Input
+                  id="price-max"
                   placeholder="2.000.000"
                   value={manualPrices.max}
                   onChange={(e) => handleManualPriceChange('max', e.target.value)}
                   onKeyPress={handleManualPriceKeyPress}
                   onBlur={applyManualPrices}
                   className="pl-8 bg-pure-white border border-pale-clay-deep text-deep-mocha placeholder:text-warm-taupe-light hover:border-burnt-peach focus:border-burnt-peach transition-colors text-sm"
+                  aria-label="Preço máximo"
                 />
               </div>
             </div>
@@ -117,6 +134,7 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
               size="sm"
               onClick={applyManualPrices}
               className="bg-burnt-peach hover:bg-burnt-peach-light text-deep-mocha font-semibold border-0 text-xs px-3 py-1 h-7 shadow-burnt-peach"
+              aria-label="Aplicar preços"
             >
               Aplicar
             </Button>
@@ -125,6 +143,7 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
               variant="outline"
               onClick={resetManualPrices}
               className="border border-pale-clay-deep bg-pure-white hover:bg-pale-clay-light text-warm-taupe text-xs px-3 py-1 h-7"
+              aria-label="Limpar preços"
             >
               Limpar
             </Button>
@@ -145,9 +164,16 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
 
         {/* Property Type */}
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-deep-mocha">Tipo de Propriedade</Label>
-          <Select value={filters.propertyType || 'any'} onValueChange={(value) => updateFilter('propertyType', value === 'any' ? '' : value)}>
-            <SelectTrigger className="border border-pale-clay-deep bg-pure-white text-deep-mocha hover:border-burnt-peach transition-colors">
+          <Label htmlFor="property-type" className="text-sm font-semibold text-deep-mocha">Tipo de Propriedade</Label>
+          <Select 
+            value={filters.propertyType || 'any'} 
+            onValueChange={(value) => updateFilter('propertyType', value === 'any' ? '' : value)}
+          >
+            <SelectTrigger 
+              id="property-type"
+              className="border border-pale-clay-deep bg-pure-white text-deep-mocha hover:border-burnt-peach transition-colors"
+              aria-label="Tipo de propriedade"
+            >
               <SelectValue placeholder="Qualquer tipo" />
             </SelectTrigger>
             <SelectContent>
@@ -175,6 +201,8 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
                     ? 'bg-burnt-peach text-deep-mocha font-semibold shadow-burnt-peach border-0' 
                     : 'border border-pale-clay-deep bg-pure-white text-warm-taupe hover:border-burnt-peach hover:bg-pale-clay-light'
                 }`}
+                aria-label={num ? `${num} ou mais quartos` : 'Todos os quartos'}
+                aria-pressed={filters.bedrooms === num}
               >
                 {num ? `${num}+` : 'Todos'}
               </Button>
@@ -197,6 +225,8 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
                     ? 'bg-burnt-peach text-deep-mocha font-semibold shadow-burnt-peach border-0' 
                     : 'border border-pale-clay-deep bg-pure-white text-warm-taupe hover:border-burnt-peach hover:bg-pale-clay-light'
                 }`}
+                aria-label={num ? `${num} ou mais casas de banho` : 'Todas as casas de banho'}
+                aria-pressed={filters.bathrooms === num}
               >
                 {num ? `${num}+` : 'Todos'}
               </Button>
@@ -206,20 +236,29 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
 
         {/* Location */}
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-deep-mocha">Localização</Label>
+          <Label htmlFor="location" className="text-sm font-semibold text-deep-mocha">Localização</Label>
           <Input
+            id="location"
             placeholder="Digite cidade, distrito ou código postal"
             value={filters.location || ''}
             onChange={(e) => updateFilter('location', e.target.value)}
             className="border border-pale-clay-deep bg-pure-white text-deep-mocha placeholder:text-warm-taupe-light hover:border-burnt-peach focus:border-burnt-peach transition-colors"
+            aria-label="Localização"
           />
         </div>
 
         {/* Sort By */}
         <div className="space-y-2">
-          <Label className="text-sm font-semibold text-deep-mocha">Ordenar Por</Label>
-          <Select value={filters.sortBy || 'price'} onValueChange={(value) => updateFilter('sortBy', value as SearchFiltersType['sortBy'])}>
-            <SelectTrigger className="border border-pale-clay-deep bg-pure-white text-deep-mocha hover:border-burnt-peach transition-colors">
+          <Label htmlFor="sort-by" className="text-sm font-semibold text-deep-mocha">Ordenar Por</Label>
+          <Select 
+            value={filters.sortBy || 'price'} 
+            onValueChange={(value) => updateFilter('sortBy', value as SearchFiltersType['sortBy'])}
+          >
+            <SelectTrigger 
+              id="sort-by"
+              className="border border-pale-clay-deep bg-pure-white text-deep-mocha hover:border-burnt-peach transition-colors"
+              aria-label="Ordenar por"
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -236,17 +275,8 @@ export function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
         <Button 
           variant="outline" 
           className="w-full bg-pure-white border border-pale-clay-deep text-warm-taupe hover:border-burnt-peach hover:bg-pale-clay-light transition-all duration-200"
-          onClick={() => {
-            setFilters({
-              priceRange: [0, 2000000],
-              bedrooms: null,
-              bathrooms: null,
-              propertyType: '',
-              location: '',
-              sortBy: 'price'
-            });
-            setManualPrices({ min: '', max: '' });
-          }}
+          onClick={handleResetFilters}
+          aria-label="Limpar todos os filtros"
         >
           <RotateCcw className="h-4 w-4 mr-2" />
           Limpar Filtros

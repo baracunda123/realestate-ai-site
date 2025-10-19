@@ -117,13 +117,13 @@ function PropertyCardComponent({
 
   return (
     <Card 
-      className="property-card overflow-hidden hover:shadow-clay-medium transition-all duration-300 group border border-clay-medium hover:border-clay-strong bg-pure-white"
+      className="property-card overflow-hidden hover:shadow-clay-medium transition-all duration-300 group border border-clay-medium hover:border-clay-strong bg-pure-white gpu-accelerate"
     >
-      <CardContent className="p-3">
+      <CardContent className="p-3 sm:p-4">
         <div className="space-y-2">
           {/* Header section with title, type, price and action buttons */}
-          <div className="flex items-start justify-between">
-            <div className="flex-1">
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-2">
+            <div className="flex-1 w-full sm:w-auto">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <Badge className={`property-badge ${getPropertyTypeColor(safePropertyType)} text-xs font-medium border shadow-clay-soft py-0.5 px-1.5`}>
                   {getPropertyTypeName(safePropertyType)}
@@ -141,13 +141,13 @@ function PropertyCardComponent({
               </div>
               <h3 className="font-semibold text-base text-title line-clamp-1 mb-0.5">{safeTitle}</h3>
               <div className="flex items-center text-xs text-clay-secondary">
-                <MapPin className="property-info-icon h-3 w-3 mr-1 text-clay-secondary" />
-                {property.location}
+                <MapPin className="property-info-icon h-3 w-3 mr-1 text-clay-secondary flex-shrink-0" />
+                <span className="truncate">{property.location}</span>
               </div>
             </div>
             
             {/* Action buttons */}
-            <div className="flex items-center space-x-1 ml-2">
+            <div className="flex items-center space-x-1 ml-0 sm:ml-2">
               {/* Price Alert Button */}
               <Button
                 variant="ghost"
@@ -183,9 +183,9 @@ function PropertyCardComponent({
           </div>
           
           {/* Property details and footer in one row */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
             {/* Property details section */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
               <div className="flex items-center space-x-1.5 text-clay-secondary">
                 <div className="property-detail-icon w-6 h-6 bg-pale-clay rounded flex items-center justify-center">
                   <Bed className="icon h-3 w-3 text-cocoa-primary" />
@@ -218,9 +218,9 @@ function PropertyCardComponent({
             </div>
             
             {/* Footer section */}
-            <div className="flex items-center gap-3 text-xs text-clay-secondary">
+            <div className="flex items-center gap-2 sm:gap-3 text-xs text-clay-secondary w-full sm:w-auto justify-between sm:justify-end">
               <div className="flex items-center">
-                <Calendar className="property-info-icon h-3 w-3 mr-1" />
+                <Calendar className="property-info-icon h-3 w-3 mr-1 flex-shrink-0" />
                 {property.yearBuilt}
               </div>
               <div className="text-sm text-burnt-primary font-semibold">
