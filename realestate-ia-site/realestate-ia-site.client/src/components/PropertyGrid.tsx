@@ -243,22 +243,13 @@ export function PropertyGrid({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Results Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <h2 className="text-xl font-medium text-foreground">
-            {filteredAndRankedProperties.length} {filteredAndRankedProperties.length === 1 ? 'Propriedade Encontrada' : 'Propriedades Encontradas'}
+    <div className="space-y-4 sm:space-y-6">
+      {/* Results Header - responsive */}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
+          <h2 className="text-base sm:text-lg md:text-xl font-medium text-foreground">
+            {filteredAndRankedProperties.length} {filteredAndRankedProperties.length === 1 ? 'Propriedade' : 'Propriedades'}
           </h2>
-        </div>
-        
-        <div className="flex items-center space-x-3">
-          {filters.sortBy && (
-            <div className="flex items-center space-x-1 text-xs text-muted-foreground">
-              <TrendingUp className="h-3 w-3" />
-              <span>{getSortingLabel()}</span>
-            </div>
-          )}
           
           {canSaveSearch && (
             <Dialog open={isSaveDialogOpen} onOpenChange={setIsSaveDialogOpen}>
@@ -267,42 +258,43 @@ export function PropertyGrid({
                   size="sm" 
                   variant="outline"
                   onClick={openSaveDialog}
-                  className="text-xs"
+                  className="text-xs sm:text-sm w-full sm:w-auto smooth-transition"
                 >
-                  <Bookmark className="h-3 w-3 mr-1" />
+                  <Bookmark className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1.5 flex-shrink-0" />
                   Guardar Pesquisa
                 </Button>
               </DialogTrigger>
-              <DialogContent className="sm:max-w-md">
+              <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto mx-4 sm:mx-auto w-[calc(100%-2rem)] sm:w-full">
                 <DialogHeader>
-                  <DialogTitle className="flex items-center space-x-2">
-                    <BookmarkCheck className="h-4 w-4" />
+                  <DialogTitle className="flex items-center space-x-2 text-sm sm:text-base">
+                    <BookmarkCheck className="h-4 w-4 flex-shrink-0" />
                     <span>Guardar Pesquisa</span>
                   </DialogTitle>
-                  <DialogDescription>
+                  <DialogDescription className="text-xs sm:text-sm">
                     Guarde esta pesquisa para acompanhar novos resultados e receber notificações.
                   </DialogDescription>
                 </DialogHeader>
                 
                 <div className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="searchName">Nome da pesquisa</Label>
+                    <Label htmlFor="searchName" className="text-xs sm:text-sm">Nome da pesquisa</Label>
                     <Input
                       id="searchName"
                       value={saveSearchName}
                       onChange={(e) => setSaveSearchName(e.target.value)}
                       placeholder="Ex: Apartamentos no Porto"
                       maxLength={100}
+                      className="text-xs sm:text-sm h-9 sm:h-10"
                     />
                   </div>
                   
-                  <div className="bg-muted p-3 rounded-lg space-y-1 text-sm">
+                  <div className="bg-muted p-3 rounded-lg space-y-1 text-xs sm:text-sm">
                     <p className="font-medium text-foreground">Critérios da pesquisa:</p>
                     {searchQuery && (
-                      <p className="text-muted-foreground">• Termo: "{searchQuery}"</p>
+                      <p className="text-muted-foreground break-words">• Termo: "{searchQuery}"</p>
                     )}
                     {filters.location && (
-                      <p className="text-muted-foreground">• Localização: {filters.location}</p>
+                      <p className="text-muted-foreground break-words">• Localização: {filters.location}</p>
                     )}
                     {filters.propertyType && filters.propertyType !== 'any' && (
                       <p className="text-muted-foreground">• Tipo: {filters.propertyType}</p>
@@ -314,7 +306,7 @@ export function PropertyGrid({
                       <p className="text-muted-foreground">• Casas de banho: {filters.bathrooms}+</p>
                     )}
                     {(filters.priceRange[0] > 0 || filters.priceRange[1] < 2000000) && (
-                      <p className="text-muted-foreground">
+                      <p className="text-muted-foreground break-words">
                         • Preço: €{filters.priceRange[0].toLocaleString()} - €{filters.priceRange[1].toLocaleString()}
                       </p>
                     )}
@@ -322,17 +314,19 @@ export function PropertyGrid({
                   </div>
                 </div>
                 
-                <DialogFooter>
+                <DialogFooter className="flex-col sm:flex-row gap-2">
                   <Button
                     variant="outline"
                     onClick={() => setIsSaveDialogOpen(false)}
                     disabled={isSaving}
+                    className="w-full sm:w-auto text-xs sm:text-sm h-9 sm:h-10 smooth-transition"
                   >
                     Cancelar
                   </Button>
                   <Button
                     onClick={handleSaveSearch}
                     disabled={isSaving || !saveSearchName.trim()}
+                    className="w-full sm:w-auto text-xs sm:text-sm h-9 sm:h-10 smooth-transition"
                   >
                     {isSaving ? 'A guardar...' : 'Guardar Pesquisa'}
                   </Button>
@@ -341,10 +335,18 @@ export function PropertyGrid({
             </Dialog>
           )}
         </div>
+        
+        {/* Sorting indicator */}
+        {filters.sortBy && (
+          <div className="flex items-center space-x-1.5 text-xs text-muted-foreground">
+            <TrendingUp className="h-3 w-3 flex-shrink-0" />
+            <span className="truncate">{getSortingLabel()}</span>
+          </div>
+        )}
       </div>
       
       {/* Properties List */}
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {filteredAndRankedProperties.map((property) => (
           <div key={property.id} className="relative">
             <PropertyCard
@@ -359,15 +361,16 @@ export function PropertyGrid({
         ))}
       </div>
       
+      {/* Empty state */}
       {filteredAndRankedProperties.length === 0 && (
-        <div className="text-center py-12">
-          <div className="w-16 h-16 bg-pale-clay-light rounded-full flex items-center justify-center mx-auto mb-4">
-            <Sparkles className="h-8 w-8 text-cocoa-taupe" />
+        <div className="text-center py-8 sm:py-12 px-4">
+          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-pale-clay-light rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
+            <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-cocoa-taupe" />
           </div>
-          <p className="text-foreground mb-2">Nenhuma propriedade corresponde aos seus critérios</p>
-          <p className="text-sm text-muted-foreground">Tente ajustar os seus filtros ou termos de procura</p>
+          <p className="text-foreground mb-2 text-sm sm:text-base">Nenhuma propriedade encontrada</p>
+          <p className="text-xs sm:text-sm text-muted-foreground px-4">Tente ajustar os seus filtros ou termos de procura</p>
           {searchQuery && (
-            <p className="text-sm text-burnt-peach mt-2">
+            <p className="text-xs sm:text-sm text-burnt-peach mt-2 px-4">
               Experimente procurar por características específicas como localização ou tipo de imóvel
             </p>
           )}

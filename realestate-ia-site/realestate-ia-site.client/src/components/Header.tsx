@@ -173,10 +173,10 @@ export function Header({
     if (currentView !== 'home') return null;
 
     return (
-      <div className="flex-1 max-w-2xl mx-8 relative">
-        <div className="flex items-center gap-2">
-          <div className="relative flex-1">
-            <Search className={`absolute left-4 top-1/2 transform -translate-y-1/2 h-4 w-4 ${
+      <div className="flex-1 max-w-2xl mx-1 sm:mx-4 md:mx-8 relative">
+        <div className="flex items-center gap-1 sm:gap-2">
+          <div className="relative flex-1 min-w-0">
+            <Search className={`absolute left-2 sm:left-3 md:left-4 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 ${
               user ? 'text-clay-secondary' : 'text-clay-secondary/50'
             }`} />
             <Input
@@ -185,7 +185,7 @@ export function Header({
               onChange={(e) => user && setLocalInput(e.target.value)}
               onKeyDown={handleKeyDown}
               disabled={!user}
-              className={`pl-12 pr-4 h-12 text-base border-clay-medium focus:border-primary rounded-xl bg-input-background shadow-sm ${
+              className={`pl-7 sm:pl-10 md:pl-12 pr-1.5 sm:pr-3 md:pr-4 h-9 sm:h-11 md:h-12 text-xs sm:text-sm md:text-base border-clay-medium focus:border-primary rounded-lg sm:rounded-xl bg-input-background shadow-sm ${
                 !user ? 'opacity-60 cursor-not-allowed' : ''
               }`}
             />
@@ -196,12 +196,12 @@ export function Header({
             <Button
               size="icon"
               variant="ghost"
-              className="h-12 w-12 text-clay-secondary hover:text-title hover:bg-clay-soft border border-clay-medium rounded-xl relative"
+              className="h-9 w-9 sm:h-11 sm:w-11 md:h-12 md:w-12 p-0 text-clay-secondary hover:text-title hover:bg-clay-soft border border-clay-medium rounded-lg sm:rounded-xl relative flex-shrink-0"
               onClick={handleToggleAI}
               aria-label="Abrir chat IA"
               title="Chat IA"
             >
-              <MessageCircle className="h-5 w-5" />
+              <MessageCircle className="h-3.5 w-3.5 sm:h-4.5 sm:w-4.5 md:h-5 md:w-5" />
             </Button>
           )}
         </div>
@@ -240,17 +240,18 @@ export function Header({
       };
 
       return (
-          <div className="flex items-center space-x-2">
-              {currentView === 'home' && (< Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleNavigateToPersonal}
-                  className={"shidden md:flex hover:bg-clay-soft text-clay-secondary hover:text-title bg-clay-soft text-title" }
-                  >
-                  <User className="h-4 w-4 mr-2" />
-                  Minha Área
-              </Button>
-              )}
+        <div className="flex items-center space-x-1 sm:space-x-2">
+          {currentView === 'home' && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleNavigateToPersonal}
+              className="hidden md:flex hover:bg-clay-soft text-clay-secondary hover:text-title bg-clay-soft text-title px-3 py-2"
+            >
+              <User className="h-4 w-4 mr-2" />
+              Minha Área
+            </Button>
+          )}
           
           {user && (
             <NotificationBell 
@@ -273,7 +274,7 @@ export function Header({
     return (
       <Button 
         onClick={onOpenAuth}
-        className="bg-primary hover:bg-primary/90 text-white shadow-burnt-peach border-0"
+        className="bg-primary hover:bg-primary/90 text-white shadow-burnt-peach border-0 text-xs sm:text-sm px-3 sm:px-4 h-9 sm:h-10"
       >
         Iniciar Sessão
       </Button>
@@ -283,26 +284,25 @@ export function Header({
   return (
     <header className="bg-card/95 backdrop-blur-lg border-b border-clay-medium sticky top-0 z-50 shadow-clay-soft">
       <div className="site-container relative">
-        <div className="flex items-center justify-between h-16">
+        <div className="flex items-center justify-between h-14 sm:h-16 gap-1 sm:gap-2">
           {/* Logo */}
-          <div className="flex items-center space-x-3">
-            <Button
-              variant="ghost"
-              className="flex items-center space-x-3 p-2 hover:bg-clay-soft"
+          <div className="flex items-center flex-shrink-0">
+            <div
+              className="flex items-center space-x-1.5 sm:space-x-2 md:space-x-3 p-1 sm:p-1.5 md:p-2 cursor-pointer"
               onClick={handleNavigateToHome}
             >
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-burnt-peach">
-                <Home className="h-5 w-5 text-white" />
+              <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-primary rounded-lg md:rounded-xl flex items-center justify-center shadow-burnt-peach">
+                <Home className="h-4 w-4 sm:h-4.5 sm:w-4.5 md:h-5 md:w-5 text-white" />
               </div>
-              <div>
-                <span className="text-xl font-semibold text-title">
+              <div className="hidden sm:block">
+                <span className="text-base sm:text-lg md:text-xl font-semibold text-title">
                   ResideAI
                 </span>
-                <div className="text-xs text-clay-secondary -mt-0.5">
+                <div className="text-xs text-clay-secondary -mt-0.5 hidden md:block">
                   Encontre seu lar ideal
                 </div>
               </div>
-            </Button>
+            </div>
           </div>
 
           {/* Dynamic Content Area */}
@@ -310,7 +310,7 @@ export function Header({
           {renderViewTitle()}
 
           {/* Right Side Controls */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-3 flex-shrink-0">
             {/* User Section */}
             {renderUserSection()}
           </div>

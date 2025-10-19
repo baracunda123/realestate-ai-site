@@ -14,11 +14,6 @@ interface WelcomeScreenProps {
 
 export function WelcomeScreen({ user }: WelcomeScreenProps) {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
-  /*const [counters, setCounters] = useState({
-    properties: 0,
-    users: 0,
-    matches: 0
-  });*/
 
   // Pesquisas exemplo para utilizadores com sessão iniciada (apenas explicativas)
   const exampleSearches = [
@@ -43,12 +38,6 @@ export function WelcomeScreen({ user }: WelcomeScreenProps) {
       icon: Heart
     }
   ];
-
- /* const stats = [
-    { label: "Propriedades", value: 15420, icon: Home, target: 15420 },
-    { label: "Usuários Ativos", value: 8350, icon: Users, target: 8350 },
-    { label: "Matches IA", value: 12890, icon: TrendingUp, target: 12890 }
-  ];*/
 
   const badgeItems = [
     { icon: Sparkles, text: "Powered by ChatGPT" }
@@ -85,34 +74,6 @@ export function WelcomeScreen({ user }: WelcomeScreenProps) {
     window.addEventListener('mousemove', handleMouseMove);
     return () => window.removeEventListener('mousemove', handleMouseMove);
   }, []);
-
-  // Animated counters
-  /*useEffect(() => {
-    const duration = 2000; // 2 seconds
-    const steps = 60;
-    const stepTime = duration / steps;
-
-    stats.forEach((stat, index) => {
-      let currentStep = 0;
-      const increment = stat.target / steps;
-      
-      const timer = setInterval(() => {
-        if (currentStep < steps) {
-          setCounters(prev => ({
-            ...prev,
-            [index === 0 ? 'properties' : index === 1 ? 'users' : 'matches']: Math.floor(increment * currentStep)
-          }));
-          currentStep++;
-        } else {
-          setCounters(prev => ({
-            ...prev,
-            [index === 0 ? 'properties' : index === 1 ? 'users' : 'matches']: stat.target
-          }));
-          clearInterval(timer);
-        }
-      }, stepTime);
-    });
-  }, []);*/
 
   const parallaxOffset = {
     x: (mousePosition.x - window.innerWidth / 2) * 0.005,
@@ -195,7 +156,7 @@ export function WelcomeScreen({ user }: WelcomeScreenProps) {
         <Card className="border-0 shadow-none bg-transparent relative overflow-hidden">
           <CardContent className="p-8 text-center relative z-10">
             <motion.div 
-              className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-6 relative"
+              className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-6 relative gpu-accelerate"
               style={{
                 background: 'linear-gradient(135deg, var(--burnt-peach-light) 0%, var(--burnt-peach) 100%)',
                 boxShadow: '0 4px 12px rgba(229, 154, 121, 0.2)'
@@ -253,8 +214,9 @@ export function WelcomeScreen({ user }: WelcomeScreenProps) {
               {badgeItems.map((badge) => (
                 <motion.div
                   key={badge.text}
+                  className="gpu-accelerate"
                   whileHover={{ scale: 1.03, y: -1 }}
-                  transition={{ type: "spring", stiffness: 300 }}
+                  transition={{ duration: 0.15 }}
                 >
                   <Badge 
                     className="cursor-default px-3 py-2 text-sm font-normal"
@@ -270,39 +232,6 @@ export function WelcomeScreen({ user }: WelcomeScreenProps) {
                 </motion.div>
               ))}
             </motion.div>
-
-            {/* Animated Stats */}
-                      {/*<motion.div
-              className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl mx-auto mb-6"
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.4 }}
-            >
-              {stats.map((stat, index) => {
-                const counterValue = index === 0 ? counters.properties : index === 1 ? counters.users : counters.matches;
-                return (
-                  <motion.div
-                    key={stat.label}
-                    className="text-center p-3 rounded-xl"
-                    style={{ backgroundColor: 'var(--porcelain-soft)' }}
-                    whileHover={{ scale: 1.02 }}
-                    transition={{ type: "spring", stiffness: 300 }}
-                  >
-                    <div className="flex items-center justify-center mb-2">
-                      <stat.icon className="h-4 w-4 mr-2" style={{ color: 'var(--burnt-peach)' }} />
-                      <motion.span
-                        className="text-xl font-medium"
-                        style={{ color: 'var(--deep-mocha)' }}
-                        key={counterValue}
-                      >
-                        {counterValue.toLocaleString()}
-                      </motion.span>
-                    </div>
-                    <span className="text-sm" style={{ color: 'var(--warm-taupe)' }}>{stat.label}</span>
-                  </motion.div>
-                );
-              })}
-            </motion.div>*/}
           </CardContent>
         </Card>
       </motion.div>
@@ -326,55 +255,67 @@ export function WelcomeScreen({ user }: WelcomeScreenProps) {
             <motion.div
               key={`step-${step.title}-${index}`}
               variants={cardVariants}
-              className="group"
+              className="group gpu-accelerate"
             >
               <motion.div
-                className="relative p-4 rounded-2xl border transition-all duration-300"
+                className="relative p-4 rounded-2xl border gpu-accelerate"
                 style={{
                   backgroundColor: 'var(--porcelain-soft)',
                   borderColor: 'var(--pale-clay-medium)',
-                  boxShadow: '0 2px 8px rgba(60, 47, 43, 0.04)'
+                  boxShadow: '0 2px 8px rgba(60, 47, 43, 0.04)',
+                  willChange: 'transform, box-shadow'
                 }}
                 whileHover={{ 
                   y: -3,
                   boxShadow: "0 6px 20px rgba(60, 47, 43, 0.08)"
                 }}
-                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                transition={{ 
+                  duration: 0.15,
+                  ease: "easeOut"
+                }}
               >
                 {/* Step Number */}
                 <motion.div 
-                  className="absolute -top-2 -left-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium"
+                  className="absolute -top-2 -left-2 w-6 h-6 rounded-full flex items-center justify-center text-xs font-medium gpu-accelerate"
                   style={{
                     backgroundColor: 'var(--burnt-peach)',
                     color: 'white',
-                    boxShadow: '0 2px 6px rgba(229, 154, 121, 0.3)'
+                    boxShadow: '0 2px 6px rgba(229, 154, 121, 0.3)',
+                    willChange: 'transform'
                   }}
-                  whileHover={{ scale: 1.1 }}
-                  transition={{ duration: 0.2 }}
+                  whileHover={{ 
+                    scale: 1.1
+                  }}
+                  transition={{ duration: 0.15 }}
                 >
                   {index + 1}
                 </motion.div>
 
                 {/* Icon Container */}
                 <motion.div 
-                  className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 mx-auto relative overflow-hidden"
-                  style={{ backgroundColor: 'var(--pale-clay-light)' }}
+                  className="w-12 h-12 rounded-xl flex items-center justify-center mb-3 mx-auto relative overflow-hidden gpu-accelerate"
+                  style={{ 
+                    backgroundColor: 'var(--pale-clay-light)',
+                    willChange: 'transform, background-color'
+                  }}
                   whileHover={{ 
                     scale: 1.05,
-                    backgroundColor: 'var(--burnt-peach-lighter)',
+                    backgroundColor: 'var(--burnt-peach-lighter)'
                   }}
-                  transition={{ duration: 0.3 }}
+                  transition={{ duration: 0.15 }}
                 >
                   <motion.div
-                    className="absolute inset-0 opacity-0 group-hover:opacity-20 transition-opacity duration-300"
+                    className="absolute inset-0 opacity-0 group-hover:opacity-20"
                     style={{
-                      background: `linear-gradient(135deg, var(--burnt-peach-light) 0%, var(--burnt-peach) 100%)`
+                      background: `linear-gradient(135deg, var(--burnt-peach-light) 0%, var(--burnt-peach) 100%)`,
+                      transition: 'opacity 0.15s ease-out'
                     }}
                   />
                   <step.icon 
-                    className="h-6 w-6 relative z-10 transition-colors duration-300" 
+                    className="h-6 w-6 relative z-10" 
                     style={{ 
                       color: 'var(--cocoa-taupe)',
+                      transition: 'color 0.15s ease-out'
                     }} 
                   />
                 </motion.div>
@@ -419,7 +360,7 @@ export function WelcomeScreen({ user }: WelcomeScreenProps) {
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center space-x-2 text-base">
                 <motion.div 
-                  className="w-5 h-5 rounded-lg flex items-center justify-center"
+                  className="w-5 h-5 rounded-lg flex items-center justify-center gpu-accelerate"
                   style={{ backgroundColor: 'var(--burnt-peach-lighter)' }}
                   whileHover={{ rotate: 180 }}
                   transition={{ duration: 0.3 }}
@@ -443,27 +384,34 @@ export function WelcomeScreen({ user }: WelcomeScreenProps) {
                 {exampleSearches.map((search, index) => (
                   <motion.div
                     key={`search-${search.text}-${index}`}
+                    className="gpu-accelerate"
                     initial={{ opacity: 0, x: -12 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 1 + index * 0.05, duration: 0.3 }}
-                    className="flex items-center space-x-3 p-3 rounded-lg"
-                    style={{
-                      backgroundColor: 'var(--porcelain-soft)',
-                      border: '1px solid var(--pale-clay-medium)'
-                    }}
                   >
-                    <motion.div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center"
-                      style={{ backgroundColor: 'var(--pale-clay-light)' }}
-                      whileHover={{ 
-                        scale: 1.05,
-                        backgroundColor: 'var(--burnt-peach-lighter)',
+                    <div
+                      className="flex items-center space-x-3 p-3 rounded-lg"
+                      style={{
+                        backgroundColor: 'var(--porcelain-soft)',
+                        border: '1px solid var(--pale-clay-medium)'
                       }}
-                      transition={{ duration: 0.2 }}
                     >
-                      <search.icon className="h-3.5 w-3.5" style={{ color: 'var(--cocoa-taupe)' }} />
-                    </motion.div>
-                    <span className="text-sm font-normal" style={{ color: 'var(--deep-mocha-light)' }}>{search.text}</span>
+                      <motion.div
+                        className="w-8 h-8 rounded-lg flex items-center justify-center gpu-accelerate"
+                        style={{ 
+                          backgroundColor: 'var(--pale-clay-light)',
+                          willChange: 'transform, background-color'
+                        }}
+                        whileHover={{ 
+                          scale: 1.05,
+                          backgroundColor: 'var(--burnt-peach-lighter)'
+                        }}
+                        transition={{ duration: 0.15 }}
+                      >
+                        <search.icon className="h-3.5 w-3.5" style={{ color: 'var(--cocoa-taupe)' }} />
+                      </motion.div>
+                      <span className="text-sm font-normal" style={{ color: 'var(--deep-mocha-light)' }}>{search.text}</span>
+                    </div>
                   </motion.div>
                 ))}
               </div>

@@ -123,7 +123,7 @@ export function AIResponseBox({
               ? 'bg-pale-clay text-deep-mocha' 
               : 'bg-pure-white border border-pale-clay-deep text-warm-taupe'
           }`}>
-            <div className="text-sm leading-relaxed whitespace-pre-wrap">
+            <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
               {message.content}
             </div>
             <div className={`text-xs mt-1 text-clay-secondary`}>
@@ -137,6 +137,7 @@ export function AIResponseBox({
 
   const hasHistory = localHistory.length > 0;
   const showConversationMode = hasHistory;
+  const hasContent = hasHistory || loading || error || text;
 
   return (
     <div 
@@ -146,12 +147,12 @@ export function AIResponseBox({
       <Card className="border border-pale-clay-deep bg-pure-white shadow-clay-deep overflow-hidden">
         <CardContent className="p-4">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 rounded-md bg-burnt-peach flex items-center justify-center shadow-burnt-peach">
+            <div className="w-7 h-7 rounded-md bg-burnt-peach flex items-center justify-center shadow-burnt-peach flex-shrink-0">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
             <div className="text-sm text-deep-mocha font-medium">Resposta da IA</div>
             {loading && (
-              <Badge className="bg-porcelain text-cocoa-taupe border-0">
+              <Badge className="bg-porcelain text-cocoa-taupe border-0 flex-shrink-0">
                 <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                 a pensar...
               </Badge>
@@ -161,7 +162,7 @@ export function AIResponseBox({
           {showConversationMode ? (
             <div 
               ref={conversationContainerRef}
-              className="max-h-96 overflow-auto pr-1"
+              className={`max-h-96 ${hasContent ? 'overflow-y-auto' : 'overflow-hidden'} pr-1 scrollbar-thin scrollbar-thumb-pale-clay-deep scrollbar-track-transparent hover:scrollbar-thumb-pale-clay-darker`}
             >
               <div className="space-y-1">
                 {localHistory.map(renderMessage)}
@@ -182,7 +183,7 @@ export function AIResponseBox({
                   <div className="mb-4 mr-4">
                     <div className="flex gap-3 justify-start">
                       <div className="max-w-[85%] rounded-lg p-3 bg-pure-white border border-pale-clay-deep">
-                        <div className="text-sm text-error-strong">
+                        <div className="text-sm text-error-strong break-words">
                           {error}
                         </div>
                       </div>
@@ -194,9 +195,9 @@ export function AIResponseBox({
               </div>
             </div>
           ) : (
-            <div className="text-sm text-warm-taupe leading-relaxed whitespace-pre-wrap max-h-48 overflow-auto pr-1">
+            <div className={`text-sm text-warm-taupe leading-relaxed whitespace-pre-wrap break-words max-h-48 ${hasContent ? 'overflow-y-auto' : 'overflow-hidden'} pr-1 scrollbar-thin scrollbar-thumb-pale-clay-deep scrollbar-track-transparent hover:scrollbar-thumb-pale-clay-darker`}>
               {error ? (
-                <div className="text-error-strong">{error}</div>
+                <div className="text-error-strong break-words">{error}</div>
               ) : text ? (
                 text
               ) : loading ? (

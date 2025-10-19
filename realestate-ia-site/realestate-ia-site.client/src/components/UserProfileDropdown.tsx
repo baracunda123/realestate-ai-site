@@ -53,15 +53,15 @@ export function UserProfileDropdown({ user, onLogout, onNavigateToPersonal }: Us
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="flex items-center space-x-2 hover:bg-pale-clay-light">
-          <Avatar className="h-8 w-8 border-2 border-pale-clay-deep">
+        <Button variant="ghost" className="flex items-center space-x-2 p-1 sm:p-1.5 h-auto hover:bg-pale-clay-light rounded-full">
+          <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border-2 border-pale-clay-deep">
             <AvatarImage src={user.avatar} alt={displayName} />
             <AvatarFallback className="bg-pale-clay text-deep-mocha text-sm font-medium">
               {userInitials}
             </AvatarFallback>
           </Avatar>
-          <div className="hidden md:flex items-center space-x-1">
-            <span className="text-deep-mocha">{displayName}</span>
+          <div className="hidden md:flex items-center space-x-1 pr-1">
+            <span className="text-deep-mocha text-sm">{displayName}</span>
             <ChevronDown className="h-3 w-3 text-warm-taupe" />
           </div>
         </Button>
