@@ -72,7 +72,7 @@ namespace realestate_ia_site.Server.Controllers
                 Secure = true,
                 SameSite = sameSite,
                 Expires = tokens.ExpiresAt.AddDays(29),
-                Path = "/api/auth"
+                Path = "/"
             };
 
             Response.Cookies.Append("refresh_token", tokens.RefreshToken, cookieOptions);
