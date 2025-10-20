@@ -306,9 +306,32 @@
         backface-visibility: hidden;
         perspective: 1000px;
     }
+    
+    /* Fix for password input visibility */
+    input[type="password"],
+    input[type="text"] {
+        color: var(--deep-mocha) !important;
+        -webkit-text-fill-color: var(--deep-mocha) !important;
+    }
+    
+    input[type="password"]::placeholder,
+    input[type="text"]::placeholder {
+        color: var(--warm-taupe) !important;
+        -webkit-text-fill-color: var(--warm-taupe) !important;
+        opacity: 0.6;
+    }
+    
+    /* Prevent autofill from hiding text */
+    input:-webkit-autofill,
+    input:-webkit-autofill:hover,
+    input:-webkit-autofill:focus,
+    input:-webkit-autofill:active {
+        -webkit-text-fill-color: var(--deep-mocha) !important;
+        -webkit-box-shadow: 0 0 0 1000px var(--clay-white) inset !important;
+        transition: background-color 5000s ease-in-out 0s;
+    }
 }
 
-/* Custom Scrollbar Utilities */
 @layer utilities {
   /* Scrollbar oculta */
   .scrollbar-hide {

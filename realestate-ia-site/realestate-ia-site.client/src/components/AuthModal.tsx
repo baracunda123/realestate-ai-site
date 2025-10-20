@@ -250,7 +250,30 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
   };
 
   const handleTabChange = (value: string) => {
-    setActiveTab(value as 'signin' | 'signup');
+    const newTab = value as 'signin' | 'signup';
+    
+    // Limpar dados sensíveis ao trocar de tab
+    setFormData(prev => ({
+      ...prev,
+      password: '',
+      confirmPassword: '',
+      // Manter email entre tabs para melhor UX
+      // name e phone apenas no signup, então resetar se for para signin
+      name: newTab === 'signin' ? '' : prev.name,
+      phone: newTab === 'signin' ? '' : prev.phone
+    }));
+    
+    // Resetar estados de visibilidade de password
+    setShowSignInPassword(false);
+    setShowSignUpPassword(false);
+    setShowConfirmPassword(false);
+    
+    // Limpar mensagens de erro/sucesso
+    setError(null);
+    setSuccess(null);
+    setShowEmailConfirmation(false);
+    
+    setActiveTab(newTab);
   };
 
   const handleClose = () => {
@@ -318,12 +341,38 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
       {/* Scoped CSS to hide native password reveal/clear and autofill icons */}
       <style>
         {`
-          .no-password-reveal { -webkit-appearance: none; appearance: none; }
           .no-password-reveal::-ms-reveal,
-          .no-password-reveal::-ms-clear { display: none; }
-          .no-password-reveal::-webkit-textfield-decoration-container { display: none; }
-          .no-password-reveal::-webkit-credentials-auto-fill-button { visibility: hidden; display: none; pointer-events: none; }
-          .no-password-reveal::-webkit-contacts-auto-fill-button { visibility: hidden; display: none; pointer-events: none; }
+          .no-password-reveal::-ms-clear { 
+            display: none; 
+          }
+          .no-password-reveal::-webkit-credentials-auto-fill-button { 
+            visibility: hidden; 
+            display: none !important; 
+            pointer-events: none; 
+            height: 0;
+            width: 0;
+            margin: 0;
+          }
+          .no-password-reveal::-webkit-contacts-auto-fill-button { 
+            visibility: hidden; 
+            display: none !important;
+            pointer-events: none;
+            height: 0;
+            width: 0;
+            margin: 0;
+          }
+          
+          /* Ensure password text is always visible */
+          .no-password-reveal {
+            color: var(--deep-mocha) !important;
+            -webkit-text-fill-color: var(--deep-mocha) !important;
+          }
+          
+          .no-password-reveal::placeholder {
+            color: var(--warm-taupe) !important;
+            -webkit-text-fill-color: var(--warm-taupe) !important;
+            opacity: 0.6;
+          }
           
           /* Fix tabs overflow and responsiveness */
           [data-slot="tabs-list"] {
@@ -603,7 +652,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
                       Deve conter: 1 maiúscula, 1 minúscula, 1 número e 1 caracter especial
                     </p>
                   </div>
-
+   
                   <div className="space-y-2">
                     <Label htmlFor="signup-confirm-password" className="text-warm-taupe font-medium">Confirmar Palavra-passe</Label>
                     <div className="relative">
