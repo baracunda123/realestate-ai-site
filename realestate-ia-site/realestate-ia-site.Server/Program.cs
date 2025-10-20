@@ -171,26 +171,28 @@ builder.Services.AddAuthentication(options =>
 // Enhanced Rate Limiter
 builder.Services.AddRateLimiter(options =>
 {
+    var isDevelopment = builder.Environment.IsDevelopment();
+    
     // General API rate limiting
     options.AddPolicy("ApiPolicy", ctx => RateLimitPartition.GetFixedWindowLimiter(
         partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         factory: _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 100,
+            PermitLimit = isDevelopment ? 500 : 100, // 5x mais em dev
             Window = TimeSpan.FromMinutes(1),
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-            QueueLimit = 10
+            QueueLimit = isDevelopment ? 50 : 10 // Mais queue em dev
         }));
 
-    // Strict auth rate limiting
+    // ✅ Auth rate limiting - MUITO MAIS FRIENDLY
     options.AddPolicy("AuthPolicy", ctx => RateLimitPartition.GetFixedWindowLimiter(
         partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         factory: _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 10,
+            PermitLimit = isDevelopment ? 50 : 20, // 50 tentativas/min em dev, 20 em prod
             Window = TimeSpan.FromMinutes(1),
             QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-            QueueLimit = 0 // No queuing for auth
+            QueueLimit = isDevelopment ? 10 : 5 // Permite queue em dev
         }));
 
     // Payment rate limiting
@@ -198,9 +200,9 @@ builder.Services.AddRateLimiter(options =>
         partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         factory: _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 20,
+            PermitLimit = isDevelopment ? 100 : 20, // 5x mais em dev
             Window = TimeSpan.FromMinutes(1),
-            QueueLimit = 5
+            QueueLimit = isDevelopment ? 20 : 5
         }));
 
     // Search rate limiting
@@ -208,9 +210,9 @@ builder.Services.AddRateLimiter(options =>
         partitionKey: ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown",
         factory: _ => new FixedWindowRateLimiterOptions
         {
-            PermitLimit = 30,
+            PermitLimit = isDevelopment ? 200 : 30, // Muito mais generoso em dev
             Window = TimeSpan.FromMinutes(1),
-            QueueLimit = 10
+            QueueLimit = isDevelopment ? 50 : 10
         }));
 
     options.OnRejected = async (context, token) =>
@@ -222,7 +224,15 @@ builder.Services.AddRateLimiter(options =>
             context.HttpContext.Request.Headers.UserAgent.FirstOrDefault());
 
         context.HttpContext.Response.StatusCode = 429;
-        await context.HttpContext.Response.WriteAsync("Rate limit exceeded. Please try again later.", token);
+        
+        var retryAfter = isDevelopment ? "10" : "60";
+        context.HttpContext.Response.Headers.Add("Retry-After", retryAfter);
+        
+        await context.HttpContext.Response.WriteAsync(
+            isDevelopment 
+                ? "🐢 Calma aí! Aguarda 10 segundos e tenta de novo." 
+                : "Rate limit exceeded. Please try again later.", 
+            token);
     };
 });
 
@@ -364,7 +374,7 @@ builder.Services.AddCors(options =>
               .AllowCredentials()
               .AllowAnyMethod()
               .WithHeaders("Content-Type", "Authorization", "X-Session-ID", "X-Requested-With")
-              .WithExposedHeaders("X-Total-Count", "X-Page-Count")
+              .WithExposedHeaders("X-Total-Count", "X-Page-Count", "X-New-Access-Token", "X-Token-Expires-At")
               .SetPreflightMaxAge(TimeSpan.FromMinutes(10));
     });
 });
@@ -491,6 +501,7 @@ app.UseCors();
 // Security Middleware order is important
 app.UseMiddleware<SessionMiddleware>();
 app.UseMiddleware<SecurityMiddleware>();
+app.UseMiddleware<TokenRefreshMiddleware>(); // NOVO: Renovação automática de token
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();

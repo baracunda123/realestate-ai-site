@@ -267,13 +267,29 @@ namespace realestate_ia_site.Server.Data
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
         {
-            // Atualizar timestamps para User
-            var userEntries = ChangeTracker.Entries<User>()
-                .Where(e => e.State == EntityState.Modified);
-
-            foreach (var entry in userEntries)
+            // Desabilitar temporariamente o tracking de mudanças em Users durante este SaveChanges
+            foreach (var userEntry in ChangeTracker.Entries<User>())
             {
-                entry.Entity.UpdatedAt = DateTime.UtcNow;
+                if (userEntry.State == EntityState.Modified)
+                {
+                    // Marcar apenas propriedades específicas como modificadas
+                    // Evitar conflitos com ConcurrencyStamp
+                    userEntry.Property(nameof(User.UpdatedAt)).IsModified = true;
+                    
+                    // Se outras propriedades foram modificadas, manter
+                    var modifiedProperties = userEntry.Properties
+                        .Where(p => p.IsModified && p.Metadata.Name != nameof(User.ConcurrencyStamp))
+                        .ToList();
+                    
+                    // Reset e reaplica modificações
+                    foreach (var prop in modifiedProperties)
+                    {
+                        prop.IsModified = true;
+                    }
+                    
+                    // Atualizar timestamp
+                    userEntry.Entity.UpdatedAt = DateTime.UtcNow;
+                }
             }
 
             // Atualizar timestamps para SavedSearch
@@ -320,38 +336,113 @@ namespace realestate_ia_site.Server.Data
             }
 
             // NOVOS EVENTOS: Favoritos e Pesquisas Guardadas
-            foreach (var entry in ChangeTracker.Entries<Favorite>())
+            var favoriteEntries = ChangeTracker.Entries<Favorite>()
+                .Where(e => e.State == EntityState.Added)
+                .Select(e => new { e.Entity.UserId, e.Entity.PropertyId })
+                .ToList(); // Materializar ANTES de SaveChanges
+
+            var savedSearchNewEntries = ChangeTracker.Entries<SavedSearch>()
+                .Where(e => e.State == EntityState.Added)
+                .Select(e => new { Entry = e.Entity, UserId = e.Entity.UserId })
+                .ToList(); // Materializar ANTES de SaveChanges
+
+            // Guardar alterações com retry em caso de concorrência
+            int result;
+            int retryCount = 0;
+            const int maxRetries = 3;
+            
+            while (true)
             {
-                if (entry.State == EntityState.Added)
+                try
                 {
-                    // Buscar a propriedade para incluir no evento
-                    var property = await Properties.FirstOrDefaultAsync(p => p.Id == entry.Entity.PropertyId, cancellationToken);
+                    result = await base.SaveChangesAsync(cancellationToken);
+                    break; // Sucesso, sair do loop
+                }
+                catch (DbUpdateConcurrencyException ex)
+                {
+                    retryCount++;
+                    
+                    if (retryCount >= maxRetries)
+                    {
+                        Console.WriteLine($"Max retries ({maxRetries}) exceeded for concurrency conflict");
+                        throw; // Re-lançar após máximo de tentativas
+                    }
+                    
+                    Console.WriteLine($"Concurrency conflict detected (attempt {retryCount}/{maxRetries}), retrying...");
+                    
+                    // Refresh entities from database
+                    foreach (var entry in ex.Entries)
+                    {
+                        if (entry.Entity is User)
+                        {
+                            // Para Users, recarregar da DB
+                            await entry.ReloadAsync(cancellationToken);
+                            
+                            // Reaplicar mudanças necessárias
+                            if (entry.Entity is User user)
+                            {
+                                user.UpdatedAt = DateTime.UtcNow;
+                            }
+                        }
+                        else
+                        {
+                            // Para outras entidades, usar valores atuais
+                            var databaseValues = await entry.GetDatabaseValuesAsync(cancellationToken);
+                            if (databaseValues != null)
+                            {
+                                entry.OriginalValues.SetValues(databaseValues);
+                            }
+                        }
+                    }
+                    
+                    // Aguardar um pouco antes de retentar
+                    await Task.Delay(100 * retryCount, cancellationToken);
+                }
+            }
+
+            // DEPOIS processar eventos (com queries separadas se necessário)
+            foreach (var favorite in favoriteEntries)
+            {
+                try
+                {
+                    // Usar AsNoTracking para evitar conflitos
+                    var property = await Properties
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(p => p.Id == favorite.PropertyId, cancellationToken);
+                    
                     if (property != null)
                     {
                         domainEvents.Add(new FavoriteAddedEvent
                         {
-                            UserId = entry.Entity.UserId,
-                            PropertyId = entry.Entity.PropertyId,
+                            UserId = favorite.UserId,
+                            PropertyId = favorite.PropertyId,
                             Property = property
                         });
                     }
                 }
-            }
-
-            foreach (var entry in ChangeTracker.Entries<SavedSearch>())
-            {
-                if (entry.State == EntityState.Added)
+                catch (Exception ex)
                 {
-                    domainEvents.Add(new SavedSearchCreatedEvent
-                    {
-                        UserId = entry.Entity.UserId,
-                        SavedSearch = entry.Entity
-                    });
+                    Console.WriteLine($"Error processing favorite event: {ex.Message}");
                 }
             }
 
-            var result = await base.SaveChangesAsync(cancellationToken);
+            foreach (var searchEntry in savedSearchNewEntries)
+            {
+                try
+                {
+                    domainEvents.Add(new SavedSearchCreatedEvent
+                    {
+                        UserId = searchEntry.UserId,
+                        SavedSearch = searchEntry.Entry
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error processing saved search event: {ex.Message}");
+                }
+            }
 
+            // Publicar eventos
             foreach (var domainEvent in domainEvents)
             {
                 try

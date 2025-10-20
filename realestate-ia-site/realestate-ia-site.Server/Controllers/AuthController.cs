@@ -26,12 +26,6 @@ namespace realestate_ia_site.Server.Controllers
         public string? AvatarUrl { get; set; }
     }
 
-    // ✅ MOBILE FIX: Nova classe para aceitar refresh token no body
-    public class RefreshTokenRequest
-    {
-        public string? RefreshToken { get; set; }
-    }
-
     [ApiController]
     [Route("api/[controller]")]
     [EnableRateLimiting("AuthPolicy")]
@@ -68,46 +62,24 @@ namespace realestate_ia_site.Server.Controllers
 
         private void SetRefreshCookie(TokenResponse tokens)
         {
-            // ✅ MOBILE FIX: Detectar se é mobile e NÃO definir cookie
-            var userAgent = Request.Headers.UserAgent.ToString();
-            var isMobile = userAgent.Contains("Mobile", StringComparison.OrdinalIgnoreCase) ||
-                          userAgent.Contains("Android", StringComparison.OrdinalIgnoreCase) ||
-                          userAgent.Contains("iPhone", StringComparison.OrdinalIgnoreCase) ||
-                          userAgent.Contains("iPad", StringComparison.OrdinalIgnoreCase);
-            
-            // Se é mobile, NÃO definir cookie (será enviado no body)
-            if (isMobile)
-            {
-                _logger.LogInformation("[Cookie] Mobile detectado - NÃO definindo cookie (será usado localStorage)");
-                return;
-            }
-            
-            // Desktop: usar cookie normalmente
-            var sameSite = _environment.IsProduction() ? SameSiteMode.Lax : SameSiteMode.Lax;
+            var isSecure = _environment.IsProduction() || Request.IsHttps;
 
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
-                Secure = true,
-                SameSite = sameSite,
-                Expires = tokens.ExpiresAt.AddDays(29),
-                Path = "/"
+                Secure = isSecure,
+                SameSite = SameSiteMode.None,
+                Expires = DateTime.UtcNow.AddDays(2), // Cookie expira em 2 dias
+                Path = "/",
+                Domain = null
             };
 
             Response.Cookies.Append("refresh_token", tokens.RefreshToken, cookieOptions);
             
             _logger.LogInformation(
-                "[Cookie] Desktop detectado - Cookie definido - Path=/, SameSite={SameSite}, Secure=true",
-                sameSite);
+                "[Cookie] Refresh token cookie set - Expires={Expires}, SameSite={SameSite}, Secure={Secure}", 
+                cookieOptions.Expires, cookieOptions.SameSite, isSecure);
         }
-
-        private static TokenResponse MaskRefresh(TokenResponse t, bool isMobile = false) => new()
-        {
-            AccessToken = t.AccessToken,
-            RefreshToken = isMobile ? t.RefreshToken : string.Empty, // ✅ Retorna refresh token no body APENAS se mobile
-            ExpiresAt = t.ExpiresAt,
-            TokenType = t.TokenType
-        };
 
         [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterRequest request)
@@ -134,18 +106,13 @@ namespace realestate_ia_site.Server.Controllers
                     return BadRequest(result);
                 }
 
-                // Detectar mobile
-                var userAgent = Request.Headers.UserAgent.ToString();
-                var isMobile = userAgent.Contains("Mobile", StringComparison.OrdinalIgnoreCase) ||
-                              userAgent.Contains("Android", StringComparison.OrdinalIgnoreCase) ||
-                              userAgent.Contains("iPhone", StringComparison.OrdinalIgnoreCase);
-
-                // Apenas definir cookie se tokens foram retornados
                 if (tokens != null)
                 {
                     SetRefreshCookie(tokens);
                     _auditService.LogSuccessfulLogin(result.User!.Id, result.User.Email);
-                    return Ok(AuthResult.SuccessResult(MaskRefresh(tokens, isMobile), result.User!, result.Message ?? string.Empty));
+                    
+                    // Always return full tokens in body (client handles localStorage vs memory)
+                    return Ok(AuthResult.SuccessResult(tokens, result.User!, result.Message ?? string.Empty));
                 }
 
                 return Ok(AuthResult.SuccessResult(new TokenResponse(), result.User!, result.Message ?? string.Empty));
@@ -178,19 +145,16 @@ namespace realestate_ia_site.Server.Controllers
                     return BadRequest(result);
                 }
 
-                // ✅ MOBILE FIX: Detectar mobile
-                var userAgent = Request.Headers.UserAgent.ToString();
-                var isMobile = userAgent.Contains("Mobile", StringComparison.OrdinalIgnoreCase) ||
-                              userAgent.Contains("Android", StringComparison.OrdinalIgnoreCase) ||
-                              userAgent.Contains("iPhone", StringComparison.OrdinalIgnoreCase);
-
                 if (tokens != null)
                 {
-                    SetRefreshCookie(tokens); // Só define cookie se NÃO for mobile
+                    SetRefreshCookie(tokens);
                     _auditService.LogSuccessfulLogin(result.User!.Id, result.User.Email);
+                    
+                    // Always return full tokens in body (client handles localStorage vs memory)
+                    return Ok(AuthResult.SuccessResult(tokens, result.User!, result.Message ?? string.Empty));
                 }
 
-                return Ok(AuthResult.SuccessResult(tokens != null ? MaskRefresh(tokens, isMobile) : new TokenResponse(), result.User!, result.Message ?? string.Empty));
+                return Ok(AuthResult.SuccessResult(new TokenResponse(), result.User!, result.Message ?? string.Empty));
             }
             catch (Exception ex)
             {
@@ -239,21 +203,16 @@ namespace realestate_ia_site.Server.Controllers
                     return BadRequest(result);
                 }
 
-                // ✅ MOBILE FIX: Detectar mobile
-                var userAgent = Request.Headers.UserAgent.ToString();
-                var isMobile = userAgent.Contains("Mobile", StringComparison.OrdinalIgnoreCase) ||
-                              userAgent.Contains("Android", StringComparison.OrdinalIgnoreCase) ||
-                              userAgent.Contains("iPhone", StringComparison.OrdinalIgnoreCase);
-                
                 if (tokens != null)
                 {
-                    SetRefreshCookie(tokens); // Só define cookie se NÃO for mobile
+                    SetRefreshCookie(tokens);
                     _auditService.LogSuccessfulLogin(result.User!.Id, result.User.Email);
+                    
+                    // Always return full tokens in body (client handles localStorage vs memory)
+                    return Ok(AuthResult.SuccessResult(tokens, result.User!, result.Message ?? string.Empty));
                 }
 
-                var response = AuthResult.SuccessResult(tokens != null ? MaskRefresh(tokens, isMobile) : new TokenResponse(), result.User!, result.Message ?? string.Empty);
-                
-                return Ok(response);
+                return Ok(AuthResult.SuccessResult(new TokenResponse(), result.User!, result.Message ?? string.Empty));
             }
             catch (Exception ex)
             {
@@ -264,94 +223,68 @@ namespace realestate_ia_site.Server.Controllers
         }
 
         [HttpPost("refresh-token")]
-        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest? request)
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest? bodyRequest = null)
         {
             try
             {
-                // ✅ MOBILE FIX CRÍTICO: Aceitar refresh token no BODY também
-                var userAgent = Request.Headers.UserAgent.ToString();
-                var sessionId = Request.Headers["X-Session-ID"].ToString();
-                var isMobile = userAgent.Contains("Mobile", StringComparison.OrdinalIgnoreCase) ||
-                              userAgent.Contains("Android", StringComparison.OrdinalIgnoreCase) ||
-                              userAgent.Contains("iPhone", StringComparison.OrdinalIgnoreCase);
+                _logger.LogInformation("[RefreshToken] Refresh attempt");
                 
-                _logger.LogInformation(
-                    "[RefreshToken] Tentativa - UserAgent={UserAgent}, SessionId={SessionId}, IsMobile={IsMobile}",
-                    userAgent, sessionId, isMobile);
+                // Try cookie first, then body fallback
+                var refreshToken = Request.Cookies["refresh_token"];
+                var tokenSource = "cookie";
                 
-                // Tentar obter refresh token de múltiplas fontes (mobile-first)
-                string? refreshToken = null;
-                
-                // 1️⃣ Prioridade: Body (mobile pode enviar aqui)
-                if (request?.RefreshToken != null && !string.IsNullOrEmpty(request.RefreshToken))
+                if (string.IsNullOrEmpty(refreshToken) && bodyRequest?.RefreshToken != null)
                 {
-                    refreshToken = request.RefreshToken;
-                    _logger.LogInformation("[RefreshToken] ✅ Token obtido do BODY (Mobile)");
-                }
-                // 2️⃣ Fallback: Cookie (desktop)
-                else
-                {
-                    refreshToken = Request.Cookies["refresh_token"];
-                    if (!string.IsNullOrEmpty(refreshToken))
-                    {
-                        _logger.LogInformation("[RefreshToken] ✅ Token obtido do COOKIE (Desktop)");
-                    }
+                    refreshToken = bodyRequest.RefreshToken;
+                    tokenSource = "body";
                 }
                 
                 if (string.IsNullOrEmpty(refreshToken))
                 {
-                    _logger.LogWarning(
-                        "[RefreshToken] ❌ Token NÃO ENCONTRADO - Mobile={IsMobile}, HasBody={HasBody}, Cookies={CookieCount}",
-                        isMobile,
-                        request != null,
-                        Request.Cookies.Count);
-                    
+                    _logger.LogWarning("[RefreshToken] No refresh token found");
                     _auditService.LogInvalidTokenAccess("refresh", "Missing refresh token");
                     return BadRequest(new { message = "Token de atualização não encontrado" });
                 }
+
+                _logger.LogDebug("[RefreshToken] Token source: {Source}", tokenSource);
 
                 var (tokens, result) = await _authService.RefreshAsync(refreshToken);
                 
                 if (!result.Success || tokens == null)
                 {
-                    _logger.LogWarning(
-                        "[RefreshToken] Refresh falhou - Motivo={Message}",
-                        result.Message ?? "Desconhecido");
-                    
+                    _logger.LogWarning("[RefreshToken] Refresh failed - {Message}", result.Message ?? "Unknown");
                     _auditService.LogInvalidTokenAccess("refresh", result.Message ?? "Refresh failed");
                     Response.Cookies.Delete("refresh_token", new CookieOptions { Path = "/" });
                     return BadRequest(result);
                 }
 
-                // ✅ Retornar refresh token no body para mobile armazenar
                 SetRefreshCookie(tokens);
                 
                 var userId = GetCurrentUserId();
                 if (!string.IsNullOrEmpty(userId))
                 {
                     _auditService.LogSecurityEvent(SecurityEventType.TokenRefresh, "Token refreshed successfully", new { UserId = userId });
-                    _logger.LogInformation("[RefreshToken] ✅ Refresh bem-sucedido - UserId={UserId}", userId);
                 }
 
-                // ✅ MOBILE FIX: Retornar refresh token no body também (só para mobile)
+                // Always return complete token response
                 var response = new { 
                     message = result.Message, 
-                    token = new {
-                        accessToken = tokens.AccessToken,
-                        refreshToken = isMobile ? tokens.RefreshToken : string.Empty, // ✅ Só envia no body se mobile
-                        expiresAt = tokens.ExpiresAt,
-                        tokenType = tokens.TokenType
-                    }
+                    token = tokens
                 };
                 
                 return Ok(response);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[RefreshToken] Exceção durante refresh");
+                _logger.LogError(ex, "[RefreshToken] Exception during refresh");
                 _auditService.LogInvalidTokenAccess("refresh", $"Exception: {ex.Message}");
                 return StatusCode(500, new { message = "Erro interno do servidor" });
             }
+        }
+
+        public class RefreshTokenRequest
+        {
+            public string? RefreshToken { get; set; }
         }
 
         [HttpPost("logout")]
@@ -368,7 +301,6 @@ namespace realestate_ia_site.Server.Controllers
                     _auditService.LogSecurityEvent(SecurityEventType.LogoutSuccess, "User logged out", new { UserId = userId });
                 }
 
-                // ✅ MOBILE FIX: Deletar com Path="/" também
                 Response.Cookies.Delete("refresh_token", new CookieOptions { Path = "/" });
                 return Ok(new { message = "Logout realizado com sucesso" });
             }
@@ -615,28 +547,26 @@ namespace realestate_ia_site.Server.Controllers
         {
             try
             {
-                _logger.LogInformation("[Auth] Tentativa de confirmação de email - Token recebido (comprimento: {Length})", token?.Length ?? 0);
+                _logger.LogInformation("[Auth] Email confirmation attempt - Token length: {Length}", token?.Length ?? 0);
                 
                 if (string.IsNullOrEmpty(token))
                 {
-                    _logger.LogWarning("[Auth] Confirmação sem token");
+                    _logger.LogWarning("[Auth] Confirmation without token");
                     _auditService.LogSuspiciousActivity("Email confirmation without token", "No token provided");
                     return BadRequest(new { success = false, message = "Token inválido" });
                 }
 
-                // Decodificar usando WebEncoders (biblioteca oficial Microsoft)
-                // Muito mais simples que replace manual
                 string decodedToken;
                 try
                 {
                     var tokenBytes = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlDecode(token);
                     decodedToken = System.Text.Encoding.UTF8.GetString(tokenBytes);
                     
-                    _logger.LogInformation("[Auth] Token decodificado com sucesso (comprimento: {Length})", decodedToken.Length);
+                    _logger.LogInformation("[Auth] Token decoded successfully (length: {Length})", decodedToken.Length);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "[Auth] Falha ao decodificar token");
+                    _logger.LogWarning(ex, "[Auth] Failed to decode token");
                     return BadRequest(new { 
                         success = false, 
                         message = "Token inválido ou corrompido",
@@ -644,24 +574,24 @@ namespace realestate_ia_site.Server.Controllers
                     });
                 }
 
-                // Buscar apenas usuários não confirmados criados nas últimas 24 horas
+                // Search only unconfirmed users created in last 24 hours
                 var cutoffDate = DateTime.UtcNow.AddHours(-24);
                 var pendingUsers = await _userManager.Users
                     .Where(u => !u.EmailConfirmed && u.CreatedAt > cutoffDate)
                     .OrderByDescending(u => u.CreatedAt)
                     .ToListAsync();
                 
-                _logger.LogInformation("[Auth] Encontrados {Count} utilizadores pendentes de confirmação nas últimas 24h", pendingUsers.Count);
+                _logger.LogInformation("[Auth] Found {Count} pending users in last 24h", pendingUsers.Count);
                 
                 User? confirmedUser = null;
                 IdentityResult? confirmResult = null;
                 
-                // Tentar confirmar o email para cada usuário pendente
+                // Try to confirm email for each pending user
                 foreach (var user in pendingUsers)
                 {
                     try
                     {
-                        _logger.LogDebug("[Auth] Tentando confirmar para userId={UserId} email={Email}", user.Id, user.Email);
+                        _logger.LogDebug("[Auth] Trying to confirm for userId={UserId} email={Email}", user.Id, user.Email);
                         
                         var result = await _userManager.ConfirmEmailAsync(user, decodedToken);
                         
@@ -669,26 +599,25 @@ namespace realestate_ia_site.Server.Controllers
                         {
                             confirmedUser = user;
                             confirmResult = result;
-                            _logger.LogInformation("[Auth] Confirmação bem-sucedida para userId={UserId}", user.Id);
+                            _logger.LogInformation("[Auth] Confirmation successful for userId={UserId}", user.Id);
                             break;
                         }
                         else
                         {
-                            _logger.LogDebug("[Auth] Confirmação falhou para userId={UserId}: {Errors}", 
+                            _logger.LogDebug("[Auth] Confirmation failed for userId={UserId}: {Errors}", 
                                 user.Id, string.Join(", ", result.Errors.Select(e => e.Code)));
                         }
                     }
                     catch (Exception ex)
                     {
-                        // Token não pertence a este usuário, continuar
-                        _logger.LogDebug("[Auth] Exceção ao tentar confirmar userId={UserId}: {Message}", user.Id, ex.Message);
+                        _logger.LogDebug("[Auth] Exception trying to confirm userId={UserId}: {Message}", user.Id, ex.Message);
                         continue;
                     }
                 }
                 
                 if (confirmedUser == null || confirmResult == null || !confirmResult.Succeeded)
                 {
-                    _logger.LogWarning("[Auth] Token de confirmação inválido ou expirado - Nenhum match encontrado");
+                    _logger.LogWarning("[Auth] Invalid or expired confirmation token - No match found");
                     _auditService.LogSuspiciousActivity("Failed email confirmation", "Invalid or expired token");
                     
                     return BadRequest(new { 
@@ -698,20 +627,20 @@ namespace realestate_ia_site.Server.Controllers
                     });
                 }
 
-                // Atualizar status da conta
+                // Update account status
                 confirmedUser.AccountStatus = AccountStatus.Active;
                 await _userManager.UpdateAsync(confirmedUser);
                 
                 _auditService.LogSecurityEvent(SecurityEventType.LoginSuccess, "Email confirmed successfully", 
                     new { UserId = confirmedUser.Id, Email = confirmedUser.Email });
                 
-                _logger.LogInformation("[Auth] Email confirmado com sucesso userId={UserId}", confirmedUser.Id);
+                _logger.LogInformation("[Auth] Email confirmed successfully userId={UserId}", confirmedUser.Id);
                 
                 return Ok(new { success = true, message = "Email confirmado com sucesso! Agora pode fazer login." });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[Auth] Exceção na confirmação email");
+                _logger.LogError(ex, "[Auth] Exception in email confirmation");
                 return StatusCode(500, new { success = false, message = "Erro interno do servidor" });
             }
         }
@@ -761,31 +690,30 @@ namespace realestate_ia_site.Server.Controllers
 
                 var user = await _userManager.FindByEmailAsync(request.Email);
                 
-                // Sempre retornar sucesso (não revelar se email existe)
+                // Always return success (don't reveal if email exists)
                 if (user != null && !user.EmailConfirmed)
                 {
                     var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                     
-                    // Gerar URL com token como path parameter
+                    // Generate URL with token as path parameter
                     var encodedToken = Uri.EscapeDataString(token);
                     var frontendUrl = _configuration["App:FrontendUrl"] ?? "http://localhost:5173";
                     var confirmLink = $"{frontendUrl}/confirm-email/{encodedToken}";
                     
-                    // TODO: Enviar email (requer acesso ao EmailService)
-                    // Por enquanto apenas logar
+                    // TODO: Send email (requires EmailService access)
                     
                     _auditService.LogSecurityEvent(SecurityEventType.LoginSuccess, "Confirmation email resent", 
                         new { Email = request.Email });
                     
-                    _logger.LogInformation("[Auth] Email de confirmação reenviado para={Email}", request.Email);
+                    _logger.LogInformation("[Auth] Confirmation email resent to={Email}", request.Email);
                 }
                 else if (user != null && user.EmailConfirmed)
                 {
-                    _logger.LogInformation("[Auth] Tentativa de reenvio para email já confirmado={Email}", request.Email);
+                    _logger.LogInformation("[Auth] Resend attempt for already confirmed email={Email}", request.Email);
                 }
                 else
                 {
-                    _logger.LogWarning("[Auth] Tentativa de reenvio para email inexistente={Email}", request.Email);
+                    _logger.LogWarning("[Auth] Resend attempt for non-existent email={Email}", request.Email);
                     _auditService.LogSuspiciousActivity("Confirmation resend for non-existent email", 
                         $"Email: {request.Email}");
                 }
@@ -794,7 +722,7 @@ namespace realestate_ia_site.Server.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[Auth] Erro ao reenviar confirmação email={Email}", request.Email);
+                _logger.LogError(ex, "[Auth] Error resending confirmation email={Email}", request.Email);
                 return StatusCode(500, new { message = "Erro interno do servidor" });
             }
         }
