@@ -49,9 +49,8 @@ jobs:
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_AMBITIOUS_POND_01734CC0F }}
           action: "upload"
-          app_location: "realestate-ia-site/realestate-ia-site.client"
-          api_location: "api"
-          output_location: "dist"
+          app_location: "realestate-ia-site/realestate-ia-site.client/dist"
+          skip_app_build: true
           github_id_token: ${{ steps.idtoken.outputs.result }}
         env:
           VITE_API_URL: ${{ vars.API_URL }}
@@ -67,6 +66,7 @@ jobs:
         with:
           action: "close"
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_AMBITIOUS_POND_01734CC0F }}
+
 
 
 
