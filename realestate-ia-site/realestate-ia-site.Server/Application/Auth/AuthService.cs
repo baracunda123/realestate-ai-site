@@ -102,7 +102,34 @@ public class AuthService
         user.UpdateLastLogin(ip);
         await _userManager.UpdateAsync(user);
         await CreateLoginSessionAsync(user, ip, ct);
-        var tokens = await GenerateTokensAsync(user, ct);
+        
+        // CORRIGIDO: Verificar se já tem refresh token válido
+        bool needsNewRefreshToken = string.IsNullOrEmpty(user.RefreshToken) || 
+                                     !user.RefreshTokenExpires.HasValue || 
+                                     user.RefreshTokenExpires.Value < DateTime.UtcNow;
+        
+        TokenResponse tokens;
+        
+        if (needsNewRefreshToken)
+        {
+            // Gerar novos tokens (access + refresh)
+            tokens = await GenerateTokensAsync(user, ct);
+            _logger.LogInformation("[Auth] Novos tokens gerados no login - UserId: {UserId}", user.Id);
+        }
+        else
+        {
+            // Reutilizar refresh token existente, gerar apenas novo access token
+            tokens = new TokenResponse
+            {
+                AccessToken = await GenerateAccessTokenAsync(user),
+                RefreshToken = user.RefreshToken!,
+                ExpiresAt = DateTime.UtcNow.AddMinutes(int.Parse(_config["Jwt:ExpiryMinutes"] ?? "60")),
+                TokenType = "Bearer"
+            };
+            _logger.LogInformation("[Auth] Refresh token reutilizado no login - UserId: {UserId}, Expira: {Expires}", 
+                user.Id, user.RefreshTokenExpires.Value);
+        }
+        
         _logger.LogInformation("[Auth] Login bem-sucedido utilizador={UserId} ip={IP}", user.Id, ip);
         return (AuthResult.SuccessResult(tokens, MapToUserProfile(user), "Login realizado com sucesso"), tokens);
     }
@@ -135,12 +162,38 @@ public class AuthService
         {
             _logger.LogInformation("[ExternalLogin] Utilizador encontrado com login externo existente - ID: {UserId}", user.Id);
             
-            // Utilizador já existe com este login externo
             user.UpdateLastLogin(ip);
             await _userManager.UpdateAsync(user);
             await CreateLoginSessionAsync(user, ip, ct);
-            var tokens = await GenerateTokensAsync(user, ct);
-            _logger.LogInformation("[ExternalLogin] Login externo bem-sucedido utilizador={UserId} provider={Provider}", user.Id, externalLoginInfo.LoginProvider);
+            
+            // CORRIGIDO: Verificar se já tem refresh token válido
+            bool needsNewRefreshToken = string.IsNullOrEmpty(user.RefreshToken) || 
+                                         !user.RefreshTokenExpires.HasValue || 
+                                         user.RefreshTokenExpires.Value < DateTime.UtcNow;
+            
+            TokenResponse tokens;
+            
+            if (needsNewRefreshToken)
+            {
+                // Gerar novos tokens (access + refresh)
+                tokens = await GenerateTokensAsync(user, ct);
+                _logger.LogInformation("[Auth] Novos tokens gerados no login externo - UserId: {UserId}", user.Id);
+            }
+            else
+            {
+                // Reutilizar refresh token existente, gerar apenas novo access token
+                tokens = new TokenResponse
+                {
+                    AccessToken = await GenerateAccessTokenAsync(user),
+                    RefreshToken = user.RefreshToken!,
+                    ExpiresAt = DateTime.UtcNow.AddMinutes(int.Parse(_config["Jwt:ExpiryMinutes"] ?? "60")),
+                    TokenType = "Bearer"
+                };
+                _logger.LogInformation("[Auth] Refresh token reutilizado no login externo - UserId: {UserId}, Expira: {Expires}", 
+                    user.Id, user.RefreshTokenExpires.Value);
+            }
+            
+            _logger.LogInformation("[Auth] Login externo bem-sucedido utilizador={UserId} ip={IP}", user.Id, ip);
             return (AuthResult.SuccessResult(tokens, MapToUserProfile(user), "Login realizado com sucesso"), tokens);
         }
 
@@ -184,7 +237,34 @@ public class AuthService
             user.UpdateLastLogin(ip);
             await _userManager.UpdateAsync(user);
             await CreateLoginSessionAsync(user, ip, ct);
-            var tokens = await GenerateTokensAsync(user, ct);
+            
+            // CORRIGIDO: Verificar se já tem refresh token válido
+            bool needsNewRefreshToken = string.IsNullOrEmpty(user.RefreshToken) || 
+                                         !user.RefreshTokenExpires.HasValue || 
+                                         user.RefreshTokenExpires.Value < DateTime.UtcNow;
+            
+            TokenResponse tokens;
+            
+            if (needsNewRefreshToken)
+            {
+                // Gerar novos tokens (access + refresh)
+                tokens = await GenerateTokensAsync(user, ct);
+                _logger.LogInformation("[Auth] Novos tokens gerados ao associar login externo - UserId: {UserId}", user.Id);
+            }
+            else
+            {
+                // Reutilizar refresh token existente, gerar apenas novo access token
+                tokens = new TokenResponse
+                {
+                    AccessToken = await GenerateAccessTokenAsync(user),
+                    RefreshToken = user.RefreshToken!,
+                    ExpiresAt = DateTime.UtcNow.AddMinutes(int.Parse(_config["Jwt:ExpiryMinutes"] ?? "60")),
+                    TokenType = "Bearer"
+                };
+                _logger.LogInformation("[Auth] Refresh token reutilizado ao associar login externo - UserId: {UserId}, Expira: {Expires}", 
+                    user.Id, user.RefreshTokenExpires.Value);
+            }
+            
             _logger.LogInformation("[ExternalLogin] Login externo associado utilizador={UserId} provider={Provider}", user.Id, externalLoginInfo.LoginProvider);
             return (AuthResult.SuccessResult(tokens, MapToUserProfile(user), "Login realizado com sucesso"), tokens);
         }
@@ -268,14 +348,36 @@ public class AuthService
 
     public async Task<(TokenResponse? tokens, AuthResult result)> RefreshAsync(string refreshToken, CancellationToken ct = default)
     {
-        var user = await _userManager.Users.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken, ct);
-        if (user == null || user.RefreshTokenExpires < DateTime.UtcNow)
+        if (string.IsNullOrWhiteSpace(refreshToken))
         {
-            _logger.LogWarning("[Auth] Refresh token inválido ou expirado");
+            _logger.LogWarning("[Auth] Refresh token vazio ou nulo");
             return (null, AuthResult.ErrorResult("Token inválido"));
         }
-        var tokens = await GenerateTokensAsync(user, ct);
-        _logger.LogInformation("[Auth] Token renovado utilizador={UserId}", user.Id);
+        
+        var user = await _userManager.Users.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken, ct);
+        if (user == null)
+        {
+            _logger.LogWarning("[Auth] Refresh token não encontrado na base de dados");
+            return (null, AuthResult.ErrorResult("Token inválido"));
+        }
+        
+        if (user.RefreshTokenExpires < DateTime.UtcNow)
+        {
+            _logger.LogWarning("[Auth] Refresh token expirado - UserId: {UserId}, Expirado em: {Expires}", 
+                user.Id, user.RefreshTokenExpires);
+            return (null, AuthResult.ErrorResult("Token expirado"));
+        }
+        
+        // Manter o mesmo refresh token - apenas gerar novo access token
+        var tokens = new TokenResponse
+        {
+            AccessToken = await GenerateAccessTokenAsync(user),
+            RefreshToken = refreshToken,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(int.Parse(_config["Jwt:ExpiryMinutes"] ?? "60")),
+            TokenType = "Bearer"
+        };
+        
+        _logger.LogInformation("[Auth] Token renovado com sucesso - UserId: {UserId}", user.Id);
         return (tokens, AuthResult.SuccessResult(tokens, MapToUserProfile(user), "Token atualizado"));
     }
 
@@ -301,6 +403,29 @@ public class AuthService
 
     private async Task<TokenResponse> GenerateTokensAsync(User user, CancellationToken ct)
     {
+        var accessToken = await GenerateAccessTokenAsync(user);
+        var refreshToken = GenerateRefreshToken();
+        
+        // Refresh token válido por 2 dias
+        var expiryDate = DateTime.UtcNow.AddDays(2);
+        user.RefreshToken = refreshToken;
+        user.RefreshTokenExpires = expiryDate;
+        await _userManager.UpdateAsync(user);
+
+        _logger.LogInformation("[Auth] Novos tokens gerados - UserId: {UserId}, Expira: {Expiry}", 
+            user.Id, expiryDate);
+
+        return new TokenResponse
+        {
+            AccessToken = accessToken,
+            RefreshToken = refreshToken,
+            ExpiresAt = DateTime.UtcNow.AddMinutes(int.Parse(_config["Jwt:ExpiryMinutes"] ?? "60")),
+            TokenType = "Bearer"
+        };
+    }
+
+    private async Task<string> GenerateAccessTokenAsync(User user)
+    {
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, user.Id),
@@ -321,19 +446,7 @@ public class AuthService
             expires: expiry,
             signingCredentials: creds);
 
-        var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
-        var refreshToken = GenerateRefreshToken();
-        user.RefreshToken = refreshToken;
-        user.RefreshTokenExpires = DateTime.UtcNow.AddDays(30);
-        await _userManager.UpdateAsync(user);
-
-        return new TokenResponse
-        {
-            AccessToken = accessToken,
-            RefreshToken = refreshToken,
-            ExpiresAt = expiry,
-            TokenType = "Bearer"
-        };
+        return new JwtSecurityTokenHandler().WriteToken(token);
     }
 
     private static string GenerateRefreshToken()
@@ -372,7 +485,6 @@ public class AuthService
         try
         {
             // Usar WebEncoders (biblioteca oficial Microsoft) para encoding URL-safe
-            // Muito mais simples e seguro que replace manual
             var urlSafeToken = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(
                 System.Text.Encoding.UTF8.GetBytes(token)
             );

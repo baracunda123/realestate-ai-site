@@ -246,41 +246,20 @@ export async function getCurrentUser(): Promise<UserProfile | null> {
 }
 
 /**
- * Refresh do token de acesso
- */
-export async function refreshToken(): Promise<TokenResponse | null> {
-  try {
-    const response = await apiClient.post<{ message: string; token: TokenResponse }>('/api/auth/refresh-token');
-    
-    const user = apiClient.getCurrentUser();
-    if (response.token && user) {
-      apiClient.saveAuthTokens(response.token, user);
-    }
-    
-    return response.token;
-  } catch (error) {
-    logger.error('Erro ao renovar token', error as Error);
-    apiClient.clearAuthTokens();
-    return null;
-  }
-}
-
-/**
  * Confirmar email
  */
 export async function confirmEmail(data: ConfirmEmailRequest): Promise<ConfirmEmailResponse> {
-  try {
-    // Token já vem URL-safe do backend (Base64UrlEncode), não precisa encode adicional
-    const response = await apiClient.get<ConfirmEmailResponse>(
-      `/api/auth/confirm-email/${data.token}`
-    );
-    return response;
-  } catch (error) {
-    logger.error('Erro ao confirmar email', error as Error);
-    throw error;
-  }
+    try {
+        // Token já vem URL-safe do backend (Base64UrlEncode), não precisa encode adicional
+        const response = await apiClient.get<ConfirmEmailResponse>(
+            `/api/auth/confirm-email/${data.token}`
+        );
+        return response;
+    } catch (error) {
+        logger.error('Erro ao confirmar email', error as Error);
+        throw error;
+    }
 }
-
 /**
  * Solicitar redefinição de senha
  */
