@@ -99,6 +99,18 @@ class SecureTokenManager {
     return null;
   }
 
+  static getRefreshToken(): string | null {
+    try {
+      const userStr = localStorage.getItem(this.USER_KEY);
+      if (!userStr) return null;
+      
+      const user = JSON.parse(userStr);
+      return user.refreshToken || null;
+    } catch {
+      return null;
+    }
+  }
+
   static getSessionId(): string {
     if (!this.sessionId) {
       this.initialize();
@@ -292,13 +304,46 @@ class ApiClient {
         return response;
       },
       async (error) => {
+        const originalRequest = error.config;
+        
         logger.error(`INTERCEPTOR ERRO: Status ${error.response?.status || 'SEM_STATUS'}`);
         
-        // Se 401, o servidor já tentou renovar via cookie e falhou
-        // Significa que a sessão expirou realmente - limpar estado local
-        if (error.response?.status === 401) {
-          logger.warn('Erro 401 - sessão expirada, limpando tokens');
-          SecureTokenManager.clearTokens();
+        // ⭐ NOVO: Se 401 e não é um retry, tentar renovar via refreshToken do localStorage
+        if (error.response?.status === 401 && !originalRequest._retry) {
+          originalRequest._retry = true;
+          
+          const refreshToken = SecureTokenManager.getRefreshToken();
+          
+          if (refreshToken && !this.isAuthEndpoint(originalRequest.url)) {
+            logger.info('🔄 Tentando renovar token via refreshToken do localStorage (fallback mobile)');
+            
+            try {
+              // Chamar o endpoint de refresh com o refreshToken no body
+              const response = await this.client.post<{ message: string; token: TokenResponse }>('/api/auth/refresh-token', {
+                refreshToken: refreshToken
+              });
+              
+              if (response.data.token) {
+                logger.info('✅ Token renovado com sucesso via fallback!');
+                
+                const currentUser = SecureTokenManager.getCurrentUser();
+                if (currentUser) {
+                  SecureTokenManager.saveTokens(response.data.token, currentUser);
+                }
+                
+                // Repetir o request original com o novo token
+                originalRequest.headers['Authorization'] = `Bearer ${response.data.token.accessToken}`;
+                return this.client(originalRequest);
+              }
+            } catch (refreshError) {
+              logger.error('❌ Falha ao renovar token via fallback', refreshError as Error);
+              SecureTokenManager.clearTokens();
+              return Promise.reject(refreshError);
+            }
+          } else {
+            logger.warn('Erro 401 - sem refreshToken disponível, limpando tokens');
+            SecureTokenManager.clearTokens();
+          }
         }
         
         return Promise.reject(error);
