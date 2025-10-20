@@ -18,7 +18,7 @@ export function WelcomeScreen({ user }: WelcomeScreenProps) {
   // Pesquisas exemplo para utilizadores com sessão iniciada (apenas explicativas)
   const exampleSearches = [
     {
-      text: "Casa com 3 quartos em São Paulo",
+      text: "Casa com 3 quartos no Porto",
       icon: Home
     },
     {
@@ -26,15 +26,15 @@ export function WelcomeScreen({ user }: WelcomeScreenProps) {
       icon: MapPin
     },
     {
-      text: "Sobrado com piscina até R$ 800.000",
+        text: "Moradia com piscina até 800.000€",
       icon: Home
     },
     {
-      text: "Cobertura com vista para o mar",
+      text: "Apartamento com vista para o mar",
       icon: Star
     },
     {
-      text: "Casa com quintal para pets",
+        text: "Casa com quintal para animais de estimação",
       icon: Heart
     }
   ];
