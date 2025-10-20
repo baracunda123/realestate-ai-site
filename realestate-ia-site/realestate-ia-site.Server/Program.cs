@@ -363,7 +363,9 @@ var allowedOrigins = Environment.GetEnvironmentVariable("ALLOWED_ORIGINS")?.Spli
                     ?? (builder.Environment.IsDevelopment()
                         ? new[] { "https://localhost:64222" }
                         : new[] {
-                            "https://ambitious-pond-01734cc0f.2.azurestaticapps.net"
+                            "https://www.resideai.pt",                                      // ⭐ Novo domínio customizado
+                            "https://resideai.pt",                                          // ⭐ Root domain (opcional)
+                            "https://ambitious-pond-01734cc0f.2.azurestaticapps.net"        // ⭐ Manter Azure domain como fallback
                         });
 
 builder.Services.AddCors(options =>
