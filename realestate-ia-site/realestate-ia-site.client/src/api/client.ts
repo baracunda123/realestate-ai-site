@@ -53,6 +53,7 @@ class SecureTokenManager {
   private static readonly SESSION_KEY = 'realestate_session_id';
   private static readonly USER_KEY = 'user_profile';
   private static readonly AUTH_STATE_KEY = 'auth_state';
+  private static readonly REFRESH_TOKEN_KEY = 'refresh_token_mobile'; // ✅ NOVO: Mobile storage
   private static readonly LAST_REFRESH_KEY = 'last_refresh_attempt';
   private static readonly REFRESH_COUNT_KEY = 'refresh_count';
   private static readonly MAX_REFRESH_ATTEMPTS = 3;
@@ -62,6 +63,12 @@ class SecureTokenManager {
   private static sessionId: string | null = null;
   private static isRefreshing = false;
   private static refreshPromise: Promise<TokenResponse | null> | null = null;
+
+  // ✅ MOBILE DETECTION
+  private static isMobileDevice(): boolean {
+    const userAgent = navigator.userAgent.toLowerCase();
+    return /android|iphone|ipad|ipod|mobile/i.test(userAgent);
+  }
 
   static initialize(): void {
     this.sessionId = localStorage.getItem(this.SESSION_KEY) || uuidv4();
@@ -74,13 +81,14 @@ class SecureTokenManager {
       localStorage.setItem(this.REFRESH_COUNT_KEY, '0');
     }
     
-    logger.info(`Session inicializada: ${this.sessionId.substring(0, 8)}...`);
+    const isMobile = this.isMobileDevice();
+    logger.info(`Session inicializada: ${this.sessionId.substring(0, 8)}... | Mobile: ${isMobile}`);
     
     const authState = localStorage.getItem(this.AUTH_STATE_KEY);
     if (authState === 'authenticated' && !this.accessTokenMemory) {
-      logger.info('🔄 Estado autenticado sem token - iniciando auto-refresh');
+      logger.info(`🔄 Estado autenticado sem token - iniciando auto-refresh (Mobile: ${isMobile})`);
       
-      // Auto-refresh após page refresh
+      // ✅ MOBILE FIX: Auto-refresh após page refresh
       // Pequeno delay para garantir que o DOM está pronto
       setTimeout(() => {
         this.attemptAutoRefresh();
@@ -106,6 +114,12 @@ class SecureTokenManager {
     this.tokenExpiryMemory = expiryDate;
     
     try {
+      // ✅ MOBILE FIX: Salvar refresh token em localStorage se mobile
+      if (this.isMobileDevice() && tokenResponse.refreshToken) {
+        localStorage.setItem(this.REFRESH_TOKEN_KEY, tokenResponse.refreshToken);
+        logger.info('✅ Refresh token salvo em localStorage (Mobile)');
+      }
+      
       // Salvar dados do usuário (não sensíveis) no localStorage
       localStorage.setItem(this.USER_KEY, JSON.stringify(user));
       // Store auth state to detect refresh scenarios
@@ -124,6 +138,14 @@ class SecureTokenManager {
       return this.accessTokenMemory;
     }
     return null;
+  }
+
+  // ✅ NOVO: Método para obter refresh token (mobile-aware)
+  static getRefreshToken(): string | null {
+    if (this.isMobileDevice()) {
+      return localStorage.getItem(this.REFRESH_TOKEN_KEY);
+    }
+    return null; // Desktop usa cookie
   }
 
   static getSessionId(): string {
@@ -179,18 +201,29 @@ class SecureTokenManager {
       localStorage.removeItem(this.AUTH_STATE_KEY);
       localStorage.removeItem(this.LAST_REFRESH_KEY);
       localStorage.removeItem(this.REFRESH_COUNT_KEY);
+      localStorage.removeItem(this.REFRESH_TOKEN_KEY); // ✅ Limpar refresh token mobile
       logger.info('Tokens limpos');
     } catch {
         logger.warn('Erro ao limpar localStorage');
     }
   }
 
-  static updateAccessToken(newToken: string, expiresAt: string): void {
+  static updateAccessToken(newToken: string, expiresAt: string, refreshToken?: string): void {
     const expiryDate = new Date(expiresAt);
     if (expiryDate <= new Date()) return;
 
     this.accessTokenMemory = newToken;
     this.tokenExpiryMemory = expiryDate;
+    
+    // ✅ MOBILE FIX: Atualizar refresh token se fornecido
+    if (this.isMobileDevice() && refreshToken) {
+      try {
+        localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
+        logger.info('✅ Refresh token atualizado (Mobile)');
+      } catch {
+        logger.warn('Erro ao atualizar refresh token mobile');
+      }
+    }
     
     // Update auth state
     try {
@@ -328,7 +361,11 @@ class SecureTokenManager {
       const newTokens = await refreshAccessToken();
       
       if (newTokens?.accessToken) {
-        this.updateAccessToken(newTokens.accessToken, newTokens.expiresAt);
+        this.updateAccessToken(
+          newTokens.accessToken, 
+          newTokens.expiresAt,
+          newTokens.refreshToken // ✅ Passar refresh token se vier
+        );
         logger.info('Auto-refresh bem-sucedido - sessão restaurada');
       } else {
         logger.warn('Auto-refresh falhou - resposta inválida');
@@ -386,10 +423,12 @@ async function refreshAccessToken(): Promise<TokenResponse | null> {
 
   try {
     const baseURL = API_BASE_URL;
+    const isMobile = /android|iphone|ipad|ipod|mobile/i.test(navigator.userAgent.toLowerCase());
+    
     if (!baseURL) {
       logger.warn('Refresh de token sem API_BASE_URL – a requisição pode ir para a origem incorreta. Defina VITE_API_URL.');
     } else {
-      logger.info(`Tentando renovar token silenciosamente em: ${baseURL}/api/auth/refresh-token`);
+      logger.info(`Tentando renovar token em: ${baseURL}/api/auth/refresh-token (Mobile: ${isMobile})`);
     }
 
     SecureTokenManager.setRefreshing(true);
@@ -405,10 +444,26 @@ async function refreshAccessToken(): Promise<TokenResponse | null> {
       }
     });
     
-    const refreshPromise = refreshClient.post<{ message: string; token: TokenResponse }>('/api/auth/refresh-token')
+    // ✅ MOBILE FIX: Enviar refresh token no body se mobile
+    const requestBody = isMobile ? {
+      refreshToken: SecureTokenManager.getRefreshToken()
+    } : {};
+    
+    logger.info(`Payload de refresh: ${isMobile ? 'Com refreshToken no body (Mobile)' : 'Vazio (Desktop - usa cookie)'}`);
+    
+    const refreshPromise = refreshClient.post<{ message: string; token: TokenResponse }>(
+      '/api/auth/refresh-token',
+      requestBody // ✅ Body vazio no desktop (usa cookie), preenchido no mobile
+    )
       .then(response => {
         if (response.data && response.data.token) {
-          logger.info('Token renovado silenciosamente');
+          logger.info(`✅ Token renovado silenciosamente (Mobile: ${isMobile})`);
+          
+          // ✅ MOBILE: Atualizar refresh token se veio no body
+          if (isMobile && response.data.token.refreshToken) {
+            logger.info('✅ Novo refresh token recebido do servidor (Mobile)');
+          }
+          
           return response.data.token;
         } else {
           logger.warn('Resposta de renovação inválida');
@@ -471,7 +526,11 @@ class ApiClient {
               const user = SecureTokenManager.getCurrentUser();
               
               if (newTokens && user) {
-                SecureTokenManager.updateAccessToken(newTokens.accessToken, newTokens.expiresAt);
+                SecureTokenManager.updateAccessToken(
+                  newTokens.accessToken, 
+                  newTokens.expiresAt,
+                  newTokens.refreshToken
+                );
                 accessToken = newTokens.accessToken;
                 logger.info('Refresh automático silencioso bem-sucedido');
               } else {
@@ -532,7 +591,11 @@ class ApiClient {
             const user = SecureTokenManager.getCurrentUser();
             
             if (newTokens && user) {
-              SecureTokenManager.updateAccessToken(newTokens.accessToken, newTokens.expiresAt);
+              SecureTokenManager.updateAccessToken(
+                newTokens.accessToken, 
+                newTokens.expiresAt,
+                newTokens.refreshToken
+              );
               originalRequest.headers.Authorization = `Bearer ${newTokens.accessToken}`;
               logger.info('Retry da requisição com novo token');
               return this.client(originalRequest);
@@ -629,7 +692,7 @@ if (typeof document !== 'undefined') {
   });
 }
 
-logger.info('ApiClient carregado com proteções anti-spam melhoradas');
+logger.info('ApiClient carregado com proteções anti-spam melhoradas + MOBILE FIX ativo');
 
 export default apiClient;
 export { ApiClient, SecureTokenManager, ClientRateLimit };
