@@ -80,7 +80,7 @@ class SecureTokenManager {
     if (authState === 'authenticated' && !this.accessTokenMemory) {
       logger.info('🔄 Estado autenticado sem token - iniciando auto-refresh');
       
-      // ✅ MOBILE FIX: Auto-refresh após page refresh
+      // Auto-refresh após page refresh
       // Pequeno delay para garantir que o DOM está pronto
       setTimeout(() => {
         this.attemptAutoRefresh();
