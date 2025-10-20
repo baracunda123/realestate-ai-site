@@ -68,7 +68,21 @@ namespace realestate_ia_site.Server.Controllers
 
         private void SetRefreshCookie(TokenResponse tokens)
         {
-            // ✅ MOBILE FIX: Usar SameSite=Lax (funciona melhor em mobile)
+            // ✅ MOBILE FIX: Detectar se é mobile e NÃO definir cookie
+            var userAgent = Request.Headers.UserAgent.ToString();
+            var isMobile = userAgent.Contains("Mobile", StringComparison.OrdinalIgnoreCase) ||
+                          userAgent.Contains("Android", StringComparison.OrdinalIgnoreCase) ||
+                          userAgent.Contains("iPhone", StringComparison.OrdinalIgnoreCase) ||
+                          userAgent.Contains("iPad", StringComparison.OrdinalIgnoreCase);
+            
+            // Se é mobile, NÃO definir cookie (será enviado no body)
+            if (isMobile)
+            {
+                _logger.LogInformation("[Cookie] Mobile detectado - NÃO definindo cookie (será usado localStorage)");
+                return;
+            }
+            
+            // Desktop: usar cookie normalmente
             var sameSite = _environment.IsProduction() ? SameSiteMode.Lax : SameSiteMode.Lax;
 
             var cookieOptions = new CookieOptions
@@ -77,21 +91,20 @@ namespace realestate_ia_site.Server.Controllers
                 Secure = true,
                 SameSite = sameSite,
                 Expires = tokens.ExpiresAt.AddDays(29),
-                Path = "/" // ✅ Path raiz para compatibilidade mobile
+                Path = "/"
             };
 
             Response.Cookies.Append("refresh_token", tokens.RefreshToken, cookieOptions);
             
-            // ✅ LOG para debug mobile
             _logger.LogInformation(
-                "[Cookie] refresh_token definido - Path=/, SameSite={SameSite}, Secure=true, Expires={Expires}",
-                sameSite, cookieOptions.Expires);
+                "[Cookie] Desktop detectado - Cookie definido - Path=/, SameSite={SameSite}, Secure=true",
+                sameSite);
         }
 
-        private static TokenResponse MaskRefresh(TokenResponse t) => new()
+        private static TokenResponse MaskRefresh(TokenResponse t, bool isMobile = false) => new()
         {
             AccessToken = t.AccessToken,
-            RefreshToken = string.Empty,
+            RefreshToken = isMobile ? t.RefreshToken : string.Empty, // ✅ Retorna refresh token no body APENAS se mobile
             ExpiresAt = t.ExpiresAt,
             TokenType = t.TokenType
         };
@@ -121,15 +134,20 @@ namespace realestate_ia_site.Server.Controllers
                     return BadRequest(result);
                 }
 
-                // Apenas definir cookie se tokens foram retornados (não será o caso para registro normal)
+                // Detectar mobile
+                var userAgent = Request.Headers.UserAgent.ToString();
+                var isMobile = userAgent.Contains("Mobile", StringComparison.OrdinalIgnoreCase) ||
+                              userAgent.Contains("Android", StringComparison.OrdinalIgnoreCase) ||
+                              userAgent.Contains("iPhone", StringComparison.OrdinalIgnoreCase);
+
+                // Apenas definir cookie se tokens foram retornados
                 if (tokens != null)
                 {
                     SetRefreshCookie(tokens);
                     _auditService.LogSuccessfulLogin(result.User!.Id, result.User.Email);
-                    return Ok(AuthResult.SuccessResult(MaskRefresh(tokens), result.User!, result.Message ?? string.Empty));
+                    return Ok(AuthResult.SuccessResult(MaskRefresh(tokens, isMobile), result.User!, result.Message ?? string.Empty));
                 }
 
-                // Registro bem-sucedido mas aguardando confirmação de email
                 return Ok(AuthResult.SuccessResult(new TokenResponse(), result.User!, result.Message ?? string.Empty));
             }
             catch (Exception ex)
@@ -160,13 +178,19 @@ namespace realestate_ia_site.Server.Controllers
                     return BadRequest(result);
                 }
 
+                // ✅ MOBILE FIX: Detectar mobile
+                var userAgent = Request.Headers.UserAgent.ToString();
+                var isMobile = userAgent.Contains("Mobile", StringComparison.OrdinalIgnoreCase) ||
+                              userAgent.Contains("Android", StringComparison.OrdinalIgnoreCase) ||
+                              userAgent.Contains("iPhone", StringComparison.OrdinalIgnoreCase);
+
                 if (tokens != null)
                 {
-                    SetRefreshCookie(tokens);
+                    SetRefreshCookie(tokens); // Só define cookie se NÃO for mobile
                     _auditService.LogSuccessfulLogin(result.User!.Id, result.User.Email);
                 }
 
-                return Ok(AuthResult.SuccessResult(tokens != null ? MaskRefresh(tokens) : new TokenResponse(), result.User!, result.Message ?? string.Empty));
+                return Ok(AuthResult.SuccessResult(tokens != null ? MaskRefresh(tokens, isMobile) : new TokenResponse(), result.User!, result.Message ?? string.Empty));
             }
             catch (Exception ex)
             {
@@ -182,17 +206,10 @@ namespace realestate_ia_site.Server.Controllers
             try
             {
                 _logger.LogInformation("Iniciando processo de Google Login...");
-                _logger.LogInformation("Request Provider: {Provider}", request.Provider);
-                _logger.LogInformation("Request AccessToken presente: {HasToken}", !string.IsNullOrEmpty(request.AccessToken));
                 
                 if (!ModelState.IsValid)
                 {
                     _logger.LogWarning("ModelState inválido para Google login");
-                    foreach (var modelError in ModelState)
-                    {
-                        _logger.LogWarning("ModelState Error - Key: {Key}, Errors: {Errors}", 
-                            modelError.Key, string.Join(", ", modelError.Value?.Errors.Select(e => e.ErrorMessage) ?? new string[0]));
-                    }
                     _auditService.LogSuspiciousActivity("Invalid Google login data", $"Provider: {request.Provider}");
                     return BadRequest(ModelState);
                 }
@@ -204,9 +221,6 @@ namespace realestate_ia_site.Server.Controllers
                     return BadRequest(new { message = "Provider inválido" });
                 }
 
-                _logger.LogInformation("Validando token do Google...");
-                
-                // Validar token do Google
                 var externalLoginInfo = await _googleAuthService.ValidateGoogleTokenAsync(request.AccessToken);
                 if (externalLoginInfo == null)
                 {
@@ -215,42 +229,35 @@ namespace realestate_ia_site.Server.Controllers
                     return BadRequest(new { message = "Token do Google inválido" });
                 }
 
-                _logger.LogInformation("Token Google validado com sucesso!");
-                _logger.LogInformation("Processando login externo...");
-
                 var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
                 var (result, tokens) = await _authService.ExternalLoginAsync(externalLoginInfo, ip);
-                
-                _logger.LogInformation("Resultado do login externo - Success: {Success}, Message: {Message}", 
-                    result.Success, result.Message);
                 
                 if (!result.Success)
                 {
                     var email = externalLoginInfo.Principal.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "unknown";
-                    _logger.LogWarning("Falha no login externo para email: {Email}, Errors: {Errors}", 
-                        email, string.Join(", ", result.Errors ?? new[] { "Unknown error" }));
                     _auditService.LogFailedLogin(email, string.Join(", ", result.Errors ?? new[] { "Google authentication failed" }));
                     return BadRequest(result);
                 }
 
-                _logger.LogInformation("Login externo bem-sucedido!");
+                // ✅ MOBILE FIX: Detectar mobile
+                var userAgent = Request.Headers.UserAgent.ToString();
+                var isMobile = userAgent.Contains("Mobile", StringComparison.OrdinalIgnoreCase) ||
+                              userAgent.Contains("Android", StringComparison.OrdinalIgnoreCase) ||
+                              userAgent.Contains("iPhone", StringComparison.OrdinalIgnoreCase);
                 
                 if (tokens != null)
                 {
-                    SetRefreshCookie(tokens);
+                    SetRefreshCookie(tokens); // Só define cookie se NÃO for mobile
                     _auditService.LogSuccessfulLogin(result.User!.Id, result.User.Email);
-                    _logger.LogInformation("Tokens salvos e cookie de refresh definido");
                 }
 
-                var response = AuthResult.SuccessResult(tokens != null ? MaskRefresh(tokens) : new TokenResponse(), result.User!, result.Message ?? string.Empty);
-                _logger.LogInformation("Google login concluído com sucesso para usuário: {Email}", result.User?.Email);
+                var response = AuthResult.SuccessResult(tokens != null ? MaskRefresh(tokens, isMobile) : new TokenResponse(), result.User!, result.Message ?? string.Empty);
                 
                 return Ok(response);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Erro inesperado durante Google login");
-                _logger.LogError("Tipo do erro: {ErrorType}, Mensagem: {Message}", ex.GetType().Name, ex.Message);
                 _auditService.LogSuspiciousActivity("Google login exception", $"Error: {ex.Message}");
                 return StatusCode(500, new { message = "Erro interno do servidor" });
             }
