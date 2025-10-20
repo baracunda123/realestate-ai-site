@@ -122,7 +122,8 @@ class SignalRService {
         transport: undefined // Deixa o SignalR escolher o melhor transporte
       })
       .withAutomaticReconnect([0, 2000, 10000, 30000])
-      .configureLogging(import.meta.env?.DEV ? LogLevel.Information : LogLevel.Warning)
+      // ✅ PRODUÇÃO: Desabilitar logs do SignalR completamente
+      .configureLogging(import.meta.env?.DEV ? LogLevel.Information : LogLevel.None)
       .build();
 
     this.setupEventHandlers();

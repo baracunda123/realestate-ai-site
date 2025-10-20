@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
 import { priceAlerts as logger } from '../utils/logger';
+import { authUtils } from '../api/auth.service';
 import type { Property } from '../types/property';
 import type { PropertyAlert, CreatePriceAlertRequest } from '../types/PersonalArea';
 import {
@@ -26,13 +27,21 @@ interface UsePriceAlertsReturn {
 
 /**
  * Hook customizado para gestão de alertas de redução de preço
+ * ✅ APENAS CARREGA SE USUÁRIO ESTIVER AUTENTICADO
  */
 export function usePriceAlerts(): UsePriceAlertsReturn {
     const [alerts, setAlerts] = useState<PropertyAlert[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false); // ✅ Não mostrar loading por padrão
 
     // Carregar alertas iniciais
     const loadAlerts = useCallback(async () => {
+        // ✅ VERIFICAR AUTENTICAÇÃO ANTES DE FAZER CHAMADA
+        if (!authUtils.isAuthenticated()) {
+            setAlerts([]);
+            setIsLoading(false);
+            return;
+        }
+
         try {
             setIsLoading(true);
             const response = await getUserAlerts();
@@ -57,6 +66,12 @@ export function usePriceAlerts(): UsePriceAlertsReturn {
 
     // Criar alerta para uma propriedade
     const createAlertForProperty = useCallback(async (property: Property, threshold: number = 5) => {
+        // ✅ VERIFICAR AUTENTICAÇÃO
+        if (!authUtils.isAuthenticated()) {
+            toast.error('Faça login para criar alertas');
+            return;
+        }
+
         try {
             // Verificar se já existe alerta
             if (hasAlertForPropertyId(property.id)) {
@@ -80,6 +95,11 @@ export function usePriceAlerts(): UsePriceAlertsReturn {
 
     // Remover alerta por propriedade
     const removeAlertForProperty = useCallback(async (propertyId: string) => {
+        // ✅ VERIFICAR AUTENTICAÇÃO
+        if (!authUtils.isAuthenticated()) {
+            return;
+        }
+
         try {
             await deleteAlertByProperty(propertyId);
             setAlerts(prev => prev.filter(alert => alert.propertyId !== propertyId));
@@ -91,6 +111,11 @@ export function usePriceAlerts(): UsePriceAlertsReturn {
 
     // Remover alerta por ID
     const removeAlert = useCallback(async (alertId: string) => {
+        // ✅ VERIFICAR AUTENTICAÇÃO
+        if (!authUtils.isAuthenticated()) {
+            return;
+        }
+
         try {
             await deleteAlert(alertId);
             setAlerts(prev => prev.filter(alert => alert.id !== alertId));
@@ -103,6 +128,11 @@ export function usePriceAlerts(): UsePriceAlertsReturn {
 
     // Atualizar threshold do alerta
     const updateAlertThreshold = useCallback(async (alertId: string, threshold: number) => {
+        // ✅ VERIFICAR AUTENTICAÇÃO
+        if (!authUtils.isAuthenticated()) {
+            return;
+        }
+
         try {
             const updatedAlert = await updateAlert(alertId, { alertThresholdPercentage: threshold });
             setAlerts(prev => prev.map(alert => alert.id === alertId ? updatedAlert : alert));
@@ -115,6 +145,11 @@ export function usePriceAlerts(): UsePriceAlertsReturn {
 
     // Verificar no servidor se existe alerta para uma propriedade
     const checkAlertForProperty = useCallback(async (propertyId: string): Promise<boolean> => {
+        // ✅ VERIFICAR AUTENTICAÇÃO
+        if (!authUtils.isAuthenticated()) {
+            return false;
+        }
+
         try {
             return await hasAlertForProperty(propertyId);
         } catch  {
@@ -143,15 +178,23 @@ export function usePriceAlerts(): UsePriceAlertsReturn {
 
 /**
  * Hook simplificado para verificar alertas sem gestão de estado
+ * ✅ APENAS VERIFICA SE USUÁRIO ESTIVER AUTENTICADO
  */
 export function usePriceAlertStatus(propertyId: string): {
     hasAlert: boolean;
     isLoading: boolean;
 } {
     const [hasAlert, setHasAlert] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);
+    const [isLoading, setIsLoading] = useState(false); // ✅ Não mostrar loading por padrão
 
     useEffect(() => {
+        // ✅ VERIFICAR AUTENTICAÇÃO ANTES DE FAZER CHAMADA
+        if (!authUtils.isAuthenticated()) {
+            setHasAlert(false);
+            setIsLoading(false);
+            return;
+        }
+
         let mounted = true;
 
         const checkAlert = async () => {

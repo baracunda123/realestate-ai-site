@@ -11,14 +11,18 @@ class Logger {
   private config: LoggerConfig;
 
   constructor() {
+    // ? PRODUÇÃO: Desabilitar TODOS os logs (incluindo errors)
+    const isDev = import.meta.env.DEV;
+    
     this.config = {
-      isDevelopment: import.meta.env.DEV,
-      enabledLevels: new Set(['info', 'warn', 'error', 'debug']),
-      timestamp: true
+      isDevelopment: isDev,
+      enabledLevels: isDev ? new Set(['info', 'warn', 'error', 'debug']) : new Set(), // ? Set vazio em produção
+      timestamp: isDev
     };
   }
 
   private shouldLog(level: LogLevel): boolean {
+    // ? PRODUÇÃO: Nunca logar
     return this.config.isDevelopment && this.config.enabledLevels.has(level);
   }
 
