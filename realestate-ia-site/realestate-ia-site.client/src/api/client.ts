@@ -78,7 +78,13 @@ class SecureTokenManager {
     
     const authState = localStorage.getItem(this.AUTH_STATE_KEY);
     if (authState === 'authenticated' && !this.accessTokenMemory) {
-      logger.info('Detectado estado de autenticação após refresh - será necessário renovar tokens');
+      logger.info('🔄 Estado autenticado sem token - iniciando auto-refresh');
+      
+      // ✅ MOBILE FIX: Auto-refresh após page refresh
+      // Pequeno delay para garantir que o DOM está pronto
+      setTimeout(() => {
+        this.attemptAutoRefresh();
+      }, 100);
     }
   }
 
@@ -299,6 +305,39 @@ class SecureTokenManager {
 
   static setRefreshPromise(promise: Promise<TokenResponse | null>): void {
     this.refreshPromise = promise;
+  }
+
+  // Auto-refresh silencioso na inicialização
+  private static async attemptAutoRefresh(): Promise<void> {
+    if (!this.canAttemptRefresh()) {
+      logger.warn('Auto-refresh não permitido - limite atingido ou cooldown');
+      this.clearTokens();
+      return;
+    }
+    
+    const user = this.getCurrentUser();
+    if (!user) {
+      logger.warn('Auto-refresh cancelado - sem usuário');
+      this.clearTokens();
+      return;
+    }
+    
+    logger.info('Iniciando auto-refresh silencioso...');
+    
+    try {
+      const newTokens = await refreshAccessToken();
+      
+      if (newTokens?.accessToken) {
+        this.updateAccessToken(newTokens.accessToken, newTokens.expiresAt);
+        logger.info('Auto-refresh bem-sucedido - sessão restaurada');
+      } else {
+        logger.warn('Auto-refresh falhou - resposta inválida');
+        this.clearTokens();
+      }
+    } catch (error) {
+      logger.error('Erro no auto-refresh', error as Error);
+      this.markRefreshFailed();
+    }
   }
 }
 
