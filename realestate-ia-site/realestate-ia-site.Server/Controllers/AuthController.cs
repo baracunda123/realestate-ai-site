@@ -26,6 +26,12 @@ namespace realestate_ia_site.Server.Controllers
         public string? AvatarUrl { get; set; }
     }
 
+    // ✅ MOBILE FIX: Nova classe para aceitar refresh token no body
+    public class RefreshTokenRequest
+    {
+        public string? RefreshToken { get; set; }
+    }
+
     [ApiController]
     [Route("api/[controller]")]
     [EnableRateLimiting("AuthPolicy")]
@@ -62,9 +68,8 @@ namespace realestate_ia_site.Server.Controllers
 
         private void SetRefreshCookie(TokenResponse tokens)
         {
-            // Em produção precisamos permitir envio cross-site (Static Web App -> API)
-            // SameSite=None + Secure=true para HTTPS em domínios diferentes
-            var sameSite = _environment.IsProduction() ? SameSiteMode.None : SameSiteMode.Lax;
+            // ✅ MOBILE FIX: Usar SameSite=Lax (funciona melhor em mobile)
+            var sameSite = _environment.IsProduction() ? SameSiteMode.Lax : SameSiteMode.Lax;
 
             var cookieOptions = new CookieOptions
             {
@@ -72,10 +77,15 @@ namespace realestate_ia_site.Server.Controllers
                 Secure = true,
                 SameSite = sameSite,
                 Expires = tokens.ExpiresAt.AddDays(29),
-                Path = "/"
+                Path = "/" // ✅ Path raiz para compatibilidade mobile
             };
 
             Response.Cookies.Append("refresh_token", tokens.RefreshToken, cookieOptions);
+            
+            // ✅ LOG para debug mobile
+            _logger.LogInformation(
+                "[Cookie] refresh_token definido - Path=/, SameSite={SameSite}, Secure=true, Expires={Expires}",
+                sameSite, cookieOptions.Expires);
         }
 
         private static TokenResponse MaskRefresh(TokenResponse t) => new()
@@ -247,15 +257,49 @@ namespace realestate_ia_site.Server.Controllers
         }
 
         [HttpPost("refresh-token")]
-        public async Task<IActionResult> RefreshToken()
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest? request)
         {
             try
             {
-                var refreshToken = Request.Cookies["refresh_token"];
+                // ✅ MOBILE FIX CRÍTICO: Aceitar refresh token no BODY também
+                var userAgent = Request.Headers.UserAgent.ToString();
+                var sessionId = Request.Headers["X-Session-ID"].ToString();
+                var isMobile = userAgent.Contains("Mobile", StringComparison.OrdinalIgnoreCase) ||
+                              userAgent.Contains("Android", StringComparison.OrdinalIgnoreCase) ||
+                              userAgent.Contains("iPhone", StringComparison.OrdinalIgnoreCase);
+                
+                _logger.LogInformation(
+                    "[RefreshToken] Tentativa - UserAgent={UserAgent}, SessionId={SessionId}, IsMobile={IsMobile}",
+                    userAgent, sessionId, isMobile);
+                
+                // Tentar obter refresh token de múltiplas fontes (mobile-first)
+                string? refreshToken = null;
+                
+                // 1️⃣ Prioridade: Body (mobile pode enviar aqui)
+                if (request?.RefreshToken != null && !string.IsNullOrEmpty(request.RefreshToken))
+                {
+                    refreshToken = request.RefreshToken;
+                    _logger.LogInformation("[RefreshToken] ✅ Token obtido do BODY (Mobile)");
+                }
+                // 2️⃣ Fallback: Cookie (desktop)
+                else
+                {
+                    refreshToken = Request.Cookies["refresh_token"];
+                    if (!string.IsNullOrEmpty(refreshToken))
+                    {
+                        _logger.LogInformation("[RefreshToken] ✅ Token obtido do COOKIE (Desktop)");
+                    }
+                }
                 
                 if (string.IsNullOrEmpty(refreshToken))
                 {
-                    _auditService.LogInvalidTokenAccess("refresh", "Missing refresh token cookie");
+                    _logger.LogWarning(
+                        "[RefreshToken] ❌ Token NÃO ENCONTRADO - Mobile={IsMobile}, HasBody={HasBody}, Cookies={CookieCount}",
+                        isMobile,
+                        request != null,
+                        Request.Cookies.Count);
+                    
+                    _auditService.LogInvalidTokenAccess("refresh", "Missing refresh token");
                     return BadRequest(new { message = "Token de atualização não encontrado" });
                 }
 
@@ -263,25 +307,41 @@ namespace realestate_ia_site.Server.Controllers
                 
                 if (!result.Success || tokens == null)
                 {
+                    _logger.LogWarning(
+                        "[RefreshToken] Refresh falhou - Motivo={Message}",
+                        result.Message ?? "Desconhecido");
+                    
                     _auditService.LogInvalidTokenAccess("refresh", result.Message ?? "Refresh failed");
-                    Response.Cookies.Delete("refresh_token");
+                    Response.Cookies.Delete("refresh_token", new CookieOptions { Path = "/" });
                     return BadRequest(result);
                 }
 
+                // ✅ Retornar refresh token no body para mobile armazenar
                 SetRefreshCookie(tokens);
                 
-                // Log successful refresh
                 var userId = GetCurrentUserId();
                 if (!string.IsNullOrEmpty(userId))
                 {
                     _auditService.LogSecurityEvent(SecurityEventType.TokenRefresh, "Token refreshed successfully", new { UserId = userId });
+                    _logger.LogInformation("[RefreshToken] ✅ Refresh bem-sucedido - UserId={UserId}", userId);
                 }
 
-                return Ok(new { message = result.Message, token = MaskRefresh(tokens) });
+                // ✅ MOBILE FIX: Retornar refresh token no body também (só para mobile)
+                var response = new { 
+                    message = result.Message, 
+                    token = new {
+                        accessToken = tokens.AccessToken,
+                        refreshToken = isMobile ? tokens.RefreshToken : string.Empty, // ✅ Só envia no body se mobile
+                        expiresAt = tokens.ExpiresAt,
+                        tokenType = tokens.TokenType
+                    }
+                };
+                
+                return Ok(response);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during token refresh");
+                _logger.LogError(ex, "[RefreshToken] Exceção durante refresh");
                 _auditService.LogInvalidTokenAccess("refresh", $"Exception: {ex.Message}");
                 return StatusCode(500, new { message = "Erro interno do servidor" });
             }
@@ -301,7 +361,8 @@ namespace realestate_ia_site.Server.Controllers
                     _auditService.LogSecurityEvent(SecurityEventType.LogoutSuccess, "User logged out", new { UserId = userId });
                 }
 
-                Response.Cookies.Delete("refresh_token");
+                // ✅ MOBILE FIX: Deletar com Path="/" também
+                Response.Cookies.Delete("refresh_token", new CookieOptions { Path = "/" });
                 return Ok(new { message = "Logout realizado com sucesso" });
             }
             catch (Exception ex)
