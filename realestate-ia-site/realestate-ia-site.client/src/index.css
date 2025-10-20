@@ -1378,3 +1378,62 @@ html {
   background: var(--pale-clay-light);
   border-color: var(--pale-clay-darker);
 }
+
+/* ⭐ FIX: Password autofill em branco no mobile */
+input[type="password"]:-webkit-autofill,
+input[type="password"]:-webkit-autofill:hover,
+input[type="password"]:-webkit-autofill:focus,
+input[type="password"]:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--deep-mocha) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--pure-white) inset !important;
+  box-shadow: 0 0 0 1000px var(--pure-white) inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+  caret-color: var(--deep-mocha) !important;
+}
+
+/* ⭐ FIX: Para dark mode */
+.dark input[type="password"]:-webkit-autofill,
+.dark input[type="password"]:-webkit-autofill:hover,
+.dark input[type="password"]:-webkit-autofill:focus,
+.dark input[type="password"]:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--porcelain) !important;
+  -webkit-box-shadow: 0 0 0 1000px #2A251F inset !important;
+  box-shadow: 0 0 0 1000px #2A251F inset !important;
+  caret-color: var(--porcelain) !important;
+}
+
+/* ⭐ FIX: Para email também (mesmo problema) */
+input[type="email"]:-webkit-autofill,
+input[type="email"]:-webkit-autofill:hover,
+input[type="email"]:-webkit-autofill:focus,
+input[type="email"]:-webkit-autofill:active,
+input[type="text"]:-webkit-autofill,
+input[type="text"]:-webkit-autofill:hover,
+input[type="text"]:-webkit-autofill:focus,
+input[type="text"]:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--deep-mocha) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--pure-white) inset !important;
+  box-shadow: 0 0 0 1000px var(--pure-white) inset !important;
+  transition: background-color 5000s ease-in-out 0s;
+  caret-color: var(--deep-mocha) !important;
+}
+
+/* ⭐ FIX: Para dark mode (email e text) */
+.dark input[type="email"]:-webkit-autofill,
+.dark input[type="email"]:-webkit-autofill:hover,
+.dark input[type="email"]:-webkit-autofill:focus,
+.dark input[type="email"]:-webkit-autofill:active,
+.dark input[type="text"]:-webkit-autofill,
+.dark input[type="text"]:-webkit-autofill:hover,
+.dark input[type="text"]:-webkit-autofill:focus,
+.dark input[type="text"]:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--porcelain) !important;
+  -webkit-box-shadow: 0 0 0 1000px #2A251F inset !important;
+  box-shadow: 0 0 0 1000px #2A251F inset !important;
+  caret-color: var(--porcelain) !important;
+}
+
+html {
+    font-size: var(--font-size);
+    scroll-behavior: smooth;
+}
