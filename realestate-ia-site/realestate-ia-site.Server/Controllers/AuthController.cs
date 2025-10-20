@@ -63,22 +63,32 @@ namespace realestate_ia_site.Server.Controllers
         private void SetRefreshCookie(TokenResponse tokens)
         {
             var isSecure = _environment.IsProduction() || Request.IsHttps;
+            var host = Request.Host.Host;
+            
+            // ⭐ Determinar domain do cookie baseado no host
+            string? cookieDomain = null;
+            if (host.EndsWith(".resideai.pt", StringComparison.OrdinalIgnoreCase))
+            {
+                // Se usar domínio customizado, configurar para aceitar subdomínios
+                cookieDomain = ".resideai.pt";  // ⭐ Permite www.resideai.pt E api.resideai.pt
+            }
+            // Se for Azure domain, deixar null (funciona só no mesmo domínio)
 
             var cookieOptions = new CookieOptions
             {
                 HttpOnly = true,
                 Secure = isSecure,
                 SameSite = SameSiteMode.None,
-                Expires = DateTime.UtcNow.AddDays(2), // Cookie expira em 2 dias
+                Expires = DateTime.UtcNow.AddDays(2),
                 Path = "/",
-                Domain = null
+                Domain = cookieDomain  // ⭐ Dynamic: .resideai.pt ou null
             };
 
             Response.Cookies.Append("refresh_token", tokens.RefreshToken, cookieOptions);
             
             _logger.LogInformation(
-                "[Cookie] Refresh token cookie set - Expires={Expires}, SameSite={SameSite}, Secure={Secure}", 
-                cookieOptions.Expires, cookieOptions.SameSite, isSecure);
+                "[Cookie] Refresh token cookie set - Expires={Expires}, SameSite={SameSite}, Secure={Secure}, Domain={Domain}", 
+                cookieOptions.Expires, cookieOptions.SameSite, isSecure, cookieDomain ?? "NULL");
         }
 
         [HttpPost("register")]
