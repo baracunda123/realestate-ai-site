@@ -49,7 +49,8 @@ interface PersonalAreaProps {
   alerts?: PropertyAlert[];
   onDeleteAlert?: (alertId: string) => Promise<void>
   onUpdateAlert?: (alertId: string, threshold: number) => Promise<void>
-  onUpdateProfile?: (profileData: Partial<User>) => void; // Add this prop
+  onUpdateProfile?: (profileData: Partial<User>) => void;
+  onDeleteAccount?: () => void;
 }
 
 export function PersonalArea({ 
@@ -64,7 +65,8 @@ export function PersonalArea({
   alerts = [],
   onDeleteAlert,
   onUpdateAlert,
-  onUpdateProfile // Add this parameter
+  onUpdateProfile,
+  onDeleteAccount
 }: PersonalAreaProps) {
   // UI state
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -326,6 +328,7 @@ export function PersonalArea({
           <PersonalAreaSettings
             user={user}
             onUpdateProfile={onUpdateProfile}
+            onDeleteAccount={onDeleteAccount}
           />
         </TabsContent>
       </Tabs>

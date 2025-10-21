@@ -26,6 +26,12 @@ namespace realestate_ia_site.Server.Controllers
         public string? AvatarUrl { get; set; }
     }
 
+    public class DeleteAccountRequest
+    {
+        [Required(ErrorMessage = "Password é obrigatória")]
+        public string Password { get; set; } = string.Empty;
+    }
+
     [ApiController]
     [Route("api/[controller]")]
     [EnableRateLimiting("AuthPolicy")]
@@ -734,6 +740,86 @@ namespace realestate_ia_site.Server.Controllers
             {
                 _logger.LogError(ex, "[Auth] Error resending confirmation email={Email}", request.Email);
                 return StatusCode(500, new { message = "Erro interno do servidor" });
+            }
+        }
+
+        [HttpDelete("account")]
+        [Authorize]
+        public async Task<IActionResult> DeleteAccount([FromBody] DeleteAccountRequest request)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                var userId = GetCurrentUserId();
+                
+                if (string.IsNullOrEmpty(userId))
+                {
+                    _auditService.LogInvalidTokenAccess("delete-account", "Missing user ID in token");
+                    return Unauthorized(new { success = false, message = "Utilizador não autenticado" });
+                }
+
+                var user = await _userManager.FindByIdAsync(userId);
+                if (user == null)
+                {
+                    _auditService.LogSuspiciousActivity("Delete account for non-existent user", $"UserId: {userId}");
+                    return NotFound(new { success = false, message = "Utilizador não encontrado" });
+                }
+
+                // Verificar a password antes de eliminar
+                var passwordValid = await _userManager.CheckPasswordAsync(user, request.Password);
+                if (!passwordValid)
+                {
+                    _auditService.LogSuspiciousActivity("Delete account with invalid password", $"UserId: {userId}, Email: {user.Email}");
+                    return BadRequest(new { success = false, message = "Password incorreta" });
+                }
+
+                _logger.LogWarning("[Auth] Account deletion initiated for userId={UserId}, email={Email}", userId, user.Email);
+
+                // Eliminar avatar se existir
+                if (!string.IsNullOrEmpty(user.AvatarUrl))
+                {
+                    try
+                    {
+                        await _fileStorageService.DeleteFileAsync(user.AvatarUrl);
+                        _logger.LogInformation("[Auth] Avatar deleted for userId={UserId}", userId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "[Auth] Failed to delete avatar for userId={UserId}", userId);
+                        // Continue with account deletion even if avatar deletion fails
+                    }
+                }
+
+                // Eliminar utilizador (cascade delete vai eliminar dados relacionados)
+                var result = await _userManager.DeleteAsync(user);
+                
+                if (!result.Succeeded)
+                {
+                    var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                    _logger.LogError("[Auth] Failed to delete account for userId={UserId}: {Errors}", userId, errors);
+                    _auditService.LogSuspiciousActivity("Failed account deletion", $"UserId: {userId}, Errors: {errors}");
+                    return StatusCode(500, new { success = false, message = "Erro ao eliminar conta. Tente novamente." });
+                }
+
+                // Limpar cookie de refresh token
+                Response.Cookies.Delete("refresh_token", new CookieOptions { Path = "/" });
+
+                // Log de auditoria
+                _auditService.LogSecurityEvent(SecurityEventType.LogoutSuccess, "Account deleted successfully", 
+                    new { UserId = userId, Email = user.Email });
+                
+                _logger.LogWarning("[Auth] Account deleted successfully for userId={UserId}, email={Email}", userId, user.Email);
+
+                return Ok(new { success = true, message = "Conta eliminada com sucesso" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Auth] Exception during account deletion for userId={UserId}", GetCurrentUserId());
+                return StatusCode(500, new { success = false, message = "Erro interno do servidor" });
             }
         }
     }

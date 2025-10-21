@@ -568,6 +568,40 @@ export default function App() {
     }
   }, [user]);
 
+  // Handler para eliminação de conta - logout e redirecionamento
+  const handleDeleteAccount = useCallback(async () => {
+    try {
+      // Desconectar SignalR se estiver conectado
+      if (signalRConnected) {
+        await disconnectSignalR();
+      }
+      
+      // Limpar todos os estados locais
+      authUtils.clearTokens();
+      setUser(null);
+      setFavorites([]);
+      setCurrentView('home');
+      resetToDefaults();
+      setHasShownWelcomeToast(false);
+      navigate('/');
+      
+      logger.info('Conta eliminada - utilizador deslogado e redirecionado', 'APP');
+      
+      // Nota: O toast de sucesso já foi mostrado pelo PersonalAreaSettings
+    } catch (error) {
+      logger.error('Erro no processo de eliminação de conta', 'APP', error as Error);
+      // Limpar dados localmente mesmo se houver erro
+      if (signalRConnected) {
+        await disconnectSignalR();
+      }
+      authUtils.clearTokens();
+      setUser(null);
+      setFavorites([]);
+      setHasShownWelcomeToast(false);
+      navigate('/');
+    }
+  }, [resetToDefaults, disconnectSignalR, signalRConnected, navigate]);
+
   // Show loading spinner during initialization
   if (isInitializing) {
     return (
@@ -626,6 +660,7 @@ export default function App() {
                   onDeleteAlert={handleDeleteAlert}
                   onUpdateAlert={handleUpdateAlert}
                   onUpdateProfile={handleUpdateProfile}
+                  onDeleteAccount={handleDeleteAccount}
                 />
               ) : (
                 <div className="flex items-center justify-center p-8">
