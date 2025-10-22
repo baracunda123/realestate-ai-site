@@ -13,7 +13,6 @@ public interface IApplicationDbContext
     DbSet<PropertyPriceHistory> PropertyPriceHistories { get; }
     DbSet<UserLoginSession> UserLoginSessions { get; }
     DbSet<Favorite> Favorites { get; }
-    DbSet<SavedSearch> SavedSearches { get; }
     DbSet<PropertyRecommendation> PropertyRecommendations { get; }
     DbSet<PropertyAlertNotification> PropertyAlertNotifications { get; }
     DbSet<UserSearchHistory> UserSearchHistories { get; }

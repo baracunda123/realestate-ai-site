@@ -9,4 +9,14 @@ public interface IConversationContextService
     void UpdateContext(string sessionId, ConversationContext context);
     void ClearExpiredContexts();
     Task<ConversationContext> GetOrCreateContextAsync(string sessionId, CancellationToken cancellationToken = default);
+    
+    /// <summary>
+    /// Remove completamente o contexto da conversa para uma sessão específica
+    /// </summary>
+    void ClearContext(string sessionId);
+    
+    /// <summary>
+    /// Remove completamente o contexto da conversa para uma sessão específica (async)
+    /// </summary>
+    Task ClearContextAsync(string sessionId, CancellationToken cancellationToken = default);
 }

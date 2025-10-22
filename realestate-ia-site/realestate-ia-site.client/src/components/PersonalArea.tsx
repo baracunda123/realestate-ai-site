@@ -3,20 +3,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { 
   BarChart3, 
   Heart, 
-  Bookmark, 
   Bell, 
   Clock, 
   Settings,
   ArrowLeft
 } from 'lucide-react';
 import type { Property } from '../types/property';
-import type { User, SavedSearch, PropertyAlert, ViewHistoryItem } from '../types/PersonalArea';
-import type { SearchFilters as SearchFiltersType } from '../types/SearchFilters';
+import type { User, PropertyAlert, ViewHistoryItem } from '../types/PersonalArea';
 import { Button } from './ui/button';
 import { PersonalAreaHeader } from './PersonalArea/PersonalAreaHeader';
 import { PersonalAreaDashboard } from './PersonalArea/PersonalAreaDashboard';
 import { PersonalAreaFavorites } from './PersonalArea/PersonalAreaFavorites';
-import { PersonalAreaSearches } from './PersonalArea/PersonalAreaSearches';
 import { PersonalAreaAlerts } from './PersonalArea/PersonalAreaAlerts';
 import { PersonalAreaHistory } from './PersonalArea/PersonalAreaHistory';
 import { PersonalAreaSettings } from './PersonalArea/PersonalAreaSettings';
@@ -27,10 +24,6 @@ import {
   updateAlert as updateAlertService
 } from '../api/alerts.service';
 import { 
-  getSavedSearches as getSavedSearchesService,
-  deleteSavedSearch as deleteSavedSearchService
-} from '../api/saved-searches.service';
-import { 
   getViewHistory as getViewHistoryService,
   trackPropertyView,
   removeFromViewHistory
@@ -40,7 +33,7 @@ import { useNotifications } from '../hooks/useNotifications';
 interface PersonalAreaProps {
   user: User;
   onNavigateToHome?: (reset?: boolean) => void;
-  onExecuteSearch?: (query: string, filters?: SearchFiltersType) => void;
+  onExecuteSearch?: (query: string) => void;
   favorites: Property[];
   onToggleFavorite: (property: Property) => void;
   hasActiveSearch?: boolean;
@@ -49,13 +42,13 @@ interface PersonalAreaProps {
   alerts?: PropertyAlert[];
   onDeleteAlert?: (alertId: string) => Promise<void>
   onUpdateAlert?: (alertId: string, threshold: number) => Promise<void>
-  onUpdateProfile?: (profileData: Partial<User>) => void; // Add this prop
+  onUpdateProfile?: (profileData: Partial<User>) => void;
+  onDeleteAccount?: () => void;
 }
 
 export function PersonalArea({ 
   user, 
   onNavigateToHome,
-  onExecuteSearch,
   favorites, 
   onToggleFavorite,
   hasActiveSearch = false,
@@ -64,33 +57,19 @@ export function PersonalArea({
   alerts = [],
   onDeleteAlert,
   onUpdateAlert,
-  onUpdateProfile // Add this parameter
+  onUpdateProfile,
+  onDeleteAccount
 }: PersonalAreaProps) {
   // UI state
   const [activeTab, setActiveTab] = useState('dashboard');
   
   // Data state
-  const [savedSearches, setSavedSearches] = useState<SavedSearch[]>([]);
   const [viewHistory, setViewHistory] = useState<ViewHistoryItem[]>([]);
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
 
   // Hook para notificações com refresh automático
   const { unreadCount } = useNotifications();
 
-  // Carregar dados ao montar
-  useEffect(() => {
-    const loadData = async () => {
-      try {
-        // Carregar pesquisas salvas
-        const searchesResp = await getSavedSearchesService();
-        setSavedSearches(searchesResp.searches || []);
-      } catch {
-        setSavedSearches([]);
-      }
-    };
-
-    loadData();
-  }, []);
 
   // Carregar histórico quando a aba for ativada OU quando houver mudança
   useEffect(() => {
@@ -171,47 +150,6 @@ export function PersonalArea({
     }
   };
 
-  const handleDeleteSearch = async (searchId: string) => {
-    try {
-      await deleteSavedSearchService(searchId);
-      setSavedSearches(prev => prev.filter(s => s.id !== searchId));
-      toast.success('Pesquisa removida!');
-    } catch {
-      toast.error('Falha ao remover pesquisa salva.');
-    }
-  };
-
-  const handleExecuteSavedSearch = async (search: SavedSearch) => {
-    try {
-      // Primeiro navegar para home
-      if (onNavigateToHome) {
-        onNavigateToHome();
-      }
-      
-      // Depois executar a pesquisa
-      if (onExecuteSearch) {
-        // Convert SavedSearch filters to SearchFilters format
-        const searchFilters: SearchFiltersType = {
-          location: search.filters.location || '',
-          priceRange: search.filters.priceRange || [0, 2000000],
-          bedrooms: search.filters.bedrooms || null,
-          bathrooms: search.filters.bathrooms || null,
-          propertyType: search.filters.propertyType || 'any',
-          hasGarage: search.filters.hasGarage,
-          sortBy: 'relevance',
-          sortOrder: 'desc'
-        };
-        
-        onExecuteSearch(search.query, searchFilters);
-        toast.success('Executando pesquisa salva...', {
-          description: `Pesquisando: "${search.query}"`
-        });
-      }
-      
-    } catch {
-      toast.error('Erro ao executar pesquisa');
-    }
-  };
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-6 space-y-6">
@@ -233,7 +171,7 @@ export function PersonalArea({
       <PersonalAreaHeader user={user} />
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-6 h-auto sm:h-14 gap-1 p-1">
+        <TabsList className="grid w-full grid-cols-3 sm:grid-cols-5 h-auto sm:h-14 gap-1 p-1">
           <TabsTrigger value="dashboard" className="w-full flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-2 py-2 sm:py-0 text-xs sm:text-sm">
             <BarChart3 className="h-4 w-4" />
             <span className="hidden sm:inline">Dashboard</span>
@@ -241,10 +179,6 @@ export function PersonalArea({
           <TabsTrigger value="favorites" className="w-full flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-2 py-2 sm:py-0 text-xs sm:text-sm">
             <Heart className="h-4 w-4" />
             <span className="hidden sm:inline">Favoritos</span>
-          </TabsTrigger>
-          <TabsTrigger value="searches" className="w-full flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-2 py-2 sm:py-0 text-xs sm:text-sm">
-            <Bookmark className="h-4 w-4" />
-            <span className="hidden sm:inline">Pesquisas</span>
           </TabsTrigger>
           <TabsTrigger value="alerts" className="w-full flex flex-col sm:flex-row items-center justify-center space-y-1 sm:space-y-0 sm:space-x-2 py-2 sm:py-0 text-xs sm:text-sm relative">
             <Bell className="h-4 w-4" />
@@ -268,11 +202,9 @@ export function PersonalArea({
         <TabsContent value="dashboard">
           <PersonalAreaDashboard
             favoritesCount={favorites.length}
-            savedSearchesCount={savedSearches.length}
             alertsCount={alerts.filter(alert => alert.isActive).length}
             onCardClick={(cardType) => {
               if (cardType === 'favorites') setActiveTab('favorites');
-              if (cardType === 'searches') setActiveTab('searches');
               if (cardType === 'alerts') setActiveTab('alerts');
             }}
           />
@@ -285,15 +217,6 @@ export function PersonalArea({
             onCreatePriceAlert={onCreatePriceAlert}
             hasAlertForPropertyId={hasAlertForPropertyId}
             onPropertyView={handlePropertyView}
-          />
-        </TabsContent>
-
-        <TabsContent value="searches">
-          <PersonalAreaSearches
-            savedSearches={savedSearches}
-            onDeleteSearch={handleDeleteSearch}
-            onNavigateToHome={onNavigateToHome}
-            onExecuteSearch={handleExecuteSavedSearch}
           />
         </TabsContent>
 
@@ -326,6 +249,7 @@ export function PersonalArea({
           <PersonalAreaSettings
             user={user}
             onUpdateProfile={onUpdateProfile}
+            onDeleteAccount={onDeleteAccount}
           />
         </TabsContent>
       </Tabs>

@@ -6,6 +6,8 @@ using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Data;
 using realestate_ia_site.Server.Application.Common.Exceptions;
 using realestate_ia_site.Server.Application.DTOs.PropertySearch;
+using realestate_ia_site.Server.Application.Common.Events;
+using realestate_ia_site.Server.Domain.Events;
 using System.ComponentModel.DataAnnotations;
 using AppUnauthorizedException = realestate_ia_site.Server.Application.Common.Exceptions.UnauthorizedAccessException;
 
@@ -19,13 +21,16 @@ namespace realestate_ia_site.Server.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<FavoritesController> _logger;
+        private readonly IDomainEventDispatcher _eventDispatcher;
 
         public FavoritesController(
             ApplicationDbContext context,
-            ILogger<FavoritesController> logger)
+            ILogger<FavoritesController> logger,
+            IDomainEventDispatcher eventDispatcher)
         {
             _context = context;
             _logger = logger;
+            _eventDispatcher = eventDispatcher;
         }
 
         /// <summary>
@@ -163,18 +168,40 @@ namespace realestate_ia_site.Server.Controllers
                 _logger.LogInformation("Removing property {PropertyId} from favorites for user {UserId}", 
                     propertyId, userId);
 
-                // Verificar se está nos favoritos
+                // Verificar se está nos favoritos e obter a propriedade
                 var favorite = await _context.Favorites
+                    .Include(f => f.Property)
                     .FirstOrDefaultAsync(f => f.UserId == userId && f.PropertyId == propertyId);
 
                 if (favorite == null)
                 {
-                    return NotFound(new { message = "Propriedade não encontrada nos favoritos" });
+                    return NotFound(new { message = "Propriedade não encontrada nos favoritas" });
                 }
+
+                // Guardar referência à propriedade antes de remover
+                var property = favorite.Property;
 
                 // Remover dos favoritos
                 _context.Favorites.Remove(favorite);
                 await _context.SaveChangesAsync();
+
+                // NOVO: Disparar evento de remoção de favorito
+                var favoriteRemovedEvent = new FavoriteRemovedEvent
+                {
+                    UserId = userId,
+                    PropertyId = propertyId,
+                    Property = property
+                };
+
+                try
+                {
+                    await _eventDispatcher.PublishAsync(favoriteRemovedEvent);
+                }
+                catch (Exception ex)
+                {
+                    // Log do erro mas não falha a remoção do favorito
+                    _logger.LogWarning(ex, "Failed to publish favorite removed event for user {UserId}", userId);
+                }
 
                 _logger.LogInformation("Property removed from favorites successfully");
 

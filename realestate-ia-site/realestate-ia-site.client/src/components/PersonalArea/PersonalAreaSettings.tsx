@@ -9,7 +9,7 @@ import type { User as UserType } from '../../types/PersonalArea';
 import { formatDate } from '../../utils/PersonalArea';
 import { toast } from 'sonner';
 import AvatarUpload from './AvatarUpload';
-import { updateProfile } from '../../api/auth.service';
+import { updateProfile, deleteAccount } from '../../api/auth.service';
 import { personalArea as logger } from '../../utils/logger';
 
 interface PersonalAreaSettingsProps {
@@ -27,6 +27,8 @@ export function PersonalAreaSettings({
   const [profileData, setProfileData] = useState({
     name: user.name || user.fullName || user.email
   });
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
 
   const handleSaveProfile = async () => {
     try {
@@ -71,6 +73,46 @@ export function PersonalAreaSettings({
         avatarUrl,
         avatar: avatarUrl
       });
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!deletePassword.trim()) {
+      toast.error('Password obrigatória', {
+        description: 'Por favor, insira a sua password para confirmar.',
+      });
+      return;
+    }
+
+    setIsDeleting(true);
+    
+    try {
+      logger.info('Iniciando processo de eliminação de conta');
+      
+      const response = await deleteAccount(deletePassword);
+      
+      if (response.success) {
+        logger.info('Conta eliminada com sucesso');
+        toast.success('Conta eliminada com sucesso!', {
+          description: 'Os seus dados foram removidos permanentemente.',
+        });
+        
+        // Chamar callback para logout e redirecionamento
+        if (onDeleteAccount) {
+          onDeleteAccount();
+        }
+      } else {
+        throw new Error(response.message || 'Erro ao eliminar conta');
+      }
+    } catch (error: unknown) {
+      logger.error('Erro ao eliminar conta', error as Error);
+      const errorMessage = error instanceof Error ? error.message : 'Ocorreu um erro inesperado';
+      toast.error('Erro ao eliminar conta', {
+        description: errorMessage,
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeletePassword('');
     }
   };
 
@@ -207,6 +249,7 @@ export function PersonalAreaSettings({
                 <Button
                   variant="outline"
                   className="border-error-gentle text-error-strong hover:bg-error-soft"
+                  disabled={isDeleting}
                 >
                   Eliminar Conta
                 </Button>
@@ -222,16 +265,33 @@ export function PersonalAreaSettings({
                     • Pesquisas guardadas<br />
                     • Histórico de visualizações<br />
                     • Alertas configurados<br />
-                    • Definições de perfil
+                    <br /><br />
+                    <strong>Para confirmar, insira a sua password:</strong>
                   </AlertDialogDescription>
                 </AlertDialogHeader>
+                <div className="py-4">
+                  <Input
+                    type="password"
+                    placeholder="Insira a sua password"
+                    value={deletePassword}
+                    onChange={(e) => setDeletePassword(e.target.value)}
+                    className="w-full"
+                    disabled={isDeleting}
+                  />
+                </div>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogCancel 
+                    onClick={() => setDeletePassword('')}
+                    disabled={isDeleting}
+                  >
+                    Cancelar
+                  </AlertDialogCancel>
                   <AlertDialogAction
                     className="bg-error-gentle hover:bg-error-strong"
-                    onClick={onDeleteAccount}
+                    onClick={handleDeleteAccount}
+                    disabled={isDeleting || !deletePassword.trim()}
                   >
-                    Sim, eliminar permanentemente
+                    {isDeleting ? 'A eliminar...' : 'Sim, eliminar permanentemente'}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>

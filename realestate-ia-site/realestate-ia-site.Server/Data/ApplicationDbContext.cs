@@ -27,7 +27,6 @@ namespace realestate_ia_site.Server.Data
         public DbSet<PropertyPriceHistory> PropertyPriceHistories { get; set; }
         public DbSet<UserLoginSession> UserLoginSessions { get; set; }
         public DbSet<Favorite> Favorites { get; set; }
-        public DbSet<SavedSearch> SavedSearches { get; set; }
         public DbSet<PropertyRecommendation> PropertyRecommendations { get; set; }
         public DbSet<PropertyAlertNotification> PropertyAlertNotifications { get; set; }
         public DbSet<UserSearchHistory> UserSearchHistories { get; set; }
@@ -116,25 +115,6 @@ namespace realestate_ia_site.Server.Data
                       .WithMany()
                       .HasForeignKey(e => e.PropertyId)
                       .OnDelete(DeleteBehavior.Cascade);
-            });
-
-            // Configurações para SavedSearch (simplified)
-            builder.Entity<SavedSearch>(entity =>
-            {
-                entity.HasIndex(e => e.UserId);
-                entity.HasIndex(e => e.IsActive);
-                entity.HasIndex(e => e.CreatedAt);
-
-                entity.HasOne(e => e.User)
-                      .WithMany()
-                      .HasForeignKey(e => e.UserId)
-                      .OnDelete(DeleteBehavior.Cascade);
-
-                entity.Property(e => e.MinPrice)
-                      .HasPrecision(18, 2);
-
-                entity.Property(e => e.MaxPrice)
-                      .HasPrecision(18, 2);
             });
 
             // Configurações para PropertyAlert - Nova estrutura simplificada
@@ -292,15 +272,6 @@ namespace realestate_ia_site.Server.Data
                 }
             }
 
-            // Atualizar timestamps para SavedSearch
-            var savedSearchEntries = ChangeTracker.Entries<SavedSearch>()
-                .Where(e => e.State == EntityState.Modified);
-
-            foreach (var entry in savedSearchEntries)
-            {
-                entry.Entity.UpdatedAt = DateTime.UtcNow;
-            }
-
             // Atualizar timestamps para PropertyRecommendation
             var recommendationEntries = ChangeTracker.Entries<PropertyRecommendation>()
                 .Where(e => e.State == EntityState.Modified);
@@ -335,15 +306,10 @@ namespace realestate_ia_site.Server.Data
                 }
             }
 
-            // NOVOS EVENTOS: Favoritos e Pesquisas Guardadas
+            // Eventos de Favoritos
             var favoriteEntries = ChangeTracker.Entries<Favorite>()
                 .Where(e => e.State == EntityState.Added)
                 .Select(e => new { e.Entity.UserId, e.Entity.PropertyId })
-                .ToList(); // Materializar ANTES de SaveChanges
-
-            var savedSearchNewEntries = ChangeTracker.Entries<SavedSearch>()
-                .Where(e => e.State == EntityState.Added)
-                .Select(e => new { Entry = e.Entity, UserId = e.Entity.UserId })
                 .ToList(); // Materializar ANTES de SaveChanges
 
             // Guardar alterações com retry em caso de concorrência
@@ -400,7 +366,7 @@ namespace realestate_ia_site.Server.Data
                 }
             }
 
-            // DEPOIS processar eventos (com queries separadas se necessário)
+            // Processar eventos de favoritos
             foreach (var favorite in favoriteEntries)
             {
                 try
@@ -423,22 +389,6 @@ namespace realestate_ia_site.Server.Data
                 catch (Exception ex)
                 {
                     Console.WriteLine($"Error processing favorite event: {ex.Message}");
-                }
-            }
-
-            foreach (var searchEntry in savedSearchNewEntries)
-            {
-                try
-                {
-                    domainEvents.Add(new SavedSearchCreatedEvent
-                    {
-                        UserId = searchEntry.UserId,
-                        SavedSearch = searchEntry.Entry
-                    });
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error processing saved search event: {ex.Message}");
                 }
             }
 

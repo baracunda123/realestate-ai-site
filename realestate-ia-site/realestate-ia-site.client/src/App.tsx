@@ -5,7 +5,6 @@ import { PersonalArea } from './components/PersonalArea';
 import { Footer } from './components/Footer';
 import { toast } from 'sonner';
 import { Toaster } from './components/ui/sonner';
-import { type SearchFilters as SearchFiltersType, DEFAULT_SEARCH_FILTERS } from './types/SearchFilters';
 import { type Property } from './types/property';
 import { getCurrentUser, logout, authUtils } from './api/auth.service';
 import { createSafeDate } from './utils/PersonalArea';
@@ -17,11 +16,11 @@ import { usePriceAlerts } from './hooks/usePriceAlerts';
 import { useSignalR } from './hooks/useSignalR';
 
 // Lazy load components for better performance
-const SearchFilters = lazy(() => import('./components/SearchFilters').then(m => ({ default: m.SearchFilters })));
 const PropertyGrid = lazy(() => import('./components/PropertyGrid').then(m => ({ default: m.PropertyGrid })));
 const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
 const WelcomeScreen = lazy(() => import('./components/WelcomeScreen').then(m => ({ default: m.WelcomeScreen })));
 const EmailConfirmation = lazy(() => import('./components/EmailConfirmation'));
+const ChatPanel = lazy(() => import('./components/ChatPanel').then(m => ({ default: m.ChatPanel })));
 
 // Loading components otimizados
 const LoadingSpinner = () => (
@@ -47,17 +46,20 @@ export default function App() {
   const [favorites, setFavorites] = useState<Property[]>([]);
   const [searchResults, setSearchResults] = useState<Property[] | null>(null);
   
-  // Search and filter state - usando novos tipos
-  const [searchFilters, setSearchFilters] = useState<SearchFiltersType>(DEFAULT_SEARCH_FILTERS);
+  // Search state
   const [searchQuery, setSearchQuery] = useState('');
   
   // Navigation state
   const location = useLocation();
   const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<ViewType>('home');
+  const [showSearchPanel, setShowSearchPanel] = useState(() => {
+    // Restaurar estado do sessionStorage ao carregar
+    const saved = sessionStorage.getItem('showSearchPanel');
+    return saved === 'true';
+  });
   
   // AI state
-  const [aiText, setAiText] = useState<string>('');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   
@@ -111,21 +113,12 @@ export default function App() {
 
   // Memoized values para evitar recálculos
   const isDefaultState = useMemo((): boolean => {
-    const isDefaultFilters = 
-      searchFilters.location === '' &&
-      searchFilters.priceRange[0] === 0 &&
-      searchFilters.priceRange[1] === 2000000 &&
-      searchFilters.bedrooms === null &&
-      searchFilters.bathrooms === null &&
-      searchFilters.propertyType === 'any' &&
-      searchFilters.sortBy === 'price';
-    
-    return searchQuery.trim() === '' && isDefaultFilters;
-  }, [searchFilters, searchQuery]);
+    return searchQuery.trim() === '';
+  }, [searchQuery]);
 
   const showWelcomeScreen = useMemo(() => 
-    !isInitializing && (!user || (user && isDefaultState && currentView === 'home' && searchResults === null)), 
-    [user, isDefaultState, currentView, searchResults, isInitializing]
+    !isInitializing && !showSearchPanel && (!user || (user && isDefaultState && currentView === 'home' && searchResults === null)), 
+    [user, isDefaultState, currentView, searchResults, isInitializing, showSearchPanel]
   );
 
   // Load favorites when user logs in
@@ -271,9 +264,7 @@ export default function App() {
   // Optimized callbacks
   const resetToDefaults = useCallback(() => {
     setSearchQuery('');
-    setSearchFilters(DEFAULT_SEARCH_FILTERS);
     setSearchResults(null);
-    setAiText('');
     setAiError(null);
   }, []);
 
@@ -291,6 +282,9 @@ export default function App() {
   const navigateToHome = useCallback(( reset: boolean = true ) => {
     if (reset) {
       resetToDefaults();
+      setConversationHistory([]);
+      setShowSearchPanel(false);
+      sessionStorage.removeItem('showSearchPanel');
     }
     setCurrentView('home');
     navigate('/');
@@ -393,9 +387,18 @@ export default function App() {
     });
   }, [user, navigate]);
 
-  const handleSubmitSearch = useCallback(async (query: string, filters?: SearchFiltersType) => {
+  const handleSubmitSearch = useCallback(async (query: string) => {
     setAiLoading(true);
     setAiError(null);
+    
+    // Add user message to history
+    const userMessage = {
+      id: `user-${Date.now()}`,
+      type: 'user' as const,
+      content: query,
+      timestamp: new Date()
+    };
+    setConversationHistory(prev => [...prev, userMessage]);
     
     try {
       const { searchProperties } = await import('./api/properties.service');
@@ -406,11 +409,17 @@ export default function App() {
       });
       
       setSearchResults(result.properties || []);
-      setAiText(result.aiResponse || '');
       setSearchQuery(query);
       
-      if (filters) {
-        setSearchFilters(filters);
+      // Add AI response to history
+      if (result.aiResponse) {
+        const aiMessage = {
+          id: `ai-${Date.now()}`,
+          type: 'ai' as const,
+          content: result.aiResponse,
+          timestamp: new Date()
+        };
+        setConversationHistory(prev => [...prev, aiMessage]);
       }
       
       if (result.properties?.length === 0) {
@@ -423,14 +432,19 @@ export default function App() {
         });
       }
     } catch {
+      const errorMsg = 'Não foi possível obter resposta da IA no momento.';
       setSearchResults([]);
-      setAiText('');
-      setAiError('Não foi possível obter resposta da IA no momento.');
+      setAiError(errorMsg);
       setSearchQuery(query);
       
-      if (filters) {
-        setSearchFilters(filters);
-      }
+      // Add error message to history
+      const errorMessage = {
+        id: `ai-error-${Date.now()}`,
+        type: 'ai' as const,
+        content: errorMsg,
+        timestamp: new Date()
+      };
+      setConversationHistory(prev => [...prev, errorMessage]);
       
       if (currentView !== 'home') {
         setCurrentView('home');
@@ -444,6 +458,24 @@ export default function App() {
       setAiLoading(false);
     }
   }, [currentView, navigate]);
+  
+  // Conversation history state
+  const [conversationHistory, setConversationHistory] = useState<Array<{
+    id: string;
+    type: 'user' | 'ai';
+    content: string;
+    timestamp: Date;
+  }>>([]);
+
+  // Handler para limpar completamente a conversa
+  const handleClearConversation = useCallback(() => {
+    // Limpar histórico local
+    setConversationHistory([]);
+    // Limpar resultados de pesquisa
+    setSearchResults(null);
+    setSearchQuery('');
+    setAiError(null);
+  }, []);
 
   // Authentication handlers - otimizados
   const handleAuthSuccess = useCallback(async () => {
@@ -568,6 +600,40 @@ export default function App() {
     }
   }, [user]);
 
+  // Handler para eliminação de conta - logout e redirecionamento
+  const handleDeleteAccount = useCallback(async () => {
+    try {
+      // Desconectar SignalR se estiver conectado
+      if (signalRConnected) {
+        await disconnectSignalR();
+      }
+      
+      // Limpar todos os estados locais
+      authUtils.clearTokens();
+      setUser(null);
+      setFavorites([]);
+      setCurrentView('home');
+      resetToDefaults();
+      setHasShownWelcomeToast(false);
+      navigate('/');
+      
+      logger.info('Conta eliminada - utilizador deslogado e redirecionado', 'APP');
+      
+      // Nota: O toast de sucesso já foi mostrado pelo PersonalAreaSettings
+    } catch (error) {
+      logger.error('Erro no processo de eliminação de conta', 'APP', error as Error);
+      // Limpar dados localmente mesmo se houver erro
+      if (signalRConnected) {
+        await disconnectSignalR();
+      }
+      authUtils.clearTokens();
+      setUser(null);
+      setFavorites([]);
+      setHasShownWelcomeToast(false);
+      navigate('/');
+    }
+  }, [resetToDefaults, disconnectSignalR, signalRConnected, navigate]);
+
   // Show loading spinner during initialization
   if (isInitializing) {
     return (
@@ -583,17 +649,12 @@ export default function App() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header
-        searchQuery={searchQuery}
         user={user}
         onOpenAuth={openAuthModal}
         onLogout={handleLogout}
         onNavigateToPersonal={navigateToPersonalArea}
         onNavigateToHome={navigateToHome}
         currentView={currentView}
-        onSubmitSearch={handleSubmitSearch}
-        aiText={aiText}
-        aiLoading={aiLoading}
-        aiError={aiError}
       />
       
       <main className="flex-1 site-container py-8">
@@ -616,7 +677,6 @@ export default function App() {
                 <PersonalArea
                   user={convertToUser(user)}
                   onNavigateToHome={navigateToHome}
-                  onExecuteSearch={handleSubmitSearch}
                   favorites={favorites}
                   onToggleFavorite={toggleFavorite}
                   hasActiveSearch={!isDefaultState && searchResults !== null}
@@ -626,6 +686,7 @@ export default function App() {
                   onDeleteAlert={handleDeleteAlert}
                   onUpdateAlert={handleUpdateAlert}
                   onUpdateProfile={handleUpdateProfile}
+                  onDeleteAccount={handleDeleteAccount}
                 />
               ) : (
                 <div className="flex items-center justify-center p-8">
@@ -640,25 +701,34 @@ export default function App() {
             path="/" 
             element={
               showWelcomeScreen ? (
-                <Suspense fallback={<LoadingSpinner />}>
+                <Suspense fallback={< LoadingSpinner />}>
                   <WelcomeScreen
                     onExampleSearch={handleExampleSearch}
                     user={user ? convertToUser(user) : null}
                     onStartSignup={() => openAuthModal('signup')}
+                    onStartSearch={() => {
+                      sessionStorage.setItem('showSearchPanel', 'true');
+                      setShowSearchPanel(true);
+                    }}
                   />
                 </Suspense>
-              ) : user ? (
-                <Suspense fallback={< LoadingSpinner />}>
-                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                    <div className="lg:col-span-1 space-y-6">
-                      <SearchFilters
-                        filters={searchFilters}
-                        setFilters={setSearchFilters}
+              ) : user && showSearchPanel ? (
+                <Suspense fallback={<LoadingSpinner />}>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Chat Panel */}
+                    <div className="order-1 lg:order-1">
+                      <ChatPanel
+                        onSubmitQuery={handleSubmitSearch}
+                        loading={aiLoading}
+                        error={aiError}
+                        conversationHistory={conversationHistory}
+                        onClearConversation={handleClearConversation}
                       />
                     </div>
-                    <div className="lg:col-span-3">
+                    
+                    {/* Property Grid */}
+                    <div className="order-2 lg:order-2">
                       <PropertyGrid
-                        filters={searchFilters}
                         searchQuery={searchQuery}
                         serverResults={searchResults || undefined}
                         favorites={favorites}

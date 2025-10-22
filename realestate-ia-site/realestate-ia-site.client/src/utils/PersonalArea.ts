@@ -1,4 +1,4 @@
-import type { User, PropertyAlert, SavedSearch } from '../types/PersonalArea';
+import type { User, PropertyAlert } from '../types/PersonalArea';
 import { personalArea } from '../utils/logger';
 
 // Format price in European format (EUR)
@@ -307,34 +307,6 @@ export const priceAlertUtils = {
    */
   calculateEstimatedSavings: (alert: PropertyAlert): number => {
     return Math.round((alert.currentPrice * alert.alertThresholdPercentage) / 100);
-  }
-};
-
-/**
- * Utilitários para SavedSearch
- */
-export const searchUtils = {
-  formatFilters: (search: SavedSearch): string => {
-    const filters = [];
-    
-    if (search.filters.location) filters.push(`📍 ${search.filters.location}`);
-    if (search.filters.propertyType && search.filters.propertyType !== 'any') {
-      filters.push(`🏠 ${getPropertyTypeLabel(search.filters.propertyType)}`);
-    }
-    if (search.filters.bedrooms) filters.push(`🛏️ ${search.filters.bedrooms}+ quartos`);
-    if (search.filters.priceRange) {
-      const [min, max] = search.filters.priceRange;
-      filters.push(`💰 ${formatPriceRange(min, max)}`);
-    }
-    
-    return filters.join(' • ') || 'Sem filtros específicos';
-  },
-  
-  getPerformanceLabel: (search: SavedSearch): string => {
-    if (search.results === 0) return 'Nenhum resultado';
-    if (search.results >= 20) return 'Muitos resultados';
-    if (search.results >= 10) return 'Bons resultados';
-    return 'Poucos resultados';
   }
 };
 
