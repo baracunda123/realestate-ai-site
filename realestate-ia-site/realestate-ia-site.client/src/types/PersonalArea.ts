@@ -28,26 +28,6 @@ export interface User {
   accountStatus?: 'active' | 'inactive' | 'suspended';
 }
 
-// SavedSearch - estrutura para pesquisas salvas (localStorage ou futura BD)
-export interface SavedSearch {
-  id: string;
-  userId?: string; // Para futura associação com BD
-  name: string;
-  query: string;
-  filters: {
-    location?: string;
-    propertyType?: string;
-    priceRange?: [number, number];
-    bedrooms?: number;
-    bathrooms?: number;
-    hasGarage?: boolean;
-  };
-  createdAt: Date;
-  updatedAt?: Date;
-  results: number;
-  newResults: number;
-}
-
 // PropertyAlert simplificado - apenas alertas de redução de preço
 export interface PropertyAlert {
   id: string;
@@ -150,11 +130,6 @@ export interface AlertsResponse {
   activeCount: number;
 }
 
-export interface SavedSearchesResponse {
-  searches: SavedSearch[];
-  totalCount: number;
-}
-
 export interface AlertNotificationsResponse {
   notifications: PropertyAlertNotification[];
   totalCount: number;
@@ -170,13 +145,6 @@ export interface CreatePriceAlertRequest {
 export interface UpdatePriceAlertRequest {
   alertThresholdPercentage?: number;
   isActive?: boolean;
-}
-
-export interface CreateSavedSearchRequest {
-  name: string;
-  query: string;
-  filters: SavedSearch['filters'];
-  results: number;
 }
 
 // Create/Update request types para perfil de utilizador

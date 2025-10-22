@@ -48,6 +48,19 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             _logger.LogDebug("Limpeza automática de contextos expirados executada");
         }
 
+        public void ClearContext(string sessionId)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(sessionId, nameof(sessionId));
+            var cacheKey = GetCacheKey(sessionId);
+            _cache.Remove(cacheKey);
+            _logger.LogInformation("Contexto da conversa limpo para sessão: {SessionId}", sessionId);
+        }
+
+        public async Task ClearContextAsync(string sessionId, CancellationToken cancellationToken = default)
+        {
+            await Task.Run(() => ClearContext(sessionId), cancellationToken);
+        }
+
         private ConversationContext CreateNewContext(string sessionId, string cacheKey)
         {
             var context = new ConversationContext { SessionId = sessionId };

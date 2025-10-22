@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { Badge } from './ui/badge';
+import { Button } from './ui/button';
 //import { Home, Search, MapPin, Star, Sparkles, TrendingUp, Users, Heart } from 'lucide-react';
 import { Home, Search, MapPin, Star, Sparkles, Heart } from 'lucide-react';
 import type { User } from '../types/PersonalArea';
@@ -10,9 +11,10 @@ interface WelcomeScreenProps {
   onExampleSearch: (query: string) => void;
   user?: User | null;
   onStartSignup: () => void;
+  onStartSearch?: () => void;
 }
 
-export function WelcomeScreen({ user }: WelcomeScreenProps) {
+export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
 
   // Pesquisas exemplo para utilizadores com sessão iniciada (apenas explicativas)
@@ -40,7 +42,7 @@ export function WelcomeScreen({ user }: WelcomeScreenProps) {
   ];
 
   const badgeItems = [
-    { icon: Sparkles, text: "Powered by ChatGPT" }
+    { icon: Sparkles, text: "Powered by OpenAI" }
   ];
 
   const stepItems = [
@@ -345,6 +347,53 @@ export function WelcomeScreen({ user }: WelcomeScreenProps) {
           ))}
         </div>
       </motion.div>
+
+      {/* CTA Button - Apenas para utilizadores autenticados */}
+      {user && onStartSearch && (
+        <motion.div 
+          variants={itemVariants}
+          className="flex justify-center my-8"
+        >
+          <motion.div
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            transition={{ duration: 0.2 }}
+          >
+            <Button
+              onClick={onStartSearch}
+              size="lg"
+              className="group relative overflow-hidden h-14 px-8 text-base font-semibold shadow-xl transition-all duration-300 bg-gradient-to-r from-burnt-peach to-burnt-peach-light hover:from-burnt-peach-light hover:to-burnt-peach border-0 text-deep-mocha hover:shadow-2xl shadow-burnt-peach/40 hover:shadow-burnt-peach/50"
+            >
+              {/* Efeito de brilho animado */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
+              
+              {/* Ícone com animação */}
+              <Sparkles className="h-5 w-5 mr-2 group-hover:rotate-12 group-hover:scale-110 transition-transform duration-300 relative z-10" />
+              
+              <span className="relative z-10">Começar a Pesquisar com IA</span>
+              
+              {/* Seta animada */}
+              <motion.svg
+                className="ml-2 h-5 w-5 relative z-10"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                animate={{ x: [0, 4, 0] }}
+                transition={{ 
+                  duration: 1.5,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              >
+                <path d="M13 7l5 5m0 0l-5 5m5-5H6" />
+              </motion.svg>
+            </Button>
+          </motion.div>
+        </motion.div>
+      )}
 
       {/* Conditional Content Based on Login Status */}
       {user && (

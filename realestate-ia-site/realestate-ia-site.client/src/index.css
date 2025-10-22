@@ -374,6 +374,21 @@
     background-color: var(--pale-clay-darker);
   }
   
+  /* Scrollbar para Firefox */
+  .scrollbar-thin {
+    scrollbar-color: var(--pale-clay-deep) transparent;
+  }
+  
+  .scrollbar-thin:hover {
+    scrollbar-color: var(--pale-clay-darker) transparent;
+  }
+  
+  /* Scroll suave */
+  .scroll-smooth {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  
   /* Prevent overflow from shadows and effects */
   .contain-paint {
     contain: paint;
@@ -720,6 +735,63 @@ html {
 .focus\:ring-cocoa:focus {
     --tw-ring-color: var(--cocoa-taupe); /* Focus ring secundário */
     --tw-ring-opacity: 0.4;
+}
+
+/* Estilos para Chat Panel fixo e responsivo */
+.chat-panel-sticky {
+  position: sticky;
+  top: 6rem; /* 96px - Header (64px) + gap (32px) */
+  z-index: 20;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@media (min-width: 1024px) {
+  .chat-panel-sticky {
+    top: 5rem; /* 80px - Header (64px) + gap (16px) */
+  }
+}
+
+@media (max-width: 1024px) {
+  .chat-panel-sticky {
+    position: relative;
+    top: 0;
+  }
+}
+
+/* Estilos para Chat Panel com scroll */
+.chat-scroll-container {
+  position: relative;
+}
+
+.chat-scroll-container::before,
+.chat-scroll-container::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 20px;
+  pointer-events: none;
+  z-index: 10;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.chat-scroll-container::before {
+  top: 0;
+  background: linear-gradient(to bottom, var(--pure-white), transparent);
+}
+
+.chat-scroll-container::after {
+  bottom: 0;
+  background: linear-gradient(to top, var(--pure-white), transparent);
+}
+
+.chat-scroll-container.has-scroll-top::before {
+  opacity: 1;
+}
+
+.chat-scroll-container.has-scroll-bottom::after {
+  opacity: 1;
 }
 
 /* Estilos para botão de navegação "Voltar aos Resultados" */

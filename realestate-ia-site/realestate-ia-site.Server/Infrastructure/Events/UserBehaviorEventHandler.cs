@@ -9,7 +9,7 @@ namespace realestate_ia_site.Server.Infrastructure.Events
 {
     public class UserBehaviorEventHandler : 
         IDomainEventHandler<FavoriteAddedEvent>,
-        IDomainEventHandler<SavedSearchCreatedEvent>,
+        IDomainEventHandler<FavoriteRemovedEvent>,
         IDomainEventHandler<SearchExecutedEvent>
     {
         private readonly PropertyRecommendationService _recommendationService;
@@ -50,26 +50,26 @@ namespace realestate_ia_site.Server.Infrastructure.Events
             }
         }
 
-        public async Task HandleAsync(SavedSearchCreatedEvent domainEvent, CancellationToken cancellationToken = default)
+        public async Task HandleAsync(FavoriteRemovedEvent domainEvent, CancellationToken cancellationToken = default)
         {
-            _logger.LogInformation("Handling SavedSearchCreatedEvent for user {UserId}, search {SearchId}", 
-                domainEvent.UserId, domainEvent.SavedSearch.Id);
+            _logger.LogInformation("Handling FavoriteRemovedEvent for user {UserId}, property {PropertyId}", 
+                domainEvent.UserId, domainEvent.PropertyId);
 
             try
             {
-                // 1. Encontrar propriedades existentes que correspondem aos critérios
-                await _recommendationService.ProcessExistingPropertiesForSearchAsync(
-                    domainEvent.UserId, domainEvent.SavedSearch, cancellationToken);
+                // Invalidar recomendações relacionadas com o favorito removido
+                await _recommendationService.InvalidateRecommendationsForRemovedFavoriteAsync(
+                    domainEvent.UserId, domainEvent.PropertyId, domainEvent.Property, cancellationToken);
 
-                // 2. Atualizar perfil de preferências do utilizador
-                await _recommendationService.UpdateUserPreferencesFromSearchAsync(
-                    domainEvent.UserId, domainEvent.SavedSearch, cancellationToken);
+                // Refresh recomendações baseado no novo perfil (sem este favorito)
+                await _recommendationService.RefreshUserRecommendationsAsync(
+                    domainEvent.UserId, cancellationToken);
 
-                _logger.LogInformation("Successfully processed saved search creation for user {UserId}", domainEvent.UserId);
+                _logger.LogInformation("Successfully processed favorite removal for user {UserId}", domainEvent.UserId);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing saved search creation for user {UserId}", domainEvent.UserId);
+                _logger.LogError(ex, "Error processing favorite removal for user {UserId}", domainEvent.UserId);
                 throw;
             }
         }

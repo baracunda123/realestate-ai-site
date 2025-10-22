@@ -70,6 +70,26 @@ export async function searchProperties({
 }
 
 /**
+ * Limpar completamente o contexto da conversa IA
+ */
+export async function clearConversationContext(): Promise<{ success: boolean; message: string }> {
+  logger.info('Limpando contexto da conversa IA');
+
+  try {
+    const response = await apiClient.delete<{ success: boolean; message: string }>(
+      '/api/SearchAI/clear-context'
+    );
+    
+    logger.info('Contexto da conversa IA limpo com sucesso');
+    return response;
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
+    logger.error(`Erro ao limpar contexto da conversa: ${errorMsg}`);
+    throw error;
+  }
+}
+
+/**
  * Obter propriedades favoritas do usuário (usa FavoritesController)
  */
 export async function getFavoriteProperties(): Promise<FavoritePropertiesResponse> {

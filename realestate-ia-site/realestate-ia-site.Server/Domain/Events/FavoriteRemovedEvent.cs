@@ -3,11 +3,12 @@ using realestate_ia_site.Server.Domain.Entities;
 
 namespace realestate_ia_site.Server.Domain.Events
 {
-    public class SavedSearchCreatedEvent : IDomainEvent
+    public class FavoriteRemovedEvent : IDomainEvent
     {
         public Guid Id { get; } = Guid.NewGuid();
         public DateTime OccurredAt { get; } = DateTime.UtcNow;
         public string UserId { get; set; } = string.Empty;
-        public SavedSearch SavedSearch { get; set; } = null!;
+        public string PropertyId { get; set; } = string.Empty;
+        public Property? Property { get; set; }
     }
 }

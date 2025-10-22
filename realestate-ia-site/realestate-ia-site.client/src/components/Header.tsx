@@ -1,9 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Search, Home, User, MessageCircle, Send } from 'lucide-react';
+import { Home, User } from 'lucide-react';
 import { Button } from './ui/button';
-import { Input } from './ui/input';
 import { UserProfileDropdown } from './UserProfileDropdown';
-import { AIResponseBox } from './AIResponseBox';
 import { NotificationBell } from './NotificationBell/NotificationBell';
 import { useUnreadNotificationsCount } from '../hooks/useNotifications';
 
@@ -17,131 +14,31 @@ interface ExtendedUserProfile {
   phone?: string;
 }
 
-interface ConversationMessage {
-  id: string;
-  type: 'user' | 'ai';
-  content: string;
-  timestamp: Date;
-}
-
 interface HeaderProps {
-  searchQuery: string;
   user: ExtendedUserProfile | null;
   onOpenAuth: () => void;
   onLogout: () => void;
   onNavigateToPersonal: () => void;
   onNavigateToHome: () => void;
   currentView: 'home' | 'personal' | 'alert-results';
-  onSubmitSearch?: (query: string) => void;
-  aiText?: string;
-  aiLoading?: boolean;
-  aiError?: string | null;
 }
 
 export function Header({
-  searchQuery,
   user,
   onOpenAuth,
   onLogout,
   onNavigateToPersonal,
   onNavigateToHome,
-  currentView,
-  onSubmitSearch,
-  aiText,
-  aiLoading,
-  aiError
+  currentView
 }: HeaderProps) {
-  const [aiOpen, setAiOpen] = useState(false);
-  const [localInput, setLocalInput] = useState(searchQuery);
-  const [conversationHistory, setConversationHistory] = useState<ConversationMessage[]>([]);
-  const lastProcessedQueryRef = useRef<string>('');
-  const lastProcessedAITextRef = useRef<string>('');
-
   // SIGNALR: Hook SEMPRE executado - agora usa SignalR em vez de polling
   const { unreadCount, isLoading: notificationsLoading } = useUnreadNotificationsCount();
 
-  // Reset local input when view changes and not on home page
-  useEffect(() => {
-    if (currentView !== 'home') {
-      setLocalInput('');
-    } else {
-      setLocalInput('');
-    }
-  }, [currentView]);
-
-  // Add user query to history when searchQuery changes (new search submitted)
-  useEffect(() => {
-    if (searchQuery && searchQuery !== lastProcessedQueryRef.current) {
-      const userMessage: ConversationMessage = {
-        id: `user-${Date.now()}`,
-        type: 'user',
-        content: searchQuery,
-        timestamp: new Date()
-      };
-      
-      setConversationHistory(prev => [...prev, userMessage]);
-      lastProcessedQueryRef.current = searchQuery;
-      setAiOpen(true);
-    }
-  }, [searchQuery]);
-
-  // Add AI response to history when aiText changes (new response received)
-  useEffect(() => {
-    if (aiText && !aiLoading && !aiError && aiText !== lastProcessedAITextRef.current) {
-      const aiMessage: ConversationMessage = {
-        id: `ai-${Date.now()}`,
-        type: 'ai',
-        content: aiText,
-        timestamp: new Date()
-      };
-      
-      setConversationHistory(prev => [...prev, aiMessage]);
-      lastProcessedAITextRef.current = aiText;
-    }
-  }, [aiText, aiLoading, aiError]);
-
-  const handleSubmitSearch = () => {
-    if (!user) { 
-      onOpenAuth(); 
-      return; 
-    }
-    
-    const query = localInput.trim();
-    if (!query) return;
-    
-    setAiOpen(true);
-    onSubmitSearch?.(query);
-    setLocalInput('');
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (user && e.key === 'Enter') {
-      handleSubmitSearch();
-    }
-  };
-
-  const handleReopenAI = () => {
-    setAiOpen(true);
-  };
-
-  const handleToggleAI = () => {
-    setAiOpen(!aiOpen);
-  };
-
   const handleNavigateToHome = () => {
-    // Reset AI state when explicitly navigating home via logo
-    setAiOpen(false);
-    setConversationHistory([]);
-    lastProcessedQueryRef.current = '';
-    lastProcessedAITextRef.current = '';
-    setLocalInput('');
     onNavigateToHome();
   };
 
   const handleNavigateToPersonal = () => {
-    // Don't reset AI state when navigating to personal area
-    // But close the AI box
-    setAiOpen(false);
     onNavigateToPersonal();
   };
 
@@ -164,83 +61,15 @@ export function Header({
             <h1 className="text-xl font-semibold text-title">Resultados do Alerta</h1>
           </div>
         );
+      case 'home':
+        return (
+          <div className="flex-1 flex items-center justify-center">
+            {/* Título removido - botão de pesquisa movido para WelcomeScreen */}
+          </div>
+        );
       default:
         return null;
     }
-  };
-
-  const renderSearchBar = () => {
-    if (currentView !== 'home') return null;
-
-    return (
-      <div className="flex-1 max-w-2xl mx-1 sm:mx-4 md:mx-8 relative">
-        <div className="flex items-center gap-1 sm:gap-2">
-          <div className="relative flex-1 min-w-0">
-            <Search className={`absolute left-2 sm:left-3 md:left-4 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 sm:h-4 sm:w-4 ${
-              user ? 'text-clay-secondary' : 'text-clay-secondary/50'
-            }`} />
-            <Input
-              placeholder={user ? "Conte-me que tipo de casa está à procura..." : "Crie a sua conta para começar a pesquisar..."}
-              value={user ? localInput : ''}
-              onChange={(e) => user && setLocalInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={!user}
-              className={`pl-7 sm:pl-10 md:pl-12 pr-1.5 sm:pr-3 md:pr-4 h-9 sm:h-11 md:h-12 text-xs sm:text-sm md:text-base border-clay-medium focus:border-primary rounded-lg sm:rounded-xl bg-input-background shadow-sm ${
-                !user ? 'opacity-60 cursor-not-allowed' : ''
-              }`}
-            />
-          </div>
-
-          {/* Search Submit Button - Mobile Only */}
-          {user && (
-            <Button
-              size="icon"
-              variant="ghost"
-              className="md:hidden h-9 w-9 sm:h-11 sm:w-11 p-0 text-clay-secondary hover:text-title hover:bg-clay-soft border border-clay-medium rounded-lg sm:rounded-xl relative flex-shrink-0"
-              onClick={handleSubmitSearch}
-              aria-label="Pesquisar"
-              title="Pesquisar"
-            >
-              <Send className="h-3.5 w-3.5 sm:h-4.5 sm:w-4.5" />
-            </Button>
-          )}
-
-          {/* Chat Icon Button */}
-          {user && (
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-9 w-9 sm:h-11 sm:w-11 md:h-12 md:w-12 p-0 text-clay-secondary hover:text-title hover:bg-clay-soft border border-clay-medium rounded-lg sm:rounded-xl relative flex-shrink-0"
-              onClick={handleToggleAI}
-              aria-label="Abrir chat IA"
-              title="Chat IA"
-            >
-              <MessageCircle className="h-3.5 w-3.5 sm:h-4.5 sm:w-4.5 md:h-5 md:w-5" />
-            </Button>
-          )}
-        </div>
-
-        {user && (
-          <AIResponseBox 
-            open={aiOpen} 
-            text={aiText} 
-            loading={aiLoading} 
-            error={aiError || null} 
-            onClose={() => setAiOpen(false)}
-            onReopen={handleReopenAI}
-            conversationHistory={conversationHistory}
-          />
-        )}
-
-        {!user && (
-          <div
-            className="absolute inset-0 bg-transparent cursor-pointer rounded-xl"
-            onClick={onOpenAuth}
-            title="Crie a sua conta para aceder à pesquisa"
-          />
-        )}
-      </div>
-    );
   };
 
   const renderUserSection = () => {
@@ -320,7 +149,6 @@ export function Header({
           </div>
 
           {/* Dynamic Content Area */}
-          {renderSearchBar()}
           {renderViewTitle()}
 
           {/* Right Side Controls */}

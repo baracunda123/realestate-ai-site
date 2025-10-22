@@ -89,7 +89,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI.Core
                 var core = string.Join(", ", parts);
                 var tail = string.IsNullOrWhiteSpace(p.ImageUrl) ? "" : $" ({p.ImageUrl})";
 
-                return $"PROP[{num}] {core}{(title != null ? $" - {title}" : "")}{tail}";
+                return $"PROPRIEDADE[{num}] {core}{(title != null ? $" - {title}" : "")}{tail}";
             }));
         }
     }

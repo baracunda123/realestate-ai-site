@@ -65,15 +65,6 @@ export const API_CONFIG = {
           EXPORT: '/api/alerts/export'
         },
 
-        SAVED_SEARCHES: {
-          LIST: '/api/saved-searches',
-          DETAILS: (id: string) => `/api/saved-searches/${id}`,
-          CREATE: '/api/saved-searches',
-          UPDATE: (id: string) => `/api/saved-searches/${id}`,
-          DELETE: (id: string) => `/api/saved-searches/${id}`,
-          EXPORT: '/api/saved-searches/export'
-        },
-
         NOTIFICATIONS: {
           LIST: '/api/notifications',
           MARK_READ: (id: string) => `/api/notifications/${id}/read`,

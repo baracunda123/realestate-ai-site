@@ -342,9 +342,9 @@ builder.Services.AddSignalR(options =>
 builder.Services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 builder.Services.AddScoped<IDomainEventHandler<PropertyPriceChangedEvent>, PropertyAlertEventHandler>();
 
-// NOVOS EVENT HANDLERS PARA RECOMENDAÇÕES INTELIGENTES
+// EVENT HANDLERS PARA RECOMENDAÇÕES INTELIGENTES
 builder.Services.AddScoped<IDomainEventHandler<FavoriteAddedEvent>, UserBehaviorEventHandler>();
-builder.Services.AddScoped<IDomainEventHandler<SavedSearchCreatedEvent>, UserBehaviorEventHandler>();
+builder.Services.AddScoped<IDomainEventHandler<FavoriteRemovedEvent>, UserBehaviorEventHandler>();
 builder.Services.AddScoped<IDomainEventHandler<SearchExecutedEvent>, UserBehaviorEventHandler>();
 
 // BACKGROUND SERVICES PARA RECOMENDAÇÕES PROATIVAS
@@ -528,4 +528,4 @@ if (!app.Environment.IsDevelopment())
 }
 
 Console.WriteLine("APPLICATION READY");
-app.Run();
+app.Run();app.Run();

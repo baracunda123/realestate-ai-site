@@ -73,7 +73,7 @@ namespace realestate_ia_site.Server.Infrastructure.BackgroundServices
                 // 3. Limpar recomendações antigas (mais de 30 dias)
                 await CleanupOldRecommendationsAsync(context, cancellationToken);
 
-                // 4. NOVO: Limpar histórico de pesquisas antigo (mais de 90 dias)
+                // 4. Limpar histórico de pesquisas antigo (mais de 90 dias)
                 await CleanupOldSearchHistoryAsync(context, cancellationToken);
 
                 _logger.LogInformation("Completed scheduled recommendation processing");
@@ -101,16 +101,7 @@ namespace realestate_ia_site.Server.Infrastructure.BackgroundServices
             
             activeUserIds.UnionWith(usersWithRecentFavorites);
 
-            // Utilizadores com pesquisas guardadas recentes
-            var usersWithRecentSearches = await context.SavedSearches
-                .Where(s => s.CreatedAt > cutoffDate || s.LastExecutedAt > cutoffDate)
-                .Select(s => s.UserId)
-                .Distinct()
-                .ToListAsync(cancellationToken);
-            
-            activeUserIds.UnionWith(usersWithRecentSearches);
-
-            // NOVO: Utilizadores com histórico de pesquisas recentes (tracking de TODAS as pesquisas)
+            // Utilizadores com histórico de pesquisas recentes (tracking de TODAS as pesquisas)
             var usersWithRecentSearchHistory = await context.UserSearchHistories
                 .Where(h => h.UserId != null && h.CreatedAt > cutoffDate)
                 .Select(h => h.UserId!)
