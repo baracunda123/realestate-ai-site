@@ -215,3 +215,41 @@ html {
 .gradient-soft-purple {
   background: linear-gradient(135deg, #f3e8ff 0%, #ede9fe 100%);
 }
+
+/* Esconder scrollbar mas manter funcionalidade */
+.overflow-x-auto::-webkit-scrollbar {
+  display: none;
+}
+
+.overflow-x-auto {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Animação shimmer para loading states */
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Fix para carousel de recomendações - permitir overflow para hover effects */
+[data-slot="carousel-content"] {
+  overflow: visible !important;
+}
+
+[data-slot="carousel"] {
+  overflow: visible !important;
+}
+
+.overflow-hidden {
+  overflow: visible !important;
+}
+
+/* Garantir espaço para hover effects */
+.recommendation-card {
+  margin: 0.25rem;
+}
