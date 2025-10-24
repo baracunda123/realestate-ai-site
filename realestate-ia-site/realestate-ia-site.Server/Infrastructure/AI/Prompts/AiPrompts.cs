@@ -23,10 +23,52 @@
         /// </summary>
         internal static string GetFilterExtractionContext() =>
             @"TAREFA ESPECÍFICA: Extrair filtros de pesquisa.
-            Responde APENAS com JSON válido. Campos: type, location, max_price, rooms, tags, sort.
-            Exemplos:
+            Responde APENAS com JSON válido. Campos disponíveis: type, location, min_price, max_price, target_price, min_area, max_area, target_area, rooms, min_rooms, max_rooms, tags, sort.
+            
+            REGRAS DE INTERPRETAÇÃO (aplicam-se a PREÇO e ÁREA):
+            Analisa a intenção do utilizador e decide:
+            
+            1. Se a intenção é um LIMITE MÁXIMO (até, máximo, não mais que, etc.)
+               → PREÇO: usar apenas max_price
+               → ÁREA: usar apenas max_area
+            
+            2. Se a intenção é um LIMITE MÍNIMO (acima de, a partir de, mínimo, pelo menos, etc.)
+               → PREÇO: usar apenas min_price
+               → ÁREA: usar apenas min_area
+            
+            3. Se a intenção é um VALOR APROXIMADO/TARGET (a rondar, cerca de, aproximadamente, perto de, por volta de, tipo, uns, etc.)
+               → PREÇO: usar target_price com o valor desejado
+               → ÁREA: usar target_area com o valor desejado
+               → O sistema ordena por proximidade e traz os mais próximos automaticamente
+               → NÃO uses min/max neste caso, apenas target_*
+            
+            4. Se a intenção é um INTERVALO EXPLÍCITO e RÍGIDO (entre X e Y, só entre X e Y)
+               → PREÇO: usar min_price E max_price
+               → ÁREA: usar min_area E max_area
+            
+            5. Se o utilizador mudar o critério, enviar APENAS os novos filtros relevantes
+            
+            Exemplos práticos - PREÇO:
             'T3 no Porto até 300k' → {""rooms"": 3, ""location"": ""Porto"", ""max_price"": 300000}
-            'mais barato' → {""sort"": ""price_asc""}";
+            'acima de 200k' → {""min_price"": 200000}
+            'entre 150k e 250k' → {""min_price"": 150000, ""max_price"": 250000}
+            'a rondar os 200k' → {""target_price"": 200000}
+            'tipo 300 mil' → {""target_price"": 300000}
+            
+            Exemplos práticos - ÁREA:
+            'até 100m²' → {""max_area"": 100}
+            'pelo menos 150m²' → {""min_area"": 150}
+            'entre 80 e 120m²' → {""min_area"": 80, ""max_area"": 120}
+            'a rondar os 100m²' → {""target_area"": 100}
+            'tipo 150 metros quadrados' → {""target_area"": 150}
+            'uns 200m²' → {""target_area"": 200}
+            
+            Outros:
+            'mais barato' → {""sort"": ""price_asc""}
+            
+            IMPORTANTE: target_price e target_area são flexíveis - o sistema encontra automaticamente os mais próximos.
+            
+            Usa o teu entendimento de linguagem natural para interpretar a verdadeira intenção do utilizador.";
 
         /// <summary>
         /// Contexto para resposta conversacional - usado para respostas ao utilizador
