@@ -45,13 +45,19 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                 var response = await _openAIService.CompleteChatAsync(messages, options, cancellationToken);
                 var filters = ParseFiltersFromResponse(response);
 
+                _logger.LogInformation("Filtros extraídos da IA: {@ExtractedFilters}", filters);
+
                 if (context != null && filters.Any())
                 {
-                    context.LastFilters = MergeFilters(context.LastFilters, filters);
+                    var previousFilters = new Dictionary<string, object>(context.LastFilters);
+                    context.LastFilters = MergeFilters(context.LastFilters, filters, _logger);
                     _contextService.UpdateContext(sessionId, context);
+                    
+                    _logger.LogInformation("Filtros fundidos - Anterior: {@PreviousFilters}, Novos: {@NewFilters}, Resultado: {@MergedFilters}", 
+                        previousFilters, filters, context.LastFilters);
                 }
 
-                return filters;
+                return context?.LastFilters ?? filters;
             }
             catch (Exception ex)
             {
@@ -120,16 +126,156 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             }
         }
 
-        private static Dictionary<string, object> MergeFilters(Dictionary<string, object> existing, Dictionary<string, object> incoming)
+        private static Dictionary<string, object> MergeFilters(Dictionary<string, object> existing, Dictionary<string, object> incoming, ILogger logger)
         {
             var result = new Dictionary<string, object>(existing);
+            
+            // Detectar filtros conflitantes que devem ser limpos quando novos filtros chegam
+            var priceFilterKeys = new[] { "min_price", "max_price", "price", "target_price" };
+            var roomsFilterKeys = new[] { "rooms", "min_rooms", "max_rooms" };
+            var areaFilterKeys = new[] { "area", "min_area", "max_area", "target_area" };
+            
             foreach (var kv in incoming)
             {
-                if (!result.ContainsKey(kv.Key) || IsEmpty(result[kv.Key]))
+                // Se o filtro novo não está vazio, adiciona/substitui
+                if (!IsEmpty(kv.Value))
                 {
                     result[kv.Key] = kv.Value;
+                    
+                    // ========== PREÇO: Gestão de conflitos ==========
+                    
+                    // Se definir target_price, remover min_price/max_price (são abordagens diferentes)
+                    if (kv.Key == "target_price")
+                    {
+                        if (result.ContainsKey("min_price"))
+                        {
+                            logger.LogDebug("Removendo min_price - mudou para target_price (busca por proximidade)");
+                            result.Remove("min_price");
+                        }
+                        if (result.ContainsKey("max_price"))
+                        {
+                            logger.LogDebug("Removendo max_price - mudou para target_price (busca por proximidade)");
+                            result.Remove("max_price");
+                        }
+                    }
+                    
+                    // Se definir min_price ou max_price, remover target_price (são abordagens diferentes)
+                    if (kv.Key is "min_price" or "max_price")
+                    {
+                        if (result.ContainsKey("target_price"))
+                        {
+                            logger.LogDebug("Removendo target_price - mudou para limites rígidos (min/max)");
+                            result.Remove("target_price");
+                        }
+                    }
+                    
+                    // ========== ÁREA: Gestão de conflitos (mesma lógica) ==========
+                    
+                    // Se definir target_area, remover min_area/max_area (são abordagens diferentes)
+                    if (kv.Key == "target_area")
+                    {
+                        if (result.ContainsKey("min_area"))
+                        {
+                            logger.LogDebug("Removendo min_area - mudou para target_area (busca por proximidade)");
+                            result.Remove("min_area");
+                        }
+                        if (result.ContainsKey("max_area"))
+                        {
+                            logger.LogDebug("Removendo max_area - mudou para target_area (busca por proximidade)");
+                            result.Remove("max_area");
+                        }
+                    }
+                    
+                    // Se definir min_area ou max_area, remover target_area (são abordagens diferentes)
+                    if (kv.Key is "min_area" or "max_area")
+                    {
+                        if (result.ContainsKey("target_area"))
+                        {
+                            logger.LogDebug("Removendo target_area - mudou para limites rígidos (min/max)");
+                            result.Remove("target_area");
+                        }
+                    }
+                    
+                    // Se definir min_price, limpar max_price anterior para evitar conflitos
+                    if (kv.Key == "min_price" && result.ContainsKey("max_price"))
+                    {
+                        var maxPrice = Convert.ToDecimal(result["max_price"]);
+                        var minPrice = Convert.ToDecimal(kv.Value);
+                        if (minPrice >= maxPrice)
+                        {
+                            logger.LogDebug("Removendo max_price conflitante: min_price={MinPrice} >= max_price={MaxPrice}", minPrice, maxPrice);
+                            result.Remove("max_price");
+                        }
+                    }
+                    
+                    // Se definir max_price, limpar min_price anterior para evitar conflitos
+                    if (kv.Key == "max_price" && result.ContainsKey("min_price"))
+                    {
+                        var minPrice = Convert.ToDecimal(result["min_price"]);
+                        var maxPrice = Convert.ToDecimal(kv.Value);
+                        if (maxPrice <= minPrice)
+                        {
+                            logger.LogDebug("Removendo min_price conflitante: max_price={MaxPrice} <= min_price={MinPrice}", maxPrice, minPrice);
+                            result.Remove("min_price");
+                        }
+                    }
+                    
+                    // ========== ROOMS: Detecção de conflitos ==========
+                    
+                    if (kv.Key == "min_rooms" && result.ContainsKey("max_rooms"))
+                    {
+                        var maxRooms = Convert.ToInt32(result["max_rooms"]);
+                        var minRooms = Convert.ToInt32(kv.Value);
+                        if (minRooms >= maxRooms)
+                        {
+                            logger.LogDebug("Removendo max_rooms conflitante: min_rooms={MinRooms} >= max_rooms={MaxRooms}", minRooms, maxRooms);
+                            result.Remove("max_rooms");
+                        }
+                    }
+                    
+                    if (kv.Key == "max_rooms" && result.ContainsKey("min_rooms"))
+                    {
+                        var minRooms = Convert.ToInt32(result["min_rooms"]);
+                        var maxRooms = Convert.ToInt32(kv.Value);
+                        if (maxRooms <= minRooms)
+                        {
+                            logger.LogDebug("Removendo min_rooms conflitante: max_rooms={MaxRooms} <= min_rooms={MinRooms}", maxRooms, minRooms);
+                            result.Remove("min_rooms");
+                        }
+                    }
+                    
+                    // ========== ÁREA: Detecção de conflitos (mesma lógica) ==========
+                    
+                    if (kv.Key == "min_area" && result.ContainsKey("max_area"))
+                    {
+                        var maxArea = Convert.ToDecimal(result["max_area"]);
+                        var minArea = Convert.ToDecimal(kv.Value);
+                        if (minArea >= maxArea)
+                        {
+                            logger.LogDebug("Removendo max_area conflitante: min_area={MinArea} >= max_area={MaxArea}", minArea, maxArea);
+                            result.Remove("max_area");
+                        }
+                    }
+                    
+                    if (kv.Key == "max_area" && result.ContainsKey("min_area"))
+                    {
+                        var minArea = Convert.ToDecimal(result["min_area"]);
+                        var maxArea = Convert.ToDecimal(kv.Value);
+                        if (maxArea <= minArea)
+                        {
+                            logger.LogDebug("Removendo min_area conflitante: max_area={MaxArea} <= min_area={MinArea}", maxArea, minArea);
+                            result.Remove("min_area");
+                        }
+                    }
+                }
+                // Se o novo filtro está vazio mas existe na requisição, remover do resultado
+                else if (result.ContainsKey(kv.Key))
+                {
+                    logger.LogDebug("Removendo filtro vazio: {FilterKey}", kv.Key);
+                    result.Remove(kv.Key);
                 }
             }
+            
             return result;
         }
 

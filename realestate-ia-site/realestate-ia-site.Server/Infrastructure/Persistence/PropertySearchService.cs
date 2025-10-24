@@ -27,7 +27,7 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
             CancellationToken cancellationToken = default)
         {
             ArgumentNullException.ThrowIfNull(filtros, nameof(filtros));
-            _logger.LogInformation("[Search] Início pesquisa filtros={FilterCount}", filtros.Count);
+            _logger.LogInformation("[Search] Inicio da pesquisa com filtros={FilterCount}", filtros.Count);
             _logger.LogDebug("[Search] Filtros recebidos {@Filters}", filtros);
             if (filtros.Count == 0) return new List<PropertySearchDto>();
 
@@ -50,12 +50,12 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
             {
                 var properties = await query.Take(10).ToListAsync(cancellationToken);
                 var result = properties.Select(PropertySearchDto.FromDomain).ToList();
-                _logger.LogInformation("[Search] Concluída propriedades={Count}", result.Count);
+                _logger.LogInformation("[Search] Concluida a pesquisa com {Count} propriedades", result.Count);
                 return result;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[Search] Erro execução query filtros={@Filters}", filtros);
+                _logger.LogError(ex, "[Search] Erro na execucao da query com filtros={@Filters}", filtros);
                 throw;
             }
         }
