@@ -37,12 +37,15 @@ namespace realestate_ia_site.Server.Application.SearchAI
                 var properties = await _propertySearchService.SearchPropertiesWithFiltersAsync(filters, ct);
                 var aiResponse = await _responseGenerator.GenerateResponseAsync(request.Query, properties, request.SessionId, ct);
 
-                _logger.LogInformation("Search completed. Found {SearchCount} properties.", properties.Count);
+                _logger.LogInformation("Search completed. Found {SearchCount} properties with filters: {Filters}", 
+                    properties.Count, 
+                    filters != null ? System.Text.Json.JsonSerializer.Serialize(filters) : "none");
                 
                 return new SearchAIResponseDto 
                 { 
                     Properties = properties,
-                    AIResponse = aiResponse
+                    AIResponse = aiResponse,
+                    ExtractedFilters = filters
                 };
             }
             catch (Exception ex)

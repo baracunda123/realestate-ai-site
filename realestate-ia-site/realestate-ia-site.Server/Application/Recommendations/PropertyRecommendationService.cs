@@ -10,6 +10,32 @@ namespace realestate_ia_site.Server.Application.Recommendations
         private readonly IApplicationDbContext _context;
         private readonly ILogger<PropertyRecommendationService> _logger;
 
+        // Constantes de configuraÃ§Ã£o
+        private const double FavoriteWeight = 1.5;
+        private const double RecentSearchWeight7Days = 2.0;
+        private const double RecentSearchWeight14Days = 1.5;
+        private const double RecentSearchWeight21Days = 1.0;
+        private const double OldSearchWeight = 0.5;
+        
+        private const int ScoreThresholdWithFavorites = 70;
+        private const int ScoreThresholdWithoutFavorites = 50;
+        private const int ScoreThresholdSimilarToFavorite = 65;
+        private const int ScoreBonusForSimilarToFavorite = 10;
+        
+        private const int ConsistencyThresholdHighConfidence = 60;
+        private const int ConsistencyThresholdMediumConfidence = 50;
+        private const int MinSearchesForPattern = 3;
+        private const int MinSearchesForInterestShift = 4;
+        private const int MinSearchesForPeriodicRefresh = 5;
+        
+        private const int RecentSearchesDays = 7;
+        private const int UserBehaviorAnalysisDays = 30;
+        private const int InactiveUserDays = 60;
+        
+        private const int MaxPreferredLocations = 5;
+        private const int MaxPreferredTypes = 3;
+        private const int MaxRecommendationsPerUser = 30;
+
         public PropertyRecommendationService(
             IApplicationDbContext context,
             ILogger<PropertyRecommendationService> logger)
@@ -32,13 +58,13 @@ namespace realestate_ia_site.Server.Application.Recommendations
 
             try
             {
-                // Encontrar propriedades similares baseado em múltiplos critérios
+                // Encontrar propriedades similares baseado em mÃºltiplos critÃ©rios
                 var similarProperties = await FindSimilarPropertiesAsync(favoriteProperty, cancellationToken);
 
                 int recommendationsCreated = 0;
                 foreach (var property in similarProperties)
                 {
-                    // Verificar se já existe recomendação
+                    // Verificar se jÃ¡ existe recomendaÃ§Ã£o
                     var exists = await _context.PropertyRecommendations
                         .AnyAsync(r => r.UserId == userId && r.PropertyId == property.Id, cancellationToken);
 
@@ -47,9 +73,9 @@ namespace realestate_ia_site.Server.Application.Recommendations
                         var score = await CalculateRecommendationScoreAsync(userId, property, cancellationToken);
                         
                         // Score mais alto para propriedades similares a favoritos
-                        score += 15; 
+                        score += ScoreBonusForSimilarToFavorite; 
                         
-                        if (score >= 65)
+                        if (score >= ScoreThresholdSimilarToFavorite)
                         {
                             await CreateRecommendationAsync(userId, property, Math.Min(score, 100), "similar_favorito", cancellationToken);
                             recommendationsCreated++;
@@ -67,7 +93,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
         }
 
         /// <summary>
-        /// Refresh completo das recomendações de um utilizador
+        /// Refresh completo das recomendaÃ§Ãµes de um utilizador
         /// </summary>
         public async Task RefreshUserRecommendationsAsync(
             string userId,
@@ -80,7 +106,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
                 // 1. Analisar comportamento do utilizador
                 var userBehavior = await AnalyzeUserBehaviorAsync(userId, cancellationToken);
                 
-                if (userBehavior.LastActivityDate < DateTime.UtcNow.AddDays(-60))
+                if (userBehavior.LastActivityDate < DateTime.UtcNow.AddDays(-InactiveUserDays))
                 {
                     _logger.LogDebug("User {UserId} inactive for too long, skipping refresh", userId);
                     return;
@@ -90,9 +116,9 @@ namespace realestate_ia_site.Server.Application.Recommendations
                 var hasFavorites = await _context.Favorites
                     .AnyAsync(f => f.UserId == userId, cancellationToken);
 
-                // 3. Definir threshold baseado em ter favoritos ou não
-                // Se NÃO tem favoritos, aceitar scores MUITO mais baixos (pesquisas dominam)
-                int scoreThreshold = hasFavorites ? 70 : 50;  // 50 sem favoritos, 70 com favoritos
+                // 3. Definir threshold baseado em ter favoritos ou nÃ£o
+                // Se NÃƒO tem favoritos, aceitar scores MUITO mais baixos (pesquisas dominam)
+                int scoreThreshold = hasFavorites ? ScoreThresholdWithFavorites : ScoreThresholdWithoutFavorites;
                 
                 _logger.LogInformation("User {UserId} has favorites: {HasFavorites}, using score threshold: {Threshold}", 
                     userId, hasFavorites, scoreThreshold);
@@ -106,7 +132,10 @@ namespace realestate_ia_site.Server.Application.Recommendations
                     userBehavior.AveragePriceBudget,
                     userBehavior.PreferredBedrooms);
 
-                // 4. Encontrar propriedades candidatas baseado no perfil
+                // 4. Limpar recomendaÃ§Ãµes de localizaÃ§Ãµes nÃ£o relevantes
+                await CleanupIrrelevantLocationRecommendationsAsync(userId, userBehavior.PreferredLocations, cancellationToken);
+
+                // 5. Encontrar propriedades candidatas baseado em perfil
                 var candidateProperties = await FindCandidatePropertiesAsync(userBehavior, cancellationToken);
 
                 _logger.LogInformation("Found {Count} candidate properties for user {UserId}", 
@@ -118,38 +147,57 @@ namespace realestate_ia_site.Server.Application.Recommendations
                     return;
                 }
 
-                // 5. Limitar número de recomendações ativas por utilizador
+                // 6. Limitar nÃºmero de recomendaÃ§Ãµes ativas por utilizador
                 await CleanupUserRecommendationsAsync(userId, cancellationToken);
 
                 int recommendationsCreated = 0;
+                int recommendationsUpdated = 0;
                 int propertiesEvaluated = 0;
                 
-                foreach (var property in candidateProperties.Take(20)) // Máximo 20 por refresh
+                foreach (var property in candidateProperties.Take(20)) // MÃ¡ximo 20 por refresh
                 {
                     propertiesEvaluated++;
                     
-                    // Verificar se já existe recomendação ativa
-                    var exists = await _context.PropertyRecommendations
-                        .AnyAsync(r => r.UserId == userId && r.PropertyId == property.Id && r.IsActive, cancellationToken);
+                    // Verificar se jÃ¡ existe recomendaÃ§Ã£o ativa
+                    var existingRecommendation = await _context.PropertyRecommendations
+                        .FirstOrDefaultAsync(r => r.UserId == userId && r.PropertyId == property.Id && r.IsActive, cancellationToken);
 
-                    if (!exists)
+                    var score = await CalculateRecommendationScoreAsync(userId, property, cancellationToken);
+                    
+                    _logger.LogDebug("Property {PropertyId} scored {Score} for user {UserId} (threshold: {Threshold})", 
+                        property.Id, score, userId, scoreThreshold);
+
+                    if (existingRecommendation != null)
                     {
-                        var score = await CalculateRecommendationScoreAsync(userId, property, cancellationToken);
+                        // NOVO: Recalcular score de recomendaÃ§Ãµes existentes
+                        var oldScore = existingRecommendation.Score;
+                        existingRecommendation.Score = score;
+                        existingRecommendation.UpdatedAt = DateTime.UtcNow;
                         
-                        _logger.LogDebug("Property {PropertyId} scored {Score} for user {UserId} (threshold: {Threshold})", 
-                            property.Id, score, userId, scoreThreshold);
-                        
-                        if (score >= scoreThreshold)
+                        // Se o novo score for muito baixo, desativar
+                        if (score < scoreThreshold)
                         {
-                            await CreateRecommendationAsync(userId, property, score, "perfil_atualizado", cancellationToken);
-                            recommendationsCreated++;
+                            existingRecommendation.IsActive = false;
+                            _logger.LogDebug("Deactivated existing recommendation {PropertyId} due to low score {Score} (was {OldScore})", 
+                                property.Id, score, oldScore);
                         }
+                        else
+                        {
+                            _logger.LogDebug("Updated recommendation {PropertyId} score from {OldScore} to {NewScore}", 
+                                property.Id, oldScore, score);
+                            recommendationsUpdated++;
+                        }
+                    }
+                    else if (score >= scoreThreshold)
+                    {
+                        await CreateRecommendationAsync(userId, property, score, "perfil_atualizado", cancellationToken);
+                        recommendationsCreated++;
                     }
                 }
 
                 _logger.LogInformation(
-                    "Refresh completed for user {UserId}: Evaluated {Evaluated} properties, created {Created} new recommendations", 
-                    userId, propertiesEvaluated, recommendationsCreated);
+                    "Refresh completed for user {UserId}: Evaluated {Evaluated} properties, created {Created} new recommendations, updated {Updated} existing", 
+                    userId, propertiesEvaluated, recommendationsCreated, recommendationsUpdated);
             }
             catch (Exception ex)
             {
@@ -158,7 +206,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
         }
 
         /// <summary>
-        /// Invalidar recomendações relacionadas com favorito removido
+        /// Invalidar recomendaÃ§Ãµes relacionadas com favorito removido
         /// </summary>
         public async Task InvalidateRecommendationsForRemovedFavoriteAsync(
             string userId,
@@ -177,7 +225,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
                     return;
                 }
 
-                // 1. Desativar recomendações diretamente relacionadas com este favorito
+                // 1. Desativar recomendaÃ§Ãµes diretamente relacionadas com este favorito
                 var directRecommendations = await _context.PropertyRecommendations
                     .Where(r => r.UserId == userId && 
                                r.PropertyId == removedPropertyId && 
@@ -190,7 +238,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
                     rec.UpdatedAt = DateTime.UtcNow;
                 }
 
-                // 2. Desativar recomendações similares baseadas neste favorito
+                // 2. Desativar recomendaÃ§Ãµes similares baseadas neste favorito
                 var similarRecommendations = await _context.PropertyRecommendations
                     .Include(r => r.Property)
                     .Where(r => r.UserId == userId && 
@@ -198,7 +246,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
                                r.Reason == "similar_favorito")
                     .ToListAsync(cancellationToken);
 
-                // Filtrar recomendações que eram similares ao favorito removido
+                // Filtrar recomendaÃ§Ãµes que eram similares ao favorito removido
                 var toDeactivate = similarRecommendations
                     .Where(r => IsSimilarProperty(r.Property, removedProperty))
                     .ToList();
@@ -209,7 +257,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
                     rec.UpdatedAt = DateTime.UtcNow;
                 }
 
-                // 3. Reduzir score de recomendações da mesma localização
+                // 3. Reduzir score de recomendaÃ§Ãµes da mesma localizaÃ§Ã£o
                 var locationRecommendations = await _context.PropertyRecommendations
                     .Include(r => r.Property)
                     .Where(r => r.UserId == userId && 
@@ -245,21 +293,21 @@ namespace realestate_ia_site.Server.Application.Recommendations
         }
 
         /// <summary>
-        /// Atualizar preferências do utilizador baseado num favorito
+        /// Atualizar preferÃªncias do utilizador baseado num favorito
         /// </summary>
         public async Task UpdateUserPreferencesFromFavoriteAsync(
             string userId,
             Property property,
             CancellationToken cancellationToken = default)
         {
-            // Este método pode ser expandido para manter um perfil de preferências
-            // Por agora, apenas logamos para futuras implementações de ML
+            // Este mÃ©todo pode ser expandido para manter um perfil de preferÃªncias
+            // Por agora, apenas logamos para futuras implementaÃ§Ãµes de ML
             _logger.LogInformation("User {UserId} favorited property: Type={Type}, Location={Location}, Price={Price}, Bedrooms={Bedrooms}", 
                 userId, property.Type, property.City, property.Price, property.Bedrooms);
         }
 
         /// <summary>
-        /// Processar histórico de pesquisa para gerar recomendações
+        /// Processar histÃ³rico de pesquisa para gerar recomendaÃ§Ãµes
         /// </summary>
         public async Task ProcessSearchHistoryForRecommendationsAsync(
             string userId,
@@ -272,7 +320,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
             try
             {
                 var recentSearches = await _context.UserSearchHistories
-                    .Where(h => h.UserId == userId && h.CreatedAt > DateTime.UtcNow.AddDays(-7))
+                    .Where(h => h.UserId == userId && h.CreatedAt > DateTime.UtcNow.AddDays(-RecentSearchesDays))
                     .ToListAsync(cancellationToken);
 
                 var searchCount = recentSearches.Count;
@@ -280,13 +328,11 @@ namespace realestate_ia_site.Server.Application.Recommendations
                 _logger.LogInformation("User {UserId} has {Count} searches in last 7 days (including current)", 
                     userId, searchCount);
 
-                // Analisar consistência de pesquisas (mesma localização/tipo)
+                // Analisar consistÃªncia de pesquisas (mesma localizaÃ§Ã£o/tipo)
                 var currentFilters = searchHistory.GetFilters();
-                var currentLocation = currentFilters != null && currentFilters.TryGetValue("location", out var locObj) 
-                    ? locObj?.ToString() 
-                    : null;
+                var currentLocation = GetLocationFromFilters(currentFilters);
                 
-                // Contar quantas pesquisas recentes são da mesma localização
+                // Contar quantas pesquisas recentes sÃ£o da mesma localizaÃ§Ã£o
                 int consistentLocationSearches = 0;
                 if (!string.IsNullOrEmpty(currentLocation))
                 {
@@ -308,55 +354,73 @@ namespace realestate_ia_site.Server.Application.Recommendations
                         userId, consistentLocationSearches, currentLocation);
                 }
 
-                // NOVA LÓGICA: Mais agressiva e baseada em padrões
+                // LÃ“GICA BALANCEADA: Detectar padrÃµes consistentes, nÃ£o reagir a cada pesquisa
                 bool shouldRefresh = false;
                 string refreshReason = "";
 
-                // Cenário 1: Múltiplas pesquisas consistentes (2+ pela mesma localização)
-                if (consistentLocationSearches >= 2)
+                // CenÃ¡rio 1: Pesquisas consistentes pela mesma localizaÃ§Ã£o (60%+ de consistÃªncia)
+                if (searchCount >= MinSearchesForPattern && 
+                    !string.IsNullOrEmpty(currentLocation) && 
+                    consistentLocationSearches >= 2)
                 {
-                    shouldRefresh = true;
-                    refreshReason = $"Consistent interest in location '{currentLocation}' ({consistentLocationSearches} searches)";
-                }
-                // Cenário 2: 3+ pesquisas em geral (interesse ativo)
-                else if (searchCount >= 3)
-                {
-                    shouldRefresh = true;
-                    refreshReason = $"Active user with {searchCount} recent searches";
-                }
-                // Cenário 3: Mudança de localização detectada
-                else if (searchCount >= 2 && !string.IsNullOrEmpty(currentLocation))
-                {
-                    var previousLocation = recentSearches
-                        .OrderByDescending(h => h.CreatedAt)
-                        .Skip(1) // Pular a pesquisa atual
-                        .FirstOrDefault()?
-                        .GetFilters()?
-                        .TryGetValue("location", out var prevLoc) == true ? prevLoc?.ToString() : null;
-
-                    if (!string.IsNullOrEmpty(previousLocation) && 
-                        !currentLocation.Equals(previousLocation, StringComparison.OrdinalIgnoreCase))
+                    var consistencyPercentage = CalculateConsistencyPercentage(consistentLocationSearches, searchCount);
+                    if (consistencyPercentage >= ConsistencyThresholdHighConfidence)
                     {
                         shouldRefresh = true;
-                        refreshReason = $"Location change detected: '{previousLocation}' -> '{currentLocation}'";
+                        refreshReason = $"Consistent search pattern: {consistencyPercentage}% searches for '{currentLocation}' ({consistentLocationSearches}/{searchCount})";
                     }
+                }
+                // CenÃ¡rio 2: MudanÃ§a de interesse detectada (4+ pesquisas, 50%+ consistÃªncia, favoritos noutro local)
+                if (!shouldRefresh && searchCount >= MinSearchesForInterestShift && 
+                    !string.IsNullOrEmpty(currentLocation) && 
+                    consistentLocationSearches >= 2)
+                {
+                    var consistencyPercentage = CalculateConsistencyPercentage(consistentLocationSearches, searchCount);
+                    if (consistencyPercentage >= ConsistencyThresholdMediumConfidence)
+                    {
+                        // Verificar se hÃ¡ favoritos de localizaÃ§Ã£o diferente
+                        var userFavorites = await _context.Favorites
+                            .Include(f => f.Property)
+                            .Where(f => f.UserId == userId)
+                            .ToListAsync(cancellationToken);
+                        
+                        if (userFavorites.Any())
+                        {
+                            var favoritesInDifferentLocation = userFavorites
+                                .Count(f => !AreLocationsSimilar(f.Property.City, currentLocation));
+                            
+                            if (favoritesInDifferentLocation > 0)
+                            {
+                                shouldRefresh = true;
+                                refreshReason = $"Interest shift: {favoritesInDifferentLocation} favorites elsewhere, but {consistencyPercentage}% searches for '{currentLocation}'";
+                            }
+                        }
+                    }
+                }
+                // CenÃ¡rio 3: Utilizador muito ativo (5+ pesquisas) - refresh periÃ³dico
+                if (!shouldRefresh && searchCount >= MinSearchesForPeriodicRefresh)
+                {
+                    shouldRefresh = true;
+                    refreshReason = $"Highly active user with {searchCount} recent searches - periodic refresh";
                 }
 
                 if (shouldRefresh)
                 {
                     _logger.LogInformation("Triggering recommendations refresh for user {UserId}: {Reason}", 
                         userId, refreshReason);
+                    
+                    // Refresh vai usar o AnalyzeUserBehaviorAsync que jÃ¡ considera todas as pesquisas
                     await RefreshUserRecommendationsAsync(userId, cancellationToken);
                 }
                 else if (searchCount == 1)
                 {
-                    // Primeira pesquisa: criar recomendações iniciais
+                    // Primeira pesquisa: criar recomendaÃ§Ãµes iniciais
                     _logger.LogInformation("User {UserId} first search detected - creating initial recommendations", userId);
                     await CreateInitialRecommendationsFromSearchAsync(userId, searchHistory, cancellationToken);
                 }
                 else
                 {
-                    // Qualquer outro caso: tentar atualizar/expandir recomendações
+                    // Qualquer outro caso: tentar atualizar/expandir recomendaÃ§Ãµes
                     _logger.LogInformation("User {UserId} updating recommendations from search #{Count}", userId, searchCount);
                     await UpdateRecommendationsFromSearchAsync(userId, searchHistory, cancellationToken);
                 }
@@ -368,7 +432,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
         }
 
         /// <summary>
-        /// Criar recomendações iniciais baseadas na primeira pesquisa do utilizador
+        /// Criar recomendaÃ§Ãµes iniciais baseadas na primeira pesquisa do utilizador
         /// </summary>
         private async Task CreateInitialRecommendationsFromSearchAsync(
             string userId,
@@ -379,7 +443,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
             {
                 var filters = searchHistory.GetFilters();
                 
-                // Criar comportamento sintético baseado na pesquisa
+                // Criar comportamento sintÃ©tico baseado na pesquisa
                 var syntheticBehavior = new UserBehaviorAnalysis
                 {
                     PreferredLocations = new List<string>(),
@@ -390,7 +454,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
                     LastActivityDate = DateTime.UtcNow
                 };
 
-                // Extrair localização dos filtros
+                // Extrair localizaÃ§Ã£o dos filtros
                 if (filters != null && filters.TryGetValue("location", out var locationObj))
                 {
                     var location = locationObj?.ToString();
@@ -410,7 +474,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
                     }
                 }
 
-                // Extrair orçamento dos filtros
+                // Extrair orÃ§amento dos filtros
                 if (filters != null)
                 {
                     decimal? minPrice = null, maxPrice = null;
@@ -436,13 +500,13 @@ namespace realestate_ia_site.Server.Application.Recommendations
                 // Buscar propriedades candidatas
                 var candidates = await FindCandidatePropertiesAsync(syntheticBehavior, cancellationToken);
                 
-                // Criar até 5 recomendações iniciais com score mais baixo
+                // Criar atÃ© 5 recomendaÃ§Ãµes iniciais com score mais baixo
                 int created = 0;
                 foreach (var property in candidates.Take(5))
                 {
                     var score = 60; // Score base para primeira pesquisa
                     
-                    // Bonus se match com localização
+                    // Bonus se match com localizaÃ§Ã£o
                     if (syntheticBehavior.PreferredLocations.Any() && 
                         syntheticBehavior.PreferredLocations.Contains(property.City ?? "", StringComparer.OrdinalIgnoreCase))
                     {
@@ -470,7 +534,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
         }
 
         /// <summary>
-        /// Atualizar recomendações baseadas numa nova pesquisa (segunda pesquisa)
+        /// Atualizar recomendaÃ§Ãµes baseadas numa nova pesquisa (segunda pesquisa)
         /// </summary>
         private async Task UpdateRecommendationsFromSearchAsync(
             string userId,
@@ -489,9 +553,9 @@ namespace realestate_ia_site.Server.Application.Recommendations
                 // Criar comportamento combinando esta pesquisa com a anterior
                 var existingBehavior = await AnalyzeUserBehaviorAsync(userId, cancellationToken);
                 
-                // IMPORTANTE: Desativar recomendações antigas com scores baixos
+                // IMPORTANTE: Desativar recomendaÃ§Ãµes antigas com scores baixos
                 var oldRecommendations = await _context.PropertyRecommendations
-                    .Where(r => r.UserId == userId && r.IsActive && r.Score < 70)
+                    .Where(r => r.UserId == userId && r.IsActive && r.Score < ScoreThresholdWithFavorites)
                     .ToListAsync(cancellationToken);
 
                 foreach (var rec in oldRecommendations)
@@ -506,7 +570,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
                 // Buscar mais propriedades candidatas
                 var candidates = await FindCandidatePropertiesAsync(existingBehavior, cancellationToken);
                 
-                // Adicionar até 10 novas recomendações
+                // Adicionar atÃ© 10 novas recomendaÃ§Ãµes
                 int created = 0;
                 foreach (var property in candidates.Take(10))
                 {
@@ -517,7 +581,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
                     {
                         var score = await CalculateRecommendationScoreAsync(userId, property, cancellationToken);
                         
-                        if (score >= 65) // Score ligeiramente mais baixo para segunda pesquisa
+                        if (score >= ScoreThresholdSimilarToFavorite) // Score ligeiramente mais baixo para segunda pesquisa
                         {
                             await CreateRecommendationAsync(userId, property, score, "pesquisa_recente", cancellationToken);
                             created++;
@@ -536,7 +600,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
             }
         }
 
-        // MÉTODOS AUXILIARES PARA OS NOVOS RECURSOS
+        // MÃ‰TODOS AUXILIARES PARA OS NOVOS RECURSOS
 
         private async Task<List<Property>> FindSimilarPropertiesAsync(
             Property referenceProperty,
@@ -544,16 +608,16 @@ namespace realestate_ia_site.Server.Application.Recommendations
         {
             var query = _context.Properties.Where(p => p.Id != referenceProperty.Id && p.Price.HasValue);
 
-            // Critério 1: Mesma cidade
+            // CritÃ©rio 1: Mesma cidade
             var sameCityProperties = query.Where(p => p.City == referenceProperty.City);
 
-            // Critério 2: Mesmo tipo
+            // CritÃ©rio 2: Mesmo tipo
             if (!string.IsNullOrEmpty(referenceProperty.Type))
             {
                 sameCityProperties = sameCityProperties.Where(p => p.Type == referenceProperty.Type);
             }
 
-            // Critério 3: Preço similar (±30%)
+            // CritÃ©rio 3: PreÃ§o similar (30%)
             if (referenceProperty.Price.HasValue)
             {
                 var minPrice = referenceProperty.Price.Value * 0.7m;
@@ -561,7 +625,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
                 sameCityProperties = sameCityProperties.Where(p => p.Price >= minPrice && p.Price <= maxPrice);
             }
 
-            // Critério 4: Quartos similares (±1)
+            // CritÃ©rio 4: Quartos similares (1)
             if (referenceProperty.Bedrooms.HasValue)
             {
                 var minBedrooms = Math.Max(1, referenceProperty.Bedrooms.Value - 1);
@@ -582,7 +646,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
 
             _logger.LogDebug("FindCandidateProperties: Starting with {Count} properties with price", initialCount);
 
-            // Filtrar por localizações preferidas (se houver)
+            // Filtrar por localizaÃ§Ãµes preferidas (se houver)
             if (behavior.PreferredLocations.Any())
             {
                 _logger.LogDebug("Filtering by preferred locations: {Locations}", 
@@ -615,11 +679,11 @@ namespace realestate_ia_site.Server.Application.Recommendations
                 _logger.LogDebug("No preferred types - not filtering by type");
             }
 
-            // Filtrar por orçamento (±50% do orçamento médio - MAIS FLEXÍVEL)
+            // Filtrar por orÃ§amento (50% do orÃ§amento mÃ©dio - MAIS FLEXÃVEL)
             if (behavior.AveragePriceBudget > 0)
             {
-                var minPrice = behavior.AveragePriceBudget * 0.5m;  // Era 0.6m - agora mais flexível
-                var maxPrice = behavior.AveragePriceBudget * 1.5m;  // Era 1.4m - agora mais flexível
+                var minPrice = behavior.AveragePriceBudget * 0.5m;  // Era 0.6m - agora mais flexÃ­vel
+                var maxPrice = behavior.AveragePriceBudget * 1.5m;  // Era 1.4m - agora mais flexÃ­vel
                 
                 _logger.LogDebug("Filtering by budget: {MinPrice:N2} - {MaxPrice:N2} (avg: {AvgBudget:N2})", 
                     minPrice, maxPrice, behavior.AveragePriceBudget);
@@ -634,7 +698,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
                 _logger.LogDebug("No budget preference - not filtering by price");
             }
 
-            // Filtrar por quartos preferidos (mais flexível)
+            // Filtrar por quartos preferidos (mais flexï¿½vel)
             if (behavior.PreferredBedrooms.HasValue)
             {
                 var minBedrooms = Math.Max(1, behavior.PreferredBedrooms.Value - 1);
@@ -650,11 +714,11 @@ namespace realestate_ia_site.Server.Application.Recommendations
                 _logger.LogDebug("After bedrooms filter: {Count} properties remain", afterBedroomsFilter);
             }
 
-            // Preferência por garagem (SOFT - não é obrigatório)
+            // PreferÃªncia por garagem (SOFT - nÃ£o Ã© obrigatÃ³rio)
             if (behavior.PrefersGarage)
             {
                 _logger.LogDebug("User prefers garage - prioritizing properties with garage");
-                // NÃO filtrar, apenas usar para scoring
+                // NÃƒO filtrar, apenas usar para scoring
             }
 
             var result = await query
@@ -671,16 +735,16 @@ namespace realestate_ia_site.Server.Application.Recommendations
             string userId,
             CancellationToken cancellationToken)
         {
-            // Manter apenas as 30 recomendações mais recentes e ativas
+            // Manter apenas as N recomendaÃ§Ãµes mais recentes e ativas
             var allRecommendations = await _context.PropertyRecommendations
                 .Where(r => r.UserId == userId && r.IsActive)
                 .OrderByDescending(r => r.Score)
                 .ThenByDescending(r => r.CreatedAt)
                 .ToListAsync(cancellationToken);
 
-            if (allRecommendations.Count > 30)
+            if (allRecommendations.Count > MaxRecommendationsPerUser)
             {
-                var toDeactivate = allRecommendations.Skip(30).ToList();
+                var toDeactivate = allRecommendations.Skip(MaxRecommendationsPerUser).ToList();
                 foreach (var rec in toDeactivate)
                 {
                     rec.IsActive = false;
@@ -693,7 +757,72 @@ namespace realestate_ia_site.Server.Application.Recommendations
             }
         }
 
-        // MÉTODOS EXISTENTES (mantidos)
+        /// <summary>
+        /// Limpar recomendaÃ§Ãµes de localizaÃ§Ãµes que nÃ£o sÃ£o mais relevantes para o utilizador
+        /// </summary>
+        private async Task CleanupIrrelevantLocationRecommendationsAsync(
+            string userId,
+            List<string> preferredLocations,
+            CancellationToken cancellationToken)
+        {
+            if (!preferredLocations.Any())
+            {
+                _logger.LogDebug("No preferred locations to filter by, skipping location cleanup");
+                return;
+            }
+
+            // Buscar todas as recomendaÃ§Ãµes ativas
+            var activeRecommendations = await _context.PropertyRecommendations
+                .Include(r => r.Property)
+                .Where(r => r.UserId == userId && r.IsActive)
+                .ToListAsync(cancellationToken);
+
+            var deactivatedCount = 0;
+
+            foreach (var recommendation in activeRecommendations)
+            {
+                if (recommendation.Property == null || string.IsNullOrEmpty(recommendation.Property.City))
+                    continue;
+
+                // Verificar se a localizaÃ§Ã£o da propriedade Ã© relevante
+                var isRelevantLocation = preferredLocations.Any(prefLoc =>
+                    recommendation.Property.City.Contains(prefLoc, StringComparison.OrdinalIgnoreCase) ||
+                    prefLoc.Contains(recommendation.Property.City, StringComparison.OrdinalIgnoreCase) ||
+                    (!string.IsNullOrEmpty(recommendation.Property.County) && 
+                     prefLoc.Contains(recommendation.Property.County, StringComparison.OrdinalIgnoreCase)));
+
+                // Se nÃ£o for relevante, reduzir score significativamente
+                if (!isRelevantLocation)
+                {
+                    // Reduzir score em 40 pontos (mais agressivo que antes)
+                    recommendation.Score = Math.Max(0, recommendation.Score - 40);
+                    recommendation.UpdatedAt = DateTime.UtcNow;
+
+                    // Se score ficar abaixo de 50, desativar
+                    if (recommendation.Score < 50)
+                    {
+                        recommendation.IsActive = false;
+                        deactivatedCount++;
+                        
+                        _logger.LogDebug(
+                            "Deactivated recommendation {PropertyId} (location: {Location}) - not in preferred locations [{PreferredLocations}]",
+                            recommendation.PropertyId,
+                            recommendation.Property.City,
+                            string.Join(", ", preferredLocations));
+                    }
+                }
+            }
+
+            if (deactivatedCount > 0)
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+                _logger.LogInformation(
+                    "Deactivated {Count} recommendations with irrelevant locations for user {UserId}",
+                    deactivatedCount, userId);
+            }
+        }
+
+        // MÃ‰TODOS EXISTENTES (mantidos)
 
         public async Task ProcessNewPropertyForRecommendationsAsync(
             Property property,
@@ -710,7 +839,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
                 {
                     var score = await CalculateRecommendationScoreAsync(userId, property, cancellationToken);
                     
-                    if (score >= 70) // Score mínimo de 70%
+                    if (score >= ScoreThresholdWithFavorites)
                     {
                         await CreateRecommendationAsync(userId, property, score, "nova_propriedade", cancellationToken);
                     }
@@ -732,14 +861,14 @@ namespace realestate_ia_site.Server.Application.Recommendations
             if (!property.Price.HasValue || property.Price >= oldPrice) return;
 
             var reduction = ((oldPrice - property.Price.Value) / oldPrice) * 100;
-            if (reduction < 5) return; // Só reduções > 5%
+            if (reduction < 5) return; // SÃ£o reduÃ§Ãµes > 5%
 
             _logger.LogInformation("Processing price reduction recommendations for property {PropertyId}, reduction: {Reduction}%", 
                 property.Id, reduction);
 
             try
             {
-                // Utilizadores que já mostraram interesse
+                // Utilizadores que jÃ¡ mostraram interesse
                 var interestedUsers = await FindUsersWhoFavoritedPropertyAsync(property.Id, cancellationToken);
                 
                 foreach (var userId in interestedUsers)
@@ -773,7 +902,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
                 Properties = recommendations.Select(r => new RecommendedPropertyDto
                 {
                     PropertyId = r.PropertyId,
-                    Title = r.Property.Title ?? "Propriedade sem título",
+                    Title = r.Property.Title ?? "Propriedade sem tÃ­tulo",
                     Location = FormatLocation(r.Property),
                     Price = r.Property.Price,
                     Bedrooms = r.Property.Bedrooms,
@@ -831,11 +960,11 @@ namespace realestate_ia_site.Server.Application.Recommendations
             // Analisar comportamento do utilizador
             var userBehavior = await AnalyzeUserBehaviorAsync(userId, cancellationToken);
 
-            // 1. Localização (30 pontos)
+            // 1. LocalizaÃ§Ã£o (30 pontos)
             var locationScore = CalculateLocationScore(property, userBehavior.PreferredLocations);
             score += locationScore;
 
-            // 2. Preço (25 pontos)
+            // 2. PreÃ§o (25 pontos)
             var priceScore = CalculatePriceScore(property, userBehavior.AveragePriceBudget);
             score += priceScore;
 
@@ -843,11 +972,11 @@ namespace realestate_ia_site.Server.Application.Recommendations
             var typeScore = CalculateTypeScore(property, userBehavior.PreferredTypes);
             score += typeScore;
 
-            // 4. Características (15 pontos)
+            // 4. CaracterÃ­sticas (15 pontos)
             var characteristicsScore = CalculateCharacteristicsScore(property, userBehavior);
             score += characteristicsScore;
 
-            // 5. Tempo/Recência (10 pontos)
+            // 5. Tempo/RecÃªncia (10 pontos)
             var recencyScore = CalculateRecencyScore(userBehavior.LastActivityDate);
             score += recencyScore;
 
@@ -868,9 +997,9 @@ namespace realestate_ia_site.Server.Application.Recommendations
                 .Where(f => f.UserId == userId)
                 .ToListAsync(cancellationToken);
 
-            // Histórico de pesquisas em tempo real
+            // HistÃ³rico de pesquisas em tempo real
             var searchHistories = await _context.UserSearchHistories
-                .Where(h => h.UserId == userId && h.CreatedAt > DateTime.UtcNow.AddDays(-30))
+                .Where(h => h.UserId == userId && h.CreatedAt > DateTime.UtcNow.AddDays(-UserBehaviorAnalysisDays))
                 .OrderByDescending(h => h.CreatedAt)
                 .ToListAsync(cancellationToken);
 
@@ -905,7 +1034,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
             };
         }
 
-        // Métodos auxiliares de scoring
+        // MÃ©todos auxiliares de scoring
         private int CalculateLocationScore(Property property, List<string> preferredLocations)
         {
             if (string.IsNullOrEmpty(property.City)) return 0;
@@ -934,13 +1063,13 @@ namespace realestate_ia_site.Server.Application.Recommendations
 
             var priceRatio = property.Price.Value / averageBudget;
 
-            // Preço perfeito (90-110% do orçamento)
+            // PreÃ§o perfeito (90-110% do orÃ§amento)
             if (priceRatio >= 0.9m && priceRatio <= 1.1m) return 25;
 
-            // Preço bom (80-120% do orçamento)
+            // PreÃ§o bom (80-120% do orÃ§amento)
             if (priceRatio >= 0.8m && priceRatio <= 1.2m) return 20;
 
-            // Preço aceitável (70-140% do orçamento)
+            // PreÃ§o aceitÃ¡vel (70-140% do orÃ§amento)
             if (priceRatio >= 0.7m && priceRatio <= 1.4m) return 15;
 
             // Barganha (abaixo de 70%)
@@ -956,7 +1085,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
             if (preferredTypes.Contains(property.Type, StringComparer.OrdinalIgnoreCase))
                 return 20;
 
-            return 5; // Score mínimo se não há preferência clara
+            return 5; // Score mÃ­nimo se nÃ£o hÃ¡ preferÃªncia clara
         }
 
         private int CalculateCharacteristicsScore(Property property, UserBehaviorAnalysis behavior)
@@ -997,7 +1126,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
             string reason,
             CancellationToken cancellationToken)
         {
-            // Verificar se já existe recomendação
+            // Verificar se jÃ¡ existe recomendaÃ§Ã£o
             var existingRecommendation = await _context.PropertyRecommendations
                 .FirstOrDefaultAsync(r => r.UserId == userId && r.PropertyId == property.Id, cancellationToken);
 
@@ -1014,7 +1143,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
                 return;
             }
 
-            // Criar nova recomendação
+            // Criar nova recomendaÃ§Ã£o
             var recommendation = new PropertyRecommendation
             {
                 UserId = userId,
@@ -1032,48 +1161,39 @@ namespace realestate_ia_site.Server.Application.Recommendations
                 userId, property.Id, score);
         }
 
-        // Métodos auxiliares para análise de comportamento
+        // MÃ©todos auxiliares para anÃ¡lise de comportamento
         private List<string> ExtractPreferredLocations(List<Favorite> favorites, List<UserSearchHistory> searchHistories)
         {
             var locations = new Dictionary<string, double>(); // Location -> Weight
 
-            // De favoritos (peso 1.5 - mais importante)
+            // De favoritos (peso fixo)
             foreach (var favorite in favorites.Where(f => !string.IsNullOrEmpty(f.Property.City)))
             {
                 var city = favorite.Property.City!;
                 if (!locations.ContainsKey(city))
                     locations[city] = 0;
-                locations[city] += 1.5;
+                locations[city] += FavoriteWeight;
             }
 
-            // De histórico de pesquisas (peso baseado na recência)
+            // De histÃ³rico de pesquisas (peso baseado na recÃªncia)
             var now = DateTime.UtcNow;
             foreach (var history in searchHistories)
             {
-                var filters = history.GetFilters();
-                if (filters != null && filters.TryGetValue("location", out var locationObj))
+                var location = GetLocationFromFilters(history.GetFilters());
+                if (location != null)
                 {
-                    var location = locationObj?.ToString();
-                    if (!string.IsNullOrEmpty(location))
-                    {
-                        // Peso baseado na recência: pesquisas mais recentes têm maior peso
-                        var daysOld = (now - history.CreatedAt).TotalDays;
-                        var weight = daysOld <= 7 ? 2.0 :   // Última semana: peso 2.0 (MAIS que favoritos!)
-                                    daysOld <= 14 ? 1.5 :   // Últimas 2 semanas: peso 1.5
-                                    daysOld <= 21 ? 1.0 :   // Últimas 3 semanas: peso 1.0
-                                    0.5;                     // Mais antigas: peso 0.5
+                    var weight = CalculateRecencyWeight(history.CreatedAt, now);
 
-                        if (!locations.ContainsKey(location))
-                            locations[location] = 0;
-                        locations[location] += weight;
-                    }
+                    if (!locations.ContainsKey(location))
+                        locations[location] = 0;
+                    locations[location] += weight;
                 }
             }
 
-            // Retorna as 5 localizações com maior peso total
+            // Retorna as N localizaÃ§Ãµes com maior peso total
             return locations
                 .OrderByDescending(kvp => kvp.Value)
-                .Take(5)
+                .Take(MaxPreferredLocations)
                 .Select(kvp => kvp.Key)
                 .ToList();
         }
@@ -1082,16 +1202,16 @@ namespace realestate_ia_site.Server.Application.Recommendations
         {
             var types = new Dictionary<string, double>(); // Type -> Weight
 
-            // De favoritos (peso 1.5)
+            // De favoritos (peso fixo)
             foreach (var favorite in favorites.Where(f => !string.IsNullOrEmpty(f.Property.Type)))
             {
                 var type = favorite.Property.Type!;
                 if (!types.ContainsKey(type))
                     types[type] = 0;
-                types[type] += 1.5;
+                types[type] += FavoriteWeight;
             }
 
-            // De histórico de pesquisas (peso baseado na recência)
+            // De histÃ³rico de pesquisas (peso baseado na recÃªncia)
             var now = DateTime.UtcNow;
             foreach (var history in searchHistories)
             {
@@ -1101,11 +1221,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
                     var type = typeObj?.ToString();
                     if (!string.IsNullOrEmpty(type) && type != "any")
                     {
-                        var daysOld = (now - history.CreatedAt).TotalDays;
-                        var weight = daysOld <= 7 ? 2.0 :
-                                    daysOld <= 14 ? 1.5 :
-                                    daysOld <= 21 ? 1.0 :
-                                    0.5;
+                        var weight = CalculateRecencyWeight(history.CreatedAt, now);
 
                         if (!types.ContainsKey(type))
                             types[type] = 0;
@@ -1116,7 +1232,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
 
             return types
                 .OrderByDescending(kvp => kvp.Value)
-                .Take(3)
+                .Take(MaxPreferredTypes)
                 .Select(kvp => kvp.Key)
                 .ToList();
         }
@@ -1126,13 +1242,13 @@ namespace realestate_ia_site.Server.Application.Recommendations
             var pricesWithWeights = new List<(decimal Price, double Weight)>();
             var now = DateTime.UtcNow;
 
-            // De favoritos (peso 1.5)
+            // De favoritos (peso fixo)
             foreach (var favorite in favorites.Where(f => f.Property.Price.HasValue))
             {
-                pricesWithWeights.Add((favorite.Property.Price!.Value, 1.5));
+                pricesWithWeights.Add((favorite.Property.Price!.Value, FavoriteWeight));
             }
 
-            // De histórico de pesquisas (peso baseado na recência)
+            // De histÃ³rico de pesquisas (peso baseado na recÃªncia)
             foreach (var history in searchHistories)
             {
                 var filters = history.GetFilters();
@@ -1149,13 +1265,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
                     if (minPrice.HasValue || maxPrice.HasValue)
                     {
                         var calculatedPrice = ((minPrice ?? 0) + (maxPrice ?? 1000000)) / 2;
-                        
-                        var daysOld = (now - history.CreatedAt).TotalDays;
-                        var weight = daysOld <= 7 ? 2.0 :
-                                    daysOld <= 14 ? 1.5 :
-                                    daysOld <= 21 ? 1.0 :
-                                    0.5;
-
+                        var weight = CalculateRecencyWeight(history.CreatedAt, now);
                         pricesWithWeights.Add((calculatedPrice, weight));
                     }
                 }
@@ -1164,7 +1274,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
             if (!pricesWithWeights.Any())
                 return 0;
 
-            // Média ponderada
+            // MÃ©dia ponderada
             var totalWeight = pricesWithWeights.Sum(p => p.Weight);
             var weightedSum = pricesWithWeights.Sum(p => p.Price * (decimal)p.Weight);
             
@@ -1176,24 +1286,19 @@ namespace realestate_ia_site.Server.Application.Recommendations
             var bedroomsWithWeights = new List<(int Bedrooms, double Weight)>();
             var now = DateTime.UtcNow;
 
-            // De favoritos (peso 1.5)
+            // De favoritos (peso fixo)
             foreach (var favorite in favorites.Where(f => f.Property.Bedrooms.HasValue))
             {
-                bedroomsWithWeights.Add((favorite.Property.Bedrooms!.Value, 1.5));
+                bedroomsWithWeights.Add((favorite.Property.Bedrooms!.Value, FavoriteWeight));
             }
 
-            // De histórico de pesquisas (peso baseado na recência)
+            // De histÃ³rico de pesquisas (peso baseado na recÃªncia)
             foreach (var history in searchHistories)
             {
                 var filters = history.GetFilters();
                 if (filters != null && filters.TryGetValue("rooms", out var roomsObj) && int.TryParse(roomsObj?.ToString(), out var rooms))
                 {
-                    var daysOld = (now - history.CreatedAt).TotalDays;
-                    var weight = daysOld <= 7 ? 2.0 :
-                                daysOld <= 14 ? 1.5 :
-                                daysOld <= 21 ? 1.0 :
-                                0.5;
-
+                    var weight = CalculateRecencyWeight(history.CreatedAt, now);
                     bedroomsWithWeights.Add((rooms, weight));
                 }
             }
@@ -1201,7 +1306,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
             if (!bedroomsWithWeights.Any())
                 return null;
 
-            // Média ponderada arredondada
+            // MÃ©dia ponderada arredondada
             var totalWeight = bedroomsWithWeights.Sum(b => b.Weight);
             var weightedSum = bedroomsWithWeights.Sum(b => b.Bedrooms * b.Weight);
             
@@ -1213,7 +1318,7 @@ namespace realestate_ia_site.Server.Application.Recommendations
             var garageCount = favorites.Count(f => f.Property.Garage);
             var totalFavorites = favorites.Count;
 
-            // Analisar também pesquisas por garagem
+            // Analisar tambÃ©m pesquisas por garagem
             var garageSearches = 0;
             var totalSearches = searchHistories.Count;
 
@@ -1241,14 +1346,61 @@ namespace realestate_ia_site.Server.Application.Recommendations
             return dates.Any() ? dates.Max() : DateTime.UtcNow.AddDays(-365);
         }
 
-        // Métodos auxiliares para matching
+        // MÃ©todos auxiliares comuns (evitar duplicaÃ§Ã£o)
+        
+        /// <summary>
+        /// Calcular peso baseado na recÃªncia da pesquisa (mÃ©todo centralizado)
+        /// </summary>
+        private static double CalculateRecencyWeight(DateTime searchDate, DateTime now)
+        {
+            var daysOld = (now - searchDate).TotalDays;
+            return daysOld <= 7 ? RecentSearchWeight7Days :
+                   daysOld <= 14 ? RecentSearchWeight14Days :
+                   daysOld <= 21 ? RecentSearchWeight21Days :
+                   OldSearchWeight;
+        }
+
+        /// <summary>
+        /// Extrair localizaÃ§Ã£o dos filtros (mÃ©todo centralizado)
+        /// </summary>
+        private static string? GetLocationFromFilters(Dictionary<string, object>? filters)
+        {
+            if (filters == null || !filters.TryGetValue("location", out var locationObj))
+                return null;
+            
+            var location = locationObj?.ToString();
+            return string.IsNullOrEmpty(location) ? null : location;
+        }
+
+        /// <summary>
+        /// Calcular percentagem de consistÃªncia
+        /// </summary>
+        private static int CalculateConsistencyPercentage(int consistentCount, int totalCount)
+        {
+            if (totalCount == 0) return 0;
+            return (consistentCount * 100) / totalCount;
+        }
+
+        /// <summary>
+        /// Verificar se duas localizaÃ§Ãµes sÃ£o similares (match bidirecional)
+        /// </summary>
+        private static bool AreLocationsSimilar(string? location1, string? location2)
+        {
+            if (string.IsNullOrEmpty(location1) || string.IsNullOrEmpty(location2))
+                return false;
+
+            return location1.Contains(location2, StringComparison.OrdinalIgnoreCase) ||
+                   location2.Contains(location1, StringComparison.OrdinalIgnoreCase);
+        }
+
+        // MÃ©todos auxiliares para matching
         private static bool IsSimilarProperty(Property existing, Property newProperty)
         {
             // Mesma cidade
             if (string.Equals(existing.City, newProperty.City, StringComparison.OrdinalIgnoreCase))
                 return true;
 
-            // Mesmo tipo e preço similar (±20%)
+            // Mesmo tipo e preÃ§o similar (20%)
             if (string.Equals(existing.Type, newProperty.Type, StringComparison.OrdinalIgnoreCase) &&
                 existing.Price.HasValue && newProperty.Price.HasValue)
             {
@@ -1266,18 +1418,18 @@ namespace realestate_ia_site.Server.Application.Recommendations
             if (!string.IsNullOrEmpty(property.City)) parts.Add(property.City);
             if (!string.IsNullOrEmpty(property.County)) parts.Add(property.County);
 
-            return parts.Any() ? string.Join(", ", parts) : "Localização não especificada";
+            return parts.Any() ? string.Join(", ", parts) : "LocalizaÃ§Ã£o nÃ£o especificada";
         }
 
         private static string GetReasonText(string reason) => reason switch
         {
-            "nova_propriedade" => "Nova propriedade que corresponde às suas preferências",
-            "reducao_preco" => "Redução de preço numa propriedade de interesse",
-            "similar_favorito" => "Similar às suas propriedades favoritas",
+            "nova_propriedade" => "Nova propriedade que corresponde Ã s suas preferÃªncias",
+            "reducao_preco" => "ReduÃ§Ã£o de preÃ§o numa propriedade de interesse",
+            "similar_favorito" => "Similar Ã s suas propriedades favoritas",
             "perfil_atualizado" => "Baseado no perfil atualizado",
             "primeira_pesquisa" => "Baseado na sua primeira pesquisa",
             "pesquisa_recente" => "Baseado nas suas pesquisas recentes",
-            _ => "Recomendação personalizada"
+            _ => "RecomendaÃ§Ã£o personalizada"
         };
     }
 }
