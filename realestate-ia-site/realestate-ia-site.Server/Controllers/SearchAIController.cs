@@ -66,7 +66,7 @@ namespace realestate_ia_site.Server.Controllers
                     UserId = userId,
                     SessionId = sessionId,
                     SearchQuery = request.Query,
-                    Filters = null, // Por agora não há filtros explícitos no SearchAIRequestDto
+                    Filters = result.ExtractedFilters, // Filtros extraídos pela IA (localização, tipo, etc.)
                     ResultsCount = result.Properties?.Count ?? 0,
                     IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString()
                 };
