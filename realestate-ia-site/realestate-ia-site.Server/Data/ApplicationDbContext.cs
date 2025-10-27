@@ -243,6 +243,24 @@ namespace realestate_ia_site.Server.Data
                       .HasForeignKey(e => e.PropertyId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
+
+            // Configurações para Property
+            builder.Entity<Property>(entity =>
+            {
+                // Link deve ser único - é o identificador real da propriedade
+                entity.HasIndex(e => e.Link)
+                    .IsUnique()
+                    .HasFilter("link IS NOT NULL AND link != ''");
+
+                // Índices para performance
+                entity.HasIndex(e => e.SourceSite);
+                entity.HasIndex(e => e.City);
+                entity.HasIndex(e => e.County);
+                entity.HasIndex(e => e.Type);
+                entity.HasIndex(e => e.Price);
+                entity.HasIndex(e => e.CreatedAt);
+                entity.HasIndex(e => new { e.City, e.Type, e.Price }); // Índice composto para pesquisas comuns
+            });
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
