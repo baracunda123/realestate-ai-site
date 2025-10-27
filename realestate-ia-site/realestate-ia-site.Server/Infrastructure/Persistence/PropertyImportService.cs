@@ -22,21 +22,43 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
 
         public async Task<ImportResult> ImportScrapperPropertiesAsync(ScraperPropertyDto[] scrapperProperties)
         {
-            _logger.LogInformation("[Import] Início lote total={Total}", scrapperProperties.Length);
+            _logger.LogInformation("[Import] Inï¿½cio lote total={Total}", scrapperProperties.Length);
+            
+            // Deduplicar o array recebido antes de processar
+            var uniqueProperties = scrapperProperties
+                .GroupBy(p => 
+                {
+                    // Agrupar por URL (preferencial) ou por Title+Location
+                    var key = !string.IsNullOrWhiteSpace(p.url) 
+                        ? p.url.Trim().ToLowerInvariant() 
+                        : $"{p.titleFromListing?.Trim().ToLowerInvariant()}|{p.location?.Trim().ToLowerInvariant()}";
+                    return key;
+                })
+                .Select(g => g.First()) // Pegar apenas o primeiro de cada grupo
+                .ToArray();
+
+            if (uniqueProperties.Length < scrapperProperties.Length)
+            {
+                _logger.LogWarning("[Import] Removidos {Count} duplicados do lote recebido. ï¿½nicas: {Unique}, Total: {Total}", 
+                    scrapperProperties.Length - uniqueProperties.Length, 
+                    uniqueProperties.Length, 
+                    scrapperProperties.Length);
+            }
+
             var result = new ImportResult();
             try
             {
-                foreach (var scrapperProperty in scrapperProperties)
+                foreach (var scrapperProperty in uniqueProperties)
                 {
                     await ProcessSinglePropertyAsync(scrapperProperty, result);
                 }
                 await _context.SaveChangesAsync();
-                _logger.LogInformation("[Import] Concluído criadas={Created} atualizadas={Updated} erros={Errors}", result.Created, result.Updated, result.Errors);
+                _logger.LogInformation("[Import] Concluï¿½do criadas={Created} atualizadas={Updated} erros={Errors}", result.Created, result.Updated, result.Errors);
                 return result;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[Import] Erro durante importação em lote");
+                _logger.LogError(ex, "[Import] Erro durante importaï¿½ï¿½o em lote");
                 throw;
             }
         }
@@ -45,15 +67,52 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
         {
             try
             {
-                var existingProperty = await _context.Properties
-                    .FirstOrDefaultAsync(p => p.Link == scrapperDto.url ||
-                        (p.Title == scrapperDto.titleFromListing && p.Address == scrapperDto.location));
+                // Normalizar dados para comparaÃ§Ã£o consistente
+                var normalizedUrl = NormalizeString(scrapperDto.url);
+                var normalizedTitle = NormalizeString(scrapperDto.titleFromListing);
+                var normalizedLocation = NormalizeString(scrapperDto.location);
+
+                _logger.LogTrace("[Import] Procurando propriedade url={Url} title={Title}", normalizedUrl, normalizedTitle);
+
+                // 1. Tentar encontrar na base de dados
+                Property? existingProperty = null;
+
+                // Buscar por URL se disponÃ­vel (mais confiÃ¡vel)
+                if (!string.IsNullOrEmpty(normalizedUrl))
+                {
+                    existingProperty = await _context.Properties
+                        .FirstOrDefaultAsync(p => p.Link != null && 
+                            p.Link.ToLower().Trim().Replace(" ", "") == normalizedUrl);
+                }
+
+                // Se nÃ£o encontrou por URL, tentar por Title + Location
+                if (existingProperty == null && 
+                    !string.IsNullOrEmpty(normalizedTitle) && 
+                    !string.IsNullOrEmpty(normalizedLocation))
+                {
+                    existingProperty = await _context.Properties
+                        .FirstOrDefaultAsync(p => 
+                            p.Title != null && p.Address != null &&
+                            p.Title.ToLower().Trim() == normalizedTitle &&
+                            NormalizeAddress(p.Address) == normalizedLocation);
+                }
+
+                // 2. Verificar no ChangeTracker (previne duplicados no mesmo batch)
+                if (existingProperty == null && !string.IsNullOrEmpty(normalizedUrl))
+                {
+                    existingProperty = _context.ChangeTracker
+                        .Entries<Property>()
+                        .Where(e => e.State == EntityState.Added)
+                        .Select(e => e.Entity)
+                        .FirstOrDefault(p => p.Link != null && 
+                            p.Link.ToLower().Trim().Replace(" ", "") == normalizedUrl);
+                }
 
                 if (existingProperty != null)
                 {
                     PropertyMapper.UpdatePropertyFromScrapper(existingProperty, scrapperDto);
                     result.Updated++;
-                    _logger.LogDebug("[Import] Atualizada propriedade title={Title}", scrapperDto.titleFromListing);
+                    _logger.LogDebug("[Import] Atualizada propriedade id={Id} title={Title}", existingProperty.Id, scrapperDto.titleFromListing);
                 }
                 else
                 {
@@ -68,6 +127,29 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
                 result.Errors++;
                 _logger.LogError(ex, "[Import] Erro a processar propriedade title={Title}", scrapperDto.titleFromListing);
             }
+        }
+
+        private static string NormalizeString(string? input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+                return string.Empty;
+            
+            return input.Trim().ToLowerInvariant().Replace(" ", "");
+        }
+
+        private static string NormalizeAddress(string? address)
+        {
+            if (string.IsNullOrWhiteSpace(address))
+                return string.Empty;
+
+            // Remover quebras de linha e normalizar
+            return address
+                .Replace("\n", " ")
+                .Replace("\r", " ")
+                .Replace("  ", " ")
+                .Trim()
+                .ToLowerInvariant()
+                .Replace(" ", "");
         }
     }
 
