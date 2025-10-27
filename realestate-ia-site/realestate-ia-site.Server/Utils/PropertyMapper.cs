@@ -53,7 +53,7 @@ namespace realestate_ia_site.Server.Utils
             if (string.IsNullOrWhiteSpace(title))
                 return null;
 
-            var match = Regex.Match(title, @"\b(apartamento|moradia|casa|vivenda|loja|escritÛrio)\b", RegexOptions.IgnoreCase);
+            var match = Regex.Match(title, @"\b(apartamento|moradia|casa|vivenda|loja|escritorio)\b", RegexOptions.IgnoreCase);
             return match.Success ? CapitalizeFirstLetter(match.Groups[1].Value) : null;
         }
 
@@ -70,8 +70,8 @@ namespace realestate_ia_site.Server.Utils
                 return "Moradia";
             if (lower.Contains("loja"))
                 return "Loja";
-            if (lower.Contains("escritÛrio"))
-                return "EscritÛrio";
+            if (lower.Contains("escritorio"))
+                return "Escritorio";
             if (lower.Contains("terreno"))
                 return "Terreno";
 
@@ -85,7 +85,7 @@ namespace realestate_ia_site.Server.Utils
 
             try
             {
-                var cleanPrice = preco.Replace("Ä", "").Replace(".", "").Replace(",", ".").Trim();
+                var cleanPrice = preco.Replace(".", "").Replace(",", ".").Trim();
 
                 if (decimal.TryParse(cleanPrice, NumberStyles.Any, CultureInfo.InvariantCulture, out var price))
                 {
@@ -104,12 +104,12 @@ namespace realestate_ia_site.Server.Utils
             if (string.IsNullOrWhiteSpace(text))
                 return null;
 
-            // Melhorar o padr„o regex para capturar ·rea bruta com diferentes formatos
+            // Melhorar o padr√£o regex para capturar area bruta com diferentes formatos
             var patterns = new[]
             {
-                @"¡rea bruta\s*(\d+(?:[,\.]\d+)?)m≤", // ¡rea bruta seguida de n˙mero
-                @"(\d+(?:[,\.]\d+)?)\s*m≤[^,\n]*·rea bruta", // N˙mero seguido de m≤ e ·rea bruta
-                @"(\d+(?:[,\.]\d+)?)\s*m≤[^,\n]*bruta" // N˙mero seguido de m≤ e bruta
+                @"area bruta\s*(\d+(?:[,\.]\d+)?)m2", // area bruta seguida de numero
+                @"(\d+(?:[,\.]\d+)?)\s*m2[^,\n]*area bruta", // numero seguido de m2 e area bruta
+                @"(\d+(?:[,\.]\d+)?)\s*m2[^,\n]*bruta" // numero seguido de m2 e bruta
             };
 
             foreach (var pattern in patterns)
@@ -133,12 +133,12 @@ namespace realestate_ia_site.Server.Utils
             if (string.IsNullOrWhiteSpace(text))
                 return null;
 
-            // Melhorar o padr„o regex para capturar ·rea ˙til com diferentes formatos
+            // Melhorar o padr√£o regex para capturar area util com diferentes formatos
             var patterns = new[]
             {
-                @"¡rea ˙til\s*(\d+(?:[,\.]\d+)?)m≤", // ¡rea ˙til seguida de n˙mero
-                @"(\d+(?:[,\.]\d+)?)\s*m≤[^,\n]*˙til", // N˙mero seguido de m≤ e ˙til
-                @"(\d+(?:[,\.]\d+)?)\s*m≤[^,\n]*˙teis" // N˙mero seguido de m≤ e ˙teis
+                @"area util\s*(\d+(?:[,\.]\d+)?)m2", // area util seguida de numero
+                @"(\d+(?:[,\.]\d+)?)\s*m2[^,\n]*util", // numero seguido de m2 e util
+                @"(\d+(?:[,\.]\d+)?)\s*m2[^,\n]*teis" // numero seguido de m2 e teis
             };
 
             foreach (var pattern in patterns)
@@ -162,19 +162,19 @@ namespace realestate_ia_site.Server.Utils
             if (string.IsNullOrWhiteSpace(text))
                 return null;
 
-            // Primeiro tenta extrair do tÌtulo (padr„o T1, T2, etc.)
+            // Primeiro tenta extrair do titulo (padr√£o T1, T2, etc.)
             var titleMatch = Regex.Match(text, @"T(\d+)", RegexOptions.IgnoreCase);
             if (titleMatch.Success && int.TryParse(titleMatch.Groups[1].Value, out var bedroomsFromTitle))
             {
                 return bedroomsFromTitle;
             }
 
-            // Depois tenta extrair padrıes como "3 quartos"
+            // Depois tenta extrair padr√µes como "3 quartos"
             var bedroomPatterns = new[]
             {
                 @"(\d+)\s*quartos?", // X quartos
-                @"(\d+)\s*suÌtes?\s*e\s*(\d+)\s*quartos?", // X suÌtes e Y quartos
-                @"(\d+)\s*suÌtes?" // X suÌtes
+                @"(\d+)\s*suites?\s*e\s*(\d+)\s*quartos?", // X suites e Y quartos
+                @"(\d+)\s*suites?" // X suites
             };
 
             foreach (var pattern in bedroomPatterns)
@@ -182,7 +182,7 @@ namespace realestate_ia_site.Server.Utils
                 var match = Regex.Match(text, pattern, RegexOptions.IgnoreCase | RegexOptions.Multiline);
                 if (match.Success)
                 {
-                    // Se encontrar "suÌtes e quartos", somar ambos
+                    // Se encontrar "suites e quartos", somar ambos
                     if (match.Groups.Count > 2 && match.Groups[2].Success)
                     {
                         if (int.TryParse(match.Groups[1].Value, out var suites) && 
@@ -206,12 +206,12 @@ namespace realestate_ia_site.Server.Utils
             if (string.IsNullOrWhiteSpace(text))
                 return null;
 
-            // Padrıes melhorados para casas de banho
+            // Padr√µes melhorados para casas de banho
             var patterns = new[]
             {
                 @"(\d+)\s*casas?\s*de\s*banho", // X casas de banho
                 @"(\d+)\s*wc", // X wc
-                @"(\d+)\s*instalaÁıes?\s*sanit·rias?" // X instalaÁıes sanit·rias
+                @"(\d+)\s*instala√ß√µes?\s*sanit√°rias?" // X instala√ß√µes sanit√°rias
             };
 
             foreach (var pattern in patterns)
@@ -256,7 +256,7 @@ namespace realestate_ia_site.Server.Utils
             var garagePatterns = new[]
             {
                 @"lugar\s*de\s*garagem",
-                @"garagem\s*incluÌ[dt]o",
+                @"garagem\s*inclui[dt]o",
                 @"com\s*garagem",
                 @"estacionamento",
                 @"garagem\s*fechada",
@@ -292,7 +292,7 @@ namespace realestate_ia_site.Server.Utils
             existing.Title = dto.titleFromListing?.Trim() ?? existing.Title;
             existing.Description = string.Join(" ", dto.descricao ?? "") ?? existing.Description;
             existing.Price = ParsePrice(dto.preco) ?? existing.Price;
-            existing.Link = dto.url?.Trim() ?? existing.Link;
+            // Link N√ÉO deve ser atualizado - √© o identificador √∫nico!
             existing.UpdatedAt = DateTime.UtcNow;
 
             var newType = ExtractTypeFromTitle(dto.titleFromListing) ?? ExtractTypeFromCharacteristics(text);
