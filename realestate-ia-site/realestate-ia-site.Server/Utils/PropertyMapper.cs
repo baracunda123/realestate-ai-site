@@ -53,7 +53,7 @@ namespace realestate_ia_site.Server.Utils
             if (string.IsNullOrWhiteSpace(title))
                 return null;
 
-            var match = Regex.Match(title, @"\b(apartamento|moradia|casa|vivenda|loja|escritorio)\b", RegexOptions.IgnoreCase);
+            var match = Regex.Match(title, @"\b(apartamento|moradia|casa|vivenda|loja|escritório)\b", RegexOptions.IgnoreCase);
             return match.Success ? CapitalizeFirstLetter(match.Groups[1].Value) : null;
         }
 
@@ -70,8 +70,8 @@ namespace realestate_ia_site.Server.Utils
                 return "Moradia";
             if (lower.Contains("loja"))
                 return "Loja";
-            if (lower.Contains("escritorio"))
-                return "Escritorio";
+            if (lower.Contains("escritório"))
+                return "Escritório";
             if (lower.Contains("terreno"))
                 return "Terreno";
 
@@ -85,7 +85,7 @@ namespace realestate_ia_site.Server.Utils
 
             try
             {
-                var cleanPrice = preco.Replace(".", "").Replace(",", ".").Trim();
+                var cleanPrice = preco.Replace("€", "").Replace(".", "").Replace(",", ".").Trim();
 
                 if (decimal.TryParse(cleanPrice, NumberStyles.Any, CultureInfo.InvariantCulture, out var price))
                 {
@@ -94,6 +94,7 @@ namespace realestate_ia_site.Server.Utils
             }
             catch
             {
+                throw new Exception("Erro ao parsear price");
             }
 
             return null;
@@ -107,9 +108,9 @@ namespace realestate_ia_site.Server.Utils
             // Melhorar o padrão regex para capturar area bruta com diferentes formatos
             var patterns = new[]
             {
-                @"area bruta\s*(\d+(?:[,\.]\d+)?)m2", // area bruta seguida de numero
-                @"(\d+(?:[,\.]\d+)?)\s*m2[^,\n]*area bruta", // numero seguido de m2 e area bruta
-                @"(\d+(?:[,\.]\d+)?)\s*m2[^,\n]*bruta" // numero seguido de m2 e bruta
+                @"área bruta\s*(\d+(?:[,\.]\d+)?)m²", // area bruta seguida de numero
+                @"(\d+(?:[,\.]\d+)?)\s*m²[^,\n]*área bruta", // numero seguido de m2 e area bruta
+                @"(\d+(?:[,\.]\d+)?)\s*m²[^,\n]*bruta" // numero seguido de m2 e bruta
             };
 
             foreach (var pattern in patterns)
@@ -136,9 +137,9 @@ namespace realestate_ia_site.Server.Utils
             // Melhorar o padrão regex para capturar area util com diferentes formatos
             var patterns = new[]
             {
-                @"area util\s*(\d+(?:[,\.]\d+)?)m2", // area util seguida de numero
-                @"(\d+(?:[,\.]\d+)?)\s*m2[^,\n]*util", // numero seguido de m2 e util
-                @"(\d+(?:[,\.]\d+)?)\s*m2[^,\n]*teis" // numero seguido de m2 e teis
+                @"área util\s*(\d+(?:[,\.]\d+)?)m²", // area util seguida de numero
+                @"(\d+(?:[,\.]\d+)?)\s*m²[^,\n]*útil", // numero seguido de m2 e util
+                @"(\d+(?:[,\.]\d+)?)\s*m²[^,\n]*úteis" // numero seguido de m2 e teis
             };
 
             foreach (var pattern in patterns)
@@ -173,8 +174,8 @@ namespace realestate_ia_site.Server.Utils
             var bedroomPatterns = new[]
             {
                 @"(\d+)\s*quartos?", // X quartos
-                @"(\d+)\s*suites?\s*e\s*(\d+)\s*quartos?", // X suites e Y quartos
-                @"(\d+)\s*suites?" // X suites
+                @"(\d+)\s*suítes?\s*e\s*(\d+)\s*quartos?", // X suites e Y quartos
+                @"(\d+)\s*suítes?" // X suites
             };
 
             foreach (var pattern in bedroomPatterns)
@@ -256,7 +257,7 @@ namespace realestate_ia_site.Server.Utils
             var garagePatterns = new[]
             {
                 @"lugar\s*de\s*garagem",
-                @"garagem\s*inclui[dt]o",
+                @"garagem\s*incluí[dt]o",
                 @"com\s*garagem",
                 @"estacionamento",
                 @"garagem\s*fechada",

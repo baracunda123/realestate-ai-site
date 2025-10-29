@@ -95,8 +95,11 @@ namespace realestate_ia_site.Server.Infrastructure.AI
         {
             var options = new ChatCompletionOptions
             {
-                MaxOutputTokenCount = 800,
-                Temperature = 0.3f
+                MaxOutputTokenCount = 1200,     // Suficiente, sem ser verboso demais
+                Temperature = 0.5f,             // Profissional mas natural
+                TopP = 0.9f,                    // Mais focado em informações relevantes
+                FrequencyPenalty = 0.3f,        // Mantém (evita repetir "imóvel", "propriedade")
+                PresencePenalty = 0.2f          // Menos divagação, mais objetivo
             };
 
             return await _openAIService.CompleteChatAsync(messages, options, cancellationToken);
