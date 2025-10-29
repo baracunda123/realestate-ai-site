@@ -75,7 +75,7 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
                     result.Errors++;
                     return;
                 }
-
+                     
                 // Apenas trim - manter URL exatamente como vem do scraper
                 var urlToSearch = scrapperDto.url.Trim();
 
@@ -89,7 +89,7 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
 
                 if (existingProperty != null)
                 {
-                    _logger.LogInformation("[Import] ✓ Encontrada na BD: id={Id}, link={Link}", 
+                    _logger.LogInformation("[Import] Encontrada na BD: id={Id}, link={Link}", 
                         existingProperty.Id, existingProperty.Link);
                 }
 
@@ -104,21 +104,21 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
                     
                     if (existingProperty != null)
                     {
-                        _logger.LogInformation("[Import] ✓ Encontrada no ChangeTracker: id={Id}, link={Link}", 
+                        _logger.LogInformation("[Import] Encontrada no ChangeTracker: id={Id}, link={Link}", 
                             existingProperty.Id, existingProperty.Link);
                     }
                 }
 
                 if (existingProperty != null)
                 {
-                    _logger.LogInformation("[Import] → UPDATE propriedade existente id={Id}", 
-                        existingProperty.Id);
+                    _logger.LogInformation("[Import] UPDATE propriedade existente id={Id}, price={Price}", 
+                        existingProperty.Id,existingProperty.Price);
                     PropertyMapper.UpdatePropertyFromScrapper(existingProperty, scrapperDto);
                     result.Updated++;
                 }
                 else
                 {
-                    _logger.LogInformation("[Import] → CREATE nova propriedade url={Url}", 
+                    _logger.LogInformation("[Import] CREATE nova propriedade url={Url}", 
                         urlToSearch);
                     var newProperty = await PropertyMapper.MapToPropertyEntityAsync(scrapperDto, _googleMapsService);
                     _context.Properties.Add(newProperty);

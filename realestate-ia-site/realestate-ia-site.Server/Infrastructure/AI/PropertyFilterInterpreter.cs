@@ -36,8 +36,11 @@ namespace realestate_ia_site.Server.Infrastructure.AI
 
             var options = new ChatCompletionOptions
             {
-                MaxOutputTokenCount = 300,
-                Temperature = 0.2f
+                MaxOutputTokenCount = 500,
+                Temperature = 0.3f,
+                TopP = 0.9f,
+                FrequencyPenalty = 0.0f,
+                PresencePenalty = 0.0f
             };
 
             try
