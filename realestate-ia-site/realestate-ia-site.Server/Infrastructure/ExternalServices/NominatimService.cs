@@ -66,6 +66,13 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
                     }
                 }
 
+                // Se não encontrou resultado, tentar simplificar progressivamente
+                if (result == null)
+                {
+                    _logger.LogWarning("Nenhum resultado obtido. Tentando simplificação progressiva do endereço.");
+                    result = await TryProgressiveSimplification(locationText, countryCode);
+                }
+
                 if (result != null)
                 {
                     var parsedLocation = ExtractLocationComponents(result);
@@ -77,14 +84,10 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
                 }
                 else
                 {
-                    _logger.LogWarning("Nenhum resultado obtido da API Nominatim para: {Location}", locationText);
-                    return new GeocodedLocation 
-                    { 
-                        City = string.Empty, 
-                        State = string.Empty, 
-                        County = string.Empty, 
-                        CivilParish = string.Empty 
-                    };
+                    _logger.LogWarning("Nenhum resultado obtido da API Nominatim após todas as tentativas para: {Location}", locationText);
+                    
+                    // Usar fallback local apenas como último recurso
+                    return ParseLocationFallback(locationText);
                 }
             }
             catch (Exception ex)
@@ -95,6 +98,56 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
                 var fallbackResult = ParseLocationFallback(locationText);
                 return fallbackResult;
             }
+        }
+
+        /// <summary>
+        /// Tenta simplificar progressivamente o endereço removendo partes da esquerda para direita
+        /// Estratégia: "Rua X, Freguesia Y, Cidade Z" -> "Freguesia Y, Cidade Z" -> "Cidade Z"
+        /// </summary>
+        private async Task<NominatimResult?> TryProgressiveSimplification(string locationText, string countryCode)
+        {
+            // Separar por vírgula ou quebra de linha
+            var separators = new[] { ',', '\n' };
+            var parts = locationText.Split(separators, StringSplitOptions.RemoveEmptyEntries)
+                .Select(p => p.Trim())
+                .Where(p => !string.IsNullOrWhiteSpace(p))
+                .ToArray();
+
+            if (parts.Length <= 1)
+            {
+                _logger.LogDebug("Simplificação progressiva não aplicável: apenas 1 parte no endereço");
+                return null;
+            }
+
+            // Tentar removendo a primeira parte progressivamente
+            for (int i = 1; i < parts.Length; i++)
+            {
+                // Criar query sem as primeiras 'i' partes
+                var simplifiedQuery = string.Join(", ", parts.Skip(i));
+                
+                _logger.LogDebug("Tentativa {Attempt}/{Total}: Simplificando para '{Query}'", 
+                    i, parts.Length - 1, simplifiedQuery);
+
+                try
+                {
+                    var result = await MakeGeocodingRequest(simplifiedQuery, countryCode);
+                    
+                    if (result != null)
+                    {
+                        _logger.LogInformation("? Sucesso com simplificação progressiva (tentativa {Attempt}): '{Query}'", 
+                            i, simplifiedQuery);
+                        return result;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Erro na tentativa {Attempt} de simplificação: {Query}", i, simplifiedQuery);
+                    // Continuar para próxima tentativa
+                }
+            }
+
+            _logger.LogWarning("Nenhuma simplificação progressiva teve sucesso após {Count} tentativas", parts.Length - 1);
+            return null;
         }
 
         private async Task<NominatimResult?> MakeGeocodingRequest(string locationText, string countryCode)
@@ -267,13 +320,14 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
         {
             try
             {
-                _logger.LogInformation("?? Usando fallback para parsing de localização: {Location}", locationText);
+                _logger.LogInformation("?? Usando fallback LOCAL para parsing de localização: {Location}", locationText);
 
                 // Remover quebras de linha e espaços extras
                 var cleanedText = System.Text.RegularExpressions.Regex.Replace(locationText, @"\s+", " ").Trim();
 
-                // Separar por vírgulas
-                var parts = cleanedText.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                // Separar por vírgulas ou quebras de linha
+                var separators = new[] { ',', '\n' };
+                var parts = cleanedText.Split(separators, StringSplitOptions.RemoveEmptyEntries)
                     .Select(p => p.Trim())
                     .Where(p => !string.IsNullOrWhiteSpace(p))
                     .ToArray();
@@ -290,59 +344,58 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
                     };
                 }
 
-                // ESTRATÉGIA: Os últimos termos geralmente são os mais importantes
-                // Formato comum: "Rua X, Vila Y, Freguesia Z, Cidade W, Distrito K"
+                // ESTRATÉGIA GENÉRICA: 
+                // - Último termo geralmente é o mais abrangente (Distrito/Cidade)
+                // - Penúltimo pode ser Cidade/Concelho
+                // - Antepenúltimo pode ser Freguesia
+                // - Primeiro termo geralmente é mais específico (Rua, POI)
                 
                 string city = string.Empty;
                 string state = string.Empty;
                 string county = string.Empty;
                 string civilParish = string.Empty;
 
-                if (parts.Length >= 4)
+                // Extrair do fim para o início (termos mais abrangentes)
+                if (parts.Length >= 1)
                 {
-                    // Tem 4+ partes: último = estado, penúltimo = cidade, antepenúltimo = concelho, resto = freguesia
-                    state = parts[^1];           // Último
-                    city = parts[^2];            // Penúltimo
-                    county = parts[^3];          // Antepenúltimo
-                    civilParish = parts[^4];     // Quarto a contar do fim
-                }
-                else if (parts.Length == 3)
-                {
-                    // Tem 3 partes: último = estado, penúltimo = cidade, antepenúltimo = concelho
-                    state = parts[^1];
-                    city = parts[^2];
-                    county = parts[^3];
-                }
-                else if (parts.Length == 2)
-                {
-                    // Tem 2 partes: último = estado/cidade, penúltimo = concelho/rua
-                    state = parts[^1];
-                    city = parts[^1];   // Usar o mesmo para cidade
-                    county = parts[^1]; // Usar o mesmo para concelho
-                }
-                else if (parts.Length == 1)
-                {
-                    // Tem 1 parte: usar para tudo
-                    city = parts[0];
-                    state = parts[0];
-                    county = parts[0];
+                    // Último termo: geralmente distrito ou cidade principal
+                    var lastTerm = parts[^1];
+                    state = lastTerm;
+                    county = lastTerm;  // Em Portugal, distrito = concelho frequentemente
+                    city = lastTerm;    // Usar como fallback também
                 }
 
-                // ? VALIDAÇÃO: Se City parece ser uma rua, tentar extrair cidade real
-                var roadPatterns = new[] { "Rua ", "Avenida ", "Estrada ", "Travessa ", "Largo ", "Praça " };
-                if (roadPatterns.Any(pattern => city.StartsWith(pattern, StringComparison.OrdinalIgnoreCase)))
+                if (parts.Length >= 2)
                 {
-                    _logger.LogWarning("?? City parece ser uma rua: {City}. Procurando cidade real nos termos seguintes.", city);
+                    // Penúltimo termo: pode ser cidade ou concelho diferente
+                    var secondLastTerm = parts[^2];
                     
-                    // Tentar pegar o próximo termo válido
-                    if (parts.Length >= 2)
+                    // Se o penúltimo não parece ser uma rua, usar como cidade
+                    if (!IsRoadPattern(secondLastTerm))
                     {
-                        city = parts[^2];  // Usar penúltimo como cidade
-                        _logger.LogInformation("? City corrigido para: {City}", city);
+                        city = secondLastTerm;
                     }
                 }
 
-                _logger.LogInformation("? Fallback concluído: Cidade={City}, Estado={State}, Concelho={County}, Freguesia={CivilParish}",
+                if (parts.Length >= 3)
+                {
+                    // Antepenúltimo: pode ser freguesia
+                    var thirdLastTerm = parts[^3];
+                    
+                    if (!IsRoadPattern(thirdLastTerm))
+                    {
+                        civilParish = thirdLastTerm;
+                    }
+                }
+
+                // Se City ficou com padrão de rua, tentar corrigir
+                if (IsRoadPattern(city) && parts.Length >= 2)
+                {
+                    _logger.LogWarning("?? City parece ser uma rua: '{City}'. Usando termo seguinte.", city);
+                    city = parts[^1];  // Usar último termo
+                }
+
+                _logger.LogInformation("? Fallback LOCAL concluído: Cidade={City}, Estado={State}, Concelho={County}, Freguesia={CivilParish}",
                     city, state, county, civilParish);
 
                 return new GeocodedLocation 
@@ -355,7 +408,7 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "? Erro crítico no fallback de parsing para localização: {Location}", locationText);
+                _logger.LogError(ex, "? Erro crítico no fallback LOCAL de parsing para localização: {Location}", locationText);
                 return new GeocodedLocation 
                 { 
                     City = string.Empty, 
@@ -364,6 +417,23 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
                     CivilParish = string.Empty 
                 };
             }
+        }
+
+        /// <summary>
+        /// Verifica se um termo parece ser um padrão de rua/estrada
+        /// </summary>
+        private bool IsRoadPattern(string term)
+        {
+            if (string.IsNullOrWhiteSpace(term))
+                return false;
+
+            var roadPatterns = new[] 
+            { 
+                "Rua ", "Avenida ", "Estrada ", "Travessa ", "Largo ", "Praça ",
+                "R. ", "Av. ", "Trav. ", "Pç. "
+            };
+
+            return roadPatterns.Any(pattern => term.StartsWith(pattern, StringComparison.OrdinalIgnoreCase));
         }
     }
 
