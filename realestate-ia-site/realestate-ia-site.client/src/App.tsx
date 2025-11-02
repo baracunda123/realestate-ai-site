@@ -15,6 +15,18 @@ import { getFavoriteProperties, addToFavorites, removeFromFavorites } from './ap
 import { usePriceAlerts } from './hooks/usePriceAlerts';
 import { useSignalR } from './hooks/useSignalR';
 
+// Extend Window interface to include gtag for Google Analytics
+declare global {
+  interface Window {
+    gtag?: (
+      command: 'config' | 'event' | 'js',
+      targetId: string,
+      config?: Record<string, unknown>
+    ) => void;
+    dataLayer?: unknown[];
+  }
+}
+
 // Lazy load components for better performance
 const PropertyGrid = lazy(() => import('./components/PropertyGrid').then(m => ({ default: m.PropertyGrid })));
 const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
@@ -252,6 +264,16 @@ export default function App() {
       navigate(location.pathname, { replace: true, state: {} });
     }
   }, [location.pathname, location.state, user, navigate]);
+
+  // Google Analytics - Track page views on route change
+  useEffect(() => {
+    if (typeof window.gtag !== 'undefined') {
+      window.gtag('config', 'G-83S1V1NTB8', {
+        page_path: location.pathname + location.search,
+      });
+      logger.info(`Google Analytics - Page view tracked: ${location.pathname}`, 'APP');
+    }
+  }, [location.pathname, location.search]);
 
   // Redirect to home if user logs out while in protected views
   useEffect(() => {

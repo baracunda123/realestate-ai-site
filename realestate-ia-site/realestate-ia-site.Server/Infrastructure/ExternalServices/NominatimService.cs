@@ -151,21 +151,63 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
 
             var address = result.Address;
 
-            // Distrito/Estado - em Portugal é "state"
-            state = address.State ?? address.Region ?? address.City ?? string.Empty;
-            _logger.LogDebug("Estado/Distrito encontrado: {State}", state);
+            // ???? MAPEAMENTO ESPECÍFICO PARA PORTUGAL
 
-            // Concelho/County - pode estar em "county", "municipality" ou "city"
+            // 1. CONCELHO (County) - prioritário
             county = address.County ?? address.Municipality ?? string.Empty;
             _logger.LogDebug("Concelho/County encontrado: {County}", county);
 
-            // Freguesia - pode estar em "suburb", "neighbourhood" ou "village"
-            civilParish = address.Suburb ?? address.Neighbourhood ?? address.Village ?? string.Empty;
+            // 2. DISTRITO/ESTADO (State)
+            // Em Portugal, county muitas vezes É o distrito (ex: Leiria)
+            // Prioridade: state > region > county > city
+            state = address.State ?? address.Region ?? address.County ?? address.City ?? string.Empty;
+            _logger.LogDebug("Estado/Distrito encontrado: {State}", state);
+
+            // 3. CIDADE (City)
+            // Prioridade: city > town > village > municipality > hamlet
+            city = address.City ?? address.Town ?? address.Village ?? address.Municipality ?? address.Hamlet ?? string.Empty;
+            _logger.LogDebug("Cidade encontrada: {City}", city);
+
+            // 4. FREGUESIA (CivilParish)
+            // Prioridade: city_district (freguesia unificada) > suburb > neighbourhood > village > hamlet
+            civilParish = address.CityDistrict ?? address.Suburb ?? address.Neighbourhood ?? address.Village ?? address.Hamlet ?? string.Empty;
             _logger.LogDebug("Freguesia encontrada: {CivilParish}", civilParish);
 
-            // Cidade - pode estar em várias propriedades
-            city = address.City ?? address.Town ?? address.Village ?? address.Municipality ?? string.Empty;
-            _logger.LogDebug("Cidade encontrada: {City}", city);
+            // ? VALIDAÇÃO: Se State está vazio mas County tem valor, usar County como State
+            // (Em Portugal, muitos concelhos são também distritos com o mesmo nome)
+            if (string.IsNullOrWhiteSpace(state) && !string.IsNullOrWhiteSpace(county))
+            {
+                state = county;
+                _logger.LogDebug("Estado/Distrito derivado do concelho: {State}", state);
+            }
+
+            // ? VALIDAÇÃO: Se City está vazio mas Town tem valor, usar Town
+            if (string.IsNullOrWhiteSpace(city) && !string.IsNullOrWhiteSpace(address.Town))
+            {
+                city = address.Town;
+                _logger.LogDebug("Cidade derivada de Town: {City}", city);
+            }
+
+            // ? VALIDAÇÃO DE SEGURANÇA: Garantir que Road NUNCA seja usado como City/State
+            if (!string.IsNullOrWhiteSpace(city) && !string.IsNullOrWhiteSpace(address.Road))
+            {
+                if (city.Equals(address.Road, StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogWarning("?? BUG DETECTADO: City tinha valor de Road! Corrigindo...");
+                    city = address.Town ?? address.Municipality ?? county ?? string.Empty;
+                    _logger.LogInformation("? City corrigido: {City}", city);
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(state) && !string.IsNullOrWhiteSpace(address.Road))
+            {
+                if (state.Equals(address.Road, StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogWarning("?? BUG DETECTADO: State tinha valor de Road! Corrigindo...");
+                    state = county ?? string.Empty;
+                    _logger.LogInformation("? State corrigido: {State}", state);
+                }
+            }
 
             return new GeocodedLocation 
             { 
@@ -225,15 +267,84 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
         {
             try
             {
-                var parts = locationText.Split(',', StringSplitOptions.RemoveEmptyEntries);
-                var city = parts.FirstOrDefault()?.Trim() ?? string.Empty;
-                var state = parts.Length > 1 ? parts[1].Trim() : "Portugal";
-                var county = parts.Length > 2 ? parts[2].Trim() : string.Empty;
-                var civilParish = parts.Length > 3 ? parts[3].Trim() : string.Empty;
+                _logger.LogInformation("?? Usando fallback para parsing de localização: {Location}", locationText);
 
-                _logger.LogDebug("Usando fallback para localização: {City}, {State}, {County}, {CivilParish}", 
-                    city, state, county, civilParish);
+                // Remover quebras de linha e espaços extras
+                var cleanedText = System.Text.RegularExpressions.Regex.Replace(locationText, @"\s+", " ").Trim();
+
+                // Separar por vírgulas
+                var parts = cleanedText.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(p => p.Trim())
+                    .Where(p => !string.IsNullOrWhiteSpace(p))
+                    .ToArray();
+
+                if (parts.Length == 0)
+                {
+                    _logger.LogWarning("?? Fallback: nenhuma parte válida encontrada");
+                    return new GeocodedLocation 
+                    { 
+                        City = string.Empty, 
+                        State = "Portugal", 
+                        County = string.Empty, 
+                        CivilParish = string.Empty 
+                    };
+                }
+
+                // ESTRATÉGIA: Os últimos termos geralmente são os mais importantes
+                // Formato comum: "Rua X, Vila Y, Freguesia Z, Cidade W, Distrito K"
                 
+                string city = string.Empty;
+                string state = string.Empty;
+                string county = string.Empty;
+                string civilParish = string.Empty;
+
+                if (parts.Length >= 4)
+                {
+                    // Tem 4+ partes: último = estado, penúltimo = cidade, antepenúltimo = concelho, resto = freguesia
+                    state = parts[^1];           // Último
+                    city = parts[^2];            // Penúltimo
+                    county = parts[^3];          // Antepenúltimo
+                    civilParish = parts[^4];     // Quarto a contar do fim
+                }
+                else if (parts.Length == 3)
+                {
+                    // Tem 3 partes: último = estado, penúltimo = cidade, antepenúltimo = concelho
+                    state = parts[^1];
+                    city = parts[^2];
+                    county = parts[^3];
+                }
+                else if (parts.Length == 2)
+                {
+                    // Tem 2 partes: último = estado/cidade, penúltimo = concelho/rua
+                    state = parts[^1];
+                    city = parts[^1];   // Usar o mesmo para cidade
+                    county = parts[^1]; // Usar o mesmo para concelho
+                }
+                else if (parts.Length == 1)
+                {
+                    // Tem 1 parte: usar para tudo
+                    city = parts[0];
+                    state = parts[0];
+                    county = parts[0];
+                }
+
+                // ? VALIDAÇÃO: Se City parece ser uma rua, tentar extrair cidade real
+                var roadPatterns = new[] { "Rua ", "Avenida ", "Estrada ", "Travessa ", "Largo ", "Praça " };
+                if (roadPatterns.Any(pattern => city.StartsWith(pattern, StringComparison.OrdinalIgnoreCase)))
+                {
+                    _logger.LogWarning("?? City parece ser uma rua: {City}. Procurando cidade real nos termos seguintes.", city);
+                    
+                    // Tentar pegar o próximo termo válido
+                    if (parts.Length >= 2)
+                    {
+                        city = parts[^2];  // Usar penúltimo como cidade
+                        _logger.LogInformation("? City corrigido para: {City}", city);
+                    }
+                }
+
+                _logger.LogInformation("? Fallback concluído: Cidade={City}, Estado={State}, Concelho={County}, Freguesia={CivilParish}",
+                    city, state, county, civilParish);
+
                 return new GeocodedLocation 
                 { 
                     City = city, 
@@ -242,9 +353,9 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
                     CivilParish = civilParish 
                 };
             }
-            catch
+            catch (Exception ex)
             {
-                _logger.LogWarning("Erro no fallback de parsing para localização: {Location}", locationText);
+                _logger.LogError(ex, "? Erro crítico no fallback de parsing para localização: {Location}", locationText);
                 return new GeocodedLocation 
                 { 
                     City = string.Empty, 
@@ -333,5 +444,11 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
 
         [JsonPropertyName("country_code")]
         public string? CountryCode { get; set; }
+
+        [JsonPropertyName("hamlet")]
+        public string? Hamlet { get; set; }
+
+        [JsonPropertyName("city_district")]
+        public string? CityDistrict { get; set; }
     }
 }
