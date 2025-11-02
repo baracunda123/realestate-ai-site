@@ -1,6 +1,6 @@
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Application.DTOs.Scraper;
-using realestate_ia_site.Server.Infrastructure.ExternalServices;
+using realestate_ia_site.Server.Application.ExternalServices.Interfaces;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
@@ -8,7 +8,7 @@ namespace realestate_ia_site.Server.Utils
 {
     public static class PropertyMapper
     {
-        public static async Task<Property> MapToPropertyEntityAsync(ScraperPropertyDto property, GoogleMapsService googleMapsService)
+        public static async Task<Property> MapToPropertyEntityAsync(ScraperPropertyDto property, IGeocodingService geocodingService)
         {
             var text = property.caracteristicas ?? string.Empty;
             var title = property.titleFromListing?.Trim() ?? string.Empty;
@@ -19,7 +19,7 @@ namespace realestate_ia_site.Server.Utils
             var usableArea = ExtractAreaUtil(text);
             var bedrooms = ExtractBedrooms(text) ?? ExtractBedrooms(title);
             var bathrooms = ExtractBathrooms(text);
-            var (city, state, county, civilParish) = await ParseLocationAsync(property.location, googleMapsService);
+            var (city, state, county, civilParish) = await ParseLocationAsync(property.location, geocodingService);
             var garage = HasGarage(text);
 
             return new Property
@@ -227,14 +227,14 @@ namespace realestate_ia_site.Server.Utils
             return null;
         }
 
-        private static async Task<(string? city, string? state, string? county, string? CivilParish)> ParseLocationAsync(string? location, GoogleMapsService googleMapsService)
+        private static async Task<(string? city, string? state, string? county, string? CivilParish)> ParseLocationAsync(string? location, IGeocodingService geocodingService)
         {
             if (string.IsNullOrWhiteSpace(location))
                 return (null, null, null, null);
 
             try
             {
-                var parsedLocation = await googleMapsService.ParseLocationAsync(location);
+                var parsedLocation = await geocodingService.ParseLocationAsync(location);
                 return (parsedLocation.City, parsedLocation.State, parsedLocation.County, parsedLocation.CivilParish);
             }
             catch

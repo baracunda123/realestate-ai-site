@@ -32,6 +32,7 @@ using realestate_ia_site.Server.Application.PropertySearch.Filters;
 using realestate_ia_site.Server.Application.Security;
 using realestate_ia_site.Server.Infrastructure.BackgroundServices;
 using realestate_ia_site.Server.Infrastructure.Storage;
+using realestate_ia_site.Server.Application.ExternalServices.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -277,6 +278,31 @@ else
     Console.WriteLine("Using Local Storage for file uploads (Development)");
 }
 
+// GEOCODING SERVICE: Configure based on environment and settings
+var geocodingProvider = Environment.GetEnvironmentVariable("GEOCODING_PROVIDER")
+                       ?? builder.Configuration["Geocoding:Provider"]
+                       ?? "Nominatim"; // Default to free Nominatim
+
+if (geocodingProvider.Equals("GoogleMaps", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddScoped<IGeocodingService, GoogleMapsService>();
+    builder.Services.AddHttpClient<GoogleMapsService>();
+    Console.WriteLine("Using Google Maps Geocoding Service");
+}
+else if (geocodingProvider.Equals("Nominatim", StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddScoped<IGeocodingService, NominatimService>();
+    builder.Services.AddHttpClient<NominatimService>();
+    Console.WriteLine("Using Nominatim (OpenStreetMap) Geocoding Service - Free & Open Source");
+}
+else
+{
+    // Fallback to Nominatim
+    builder.Services.AddScoped<IGeocodingService, NominatimService>();
+    builder.Services.AddHttpClient<NominatimService>();
+    Console.WriteLine($"Unknown geocoding provider '{geocodingProvider}' - Defaulting to Nominatim");
+}
+
 // Application services
 builder.Services.AddScoped<SearchAIOrchestrator>();
 builder.Services.AddScoped<PropertyAlertService>();
@@ -306,11 +332,10 @@ builder.Services.AddScoped<SubscriptionApplicationService>();
 
 // Persistence / External
 builder.Services.AddScoped<PropertyImportService>();
+// DEPRECATED: Manter GoogleMapsService registrado para compatibilidade, mas não é mais usado diretamente
 builder.Services.AddScoped<GoogleMapsService>();
 builder.Services.AddScoped<ScraperStateProvider>();
 builder.Services.AddMemoryCache();
-
-builder.Services.AddHttpClient<GoogleMapsService>();
 
 // Property Filters
 builder.Services.AddScoped<IPropertyFilter, TypeFilter>();
@@ -531,4 +556,4 @@ if (!app.Environment.IsDevelopment())
 }
 
 Console.WriteLine("APPLICATION READY");
-app.Run();app.Run();
+app.Run();
