@@ -2,7 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Data;
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Application.DTOs.Scraper;
-using realestate_ia_site.Server.Infrastructure.ExternalServices;
+using realestate_ia_site.Server.Application.ExternalServices.Interfaces;
 using realestate_ia_site.Server.Utils;
 
 namespace realestate_ia_site.Server.Infrastructure.Persistence
@@ -11,13 +11,13 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<PropertyImportService> _logger;
-        private readonly GoogleMapsService _googleMapsService;
+        private readonly IGeocodingService _geocodingService;
 
-        public PropertyImportService(ApplicationDbContext context, ILogger<PropertyImportService> logger, GoogleMapsService googleMapsService)
+        public PropertyImportService(ApplicationDbContext context, ILogger<PropertyImportService> logger, IGeocodingService geocodingService)
         {
             _context = context;
             _logger = logger;
-            _googleMapsService = googleMapsService;
+            _geocodingService = geocodingService;
         }
 
         public async Task<ImportResult> ImportScrapperPropertiesAsync(ScraperPropertyDto[] scrapperProperties)
@@ -120,7 +120,7 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
                 {
                     _logger.LogInformation("[Import] CREATE nova propriedade url={Url}", 
                         urlToSearch);
-                    var newProperty = await PropertyMapper.MapToPropertyEntityAsync(scrapperDto, _googleMapsService);
+                    var newProperty = await PropertyMapper.MapToPropertyEntityAsync(scrapperDto, _geocodingService);
                     _context.Properties.Add(newProperty);
                     result.Created++;
                 }

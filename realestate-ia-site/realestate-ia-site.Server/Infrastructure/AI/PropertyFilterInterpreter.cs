@@ -37,36 +37,66 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             var options = new ChatCompletionOptions
             {
                 MaxOutputTokenCount = 500,
-                Temperature = 0.3f,
-                TopP = 0.9f,
+                Temperature = 0.0f,           // ✅ MUDADO: 0 para máxima consistência
+                TopP = 1.0f,                  // ✅ MUDADO: 1.0 para determinismo total
                 FrequencyPenalty = 0.0f,
                 PresencePenalty = 0.0f
             };
 
-            try
+            const int maxRetries = 2;
+            Dictionary<string, object>? filters = null;
+
+            for (int attempt = 0; attempt <= maxRetries; attempt++)
             {
-                var response = await _openAIService.CompleteChatAsync(messages, options, cancellationToken);
-                var filters = ParseFiltersFromResponse(response);
-
-                _logger.LogInformation("Filtros extraídos da IA: {@ExtractedFilters}", filters);
-
-                if (context != null && filters.Any())
+                try
                 {
-                    var previousFilters = new Dictionary<string, object>(context.LastFilters);
-                    context.LastFilters = MergeFilters(context.LastFilters, filters, _logger);
-                    _contextService.UpdateContext(sessionId, context);
-                    
-                    _logger.LogInformation("Filtros fundidos - Anterior: {@PreviousFilters}, Novos: {@NewFilters}, Resultado: {@MergedFilters}", 
-                        previousFilters, filters, context.LastFilters);
-                }
+                    var response = await _openAIService.CompleteChatAsync(messages, options, cancellationToken);
+                    filters = ParseFiltersFromResponse(response);
 
-                return context?.LastFilters ?? filters;
+                    _logger.LogInformation("Filtros extraídos da IA (tentativa {Attempt}): {@ExtractedFilters}", attempt + 1, filters);
+
+                    // ✅ NOVO: Validar se os filtros fazem sentido
+                    if (filters.Any() || context?.LastFilters == null || !context.LastFilters.Any())
+                    {
+                        // Filtros válidos ou primeira query - aceitar
+                        break;
+                    }
+                    else if (attempt < maxRetries)
+                    {
+                        // Filtros vazios em query de refinamento - tentar novamente
+                        _logger.LogWarning("Filtros vazios retornados em tentativa {Attempt}, retry...", attempt + 1);
+                        continue;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Erro ao extrair filtros (tentativa {Attempt})", attempt + 1);
+                    
+                    if (attempt == maxRetries)
+                    {
+                        // Última tentativa falhou - usar contexto ou vazio
+                        filters = context?.LastFilters ?? new Dictionary<string, object>();
+                        break;
+                    }
+                }
             }
-            catch (Exception ex)
+
+            if (filters == null)
             {
-                _logger.LogError(ex, "Erro ao extrair filtros");
-                return context?.LastFilters ?? new Dictionary<string, object>();
+                filters = new Dictionary<string, object>();
             }
+
+            if (context != null && filters.Any())
+            {
+                var previousFilters = new Dictionary<string, object>(context.LastFilters);
+                context.LastFilters = MergeFilters(context.LastFilters, filters, _logger);
+                _contextService.UpdateContext(sessionId, context);
+                
+                _logger.LogInformation("Filtros fundidos - Anterior: {@PreviousFilters}, Novos: {@NewFilters}, Resultado: {@MergedFilters}", 
+                    previousFilters, filters, context.LastFilters);
+            }
+
+            return context?.LastFilters ?? filters;
         }
 
         private static Dictionary<string, object> ParseFiltersFromResponse(string response)

@@ -1,9 +1,11 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using realestate_ia_site.Server.Application.ExternalServices.Interfaces;
+using realestate_ia_site.Server.Application.ExternalServices.Models;
 
 namespace realestate_ia_site.Server.Infrastructure.ExternalServices
 {
-    public class GoogleMapsService
+    public class GoogleMapsService : IGeocodingService
     {
         private readonly ILogger<GoogleMapsService> _logger;
         private readonly HttpClient _httpClient;
@@ -16,11 +18,11 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
             _apiKey = config["GoogleMaps:ApiKey"] ?? throw new InvalidOperationException("Google Maps API key não configurada");
         }
 
-        public async Task<ParsedLocation> ParseLocationAsync(string locationText, string countryCode = "PT")
+        public async Task<GeocodedLocation> ParseLocationAsync(string locationText, string countryCode = "PT")
         {
             if (string.IsNullOrWhiteSpace(locationText))
             {
-                return new ParsedLocation { City = string.Empty, State = string.Empty, County = string.Empty, CivilParish = string.Empty };
+                return new GeocodedLocation { City = string.Empty, State = string.Empty, County = string.Empty, CivilParish = string.Empty };
             }
 
             try
@@ -59,7 +61,7 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
                 else
                 {
                     _logger.LogWarning("Nenhum resultado obtido da API Google Maps para: {Location}", locationText);
-                    return new ParsedLocation { City = string.Empty, State = string.Empty, County = string.Empty, CivilParish = string.Empty };
+                    return new GeocodedLocation { City = string.Empty, State = string.Empty, County = string.Empty, CivilParish = string.Empty };
                 }
             }
             catch (Exception ex)
@@ -93,7 +95,7 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
             return geocodeResponse.Results.First();
         }
 
-        private ParsedLocation ExtractCityStateCountyCivilParish(GeocodeResult result)
+        private GeocodedLocation ExtractCityStateCountyCivilParish(GeocodeResult result)
         {
             string city = string.Empty;
             string state = string.Empty;
@@ -102,7 +104,7 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
 
             if (result.AddressComponents == null)
             {
-                return new ParsedLocation { City = city, State = state, County = county, CivilParish = civilParish };
+                return new GeocodedLocation { City = city, State = state, County = county, CivilParish = civilParish };
             }
 
             foreach (var component in result.AddressComponents)
@@ -137,7 +139,7 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
                 }
             }
 
-            return new ParsedLocation { City = city, State = state, County = county, CivilParish = civilParish };
+            return new GeocodedLocation { City = city, State = state, County = county, CivilParish = civilParish };
         }
 
         private bool ContainsPointOfInterest(GeocodeResult result)
@@ -187,7 +189,7 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
             return locationText;
         }
 
-        private ParsedLocation ParseLocationFallback(string locationText)
+        private GeocodedLocation ParseLocationFallback(string locationText)
         {
             try
             {
@@ -198,17 +200,17 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
                 var civilParish = parts.Length > 3 ? parts[3].Trim() : string.Empty;
 
                 _logger.LogDebug("Usando fallback para localização: {City}, {State}, {County}, {CivilParish}", city, state, county, civilParish);
-                return new ParsedLocation { City = city, State = state, County = county, CivilParish = civilParish };
+                return new GeocodedLocation { City = city, State = state, County = county, CivilParish = civilParish };
             }
             catch
             {
                 _logger.LogWarning("Erro no fallback de parsing para localização: {Location}", locationText);
-                return new ParsedLocation { City = string.Empty, State = "Portugal", County = string.Empty, CivilParish = string.Empty };
+                return new GeocodedLocation { City = string.Empty, State = "Portugal", County = string.Empty, CivilParish = string.Empty };
             }
         }
     }
 
-    // DTOs para deserialização JSON
+    // DTOs para deserialização JSON do Google Maps
     public class GeocodeResponse
     {
         [JsonPropertyName("status")]
@@ -237,13 +239,5 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
 
         [JsonPropertyName("types")]
         public List<string> Types { get; set; } = new();
-    }
-
-    public class ParsedLocation
-    {
-        public string City { get; set; } = string.Empty;
-        public string State { get; set; } = string.Empty;
-        public string County { get; set; } = string.Empty;
-        public string CivilParish { get; set; } = string.Empty;
     }
 }
