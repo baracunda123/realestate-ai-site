@@ -26,7 +26,7 @@ public class PropertySearchDto
             Title = property.Title ?? "N/A",
             Description = property.Description ?? string.Empty,
             Type = property.Type ?? "N/A",
-            Location = property.City ?? "N/A",
+            Location = FormatLocation(property),
             Address = property.Address ?? string.Empty,
             Price = property.Price ?? 0,
             Bedrooms = property.Bedrooms ?? 0,
@@ -36,6 +36,25 @@ public class PropertySearchDto
             Link = property.Link,
             CreatedAt = property.CreatedAt
         };
+    }
+
+    /// <summary>
+    /// Formata a localização completa combinando City, County e State
+    /// </summary>
+    private static string FormatLocation(realestate_ia_site.Server.Domain.Entities.Property property)
+    {
+        var parts = new List<string>();
+        
+        if (!string.IsNullOrWhiteSpace(property.City))
+            parts.Add(property.City);
+        
+        if (!string.IsNullOrWhiteSpace(property.County) && property.County != property.City)
+            parts.Add(property.County);
+        
+        if (!string.IsNullOrWhiteSpace(property.State) && property.State != "Portugal")
+            parts.Add(property.State);
+        
+        return parts.Count > 0 ? string.Join(", ", parts) : "Localização não disponível";
     }
 
     /// <summary>
