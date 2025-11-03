@@ -281,7 +281,7 @@ else
 // GEOCODING SERVICE: Configure based on environment and settings
 var geocodingProvider = Environment.GetEnvironmentVariable("GEOCODING_PROVIDER")
                        ?? builder.Configuration["Geocoding:Provider"]
-                       ?? "Nominatim"; // Default to free Nominatim
+                       ?? "Mapbox"; // Default to Mapbox for better reliability
 
 if (geocodingProvider.Equals("GoogleMaps", StringComparison.OrdinalIgnoreCase))
 {
@@ -289,18 +289,18 @@ if (geocodingProvider.Equals("GoogleMaps", StringComparison.OrdinalIgnoreCase))
     builder.Services.AddHttpClient<GoogleMapsService>();
     Console.WriteLine("Using Google Maps Geocoding Service");
 }
-else if (geocodingProvider.Equals("Nominatim", StringComparison.OrdinalIgnoreCase))
+else if (geocodingProvider.Equals("Mapbox", StringComparison.OrdinalIgnoreCase))
 {
-    builder.Services.AddScoped<IGeocodingService, NominatimService>();
-    builder.Services.AddHttpClient<NominatimService>();
-    Console.WriteLine("Using Nominatim (OpenStreetMap) Geocoding Service - Free & Open Source");
+    builder.Services.AddScoped<IGeocodingService, MapboxGeocodingService>();
+    builder.Services.AddHttpClient<MapboxGeocodingService>();
+    Console.WriteLine("✅ Using Mapbox Geocoding Service - Professional & Scalable");
 }
 else
 {
-    // Fallback to Nominatim
-    builder.Services.AddScoped<IGeocodingService, NominatimService>();
-    builder.Services.AddHttpClient<NominatimService>();
-    Console.WriteLine($"Unknown geocoding provider '{geocodingProvider}' - Defaulting to Nominatim");
+    // Fallback to Mapbox
+    builder.Services.AddScoped<IGeocodingService, MapboxGeocodingService>();
+    builder.Services.AddHttpClient<MapboxGeocodingService>();
+    Console.WriteLine($"Unknown geocoding provider '{geocodingProvider}' - Defaulting to Mapbox");
 }
 
 // Application services
