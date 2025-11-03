@@ -118,7 +118,7 @@ namespace realestate_ia_site.Server.Utils
                 var match = Regex.Match(text, pattern, RegexOptions.IgnoreCase | RegexOptions.Multiline);
                 if (match.Success)
                 {
-                    var areaStr = match.Groups[1].Value.Replace(",", ".");
+                    var areaStr = match.Groups[1].Value.Replace(".", "");
                     if (double.TryParse(areaStr, NumberStyles.Any, CultureInfo.InvariantCulture, out var area))
                     {
                         return area;
