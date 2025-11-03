@@ -20,6 +20,11 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
         private readonly string _apiKey;
         private const string BaseUrl = "https://api.mapbox.com/search/geocode/v6/forward";
         private const int RateLimitDelayMs = 100; // Mapbox permite ate 600 req/min (1000ms/600 ? 100ms)
+        
+        // VERSÃO DA LÓGICA DE EXTRAÇÃO: Incrementar quando alterar ExtractLocationComponents
+        // Isso invalida automaticamente o cache antigo sem precisar limpar manualmente
+        private const string EXTRACTION_LOGIC_VERSION = "v2";
+        
         private DateTime _lastRequestTime = DateTime.MinValue;
         private readonly SemaphoreSlim _rateLimitSemaphore = new SemaphoreSlim(1, 1);
 
@@ -37,7 +42,7 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
             _apiKey = configuration["Mapbox:ApiKey"] 
                       ?? throw new InvalidOperationException("Mapbox API key não configurada em appsettings.json");
             
-            _logger.LogInformation("MapboxGeocodingService (v6) inicializado");
+            _logger.LogInformation("MapboxGeocodingService (v6) inicializado com versão de extração: {Version}", EXTRACTION_LOGIC_VERSION);
         }
 
         public async Task<GeocodedLocation> ParseLocationAsync(string locationText, string countryCode = "PT")
@@ -53,38 +58,28 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
                 };
             }
 
-            // CACHE: Usar hash SHA256 para garantir cache exato e evitar colisões
+            // DEBUG: Log do endereço original
+            _logger.LogDebug("ParseLocationAsync chamado com: {Location}", locationText);
+
+            // CACHE: Verificar cache ANTES de processar
             var cacheKey = GenerateCacheKey(locationText, countryCode);
-            if (_cache.TryGetValue<GeocodedLocation>(cacheKey, out var cachedResult))
+            
+            if (_cache.TryGetValue<GeocodedLocation>(cacheKey, out var cachedLocation))
             {
-                _logger.LogInformation("Cache HIT para localização: {Location}", locationText);
-                return cachedResult!;
+                _logger.LogInformation("Cache HIT (v{Version}) para: {Location}", EXTRACTION_LOGIC_VERSION, locationText);
+                _logger.LogDebug("Retornando do cache: City={City}, County={County}", cachedLocation!.City, cachedLocation.County);
+                return cachedLocation!;
             }
 
+            // Cache MISS - buscar da API e processar
+            _logger.LogInformation("Cache MISS - Chamando Mapbox API v6 para: {Location}", locationText);
+            
+            MapboxFeature? result = null;
+            
             try
             {
-                _logger.LogInformation("Chamando Mapbox API v6 para: {Location}", locationText);
-
-                // Primeira tentativa com o endereço original
-                var result = await MakeGeocodingRequest(locationText, countryCode);
-
-                // Verificar se o resultado contém POI/Address (menos útil para localizações gerais)
-                if (result != null && ContainsPointOfInterest(result))
-                {
-                    _logger.LogInformation("POI/Address detectado em: {Location}. Tentando remover e fazer nova chamada.", locationText);
-
-                    // Remover POI e tentar novamente
-                    var cleanedLocation = RemovePointOfInterest(locationText);
-                    if (!string.IsNullOrEmpty(cleanedLocation) && !cleanedLocation.Equals(locationText, StringComparison.OrdinalIgnoreCase))
-                    {
-                        _logger.LogInformation("Fazendo segunda chamada sem POI: {CleanedLocation}", cleanedLocation);
-                        var cleanResult = await MakeGeocodingRequest(cleanedLocation, countryCode);
-                        if (cleanResult != null)
-                        {
-                            result = cleanResult;
-                        }
-                    }
-                }
+                // Tentativa com o endereço original
+                result = await MakeGeocodingRequest(locationText, countryCode);
 
                 // Se não encontrou resultado, tentar simplificação progressiva
                 if (result == null)
@@ -92,28 +87,6 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
                     _logger.LogWarning("Nenhum resultado obtido. Tentando simplificação progressiva do endereço.");
                     result = await TryProgressiveSimplification(locationText, countryCode);
                 }
-
-                GeocodedLocation parsedLocation;
-                
-                if (result != null)
-                {
-                    parsedLocation = ExtractLocationComponents(result);
-                    _logger.LogInformation(
-                        "Localização processada via Mapbox v6: Cidade={City}, Concelho={County}, Freguesia={CivilParish}, Estado={State}",
-                        parsedLocation.City, parsedLocation.County, parsedLocation.CivilParish, parsedLocation.State);
-                }
-                else
-                {
-                    _logger.LogWarning("Nenhum resultado obtido da API Mapbox após todas as tentativas para: {Location}", locationText);
-                    
-                    // Usar fallback local apenas como último recurso
-                    parsedLocation = ParseLocationFallback(locationText);
-                }
-
-                // CACHE: Guardar resultado por 24 horas
-                _cache.Set(cacheKey, parsedLocation, TimeSpan.FromHours(24));
-                
-                return parsedLocation;
             }
             catch (Exception ex)
             {
@@ -123,10 +96,42 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
                 var fallbackResult = ParseLocationFallback(locationText);
                 return fallbackResult;
             }
+
+            // Processar resultado e cachear
+            GeocodedLocation parsedLocation;
+            
+            if (result != null)
+            {
+                //DEBUG: Log da resposta RAW da API antes da extração
+                _logger.LogDebug("Raw API response - Name: {Name}, FeatureType: {Type}, Locality: {Locality}, Place: {Place}", 
+                    result.Properties?.Name ?? "NULL",
+                    result.Properties?.FeatureType ?? "NULL",
+                    result.Properties?.Context?.Locality?.Name ?? "NULL",
+                    result.Properties?.Context?.Place?.Name ?? "NULL");
+                
+                parsedLocation = ExtractLocationComponents(result);
+                
+                _logger.LogInformation(
+                    "Localização processada via Mapbox v6: Cidade={City}, Concelho={County}, Freguesia={CivilParish}, Estado={State}",
+                    parsedLocation.City, parsedLocation.County, parsedLocation.CivilParish, parsedLocation.State);
+                
+                // CACHE: Guardar resultado FINAL por 24 horas
+                _cache.Set(cacheKey, parsedLocation, TimeSpan.FromHours(24));
+                _logger.LogDebug("Resultado cacheado");
+            }
+            else
+            {
+                _logger.LogWarning("Nenhum resultado obtido da API Mapbox após todas as tentativas para: {Location}", locationText);
+                
+                // Usar fallback local apenas como último recurso
+                parsedLocation = ParseLocationFallback(locationText);
+            }
+            
+            return parsedLocation;
         }
 
         /// <summary>
-        /// Gera uma chave de cache única usando hash SHA256 para evitar colisões
+        /// Gera uma chave de cache única usando hash SHA256 com versionamento
         /// Case-insensitive mas preserva acentos e pontuação
         /// </summary>
         private static string GenerateCacheKey(string locationText, string countryCode)
@@ -135,11 +140,12 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
             var normalized = string.Join(" ", locationText.Split(new[] { ' ', '\t', '\n', '\r' }, 
                 StringSplitOptions.RemoveEmptyEntries)).ToLowerInvariant();
             
-            var input = $"{normalized}|{countryCode.ToUpperInvariant()}";
+            // Incluir versão da lógica de extração na chave
+            var input = $"{normalized}|{countryCode.ToUpperInvariant()}|{EXTRACTION_LOGIC_VERSION}";
             var hashBytes = SHA256.HashData(Encoding.UTF8.GetBytes(input));
             var hash = Convert.ToHexString(hashBytes);
             
-            return $"mapbox_v6_{hash}";
+            return $"mapbox_{EXTRACTION_LOGIC_VERSION}_{hash}";
         }
 
         /// <summary>
@@ -355,44 +361,6 @@ namespace realestate_ia_site.Server.Infrastructure.ExternalServices
                 County = county, 
                 CivilParish = civilParish 
             };
-        }
-
-        private bool ContainsPointOfInterest(MapboxFeature feature)
-        {
-            if (feature.Properties?.FeatureType == null)
-                return false;
-
-            // Types que indicam POI/Address no Mapbox v6 (menos úteis para localizações gerais)
-            var poiTypes = new[]
-            {
-                "address",
-                "street"
-            };
-
-            var isPoi = poiTypes.Contains(feature.Properties.FeatureType.ToLower());
-            
-            if (isPoi)
-            {
-                _logger.LogInformation("POI/Address detectado: Tipo={Type}, Nome={Name}", 
-                    feature.Properties.FeatureType, feature.Properties.Name);
-            }
-
-            return isPoi;
-        }
-
-        private string RemovePointOfInterest(string locationText)
-        {
-            if (string.IsNullOrWhiteSpace(locationText))
-                return string.Empty;
-
-            var newlineIndex = locationText.IndexOf('\n');
-            if (newlineIndex >= 0)
-            {
-                var result = locationText.Substring(newlineIndex + 1);
-                return result.Trim();
-            }
-
-            return locationText;
         }
 
         /// <summary>
