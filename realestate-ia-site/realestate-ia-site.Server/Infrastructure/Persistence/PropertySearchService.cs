@@ -1,5 +1,5 @@
-using Microsoft.EntityFrameworkCore;
-using realestate_ia_site.Server.Data;
+﻿using Microsoft.EntityFrameworkCore;
+using realestate_ia_site.Server.Infrastructure.Persistence;
 using realestate_ia_site.Server.Application.DTOs.PropertySearch;
 using realestate_ia_site.Server.Application.PropertySearch.Filters;
 using realestate_ia_site.Server.Application.PropertySearch;

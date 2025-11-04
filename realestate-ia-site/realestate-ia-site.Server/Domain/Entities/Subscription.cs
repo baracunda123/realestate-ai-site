@@ -9,17 +9,22 @@ namespace realestate_ia_site.Server.Domain.Entities
     public class Subscription
     {
         [Key]
+        [Column("id")]
         public string Id { get; set; } = string.Empty;
         [Column("user_id")][ForeignKey("User")] public string? UserId { get; set; }
         [Column("stripe_id")] public string? StripeId { get; set; }
         [Column("price_id")] public string? PriceId { get; set; }
         [Column("stripe_price_id")] public string? StripePriceId { get; set; }
+        [Column("currency")]
         public string? Currency { get; set; }
+        [Column("interval")]
         public string? Interval { get; set; }
+        [Column("status")]
         public string? Status { get; set; }
         [Column("current_period_start")] public long? CurrentPeriodStart { get; set; }
         [Column("current_period_end")] public long? CurrentPeriodEnd { get; set; }
         [Column("cancel_at_period_end")] public bool? CancelAtPeriodEnd { get; set; }
+        [Column("amount")]
         public long? Amount { get; set; }
         [Column("started_at")] public long? StartedAt { get; set; }
         [Column("ends_at")] public long? EndsAt { get; set; }
@@ -43,4 +48,4 @@ namespace realestate_ia_site.Server.Domain.Entities
             return Status is "active" or "trialing" && CurrentPeriod().IsActive(now);
         }
     }
-} 
+}

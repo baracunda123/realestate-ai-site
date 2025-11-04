@@ -6,7 +6,7 @@ using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Domain.Models;
 using realestate_ia_site.Server.Application.Payments.Interfaces;
 using realestate_ia_site.Server.Infrastructure.Configurations;
-using realestate_ia_site.Server.Application.Common.Interfaces; // use abstraction
+using realestate_ia_site.Server.Application.Common.Interfaces;
 
 namespace realestate_ia_site.Server.Infrastructure.Payments
 {
@@ -235,9 +235,11 @@ namespace realestate_ia_site.Server.Infrastructure.Payments
                 return new DateTimeOffset(specified).ToUnixTimeSeconds();
             }
 
+            var priceId = stripeSubscription.Items.Data.FirstOrDefault()?.Price.Id;
+            
             subscription.Status = stripeSubscription.Status;
-            subscription.PriceId = stripeSubscription.Items.Data.FirstOrDefault()?.Price.Id;
-            subscription.StripePriceId = stripeSubscription.Items.Data.FirstOrDefault()?.Price.Id;
+            subscription.PriceId = priceId;
+            subscription.StripePriceId = priceId;
             subscription.Currency = stripeSubscription.Items.Data.FirstOrDefault()?.Price.Currency;
             subscription.Interval = stripeSubscription.Items.Data.FirstOrDefault()?.Price.Recurring?.Interval;
             subscription.Amount = stripeSubscription.Items.Data.FirstOrDefault()?.Price.UnitAmount;

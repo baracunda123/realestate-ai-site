@@ -38,8 +38,8 @@ public class AuthService
         var existing = await _userManager.FindByEmailAsync(request.Email);
         if (existing != null)
         {
-            _logger.LogWarning("[Auth] Tentativa de registo com email j· existente email={Email}", request.Email);
-            return (AuthResult.ErrorResult("Email j· em uso"), null);
+            _logger.LogWarning("[Auth] Tentativa de registo com email j√° existente email={Email}", request.Email);
+            return (AuthResult.ErrorResult("Email j√° em uso!"), null);
         }
 
         var user = new User
@@ -60,13 +60,13 @@ public class AuthService
             return (AuthResult.ErrorResult(create.Errors.Select(e => e.Description).ToArray()), null);
         }
 
-        // Enviar email de confirmaÁ„o
+        // Enviar email de confirma√ß√£o
         var emailToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
         await SendEmailConfirmationAsync(user, emailToken, ct);
         
-        _logger.LogInformation("[Auth] Registo efetuado utilizador={UserId} email={Email} - aguardando confirmaÁ„o de email", user.Id, user.Email);
+        _logger.LogInformation("[Auth] Registo efetuado utilizador={UserId} email={Email} - aguardando confirma√ß√£o de email", user.Id, user.Email);
         
-        // N√O retornar tokens - utilizador deve confirmar email primeiro
+        // N√ÉO retornar tokens - utilizador deve confirmar email primeiro
         return (AuthResult.SuccessResult(new TokenResponse(), MapToUserProfile(user), "Registo realizado com sucesso. Por favor, verifique o seu email para confirmar a conta."), null);
     }
 
@@ -76,12 +76,12 @@ public class AuthService
         if (user == null)
         {
             _logger.LogWarning("[Auth] Login falhou - email inexistente email={Email}", request.Email);
-            return (AuthResult.ErrorResult("Email ou palavra-passe inv·lidos."), null);
+            return (AuthResult.ErrorResult("Email ou palavra-passe inv√°lidos."), null);
         }
 
         if (user.IsLocked)
         {
-            _logger.LogWarning("[Auth] Login bloqueado utilizador={UserId} atÈ={LockedUntil}", user.Id, user.LockedUntil);
+            _logger.LogWarning("[Auth] Login bloqueado utilizador={UserId} at√©={LockedUntil}", user.Id, user.LockedUntil);
             return (AuthResult.ErrorResult("Conta temporariamente bloqueada"), null);
         }
 
@@ -95,15 +95,15 @@ public class AuthService
         {
             user.IncrementFailedLogin();
             await _userManager.UpdateAsync(user);
-            _logger.LogWarning("[Auth] Password inv·lida utilizador={UserId} tentativas={Attempts}", user.Id, user.FailedLoginAttempts);
-            return (AuthResult.ErrorResult("Email ou palavra-passe inv·lidos."), null);
+            _logger.LogWarning("[Auth] Password inv√°lida utilizador={UserId} tentativas={Attempts}", user.Id, user.FailedLoginAttempts);
+            return (AuthResult.ErrorResult("Email ou palavra-passe inv√°lidos."), null);
         }
 
         user.UpdateLastLogin(ip);
         await _userManager.UpdateAsync(user);
         await CreateLoginSessionAsync(user, ip, ct);
         
-        // CORRIGIDO: Verificar se j· tem refresh token v·lido
+        // CORRIGIDO: Verificar se j√° tem refresh token v√°lido
         bool needsNewRefreshToken = string.IsNullOrEmpty(user.RefreshToken) || 
                                      !user.RefreshTokenExpires.HasValue || 
                                      user.RefreshTokenExpires.Value < DateTime.UtcNow;
@@ -144,18 +144,18 @@ public class AuthService
         var surname = externalLoginInfo.Principal.FindFirstValue(ClaimTypes.Surname);
         var picture = externalLoginInfo.Principal.FindFirstValue("picture");
 
-        _logger.LogInformation("[ExternalLogin] Claims extraÌdos - Email: {Email}, Name: {Name}, Provider: {Provider}", 
+        _logger.LogInformation("[ExternalLogin] Claims extra√≠dos - Email: {Email}, Name: {Name}, Provider: {Provider}", 
             email, name, externalLoginInfo.LoginProvider);
 
         if (string.IsNullOrEmpty(email))
         {
-            _logger.LogWarning("[ExternalLogin] Email n„o fornecido pelo provider={Provider}", externalLoginInfo.LoginProvider);
-            return (AuthResult.ErrorResult("Email È obrigatÛrio para criar conta."), null);
+            _logger.LogWarning("[ExternalLogin] Email n√£o fornecido pelo provider={Provider}", externalLoginInfo.LoginProvider);
+            return (AuthResult.ErrorResult("Email obrigat√≥rio para criar conta."), null);
         }
 
         _logger.LogInformation("[ExternalLogin] Procurando utilizador existente com login externo...");
         
-        // Verificar se j· existe um utilizador com este login externo
+        // Verificar se j√° existe um utilizador com este login externo
         var user = await _userManager.FindByLoginAsync(externalLoginInfo.LoginProvider, externalLoginInfo.ProviderKey);
         
         if (user != null)
@@ -166,7 +166,7 @@ public class AuthService
             await _userManager.UpdateAsync(user);
             await CreateLoginSessionAsync(user, ip, ct);
             
-            // CORRIGIDO: Verificar se j· tem refresh token v·lido
+            // CORRIGIDO: Verificar se j√° tem refresh token v√°lido
             bool needsNewRefreshToken = string.IsNullOrEmpty(user.RefreshToken) || 
                                          !user.RefreshTokenExpires.HasValue || 
                                          user.RefreshTokenExpires.Value < DateTime.UtcNow;
@@ -199,7 +199,7 @@ public class AuthService
 
         _logger.LogInformation("[ExternalLogin] Procurando utilizador existente por email...");
         
-        // Verificar se j· existe um utilizador com este email
+        // Verificar se j√° existe um utilizador com este email
         user = await _userManager.FindByEmailAsync(email);
         
         if (user != null)
@@ -217,7 +217,7 @@ public class AuthService
 
             _logger.LogInformation("[ExternalLogin] Login externo associado com sucesso!");
 
-            // Atualizar avatar se n„o tiver ou se o Google forneceu uma nova imagem
+            // Atualizar avatar se n√£o tiver ou se o Google forneceu uma nova imagem
             if (!string.IsNullOrEmpty(picture) && 
                 (string.IsNullOrEmpty(user.AvatarUrl) || user.AvatarUrl != picture))
             {
@@ -226,7 +226,7 @@ public class AuthService
                 _logger.LogInformation("[ExternalLogin] Avatar atualizado para o utilizador");
             }
 
-            // Atualizar nome se n„o tiver
+            // Atualizar nome se n√£o tiver
             if (string.IsNullOrEmpty(user.FullName) && !string.IsNullOrEmpty(name))
             {
                 user.FullName = name.Trim();
@@ -238,7 +238,7 @@ public class AuthService
             await _userManager.UpdateAsync(user);
             await CreateLoginSessionAsync(user, ip, ct);
             
-            // CORRIGIDO: Verificar se j· tem refresh token v·lido
+            // CORRIGIDO: Verificar se j√° tem refresh token v√°lido
             bool needsNewRefreshToken = string.IsNullOrEmpty(user.RefreshToken) || 
                                          !user.RefreshTokenExpires.HasValue || 
                                          user.RefreshTokenExpires.Value < DateTime.UtcNow;
@@ -286,8 +286,8 @@ public class AuthService
             Email = email.ToLowerInvariant(),
             FullName = fullName,
             AvatarUrl = picture,
-            AccountStatus = AccountStatus.Active, // Conta externa j· È considerada verificada
-            EmailConfirmed = true, // Email j· verificado pelo provider externo
+            AccountStatus = AccountStatus.Active, // Conta externa j√° √© considerada verificada
+            EmailConfirmed = true, // Email j√° verificado pelo provider externo
             CreatedAt = DateTime.UtcNow,
             TokenIdentifier = Guid.NewGuid().ToString()
         };
@@ -342,7 +342,7 @@ public class AuthService
             s.LogoutAt = DateTime.UtcNow;
         }
         await _context.SaveChangesAsync(ct);
-        _logger.LogInformation("[Auth] Logout concluÌdo utilizador={UserId}", user.Id);
+        _logger.LogInformation("[Auth] Logout conclu√≠do utilizador={UserId}", user.Id);
         return AuthResult.SuccessResult(new TokenResponse(), MapToUserProfile(user), "Logout realizado com sucesso");
     }
 
@@ -351,14 +351,14 @@ public class AuthService
         if (string.IsNullOrWhiteSpace(refreshToken))
         {
             _logger.LogWarning("[Auth] Refresh token vazio ou nulo");
-            return (null, AuthResult.ErrorResult("Token inv·lido"));
+            return (null, AuthResult.ErrorResult("Token inv√°lido"));
         }
         
         var user = await _userManager.Users.FirstOrDefaultAsync(u => u.RefreshToken == refreshToken, ct);
         if (user == null)
         {
-            _logger.LogWarning("[Auth] Refresh token n„o encontrado na base de dados");
-            return (null, AuthResult.ErrorResult("Token inv·lido"));
+            _logger.LogWarning("[Auth] Refresh token n√£o encontrado na base de dados");
+            return (null, AuthResult.ErrorResult("Token inv√°lido"));
         }
         
         if (user.RefreshTokenExpires < DateTime.UtcNow)
@@ -386,13 +386,13 @@ public class AuthService
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null)
         {
-            _logger.LogWarning("[Auth] AlteraÁ„o de password - utilizador n„o encontrado userId={UserId}", userId);
-            return AuthResult.ErrorResult("Usu·rio n„o encontrado");
+            _logger.LogWarning("[Auth] Altera√ß√£o de password - utilizador n√£o encontrado userId={UserId}", userId);
+            return AuthResult.ErrorResult("Usu√°rio n√£o encontrado");
         }
         var result = await _userManager.ChangePasswordAsync(user, request.CurrentPassword, request.NewPassword);
         if (!result.Succeeded)
         {
-            _logger.LogWarning("[Auth] Falha alteraÁ„o password utilizador={UserId} errors={Errors}", user.Id, string.Join(';', result.Errors.Select(e => e.Code)));
+            _logger.LogWarning("[Auth] Falha altera√ß√£o password utilizador={UserId} errors={Errors}", user.Id, string.Join(';', result.Errors.Select(e => e.Code)));
             return AuthResult.ErrorResult(result.Errors.Select(e => e.Description).ToArray());
         }
         user.PasswordChangedAt = DateTime.UtcNow;
@@ -406,7 +406,7 @@ public class AuthService
         var accessToken = await GenerateAccessTokenAsync(user);
         var refreshToken = GenerateRefreshToken();
         
-        // Refresh token v·lido por 2 dias
+        // Refresh token v√°lido por 2 dias
         var expiryDate = DateTime.UtcNow.AddDays(2);
         user.RefreshToken = refreshToken;
         user.RefreshTokenExpires = expiryDate;
@@ -478,7 +478,7 @@ public class AuthService
     {
         if (string.IsNullOrWhiteSpace(user.Email))
         {
-            _logger.LogWarning("[Auth] Tentativa de envio de confirmaÁ„o sem email userId={UserId}", user.Id);
+            _logger.LogWarning("[Auth] Tentativa de envio de confirma√ß√£o sem email userId={UserId}", user.Id);
             return;
         }
 
@@ -492,14 +492,14 @@ public class AuthService
             _logger.LogInformation("[Auth] Token gerado - Original length: {OrigLen}, URL-safe length: {SafeLen}", 
                 token.Length, urlSafeToken.Length);
             
-            // URL aponta para o FRONTEND que ir· validar via API
+            // URL aponta para o FRONTEND que ir√° validar via API
             var frontendUrl = Environment.GetEnvironmentVariable("APP_FRONTEND_URL") 
                            ?? _config["App:FrontendUrl"] 
                            ?? "http://localhost:5173";
             
             var confirmLink = $"{frontendUrl}/confirm-email/{urlSafeToken}";
             
-            _logger.LogInformation("[Auth] Enviando email de confirmaÁ„o para={Email} frontendUrl={FrontendUrl}", 
+            _logger.LogInformation("[Auth] Enviando email de confirma√ß√£o para={Email} frontendUrl={FrontendUrl}", 
                 user.Email, frontendUrl);
             
             var emailSent = await _emailService.SendTemplateEmailAsync(
@@ -511,16 +511,16 @@ public class AuthService
 
             if (!emailSent)
             {
-                _logger.LogError("[Auth] Falha ao enviar email de confirmaÁ„o userId={UserId}", user.Id);
+                _logger.LogError("[Auth] Falha ao enviar email de confirma√ß√£o userId={UserId}", user.Id);
             }
             else
             {
-                _logger.LogInformation("[Auth] Email de confirmaÁ„o enviado com sucesso userId={UserId}", user.Id);
+                _logger.LogInformation("[Auth] Email de confirma√ß√£o enviado com sucesso userId={UserId}", user.Id);
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[Auth] ExceÁ„o ao enviar email de confirmaÁ„o userId={UserId}", user.Id);
+            _logger.LogError(ex, "[Auth] Exce√ß√£o ao enviar email de confirma√ß√£o userId={UserId}", user.Id);
         }
     }
 

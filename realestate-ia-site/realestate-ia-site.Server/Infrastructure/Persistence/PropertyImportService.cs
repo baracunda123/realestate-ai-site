@@ -1,9 +1,9 @@
-using Microsoft.EntityFrameworkCore;
-using realestate_ia_site.Server.Data;
+﻿using Microsoft.EntityFrameworkCore;
+using realestate_ia_site.Server.Infrastructure.Persistence;
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Application.DTOs.Scraper;
 using realestate_ia_site.Server.Application.ExternalServices.Interfaces;
-using realestate_ia_site.Server.Utils;
+using realestate_ia_site.Server.Application.Common.Mappings;
 
 namespace realestate_ia_site.Server.Infrastructure.Persistence
 {
@@ -58,7 +58,7 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[Import] Erro durante importação em lote");
+                _logger.LogError(ex, "[Import] Erro durante importaÃ§Ã£o em lote");
                 throw;
             }
         }
@@ -93,7 +93,7 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
                         existingProperty.Id, existingProperty.Link);
                 }
 
-                // 2. Se não encontrou na BD, verificar no ChangeTracker (mesmo batch)
+                // 2. Se nÃ£o encontrou na BD, verificar no ChangeTracker (mesmo batch)
                 if (existingProperty == null)
                 {
                     existingProperty = _context.ChangeTracker
@@ -128,7 +128,7 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
             catch (Exception ex)
             {
                 result.Errors++;
-                _logger.LogError(ex, "[Import] ❌ Erro a processar propriedade url={Url} title={Title}", 
+                _logger.LogError(ex, "[Import] âŒ Erro a processar propriedade url={Url} title={Title}", 
                     scrapperDto.url, scrapperDto.titleFromListing);
             }
         }
@@ -143,3 +143,4 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
         public int Total => Created + Updated + Errors;
     }
 }
+

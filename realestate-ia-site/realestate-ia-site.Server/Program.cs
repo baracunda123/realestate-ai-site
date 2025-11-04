@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -14,17 +14,18 @@ using realestate_ia_site.Server.Application.Payments;
 using realestate_ia_site.Server.Application.Notifications.Interfaces;
 using realestate_ia_site.Server.Application.Common.Events;
 using realestate_ia_site.Server.Application.Common.Interfaces;
+using realestate_ia_site.Server.Application.Chat.Interfaces;
 using realestate_ia_site.Server.Domain.Events;
-using realestate_ia_site.Server.Data;
-using realestate_ia_site.Server.Infrastructure.AI;
 using realestate_ia_site.Server.Infrastructure.Persistence;
+using realestate_ia_site.Server.Infrastructure.AI;
 using realestate_ia_site.Server.Infrastructure.Persistence.Filters;
 using realestate_ia_site.Server.Infrastructure.ExternalServices;
 using realestate_ia_site.Server.Infrastructure.Scraper;
-using realestate_ia_site.Server.Middleware;
+using realestate_ia_site.Server.Infrastructure.Middleware;
 using realestate_ia_site.Server.Infrastructure.Notifications;
 using realestate_ia_site.Server.Infrastructure.Events;
 using realestate_ia_site.Server.Infrastructure.Payments;
+using realestate_ia_site.Server.Infrastructure.Chat;
 using realestate_ia_site.Server.Infrastructure.Configurations;
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Application.Auth;
@@ -319,10 +320,13 @@ builder.Services.AddScoped<PropertyAIService>();
 builder.Services.AddScoped<LocationAIService>();
 builder.Services.AddScoped<IConversationContextService, ConversationContextService>();
 
+// Chat Usage & Quota Management
+builder.Services.AddScoped<IChatUsageService, ChatUsageService>();
+
 // Configurations (Stripe ScraperOptions)
 builder.Services.AddSingleton<StripeOptions>();
-builder.Services.Configure<realestate_ia_site.Server.Configuration.ScraperOptions>(
-    builder.Configuration.GetSection(realestate_ia_site.Server.Configuration.ScraperOptions.SectionName));
+builder.Services.Configure<realestate_ia_site.Server.Infrastructure.Configurations.ScraperOptions>(
+    builder.Configuration.GetSection(realestate_ia_site.Server.Infrastructure.Configurations.ScraperOptions.SectionName));
 
 // Payments
 builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();

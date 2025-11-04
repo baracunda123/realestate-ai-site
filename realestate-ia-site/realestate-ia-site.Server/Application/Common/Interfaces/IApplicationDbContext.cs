@@ -16,6 +16,7 @@ public interface IApplicationDbContext
     DbSet<PropertyRecommendation> PropertyRecommendations { get; }
     DbSet<PropertyAlertNotification> PropertyAlertNotifications { get; }
     DbSet<UserSearchHistory> UserSearchHistories { get; }
+    DbSet<ChatUsageQuota> ChatUsageQuotas { get; }
     DbSet<User> Users { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }
