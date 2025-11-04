@@ -14,6 +14,7 @@ import type { User } from './types/PersonalArea';
 import { getFavoriteProperties, addToFavorites, removeFromFavorites } from './api/favorites.service';
 import { usePriceAlerts } from './hooks/usePriceAlerts';
 import { useSignalR } from './hooks/useSignalR';
+import { isQuotaExceededError } from './api/chat-usage.service';
 
 // Extend Window interface to include gtag for Google Analytics
 declare global {
@@ -33,6 +34,7 @@ const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ defau
 const WelcomeScreen = lazy(() => import('./components/WelcomeScreen').then(m => ({ default: m.WelcomeScreen })));
 const EmailConfirmation = lazy(() => import('./components/EmailConfirmation'));
 const ChatPanel = lazy(() => import('./components/ChatPanel').then(m => ({ default: m.ChatPanel })));
+const PricingPage = lazy(() => import('./pages/PricingPage').then(m => ({ default: m.PricingPage })));
 
 // Loading components otimizados
 const LoadingSpinner = () => (
@@ -453,29 +455,45 @@ export default function App() {
           description: 'Resultados carregados com análise da IA',
         });
       }
-    } catch {
-      const errorMsg = 'Não foi possível obter resposta da IA no momento.';
-      setSearchResults([]);
-      setAiError(errorMsg);
-      setSearchQuery(query);
-      
-      // Add error message to history
-      const errorMessage = {
-        id: `ai-error-${Date.now()}`,
-        type: 'ai' as const,
-        content: errorMsg,
-        timestamp: new Date()
-      };
-      setConversationHistory(prev => [...prev, errorMessage]);
-      
-      if (currentView !== 'home') {
-        setCurrentView('home');
-        navigate('/');
+    } catch (error) {
+      // Verificar se é erro de quota
+      if (isQuotaExceededError(error)) {
+        // Adicionar mensagem de erro de quota ao histórico
+        const quotaErrorMessage = {
+          id: `ai-error-${Date.now()}`,
+          type: 'ai' as const,
+          content: 'Atingiu o limite de mensagens disponíveis no seu plano. Para continuar a usar o Chat IA, atualize o seu plano para ter acesso a mais mensagens.',
+          timestamp: new Date(),
+          isQuotaError: true
+        };
+        setConversationHistory(prev => [...prev, quotaErrorMessage]);
+        
+        logger.info('Erro de quota detectado - mensagem adicionada ao histórico', 'APP');
+      } else {
+        // Erro genérico
+        const errorMsg = 'Não foi possível obter resposta da IA no momento.';
+        setSearchResults([]);
+        setAiError(errorMsg);
+        setSearchQuery(query);
+        
+        // Add error message to history
+        const errorMessage = {
+          id: `ai-error-${Date.now()}`,
+          type: 'ai' as const,
+          content: errorMsg,
+          timestamp: new Date()
+        };
+        setConversationHistory(prev => [...prev, errorMessage]);
+        
+        if (currentView !== 'home') {
+          setCurrentView('home');
+          navigate('/');
+        }
+        
+        toast.error('Erro na pesquisa', {
+          description: 'Tente novamente em alguns instantes.',
+        });
       }
-      
-      toast.error('Erro na pesquisa', {
-        description: 'Tente novamente em alguns instantes.',
-      });
     } finally {
       setAiLoading(false);
     }
@@ -487,6 +505,7 @@ export default function App() {
     type: 'user' | 'ai';
     content: string;
     timestamp: Date;
+    isQuotaError?: boolean;
   }>>([]);
 
   // Handler para limpar completamente a conversa
@@ -687,6 +706,16 @@ export default function App() {
             element={
               <Suspense fallback={<LoadingSpinner />}>
                 <EmailConfirmation />
+              </Suspense>
+            } 
+          />
+
+          {/* Rota de Pricing */}
+          <Route 
+            path="/pricing" 
+            element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <PricingPage />
               </Suspense>
             } 
           />

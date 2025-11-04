@@ -67,9 +67,9 @@
     --success-soft: #EBF4E6; /* Background success */
     --success-gentle: #9BB28C; /* Success principal */
     --success-strong: #87A075; /* Success para texto */
-    --warning-soft: #FBF3E8; /* Background warning */
-    --warning-gentle: #E5B876; /* Warning principal */
-    --warning-strong: #D9AB68; /* Warning para texto */
+    --warning-soft: #F9EDE5; /* Background warning - tom clay harmonizado */
+    --warning-gentle: #D9875F; /* Warning principal - burnt peach deep */
+    --warning-strong: #C16C44; /* Warning para texto - burnt peach darker */
     --info-soft: #EDF4F7; /* Background info */
     --info-gentle: #8BADBD; /* Info principal */
     --info-strong: #7FA0B3; /* Info para texto */
