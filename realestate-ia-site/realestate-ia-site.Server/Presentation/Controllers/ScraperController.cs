@@ -1,9 +1,10 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using realestate_ia_site.Server.Application.DTOs.Scraper;
+using realestate_ia_site.Server.Application.Common.DTOs;
 using realestate_ia_site.Server.Infrastructure.Scraper;
 using realestate_ia_site.Server.Infrastructure.Persistence;
+using realestate_ia_site.Server.Application.Features.Properties.Import;
 
 namespace realestate_ia_site.Server.Presentation.Controllers
 {

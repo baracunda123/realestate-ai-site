@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Infrastructure.Persistence;
 using realestate_ia_site.Server.Application.Common.Exceptions;
-using realestate_ia_site.Server.Application.DTOs.PropertySearch;
+using realestate_ia_site.Server.Application.Common.DTOs;
 using realestate_ia_site.Server.Application.Common.Events;
 using realestate_ia_site.Server.Domain.Events;
 using System.ComponentModel.DataAnnotations;

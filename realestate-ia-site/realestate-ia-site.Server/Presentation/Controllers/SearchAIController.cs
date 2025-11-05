@@ -1,11 +1,11 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
-using realestate_ia_site.Server.Application.SearchAI;
-using realestate_ia_site.Server.Application.DTOs.SearchAI;
+using realestate_ia_site.Server.Application.Features.AI.SearchAI.DTOs;
+using realestate_ia_site.Server.Application.Features.AI.SearchAI;
 using realestate_ia_site.Server.Application.Common.Events;
 using realestate_ia_site.Server.Domain.Events;
-using realestate_ia_site.Server.Application.AI.Interfaces;
+using realestate_ia_site.Server.Application.Features.AI.Interfaces;
 using realestate_ia_site.Server.Application.Chat.Interfaces;
 
 namespace realestate_ia_site.Server.Presentation.Controllers

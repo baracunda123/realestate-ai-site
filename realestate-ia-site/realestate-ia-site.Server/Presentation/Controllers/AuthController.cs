@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Domain.Models;
-using realestate_ia_site.Server.Application.Auth;
+using realestate_ia_site.Server.Infrastructure.Auth;
 using realestate_ia_site.Server.Application.Security;
 using realestate_ia_site.Server.Infrastructure.Storage;
 using realestate_ia_site.Server.Application.Notifications.Interfaces;

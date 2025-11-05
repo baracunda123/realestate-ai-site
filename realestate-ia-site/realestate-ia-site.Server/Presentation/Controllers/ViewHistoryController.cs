@@ -4,8 +4,8 @@ using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Infrastructure.Persistence;
-using realestate_ia_site.Server.Application.DTOs.ViewHistory;
-using realestate_ia_site.Server.Application.DTOs.PropertySearch;
+using realestate_ia_site.Server.Application.Features.Properties.ViewHistory;
+using realestate_ia_site.Server.Application.Common.DTOs;
 using realestate_ia_site.Server.Application.Common.Exceptions;
 
 namespace realestate_ia_site.Server.Presentation.Controllers

@@ -1,5 +1,5 @@
 using realestate_ia_site.Server.Domain.Entities;
-using realestate_ia_site.Server.Application.DTOs.Scraper;
+using realestate_ia_site.Server.Application.Common.DTOs;
 using realestate_ia_site.Server.Application.ExternalServices.Interfaces;
 using System.Globalization;
 using System.Text.RegularExpressions;

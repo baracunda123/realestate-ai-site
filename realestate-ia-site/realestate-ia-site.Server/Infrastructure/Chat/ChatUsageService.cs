@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Application.Chat.Interfaces;
 using realestate_ia_site.Server.Application.Common.Interfaces;
-using realestate_ia_site.Server.Application.Payments.Interfaces;
+using realestate_ia_site.Server.Application.Features.Payments.Interfaces;
 using realestate_ia_site.Server.Domain.Entities;
 
 namespace realestate_ia_site.Server.Infrastructure.Chat

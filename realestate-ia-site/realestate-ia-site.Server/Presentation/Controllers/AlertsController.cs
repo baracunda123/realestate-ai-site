@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
-using realestate_ia_site.Server.Application.PropertyAlerts;
-using realestate_ia_site.Server.Application.PropertyAlerts.DTOs;
+using realestate_ia_site.Server.Application.Features.Properties.Alerts;
+using realestate_ia_site.Server.Application.Features.Properties.Alerts.DTOs;
 using realestate_ia_site.Server.Presentation.Controllers;
 
 namespace realestate_ia_site.Server.Presentation.Controllers

@@ -5,32 +5,32 @@ namespace realestate_ia_site.Server.Application.Chat.Interfaces
     public interface IChatUsageService
     {
         /// <summary>
-        /// Verifica se o usu·rio tem quota disponÌvel para usar o chat
+        /// Verifica se o usu√°rio tem quota dispon√≠vel para usar o chat
         /// </summary>
         Task<bool> HasAvailableQuotaAsync(string userId, CancellationToken ct = default);
 
         /// <summary>
-        /// Consome uma unidade de quota (um prompt) para o usu·rio
+        /// Consome uma unidade de quota (um prompt) para o usu√°rio
         /// </summary>
         Task<bool> ConsumePromptAsync(string userId, CancellationToken ct = default);
 
         /// <summary>
-        /// ObtÈm a quota atual do usu·rio
+        /// Obt√©m a quota atual do usu√°rio
         /// </summary>
         Task<ChatUsageQuota> GetOrCreateQuotaAsync(string userId, CancellationToken ct = default);
 
         /// <summary>
-        /// Atualiza o plano do usu·rio com base na subscriÁ„o Stripe
+        /// Atualiza o plano do usu√°rio com base na subscri√ß√£o Stripe
         /// </summary>
         Task UpdateUserPlanAsync(string userId, string stripePriceId, CancellationToken ct = default);
 
         /// <summary>
-        /// Reseta a quota do usu·rio (administrativo ou manual)
+        /// Reseta a quota do usu√°rio (administrativo ou manual)
         /// </summary>
         Task ResetQuotaAsync(string userId, CancellationToken ct = default);
 
         /// <summary>
-        /// ObtÈm estatÌsticas de uso do usu·rio
+        /// Obt√©m estat√≠sticas de uso do usu√°rio
         /// </summary>
         Task<ChatUsageStats> GetUsageStatsAsync(string userId, CancellationToken ct = default);
     }

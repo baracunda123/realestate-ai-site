@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
-using realestate_ia_site.Server.Application.Payments;
+using realestate_ia_site.Server.Application.Features.Payments;
 
 namespace realestate_ia_site.Server.Presentation.Controllers
 {

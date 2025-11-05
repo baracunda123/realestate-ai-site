@@ -3,10 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using System.Security.Claims;
 using realestate_ia_site.Server.Domain.Models;
-using realestate_ia_site.Server.Application.Payments;
-using realestate_ia_site.Server.Application.Payments.DTOs;
+using realestate_ia_site.Server.Application.Features.Payments;
 using realestate_ia_site.Server.Infrastructure.Payments;
-using AppSubscriptionDto = realestate_ia_site.Server.Application.Payments.DTOs.SubscriptionDto;
+using AppSubscriptionDto = realestate_ia_site.Server.Application.Features.Payments.DTOs.SubscriptionDto;
 
 namespace realestate_ia_site.Server.Presentation.Controllers
 {

@@ -1,7 +1,7 @@
 using realestate_ia_site.Server.Application.Common.Events;
 using realestate_ia_site.Server.Domain.Events;
-using realestate_ia_site.Server.Application.PropertyAlerts;
-using realestate_ia_site.Server.Application.Recommendations;
+using realestate_ia_site.Server.Application.Features.Properties.Alerts;
+using realestate_ia_site.Server.Application.Features.Properties.Recommendations;
 
 namespace realestate_ia_site.Server.Infrastructure.Events
 {

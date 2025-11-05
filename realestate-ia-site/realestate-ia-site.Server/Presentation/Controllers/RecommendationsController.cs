@@ -3,9 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Application.Common.Interfaces;
-using realestate_ia_site.Server.Application.Recommendations;
-using realestate_ia_site.Server.Application.Recommendations.DTOs;
-using realestate_ia_site.Server.Presentation.Controllers;
+using realestate_ia_site.Server.Application.Features.Properties.Recommendations.DTOs;
+using realestate_ia_site.Server.Application.Features.Properties.Recommendations;
 
 namespace realestate_ia_site.Server.Presentation.Controllers
 {
