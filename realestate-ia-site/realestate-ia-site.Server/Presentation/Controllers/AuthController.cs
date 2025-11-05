@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+Ôªøusing Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -15,8 +15,8 @@ namespace realestate_ia_site.Server.Presentation.Controllers
 {
     public class ForgotPasswordRequest
     {
-        [Required(ErrorMessage = "Email È obrigatÛrio")]
-        [EmailAddress(ErrorMessage = "Email inv·lido")]
+        [Required(ErrorMessage = "Email √© obrigat√≥rio")]
+        [EmailAddress(ErrorMessage = "Email inv√°lido")]
         public string Email { get; set; } = string.Empty;
     }
 
@@ -29,7 +29,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
 
     public class DeleteAccountRequest
     {
-        [Required(ErrorMessage = "Password È obrigatÛria")]
+        [Required(ErrorMessage = "Password √© obrigat√≥ria")]
         public string Password { get; set; } = string.Empty;
     }
 
@@ -72,14 +72,14 @@ namespace realestate_ia_site.Server.Presentation.Controllers
             var isSecure = _environment.IsProduction() || Request.IsHttps;
             var host = Request.Host.Host;
             
-            // ? Determinar domain do cookie baseado no host
+            // Determinar domain do cookie baseado no host
             string? cookieDomain = null;
             if (host.EndsWith(".resideai.pt", StringComparison.OrdinalIgnoreCase))
             {
-                // Se usar domÌnio customizado, configurar para aceitar subdomÌnios
-                cookieDomain = ".resideai.pt";  // ? Permite www.resideai.pt E api.resideai.pt
+                // Se usar dom√≠nio customizado, configurar para aceitar subdom√≠nios
+                cookieDomain = ".resideai.pt";  // Permite www.resideai.pt E api.resideai.pt
             }
-            // Se for Azure domain, deixar null (funciona sÛ no mesmo domÌnio)
+            // Se for Azure domain, deixar null (funciona s√≥ no mesmo dom√≠nio)
 
             var cookieOptions = new CookieOptions
             {
@@ -88,7 +88,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 SameSite = SameSiteMode.None,
                 Expires = DateTime.UtcNow.AddDays(2),
                 Path = "/",
-                Domain = cookieDomain  // ? Dynamic: .resideai.pt ou null
+                Domain = cookieDomain  // Dynamic: .resideai.pt ou null
             };
 
             Response.Cookies.Append("refresh_token", tokens.RefreshToken, cookieOptions);
@@ -190,24 +190,24 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 
                 if (!ModelState.IsValid)
                 {
-                    _logger.LogWarning("ModelState inv·lido para Google login");
+                    _logger.LogWarning("ModelState inv√°lido para Google login");
                     _auditService.LogSuspiciousActivity("Invalid Google login data", $"Provider: {request.Provider}");
                     return BadRequest(ModelState);
                 }
 
                 if (request.Provider != "Google")
                 {
-                    _logger.LogWarning("Provider inv·lido: {Provider}", request.Provider);
+                    _logger.LogWarning("Provider inv√°lido: {Provider}", request.Provider);
                     _auditService.LogSuspiciousActivity("Invalid provider for Google login", $"Provider: {request.Provider}");
-                    return BadRequest(new { message = "Provider inv·lido" });
+                    return BadRequest(new { message = "Provider inv√°lido" });
                 }
 
                 var externalLoginInfo = await _googleAuthService.ValidateGoogleTokenAsync(request.AccessToken);
                 if (externalLoginInfo == null)
                 {
-                    _logger.LogWarning("ValidaÁ„o do token Google falhou");
+                    _logger.LogWarning("Valida√ß√£o do token Google falhou");
                     _auditService.LogSuspiciousActivity("Invalid Google token", "Google token validation failed");
-                    return BadRequest(new { message = "Token do Google inv·lido" });
+                    return BadRequest(new { message = "Token do Google inv√°lido" });
                 }
 
                 var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
@@ -260,7 +260,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 {
                     _logger.LogWarning("[RefreshToken] No refresh token found");
                     _auditService.LogInvalidTokenAccess("refresh", "Missing refresh token");
-                    return BadRequest(new { message = "Token de atualizaÁ„o n„o encontrado" });
+                    return BadRequest(new { message = "Token de atualiza√ß√£o n√£o encontrado" });
                 }
 
                 _logger.LogDebug("[RefreshToken] Token source: {Source}", tokenSource);
@@ -339,7 +339,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 if (string.IsNullOrEmpty(userId))
                 {
                     _auditService.LogInvalidTokenAccess("access", "Missing user ID in token");
-                    return NotFound(new { message = "Usu·rio n„o encontrado" });
+                    return NotFound(new { message = "Usu√°rio n√£o encontrado" });
                 }
 
                 var user = await _userManager.FindByIdAsync(userId);
@@ -347,7 +347,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 if (user == null)
                 {
                     _auditService.LogSuspiciousActivity("Profile access for non-existent user", $"UserId: {userId}");
-                    return NotFound(new { message = "Usu·rio n„o encontrado" });
+                    return NotFound(new { message = "Usu√°rio n√£o encontrado" });
                 }
 
                 var profile = new UserProfile
@@ -383,7 +383,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 if (string.IsNullOrEmpty(userId))
                 {
                     _auditService.LogInvalidTokenAccess("upload-avatar", "Missing user ID in token");
-                    return NotFound(new { success = false, error = "Usu·rio n„o encontrado" });
+                    return NotFound(new { success = false, error = "Usu√°rio n√£o encontrado" });
                 }
 
                 // Validate file
@@ -396,21 +396,21 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 var allowedTypes = new[] { "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp" };
                 if (!allowedTypes.Contains(file.ContentType.ToLower()))
                 {
-                    return BadRequest(new { success = false, error = "Tipo de arquivo n„o suportado. Use JPG, PNG, GIF ou WebP." });
+                    return BadRequest(new { success = false, error = "Tipo de arquivo n√£o suportado. Use JPG, PNG, GIF ou WebP." });
                 }
 
                 // Validate size (maximum 5MB)
                 const long maxFileSize = 5 * 1024 * 1024; // 5MB
                 if (file.Length > maxFileSize)
                 {
-                    return BadRequest(new { success = false, error = "A imagem deve ter no m·ximo 5MB" });
+                    return BadRequest(new { success = false, error = "A imagem deve ter no m√°ximo 5MB" });
                 }
 
                 // Get user
                 var user = await _userManager.FindByIdAsync(userId);
                 if (user == null)
                 {
-                    return NotFound(new { success = false, error = "Usu·rio n„o encontrado" });
+                    return NotFound(new { success = false, error = "Usu√°rio n√£o encontrado" });
                 }
 
                 // Delete old avatar if exists
@@ -440,13 +440,13 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 await _userManager.UpdateAsync(user);
 
                 _auditService.LogSecurityEvent(SecurityEventType.LoginSuccess, "Avatar updated successfully", new { UserId = userId, AvatarUrl = avatarUrl });
-                _logger.LogInformation("Avatar atualizado para usu·rio {UserId}: {AvatarUrl}", userId, avatarUrl);
+                _logger.LogInformation("Avatar atualizado para o utilizador {UserId}: {AvatarUrl}", userId, avatarUrl);
 
                 return Ok(new { success = true, url = avatarUrl, message = "Avatar atualizado com sucesso" });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro no upload do avatar para usu·rio {UserId}", GetCurrentUserId());
+                _logger.LogError(ex, "Erro no upload do avatar para o utilizador {UserId}", GetCurrentUserId());
                 return StatusCode(500, new { success = false, error = "Erro interno no servidor ao fazer upload da imagem" });
             }
         }
@@ -462,14 +462,14 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 if (string.IsNullOrEmpty(userId))
                 {
                     _auditService.LogInvalidTokenAccess("update-profile", "Missing user ID in token");
-                    return NotFound(new { message = "Usu·rio n„o encontrado" });
+                    return NotFound(new { message = "Utilizador n√£o encontrado" });
                 }
 
                 var user = await _userManager.FindByIdAsync(userId);
                 if (user == null)
                 {
                     _auditService.LogSuspiciousActivity("Profile update for non-existent user", $"UserId: {userId}");
-                    return NotFound(new { message = "Usu·rio n„o encontrado" });
+                    return NotFound(new { message = "Utilizador n√£o encontrado" });
                 }
 
                 // Atualizar campos
@@ -536,7 +536,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 if (string.IsNullOrEmpty(userId))
                 {
                     _auditService.LogInvalidTokenAccess("change-password", "Missing user ID in token");
-                    return NotFound(new { message = "Usu·rio n„o encontrado" });
+                    return NotFound(new { message = "Usu√°rio n√£o encontrado" });
                 }
 
                 var result = await _authService.ChangePasswordAsync(userId, request);
@@ -570,7 +570,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 {
                     _logger.LogWarning("[Auth] Confirmation without token");
                     _auditService.LogSuspiciousActivity("Email confirmation without token", "No token provided");
-                    return BadRequest(new { success = false, message = "Token inv·lido" });
+                    return BadRequest(new { success = false, message = "Token inv√°lido" });
                 }
 
                 string decodedToken;
@@ -586,7 +586,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                     _logger.LogWarning(ex, "[Auth] Failed to decode token");
                     return BadRequest(new { 
                         success = false, 
-                        message = "Token inv·lido ou corrompido",
+                        message = "Token inv√°lido ou corrompido",
                         code = "INVALID_TOKEN" 
                     });
                 }
@@ -639,7 +639,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                     
                     return BadRequest(new { 
                         success = false,
-                        message = "Link de confirmaÁ„o inv·lido ou expirado. Solicite um novo email de confirmaÁ„o.",
+                        message = "Link de confirma√ß√£o inv√°lido ou expirado. Solicite um novo email de confirma√ß√£o.",
                         code = "INVALID_TOKEN"
                     });
                 }
@@ -686,7 +686,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                     _auditService.LogSuspiciousActivity("Password reset for non-existent email", $"Email: {request.Email}");
                 }
 
-                return Ok(new { message = "Se o email existir, ser· enviado um link de recuperaÁ„o." });
+                return Ok(new { message = "Se o email existir, ser√° enviado um link de recupera√ß√£o." });
             }
             catch (Exception ex)
             {
@@ -738,16 +738,16 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                         _auditService.LogSecurityEvent(SecurityEventType.LoginSuccess, "Confirmation email resent", 
                             new { Email = request.Email });
                         
-                        _logger.LogInformation("[Auth] Email de confirmaÁ„o reenviado com sucesso para={Email}", request.Email);
+                        _logger.LogInformation("[Auth] Email de confirma√ß√£o reenviado com sucesso para={Email}", request.Email);
                     }
                     else
                     {
-                        _logger.LogError("[Auth] Falha ao reenviar email de confirmaÁ„o para={Email}", request.Email);
+                        _logger.LogError("[Auth] Falha ao reenviar email de confirma√ß√£o para={Email}", request.Email);
                     }
                 }
                 else if (user != null && user.EmailConfirmed)
                 {
-                    _logger.LogInformation("[Auth] Resend attempt for already confirmed email={Email}", request.Email);
+                    _logger.LogInformation("[Auth] Email de confirma√ß√£o N√ÉO enviado - email j√° confirmado anteriormente email={Email}", request.Email);
                 }
                 else
                 {
@@ -756,7 +756,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                         $"Email: {request.Email}");
                 }
 
-                return Ok(new { message = "Se o email existir e n„o estiver confirmado, um novo link foi enviado." });
+                return Ok(new { message = "Se o email existir e n√£o estiver confirmado, um novo link ser√° enviado." });
             }
             catch (Exception ex)
             {
@@ -781,14 +781,14 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 if (string.IsNullOrEmpty(userId))
                 {
                     _auditService.LogInvalidTokenAccess("delete-account", "Missing user ID in token");
-                    return Unauthorized(new { success = false, message = "Utilizador n„o autenticado" });
+                    return Unauthorized(new { success = false, message = "Utilizador n√£o autenticado" });
                 }
 
                 var user = await _userManager.FindByIdAsync(userId);
                 if (user == null)
                 {
                     _auditService.LogSuspiciousActivity("Delete account for non-existent user", $"UserId: {userId}");
-                    return NotFound(new { success = false, message = "Utilizador n„o encontrado" });
+                    return NotFound(new { success = false, message = "Utilizador n√£o encontrado" });
                 }
 
                 // Verificar a password antes de eliminar
@@ -846,5 +846,3 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         }
     }
 }
-
-
