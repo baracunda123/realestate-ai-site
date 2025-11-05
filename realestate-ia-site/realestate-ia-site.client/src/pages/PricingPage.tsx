@@ -25,16 +25,18 @@ const plans: PricingPlan[] = [
   {
     id: 'free',
     name: 'Gratuito',
-    description: 'Para começar a explorar',
+    description: 'Ideal para começar',
     price: 0,
     interval: 'month',
     chatLimit: 50,
     features: [
-      '50 mensagens de chat por mês',
-      'Pesquisa básica de propriedades',
+      '50 mensagens de chat IA por mês',
+      'Pesquisa de propriedades',
       'Favoritos ilimitados',
-      'Alertas de preço (até 5)',
-      'Suporte por email'
+      'Alertas de baixa de preço',
+      'Notificações no site',
+      'Histórico de pesquisas',
+      'Recomendações personalizadas'
     ],
     icon: <Sparkles className="h-6 w-6" />,
     color: 'from-gray-500 to-gray-600'
@@ -42,19 +44,19 @@ const plans: PricingPlan[] = [
   {
     id: 'premium',
     name: 'Premium',
-    description: 'Para profissionais exigentes',
-    price: 24.99,
+    description: 'Conversas ilimitadas com IA',
+    price: 8,
     interval: 'month',
-    chatLimit: 2000,
+    chatLimit: -1,
     popular: true,
     features: [
-      '2000 mensagens de chat por mês',
-      'Análise de mercado com IA',
-      'Relatórios personalizados',
-      'Alertas ilimitados',
-      'Notificações em tempo real',
-      'API de acesso',
-      'Suporte VIP 24/7'
+      '✨ Chat IA ilimitado',
+      'Pesquisa de propriedades',
+      'Favoritos ilimitados',
+      'Alertas de baixa de preço',
+      'Notificações no site',
+      'Histórico de pesquisas',
+      'Recomendações personalizadas'
     ],
     icon: <Zap className="h-6 w-6" />,
     color: 'from-purple-500 to-purple-600'
@@ -108,10 +110,13 @@ export function PricingPage() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold text-deep-mocha mb-4">
-            Escolha o Plano Perfeito
+            Encontre a Casa Perfeita com IA
           </h1>
           <p className="text-xl text-warm-taupe max-w-2xl mx-auto">
-            Desbloqueie todo o potencial da IA imobiliária. Sem contratos, cancele quando quiser.
+            Chat ilimitado com IA por apenas €8/mês. Sem contratos, cancele quando quiser.
+          </p>
+          <p className="text-sm text-warm-taupe mt-2">
+            💡 Apenas €8/mês para ter um assistente imobiliário IA sempre disponível
           </p>
         </div>
 
@@ -200,27 +205,27 @@ export function PricingPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div>
-              <h3 className="font-semibold text-deep-mocha mb-2">O que acontece se exceder o limite?</h3>
+              <h3 className="font-semibold text-deep-mocha mb-2">Porquê pagar €8/mês?</h3>
               <p className="text-sm text-warm-taupe">
-                Quando atingir o limite de mensagens, poderá fazer upgrade imediatamente ou aguardar pela renovação mensal do plano.
+                Com o Premium tem conversas ilimitadas com a nossa IA especializada em imobiliário. Pergunte o que quiser, quantas vezes quiser, sem limites. É como ter um consultor imobiliário 24/7 por apenas €8/mês.
+              </p>
+            </div>
+            <div>
+              <h3 className="font-semibold text-deep-mocha mb-2">O que acontece se exceder o limite no plano gratuito?</h3>
+              <p className="text-sm text-warm-taupe">
+                Quando atingir as 50 mensagens, pode fazer upgrade imediatamente para continuar a usar o chat, ou aguardar pela renovação mensal do plano gratuito.
               </p>
             </div>
             <div>
               <h3 className="font-semibold text-deep-mocha mb-2">Posso cancelar a qualquer momento?</h3>
               <p className="text-sm text-warm-taupe">
-                Sim! Pode cancelar a sua subscrição a qualquer momento. Continuará a ter acesso até ao fim do período pago.
+                Sim! Sem compromissos nem contratos. Cancele quando quiser e continuará a ter acesso Premium até ao fim do período pago.
               </p>
             </div>
             <div>
               <h3 className="font-semibold text-deep-mocha mb-2">Como funciona o pagamento?</h3>
               <p className="text-sm text-warm-taupe">
-                Os pagamentos são processados de forma segura através do Stripe. Aceitamos cartões de crédito e débito.
-              </p>
-            </div>
-            <div>
-              <h3 className="font-semibold text-deep-mocha mb-2">Posso mudar de plano?</h3>
-              <p className="text-sm text-warm-taupe">
-                Sim! Pode fazer upgrade ou downgrade do seu plano a qualquer momento. As alterações serão ajustadas proporcionalmente.
+                Pagamentos 100% seguros processados através do Stripe. Aceitamos todos os cartões de crédito e débito. Os seus dados nunca são armazenados nos nossos servidores.
               </p>
             </div>
           </CardContent>
