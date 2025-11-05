@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { Check, Sparkles, TrendingUp, Zap, Crown } from 'lucide-react';
+import { Check, Sparkles, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import apiClient from '../api/client';
+import { createSubscription } from '../api/subscription.service';
 
 interface PricingPlan {
   id: string;
@@ -13,7 +14,6 @@ interface PricingPlan {
   description: string;
   price: number;
   interval: 'month' | 'year';
-  stripePriceId: string;
   features: string[];
   chatLimit: number;
   icon: React.ReactNode;
@@ -28,7 +28,6 @@ const plans: PricingPlan[] = [
     description: 'Para começar a explorar',
     price: 0,
     interval: 'month',
-    stripePriceId: '',
     chatLimit: 50,
     features: [
       '50 mensagens de chat por mês',
@@ -41,31 +40,11 @@ const plans: PricingPlan[] = [
     color: 'from-gray-500 to-gray-600'
   },
   {
-    id: 'basic',
-    name: 'Básico',
-    description: 'Ideal para quem procura regularmente',
-    price: 9.99,
-    interval: 'month',
-    stripePriceId: 'price_basic_monthly', // TODO: Substituir pelo ID real do Stripe
-    chatLimit: 500,
-    features: [
-      '500 mensagens de chat por mês',
-      'Pesquisa avançada com IA',
-      'Recomendações personalizadas',
-      'Alertas de preço (até 20)',
-      'Histórico de pesquisa',
-      'Suporte prioritário'
-    ],
-    icon: <TrendingUp className="h-6 w-6" />,
-    color: 'from-blue-500 to-blue-600'
-  },
-  {
     id: 'premium',
     name: 'Premium',
     description: 'Para profissionais exigentes',
     price: 24.99,
     interval: 'month',
-    stripePriceId: 'price_premium_monthly', // TODO: Substituir pelo ID real do Stripe
     chatLimit: 2000,
     popular: true,
     features: [
@@ -79,26 +58,6 @@ const plans: PricingPlan[] = [
     ],
     icon: <Zap className="h-6 w-6" />,
     color: 'from-purple-500 to-purple-600'
-  },
-  {
-    id: 'unlimited',
-    name: 'Ilimitado',
-    description: 'Uso sem limites',
-    price: 49.99,
-    interval: 'month',
-    stripePriceId: 'price_unlimited_monthly', // TODO: Substituir pelo ID real do Stripe
-    chatLimit: -1,
-    features: [
-      'Conversas ilimitadas com IA',
-      'Todas as funcionalidades Premium',
-      'Consultor pessoal dedicado',
-      'Insights de mercado exclusivos',
-      'Acesso antecipado a novidades',
-      'Treinamento personalizado',
-      'Suporte dedicado 24/7'
-    ],
-    icon: <Crown className="h-6 w-6" />,
-    color: 'from-amber-500 to-amber-600'
   }
 ];
 
@@ -124,22 +83,19 @@ export function PricingPage() {
         return;
       }
 
-      // Criar sessão de checkout no Stripe
-      const response = await apiClient.post<{ success: boolean; checkoutUrl: string }>(
-        '/api/subscription/create',
-        { priceId: plan.stripePriceId }
-      );
+      // Criar sessão de checkout no Stripe usando o serviço
+      const result = await createSubscription(plan.id);
 
-      if (response.success && response.checkoutUrl) {
+      if (result.success && result.checkoutUrl) {
         // Redirecionar para Stripe Checkout
-        window.location.href = response.checkoutUrl;
+        window.location.href = result.checkoutUrl;
       } else {
-        throw new Error('Erro ao criar sessão de pagamento');
+        throw new Error(result.error || 'Erro ao criar sessão de pagamento');
       }
     } catch (error: any) {
       console.error('Erro ao criar subscrição:', error);
       toast.error('Erro ao processar pagamento', {
-        description: error?.response?.data?.error || 'Tente novamente mais tarde'
+        description: error?.response?.data?.error || error?.message || 'Tente novamente mais tarde'
       });
     } finally {
       setLoading(null);
@@ -160,7 +116,7 @@ export function PricingPage() {
         </div>
 
         {/* Plans Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-12">
           {plans.map((plan) => (
             <Card 
               key={plan.id}

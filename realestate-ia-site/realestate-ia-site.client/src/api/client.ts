@@ -16,7 +16,7 @@ const API_BASE_URL: string = (() => {
   } catch {
     // ignore
   }
-  logger.warn('API_BASE_URL não definido via VITE_API_URL – usando origem atual');
+  logger.warn('API_BASE_URL não definido via VITE_API_URL - usando origem atual');
   return '';
 })();
 

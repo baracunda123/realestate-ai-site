@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+Ôªøusing Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Stripe;
 using Stripe.Checkout;
@@ -44,13 +44,13 @@ namespace realestate_ia_site.Server.Infrastructure.Payments
                 var user = await _userManager.FindByIdAsync(userId);
                 if (user == null)
                 {
-                    return new SubscriptionResult { Success = false, Error = "Utilizador n„o encontrado" };
+                    return new SubscriptionResult { Success = false, Error = "Utilizador n√£o encontrado" };
                 }
 
                 var existingSubscription = await GetActiveSubscriptionAsync(userId);
                 if (existingSubscription != null)
                 {
-                    return new SubscriptionResult { Success = false, Error = "Utilizador j· possui uma assinatura ativa" };
+                    return new SubscriptionResult { Success = false, Error = "Utilizador j√° possui uma assinatura ativa" };
                 }
 
                 string customerId;
@@ -82,6 +82,8 @@ namespace realestate_ia_site.Server.Infrastructure.Payments
                         },
                     },
                     Mode = "subscription",
+                    SuccessUrl = _stripeOptions.SuccessUrl,
+                    CancelUrl = _stripeOptions.CancelUrl,
                     ClientReferenceId = userId,
                     Metadata = new Dictionary<string, string>
                     {
@@ -95,7 +97,7 @@ namespace realestate_ia_site.Server.Infrastructure.Payments
                 return new SubscriptionResult
                 {
                     Success = true,
-                    Message = "Sess„o de checkout criada com sucesso",
+                    Message = "Sess√£o de checkout criada com sucesso",
                     CheckoutUrl = session.Url,
                     CustomerId = customerId
                 };

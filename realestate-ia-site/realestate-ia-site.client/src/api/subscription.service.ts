@@ -1,10 +1,9 @@
-// subscription.service.ts - Serviço de subscrições e pagamentos
 import apiClient from './client';
 import { logger } from '../utils/logger';
 
 // Request types
 export interface CreateSubscriptionRequest {
-  priceId: string;
+  planId: string;
 }
 
 export interface UpdateSubscriptionRequest {
@@ -45,31 +44,30 @@ export interface SubscriptionStatus {
 }
 
 /**
- * Criar nova subscrição
+ * Criar nova subscriÃ§Ã£o
  */
-export async function createSubscription(priceId: string): Promise<SubscriptionResult> {
-  logger.info(`Criando subscrição com priceId: ${priceId}`, 'SUBSCRIPTION');
+export async function createSubscription(planId: string): Promise<SubscriptionResult> {
+  logger.info(`Criando subscriÃ§Ã£o com planId: ${planId}`, 'SUBSCRIPTION');
   
   try {
     const response = await apiClient.post<SubscriptionResult>(
       '/api/subscription/create',
-      { priceId }
+      { planId }
     );
     
-    logger.info('Subscrição criada com sucesso', 'SUBSCRIPTION');
+    logger.info('SubscriÃ§Ã£o criada com sucesso', 'SUBSCRIPTION');
     return response;
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logger.error(`Erro ao criar subscrição: ${errorMsg}`, 'SUBSCRIPTION');
+  } catch (error: any) {
+    logger.error('Erro ao criar subscriÃ§Ã£o', 'SUBSCRIPTION', error);
     throw error;
   }
 }
 
 /**
- * Atualizar subscrição existente (upgrade/downgrade)
+ * Atualizar subscriÃ§Ã£o existente (upgrade/downgrade)
  */
 export async function updateSubscription(newPriceId: string): Promise<SubscriptionResult> {
-  logger.info(`Atualizando subscrição para priceId: ${newPriceId}`, 'SUBSCRIPTION');
+  logger.info(`Atualizando subscriÃ§Ã£o para priceId: ${newPriceId}`, 'SUBSCRIPTION');
   
   try {
     const response = await apiClient.put<SubscriptionResult>(
@@ -77,159 +75,75 @@ export async function updateSubscription(newPriceId: string): Promise<Subscripti
       { newPriceId }
     );
     
-    logger.info('Subscrição atualizada com sucesso', 'SUBSCRIPTION');
+    logger.info('SubscriÃ§Ã£o atualizada com sucesso', 'SUBSCRIPTION');
     return response;
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logger.error(`Erro ao atualizar subscrição: ${errorMsg}`, 'SUBSCRIPTION');
+  } catch (error: any) {
+    logger.error('Erro ao atualizar subscriÃ§Ã£o', 'SUBSCRIPTION', error);
     throw error;
   }
 }
 
 /**
- * Cancelar subscrição
+ * Cancelar subscriÃ§Ã£o
  */
-export async function cancelSubscription(
-  reason?: string,
-  comment?: string
-): Promise<SubscriptionResult> {
-  logger.info('Cancelando subscrição', 'SUBSCRIPTION');
+export async function cancelSubscription(request?: CancelSubscriptionRequest): Promise<SubscriptionResult> {
+  logger.info('Cancelando subscriÃ§Ã£o', 'SUBSCRIPTION');
   
   try {
     const response = await apiClient.post<SubscriptionResult>(
       '/api/subscription/cancel',
-      { reason, comment }
+      request || {}
     );
     
-    logger.info('Subscrição cancelada com sucesso', 'SUBSCRIPTION');
+    logger.info('SubscriÃ§Ã£o cancelada com sucesso', 'SUBSCRIPTION');
     return response;
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logger.error(`Erro ao cancelar subscrição: ${errorMsg}`, 'SUBSCRIPTION');
+  } catch (error: any) {
+    logger.error('Erro ao cancelar subscriÃ§Ã£o', 'SUBSCRIPTION', error);
     throw error;
   }
 }
 
 /**
- * Obter subscrição ativa atual
+ * Obter subscriÃ§Ã£o ativa atual
  */
 export async function getCurrentSubscription(): Promise<SubscriptionDto | null> {
-  logger.info('Buscando subscrição atual', 'SUBSCRIPTION');
+  logger.info('Obtendo subscriÃ§Ã£o atual', 'SUBSCRIPTION');
   
   try {
     const response = await apiClient.get<SubscriptionDto | null>('/api/subscription/current');
-    
-    if (response) {
-      logger.info(`Subscrição ativa encontrada: ${response.status}`, 'SUBSCRIPTION');
-    } else {
-      logger.info('Nenhuma subscrição ativa encontrada', 'SUBSCRIPTION');
-    }
-    
     return response;
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logger.error(`Erro ao buscar subscrição atual: ${errorMsg}`, 'SUBSCRIPTION');
+  } catch (error: any) {
+    logger.error('Erro ao obter subscriÃ§Ã£o atual', 'SUBSCRIPTION', error);
     throw error;
   }
 }
 
 /**
- * Obter histórico de subscrições
+ * Obter histÃ³rico de subscriÃ§Ãµes
  */
 export async function getSubscriptionHistory(): Promise<SubscriptionDto[]> {
-  logger.info('Buscando histórico de subscrições', 'SUBSCRIPTION');
+  logger.info('Obtendo histÃ³rico de subscriÃ§Ãµes', 'SUBSCRIPTION');
   
   try {
     const response = await apiClient.get<SubscriptionDto[]>('/api/subscription/history');
-    
-    logger.info(`${response.length} subscrições encontradas no histórico`, 'SUBSCRIPTION');
     return response;
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logger.error(`Erro ao buscar histórico: ${errorMsg}`, 'SUBSCRIPTION');
+  } catch (error: any) {
+    logger.error('Erro ao obter histÃ³rico de subscriÃ§Ãµes', 'SUBSCRIPTION', error);
     throw error;
   }
 }
 
 /**
- * Verificar status de subscrição ativa
+ * Verificar se tem subscriÃ§Ã£o ativa
  */
 export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
-  logger.info('Verificando status de subscrição', 'SUBSCRIPTION');
+  logger.info('Verificando status de subscriÃ§Ã£o', 'SUBSCRIPTION');
   
   try {
     const response = await apiClient.get<SubscriptionStatus>('/api/subscription/status');
-    
-    logger.info(`Status: ${response.hasActiveSubscription ? 'ativa' : 'inativa'}`, 'SUBSCRIPTION');
     return response;
-  } catch (error) {
-    const errorMsg = error instanceof Error ? error.message : 'Erro desconhecido';
-    logger.error(`Erro ao verificar status: ${errorMsg}`, 'SUBSCRIPTION');
+  } catch (error: any) {
+    logger.error('Erro ao verificar status de subscriÃ§Ã£o', 'SUBSCRIPTION', error);
     throw error;
   }
 }
-
-// Utilidades
-export const subscriptionUtils = {
-  /**
-   * Formatar valor monetário
-   */
-  formatAmount: (amount: number, currency: string = 'EUR'): string => {
-    return new Intl.NumberFormat('pt-PT', {
-      style: 'currency',
-      currency: currency.toUpperCase()
-    }).format(amount / 100); // Stripe usa valores em centavos
-  },
-
-  /**
-   * Formatar intervalo de cobrança
-   */
-  formatInterval: (interval: string): string => {
-    const intervals: Record<string, string> = {
-      'month': 'mensal',
-      'year': 'anual',
-      'week': 'semanal',
-      'day': 'diário'
-    };
-    return intervals[interval.toLowerCase()] || interval;
-  },
-
-  /**
-   * Formatar status da subscrição
-   */
-  formatStatus: (status: string): string => {
-    const statuses: Record<string, string> = {
-      'active': 'Ativa',
-      'trialing': 'Período de teste',
-      'canceled': 'Cancelada',
-      'incomplete': 'Incompleta',
-      'incomplete_expired': 'Expirada',
-      'past_due': 'Pagamento atrasado',
-      'unpaid': 'Não paga'
-    };
-    return statuses[status.toLowerCase()] || status;
-  },
-
-  /**
-   * Verificar se subscrição está ativa
-   */
-  isActive: (status: string): boolean => {
-    return ['active', 'trialing'].includes(status.toLowerCase());
-  },
-
-  /**
-   * Calcular dias restantes até renovação
-   */
-  daysUntilRenewal: (periodEnd?: string): number | null => {
-    if (!periodEnd) return null;
-    
-    const end = new Date(periodEnd);
-    const now = new Date();
-    const diffTime = end.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
-    return diffDays > 0 ? diffDays : 0;
-  }
-};
-
-logger.info('Subscription Service carregado', 'SUBSCRIPTION');

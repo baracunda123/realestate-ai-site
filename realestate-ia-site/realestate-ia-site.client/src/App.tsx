@@ -35,6 +35,8 @@ const WelcomeScreen = lazy(() => import('./components/WelcomeScreen').then(m => 
 const EmailConfirmation = lazy(() => import('./components/EmailConfirmation'));
 const ChatPanel = lazy(() => import('./components/ChatPanel').then(m => ({ default: m.ChatPanel })));
 const PricingPage = lazy(() => import('./pages/PricingPage').then(m => ({ default: m.PricingPage })));
+const SubscriptionSuccessPage = lazy(() => import('./pages/SubscriptionSuccessPage'));
+const SubscriptionCancelPage = lazy(() => import('./pages/SubscriptionCancelPage'));
 
 // Loading components otimizados
 const LoadingSpinner = () => (
@@ -716,6 +718,24 @@ export default function App() {
             element={
               <Suspense fallback={<LoadingSpinner />}>
                 <PricingPage />
+              </Suspense>
+            } 
+          />
+
+          {/* Rotas de Subscrição */}
+          <Route 
+            path="/subscription/success" 
+            element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <SubscriptionSuccessPage />
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/subscription/cancel" 
+            element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <SubscriptionCancelPage />
               </Suspense>
             } 
           />
