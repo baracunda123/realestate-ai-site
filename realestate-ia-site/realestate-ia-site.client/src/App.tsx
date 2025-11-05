@@ -93,6 +93,19 @@ export default function App() {
   const [isInitializing, setIsInitializing] = useState(true);
   const [hasShownWelcomeToast, setHasShownWelcomeToast] = useState(false);
 
+  // Conversation history state
+  const [conversationHistory, setConversationHistory] = useState<Array<{
+    id: string;
+    type: 'user' | 'ai';
+    content: string;
+    timestamp: Date;
+    isQuotaError?: boolean;
+  }>>([]);
+
+  // Chat sessions state
+  const [chatSessions, setChatSessions] = useState<ChatSessionDto[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+
   // Hook para gerenciar alertas de preço
   const {
     alerts,
@@ -424,6 +437,21 @@ export default function App() {
     setAiLoading(true);
     setAiError(null);
     
+    // Se não há sessão ativa, criar uma nova
+    let currentSessionId = sessionId || activeSessionId;
+    if (!currentSessionId) {
+      try {
+        const newSession = await createChatSession();
+        setChatSessions(prev => [newSession, ...prev]);
+        setActiveSessionId(newSession.id);
+        currentSessionId = newSession.id;
+        logger.info('Nova sessão criada automaticamente ao enviar primeira mensagem', 'APP');
+      } catch (error) {
+        logger.error('Erro ao criar sessão automaticamente', 'APP', error as Error);
+        // Continuar mesmo sem sessão - o backend pode lidar com isso
+      }
+    }
+    
     // Add user message to history
     const userMessage = {
       id: `user-${Date.now()}`,
@@ -439,7 +467,7 @@ export default function App() {
         searchQuery: query,
         includeAiAnalysis: true,
         includeMarketData: true,
-        sessionId: sessionId || activeSessionId || undefined
+        sessionId: currentSessionId || undefined
       });
       
       setSearchResults(result.properties || []);
@@ -507,20 +535,7 @@ export default function App() {
     } finally {
       setAiLoading(false);
     }
-  }, [currentView, navigate]);
-  
-  // Conversation history state
-  const [conversationHistory, setConversationHistory] = useState<Array<{
-    id: string;
-    type: 'user' | 'ai';
-    content: string;
-    timestamp: Date;
-    isQuotaError?: boolean;
-  }>>([]);
-
-  // Chat sessions state
-  const [chatSessions, setChatSessions] = useState<ChatSessionDto[]>([]);
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  }, [currentView, navigate, activeSessionId]);
 
   // Load chat sessions when user logs in
   const loadChatSessions = useCallback(async () => {
@@ -533,25 +548,13 @@ export default function App() {
     try {
       const sessions = await getChatSessions();
       
-      // Se não houver sessões, criar uma automaticamente
-      if (sessions.length === 0) {
-        logger.info('Nenhuma sessão encontrada, criando primeira sessão', 'APP');
-        const newSession = await createChatSession('Nova Conversa');
-        setChatSessions([newSession]);
-        setActiveSessionId(newSession.id);
-      } else {
-        setChatSessions(sessions);
-        
-        // Set active session to most recent
-        if (!activeSessionId) {
-          setActiveSessionId(sessions[0].id);
-        }
-      }
+      // Apenas carregar as sessões, não definir sessão ativa automaticamente
+      setChatSessions(sessions);
     } catch (error) {
       logger.error('Erro ao carregar sessões de chat', 'APP', error as Error);
       setChatSessions([]);
     }
-  }, [user, activeSessionId]);
+  }, [user]);
 
   // Load sessions when user changes
   useEffect(() => {
@@ -881,6 +884,8 @@ export default function App() {
                     user={user ? convertToUser(user) : null}
                     onStartSignup={() => openAuthModal('signup')}
                     onStartSearch={() => {
+                      // Limpar sessão ativa para começar nova conversa
+                      setActiveSessionId(null);
                       sessionStorage.setItem('showSearchPanel', 'true');
                       setShowSearchPanel(true);
                     }}
