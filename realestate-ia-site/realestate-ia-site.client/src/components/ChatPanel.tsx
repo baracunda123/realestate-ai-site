@@ -3,9 +3,10 @@ import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Badge } from './ui/badge';
-import { Sparkles, Loader2, Send, Trash2 } from 'lucide-react';
-import { clearConversationContext } from '../api/properties.service';
+import { Sparkles, Loader2, Send } from 'lucide-react';
 import { ChatQuotaBanner } from './Chat/ChatQuotaBanner';
+import { ChatTabs } from './Chat/ChatTabs';
+import type { ChatSessionDto } from '../api/chat-sessions.service';
 
 interface ConversationMessage {
     id: string;
@@ -16,11 +17,16 @@ interface ConversationMessage {
 }
 
 interface ChatPanelProps {
-    onSubmitQuery: (query: string) => Promise<void>;
+    onSubmitQuery: (query: string, sessionId?: string) => Promise<void>;
     loading?: boolean;
     error?: string | null;
     conversationHistory?: ConversationMessage[];
-    onClearConversation?: () => void;
+    // Tabs support
+    sessions?: ChatSessionDto[];
+    activeSessionId?: string | null;
+    onSelectSession?: (sessionId: string) => void;
+    onCreateSession?: () => void;
+    onDeleteSession?: (sessionId: string) => void;
 }
 
 export function ChatPanel({
@@ -28,11 +34,14 @@ export function ChatPanel({
     loading = false,
     error = null,
     conversationHistory = [],
-    onClearConversation
+    sessions = [],
+    activeSessionId = null,
+    onSelectSession,
+    onCreateSession,
+    onDeleteSession
 }: ChatPanelProps) {
     const [inputValue, setInputValue] = useState('');
     const [localHistory, setLocalHistory] = useState<ConversationMessage[]>([]);
-    const [isClearing, setIsClearing] = useState(false);
     const [refreshQuota, setRefreshQuota] = useState(0);
     const conversationEndRef = useRef<HTMLDivElement>(null);
     const conversationContainerRef = useRef<HTMLDivElement>(null);
@@ -67,7 +76,7 @@ export function ChatPanel({
         setInputValue('');
 
         try {
-            await onSubmitQuery(query);
+            await onSubmitQuery(query, activeSessionId || undefined);
             // Refresh quota banner após mensagem enviada
             setRefreshQuota(prev => prev + 1);
         } catch (err) {
@@ -83,22 +92,6 @@ export function ChatPanel({
         }
     };
 
-    const handleClearChat = async () => {
-        setIsClearing(true);
-        try {
-            await clearConversationContext();
-            setLocalHistory([]);
-            setInputValue('');
-
-            if (onClearConversation) {
-                onClearConversation();
-            }
-        } catch (error) {
-            console.error('Erro ao limpar conversa:', error);
-        } finally {
-            setIsClearing(false);
-        }
-    };
 
     const renderMessage = (message: ConversationMessage) => {
         const isUser = message.type === 'user';
@@ -155,36 +148,17 @@ export function ChatPanel({
             <ChatQuotaBanner key={refreshQuota} />
 
             <Card className="flex flex-col border border-pale-clay-deep bg-pure-white shadow-clay-deep overflow-hidden h-[500px]">
-                {/* Header */}
-                <div className="p-3 sm:p-4 border-b border-pale-clay-deep bg-pale-clay-light/30">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2 sm:gap-3">
-                            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-burnt-peach flex items-center justify-center shadow-burnt-peach">
-                                <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
-                            </div>
-                            <div>
-                                <h2 className="text-base sm:text-lg font-semibold text-deep-mocha">Chat IA</h2>
-                                <p className="text-xs text-warm-taupe hidden sm:block">Assistente de Imobiliário</p>
-                            </div>
-                        </div>
-                        {hasMessages && (
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={handleClearChat}
-                                disabled={isClearing || loading}
-                                className="text-warm-taupe hover:text-deep-mocha hover:bg-pale-clay-light text-xs sm:text-sm"
-                            >
-                                {isClearing ? (
-                                    <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2 animate-spin" />
-                                ) : (
-                                    <Trash2 className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                                )}
-                                <span className="hidden sm:inline">Limpar</span>
-                            </Button>
-                        )}
-                    </div>
-                </div>
+                {/* Tabs */}
+                {onSelectSession && onCreateSession && onDeleteSession && (
+                    <ChatTabs
+                        sessions={sessions}
+                        activeSessionId={activeSessionId}
+                        onSelectSession={onSelectSession}
+                        onCreateSession={onCreateSession}
+                        onDeleteSession={onDeleteSession}
+                        loading={loading}
+                    />
+                )}
 
                 {/* Messages Area */}
                 <CardContent className="flex-1 overflow-hidden p-0 relative">
@@ -283,12 +257,12 @@ export function ChatPanel({
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
                             onKeyDown={handleKeyDown}
-                            disabled={loading || isClearing || hasQuotaError}
+                            disabled={loading || hasQuotaError}
                             className="flex-1 border-pale-clay-deep focus:border-burnt-peach text-sm"
                         />
                         <Button
                             onClick={handleSubmit}
-                            disabled={!inputValue.trim() || loading || isClearing || hasQuotaError}
+                            disabled={!inputValue.trim() || loading || hasQuotaError}
                             className="bg-burnt-peach hover:bg-burnt-peach-light text-deep-mocha font-semibold border-0 shadow-burnt-peach px-3 sm:px-4"
                         >
                             <Send className="h-4 w-4" />

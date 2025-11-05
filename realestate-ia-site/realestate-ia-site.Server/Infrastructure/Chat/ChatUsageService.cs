@@ -13,16 +13,12 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
         private readonly ILogger<ChatUsageService> _logger;
 
         // Mapeamento de Stripe Price IDs para planos
-        // TODO: Configurar estes IDs no appsettings.json ou vari·veis de ambiente
+        // TODO: Configurar estes IDs no appsettings.json ou vari√°veis de ambiente
         private readonly Dictionary<string, string> _stripePriceToPlan = new()
         {
             // Exemplo - substituir pelos IDs reais do Stripe
-            ["price_basic_monthly"] = "basic",
-            ["price_basic_yearly"] = "basic",
             ["price_premium_monthly"] = "premium",
-            ["price_premium_yearly"] = "premium",
-            ["price_unlimited_monthly"] = "unlimited",
-            ["price_unlimited_yearly"] = "unlimited"
+            ["price_premium_yearly"] = "premium"
         };
 
         public ChatUsageService(
@@ -39,13 +35,13 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
         {
             var quota = await GetOrCreateQuotaAsync(userId, ct);
 
-            // Reset autom·tico se expirou
+            // Reset autom√°tico se expirou
             if (quota.IsExpired)
             {
                 quota.ResetQuota();
                 _context.ChatUsageQuotas.Update(quota);
                 await _context.SaveChangesAsync(ct);
-                _logger.LogInformation("Quota resetada automaticamente para usu·rio {UserId}", userId);
+                _logger.LogInformation("Quota resetada automaticamente para usuÔøΩrio {UserId}", userId);
             }
 
             return quota.HasRemainingQuota;
@@ -55,7 +51,7 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
         {
             var quota = await GetOrCreateQuotaAsync(userId, ct);
 
-            // Reset autom·tico se expirou
+            // Reset autom√°tico se expirou
             if (quota.IsExpired)
             {
                 quota.ResetQuota();
@@ -69,20 +65,20 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
                 await _context.SaveChangesAsync(ct);
 
                 _logger.LogInformation(
-                    "Prompt consumido para usu·rio {UserId} - Usado: {Used}/{Max} ({Percentage:F1}%)",
+                    "Prompt consumido para usu√°rio {UserId} - Usado: {Used}/{Max} ({Percentage:F1}%)",
                     userId, quota.UsedPrompts, quota.MaxPrompts, quota.UsagePercentage);
 
-                // Alertar se est· perto do limite
+                // Alertar se est√° perto do limite
                 if (quota.UsagePercentage >= 80 && quota.UsagePercentage < 100)
                 {
                     _logger.LogWarning(
-                        "Usu·rio {UserId} est· prÛximo do limite de quota: {Used}/{Max}",
+                        "Usu√°rio {UserId} est√° pr√≥ximo do limite de quota: {Used}/{Max}",
                         userId, quota.UsedPrompts, quota.MaxPrompts);
                 }
             }
             else
             {
-                _logger.LogWarning("Quota esgotada para usu·rio {UserId} - Plano: {Plan}", userId, quota.PlanType);
+                _logger.LogWarning("Quota esgotada para usu√°rio {UserId} - Plano: {Plan}", userId, quota.PlanType);
             }
 
             return consumed;
@@ -95,9 +91,9 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
 
             if (quota == null)
             {
-                _logger.LogInformation("Criando nova quota para usu·rio {UserId}", userId);
+                _logger.LogInformation("Criando nova quota para usu√°rio {UserId}", userId);
 
-                // Verificar se usu·rio tem subscriÁ„o ativa
+                // Verificar se usu√°rio tem subscri√ß√£o ativa
                 var hasSubscription = await _subscriptionService.HasActiveSubscriptionAsync(userId);
                 var subscription = hasSubscription 
                     ? await _subscriptionService.GetActiveSubscriptionAsync(userId) 
@@ -119,7 +115,7 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
                 await _context.SaveChangesAsync(ct);
 
                 _logger.LogInformation(
-                    "Quota criada para usu·rio {UserId} - Plano: {Plan}, Limite: {Limit}",
+                    "Quota criada para usu√°rio {UserId} - Plano: {Plan}, Limite: {Limit}",
                     userId, quota.PlanType, quota.MaxPrompts);
             }
 
@@ -139,7 +135,7 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
                 await _context.SaveChangesAsync(ct);
 
                 _logger.LogInformation(
-                    "Plano atualizado para usu·rio {UserId} - {OldPlan} ? {NewPlan} (Limite: {Limit})",
+                    "Plano atualizado para usu√°rio {UserId} - {OldPlan} ? {NewPlan} (Limite: {Limit})",
                     userId, oldPlan, newPlanType, quota.MaxPrompts);
             }
         }
@@ -151,7 +147,7 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
             _context.ChatUsageQuotas.Update(quota);
             await _context.SaveChangesAsync(ct);
 
-            _logger.LogInformation("Quota resetada manualmente para usu·rio {UserId}", userId);
+            _logger.LogInformation("Quota resetada manualmente para usu√°rio {UserId}", userId);
         }
 
         public async Task<ChatUsageStats> GetUsageStatsAsync(string userId, CancellationToken ct = default)
@@ -186,23 +182,15 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
                 return planType;
             }
 
-            // Fallback: tentar detectar pelo nome/padr„o do priceId
+            // Fallback: tentar detectar pelo nome/padr√£o do priceId
             var priceIdLower = stripePriceId.ToLower();
-            if (priceIdLower.Contains("unlimited"))
-            {
-                return "unlimited";
-            }
             if (priceIdLower.Contains("premium"))
             {
                 return "premium";
             }
-            if (priceIdLower.Contains("basic"))
-            {
-                return "basic";
-            }
 
-            _logger.LogWarning("Stripe Price ID desconhecido: {PriceId} - usando plano 'basic'", stripePriceId);
-            return "basic";
+            _logger.LogWarning("Stripe Price ID desconhecido: {PriceId} - usando plano 'free'", stripePriceId);
+            return "free";
         }
     }
 }

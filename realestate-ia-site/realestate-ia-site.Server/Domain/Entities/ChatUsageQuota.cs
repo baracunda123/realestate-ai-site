@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace realestate_ia_site.Server.Domain.Entities
 {
     /// <summary>
-    /// Representa a quota de uso do chat IA para um usuário
+    /// Representa a quota de uso do chat IA para um usuï¿½rio
     /// </summary>
     [Table("chat_usage_quotas")]
     public class ChatUsageQuota
@@ -19,38 +19,38 @@ namespace realestate_ia_site.Server.Domain.Entities
         public string UserId { get; set; } = string.Empty;
 
         /// <summary>
-        /// Número de prompts/mensagens usados no período atual
+        /// NÃºmero de prompts/mensagens usados no perÃ­odo atual
         /// </summary>
         [Column("used_prompts")]
         public int UsedPrompts { get; set; } = 0;
 
         /// <summary>
-        /// Limite máximo de prompts no período (baseado no plano)
+        /// Limite mÃ¡ximo de prompts no perÃ­odo (baseado no plano)
         /// </summary>
         [Column("max_prompts")]
         public int MaxPrompts { get; set; } = 50; // Free tier default
 
         /// <summary>
-        /// Tipo de plano: "free", "basic", "premium", "unlimited"
+        /// Tipo de plano: "free", "premium"
         /// </summary>
         [Column("plan_type")]
         [Required]
         public string PlanType { get; set; } = "free";
 
         /// <summary>
-        /// Data de início do período de quota atual
+        /// Data de inÃ­cio do perÃ­odo de quota atual
         /// </summary>
         [Column("period_start")]
         public DateTime PeriodStart { get; set; } = DateTime.UtcNow;
 
         /// <summary>
-        /// Data de fim do período de quota (reset automático)
+        /// Data de fim do perÃ­odo de quota (reset automÃ¡tico)
         /// </summary>
         [Column("period_end")]
         public DateTime PeriodEnd { get; set; } = DateTime.UtcNow.AddMonths(1);
 
         /// <summary>
-        /// Última vez que a quota foi usada
+        /// Ãšltima vez que a quota foi usada
         /// </summary>
         [Column("last_used_at")]
         public DateTime? LastUsedAt { get; set; }
@@ -61,15 +61,15 @@ namespace realestate_ia_site.Server.Domain.Entities
         [Column("updated_at")]
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-        // Navegação
+        // NavegaÃ§Ã£o
         public virtual User? User { get; set; }
 
-        // Métodos auxiliares
+        // MÃ©todos auxiliares
         [NotMapped]
         public int RemainingPrompts => Math.Max(0, MaxPrompts - UsedPrompts);
 
         [NotMapped]
-        public bool HasRemainingQuota => PlanType == "unlimited" || UsedPrompts < MaxPrompts;
+        public bool HasRemainingQuota => PlanType == "premium" || UsedPrompts < MaxPrompts;
 
         [NotMapped]
         public double UsagePercentage => MaxPrompts > 0 ? (double)UsedPrompts / MaxPrompts * 100 : 0;
@@ -78,7 +78,7 @@ namespace realestate_ia_site.Server.Domain.Entities
         public bool IsExpired => DateTime.UtcNow >= PeriodEnd;
 
         /// <summary>
-        /// Incrementa o uso de prompts e retorna se ainda há quota disponível
+        /// Incrementa o uso de prompts e retorna se ainda hÃ¡ quota disponÃ­vel
         /// </summary>
         public bool TryConsumePrompt()
         {
@@ -92,7 +92,7 @@ namespace realestate_ia_site.Server.Domain.Entities
                 return false;
             }
 
-            if (PlanType != "unlimited")
+            if (PlanType != "premium")
             {
                 UsedPrompts++;
             }
@@ -103,7 +103,7 @@ namespace realestate_ia_site.Server.Domain.Entities
         }
 
         /// <summary>
-        /// Reseta a quota para um novo período
+        /// Reseta a quota para um novo perÃ­odo
         /// </summary>
         public void ResetQuota()
         {
@@ -122,9 +122,7 @@ namespace realestate_ia_site.Server.Domain.Entities
             MaxPrompts = planType.ToLower() switch
             {
                 "free" => 50,
-                "basic" => 500,
-                "premium" => 2000,
-                "unlimited" => int.MaxValue,
+                "premium" => int.MaxValue,
                 _ => 50
             };
             UpdatedAt = DateTime.UtcNow;

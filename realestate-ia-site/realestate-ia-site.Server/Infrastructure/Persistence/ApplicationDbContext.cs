@@ -32,6 +32,8 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
         public DbSet<UserSearchHistory> UserSearchHistories { get; set; }
         public DbSet<PropertyViewHistory> PropertyViewHistories { get; set; }
         public DbSet<ChatUsageQuota> ChatUsageQuotas { get; set; }
+        public DbSet<ChatSession> ChatSessions { get; set; }
+        public DbSet<ChatMessage> ChatMessages { get; set; }
         public DbSet<User> Users => Set<User>();
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -273,6 +275,33 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
                 entity.HasOne(e => e.User)
                       .WithMany()
                       .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Configurações para ChatSession
+            builder.Entity<ChatSession>(entity =>
+            {
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.IsActive);
+                entity.HasIndex(e => new { e.UserId, e.UpdatedAt });
+                entity.HasIndex(e => e.CreatedAt);
+
+                entity.HasOne<User>()
+                      .WithMany()
+                      .HasForeignKey(e => e.UserId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Configurações para ChatMessage
+            builder.Entity<ChatMessage>(entity =>
+            {
+                entity.HasIndex(e => e.SessionId);
+                entity.HasIndex(e => new { e.SessionId, e.Timestamp });
+                entity.HasIndex(e => e.Timestamp);
+
+                entity.HasOne(e => e.Session)
+                      .WithMany(s => s.Messages)
+                      .HasForeignKey(e => e.SessionId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
         }

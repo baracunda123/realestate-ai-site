@@ -24,7 +24,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             var cacheKey = GetCacheKey(sessionId);
             if (_cache.TryGetValue(cacheKey, out ConversationContext? context) && context != null)
             {
-                _logger.LogDebug("Contexto recuperado para sess„o: {SessionId}", sessionId);
+                _logger.LogDebug("Contexto recuperado para sess√£o: {SessionId}", sessionId);
                 return context;
             }
             return CreateNewContext(sessionId, cacheKey);
@@ -40,25 +40,12 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             var cacheKey = GetCacheKey(sessionId);
             var cacheOptions = CreateCacheOptions();
             _cache.Set(cacheKey, context, cacheOptions);
-            _logger.LogDebug("Contexto atualizado para sess„o: {SessionId}", sessionId);
+            _logger.LogDebug("Contexto atualizado para sess√£o: {SessionId}", sessionId);
         }
 
         public void ClearExpiredContexts()
         {
-            _logger.LogDebug("Limpeza autom·tica de contextos expirados executada");
-        }
-
-        public void ClearContext(string sessionId)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(sessionId, nameof(sessionId));
-            var cacheKey = GetCacheKey(sessionId);
-            _cache.Remove(cacheKey);
-            _logger.LogInformation("Contexto da conversa limpo para sess„o: {SessionId}", sessionId);
-        }
-
-        public async Task ClearContextAsync(string sessionId, CancellationToken cancellationToken = default)
-        {
-            await Task.Run(() => ClearContext(sessionId), cancellationToken);
+            _logger.LogDebug("Limpeza autom√°tica de contextos expirados executada");
         }
 
         private ConversationContext CreateNewContext(string sessionId, string cacheKey)
@@ -66,7 +53,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             var context = new ConversationContext { SessionId = sessionId };
             var cacheOptions = CreateCacheOptions();
             _cache.Set(cacheKey, context, cacheOptions);
-            _logger.LogDebug("Novo contexto criado para sess„o: {SessionId}", sessionId);
+            _logger.LogDebug("Novo contexto criado para sess√£o: {SessionId}", sessionId);
             return context;
         }
 
