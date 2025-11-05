@@ -4,25 +4,25 @@ namespace realestate_ia_site.Server.Domain.Models
 {
     public class RegisterRequest
     {
-        [Required(ErrorMessage = "Nome completo é obrigatório.")]
+        [Required(ErrorMessage = "Nome completo Ã© obrigatÃ³rio.")]
         [StringLength(100, MinimumLength = 2, ErrorMessage = "Nome deve ter entre 2 e 100 caracteres.")]
         public string FullName { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Email é obrigatório")]
-        [EmailAddress(ErrorMessage = "Email inválido")]
+        [Required(ErrorMessage = "Email Ã© obrigatÃ³rio")]
+        [EmailAddress(ErrorMessage = "Email invÃ¡lido")]
         public string Email { get; set; } = string.Empty;
 
-        [Phone(ErrorMessage = "Número de telefone inválido")]
+        [Phone(ErrorMessage = "NÃºmero de telefone invÃ¡lido")]
         public string? PhoneNumber { get; set; }
 
-        [Required(ErrorMessage = "Senha é obrigatória")]
+        [Required(ErrorMessage = "Senha Ã© obrigatÃ³ria")]
         [StringLength(100, MinimumLength = 8, ErrorMessage = "Senha deve ter pelo menos 8 caracteres.")]
         [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&.])[A-Za-z\d@$!%*?&.]+$", 
-            ErrorMessage = "Senha deve conter: 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial.")]
+            ErrorMessage = "Senha deve conter: 1 maiÃºscula, 1 minÃºscula, 1 nÃºmero e 1 caractere especial.")]
         public string Password { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Confirmação de senha é obrigatória.")]
-        [Compare("Password", ErrorMessage = "Senhas não coincidem.")]
+        [Required(ErrorMessage = "ConfirmaÃ§Ã£o de senha Ã© obrigatÃ³ria.")]
+        [Compare("Password", ErrorMessage = "Senhas nÃ£o coincidem.")]
         public string ConfirmPassword { get; set; } = string.Empty;
 
         public bool AcceptTerms { get; set; } = false;
@@ -30,11 +30,11 @@ namespace realestate_ia_site.Server.Domain.Models
 
     public class LoginRequest
     {
-        [Required(ErrorMessage = "Email é obrigatório.")]
-        [EmailAddress(ErrorMessage = "Email inválido.")]
+        [Required(ErrorMessage = "Email Ã© obrigatÃ³rio.")]
+        [EmailAddress(ErrorMessage = "Email invÃ¡lido.")]
         public string Email { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Senha é obrigatória.")]
+        [Required(ErrorMessage = "Senha Ã© obrigatÃ³ria.")]
         public string Password { get; set; } = string.Empty;
 
         public bool RememberMe { get; set; } = false;
@@ -42,26 +42,26 @@ namespace realestate_ia_site.Server.Domain.Models
 
     public class ChangePasswordRequest
     {
-        [Required(ErrorMessage = "Senha atual é obrigatória.")]
+        [Required(ErrorMessage = "Senha atual Ã© obrigatÃ³ria.")]
         public string CurrentPassword { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Nova senha é obrigatória.")]
+        [Required(ErrorMessage = "Nova senha Ã© obrigatÃ³ria.")]
         [StringLength(100, MinimumLength = 8, ErrorMessage = "Senha deve ter pelo menos 8 caracteres.")]
         [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&.])[A-Za-z\d@$!%*?&.]+$", 
-            ErrorMessage = "Senha deve conter: 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial.")]
+            ErrorMessage = "Senha deve conter: 1 maiÃºscula, 1 minÃºscula, 1 nÃºmero e 1 caractere especial.")]
         public string NewPassword { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Confirmação de senha é obrigatória.")]
-        [Compare("NewPassword", ErrorMessage = "Senhas não coincidem.")]
+        [Required(ErrorMessage = "ConfirmaÃ§Ã£o de senha Ã© obrigatÃ³ria.")]
+        [Compare("NewPassword", ErrorMessage = "Senhas nÃ£o coincidem.")]
         public string ConfirmPassword { get; set; } = string.Empty;
     }
 
     public class ExternalLoginRequest
     {
-        [Required(ErrorMessage = "Token de acesso é obrigatório")]
+        [Required(ErrorMessage = "Token de acesso Ã© obrigatÃ³rio")]
         public string AccessToken { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Provider é obrigatório")]
+        [Required(ErrorMessage = "Provider Ã© obrigatÃ³rio")]
         public string Provider { get; set; } = string.Empty;
     }
 

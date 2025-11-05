@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
@@ -51,6 +51,10 @@
 	    <ProjectReference Include="..\realestate-ia-site.client\realestate-ia-site.client.esproj" Condition="'$(Configuration)'=='Debug'">
 		    <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
 	    </ProjectReference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <Folder Include="Infrastructure\Notifications\Services\" />
     </ItemGroup>
 
 </Project>

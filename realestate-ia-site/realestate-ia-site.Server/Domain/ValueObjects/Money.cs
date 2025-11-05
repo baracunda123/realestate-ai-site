@@ -1,8 +1,8 @@
 namespace realestate_ia_site.Server.Domain.ValueObjects;
 
 /// <summary>
-/// Value Object para representar valores monetários com moeda.
-/// Não expõe setters públicos para garantir imutabilidade lógica.
+/// Value Object para representar valores monetÃ¡rios com moeda.
+/// NÃ£o expÃµe setters pÃºblicos para garantir imutabilidade lÃ³gica.
 /// </summary>
 public readonly record struct Money
 {
@@ -20,7 +20,7 @@ public readonly record struct Money
 
     public override string ToString() => Currency switch
     {
-        "EUR" => $"€{Amount:N0}",
+        "EUR" => $"â‚¬{Amount:N0}",
         _ => $"{Amount:N2} {Currency}"
     };
 

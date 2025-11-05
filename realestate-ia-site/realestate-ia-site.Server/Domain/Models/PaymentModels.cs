@@ -28,7 +28,7 @@ namespace realestate_ia_site.Server.Domain.Models
     public class CreateSubscriptionRequest
     {
         [Required]
-        public string PriceId { get; set; } = string.Empty;
+        public string PlanId { get; set; } = string.Empty;
     }
 
     public class UpdateSubscriptionRequest

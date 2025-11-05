@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Caching.Memory;
-using realestate_ia_site.Server.Application.AI.Conversation;
-using realestate_ia_site.Server.Application.AI.Interfaces;
+using realestate_ia_site.Server.Application.Features.AI.Conversation;
+using realestate_ia_site.Server.Application.Features.AI.Interfaces;
 
 namespace realestate_ia_site.Server.Infrastructure.AI
 {

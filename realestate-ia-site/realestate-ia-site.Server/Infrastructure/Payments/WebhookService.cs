@@ -1,12 +1,12 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Domain.Entities;
-using realestate_ia_site.Server.Application.Payments.Interfaces;
+using realestate_ia_site.Server.Application.Features.Payments.Interfaces;
 using realestate_ia_site.Server.Application.Common.Interfaces;
 
 namespace realestate_ia_site.Server.Infrastructure.Payments
 {
-    // Infra service agora apenas para idempotência / persistência
+    // Infra service agora apenas para idempotÃªncia / persistÃªncia
     public class WebhookService : IWebhookService
     {
         private readonly IApplicationDbContext _context;

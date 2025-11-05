@@ -1,7 +1,7 @@
 namespace realestate_ia_site.Server.Application.Common.Exceptions
 {
     /// <summary>
-    /// ExceÁ„o base para erros especÌficos da aplicaÁ„o
+    /// Exce√ß√£o base para erros espec√≠ficos da aplica√ß√£o
     /// </summary>
     public abstract class ApplicationException : Exception
     {
@@ -24,14 +24,14 @@ namespace realestate_ia_site.Server.Application.Common.Exceptions
     }
 
     /// <summary>
-    /// ExceÁ„o para propriedades n„o encontradas
+    /// Exce√ß√£o para propriedades n√£o encontradas
     /// </summary>
     public class PropertyNotFoundException : ApplicationException
     {
         public PropertyNotFoundException(string propertyId) 
             : base(
                 "PROPERTY_NOT_FOUND", 
-                "Propriedade n„o encontrada",
+                "Propriedade n√£o encontrada",
                 $"Property with ID '{propertyId}' was not found",
                 new { PropertyId = propertyId })
         {
@@ -39,14 +39,14 @@ namespace realestate_ia_site.Server.Application.Common.Exceptions
     }
 
     /// <summary>
-    /// ExceÁ„o para filtros de pesquisa inv·lidos
+    /// Exce√ß√£o para filtros de pesquisa inv√°lidos
     /// </summary>
     public class InvalidSearchFiltersException : ApplicationException
     {
         public InvalidSearchFiltersException(string message, object? filters = null) 
             : base(
                 "INVALID_SEARCH_FILTERS", 
-                "Filtros de pesquisa inv·lidos",
+                "Filtros de pesquisa inv√°lidos",
                 message,
                 filters)
         {
@@ -54,14 +54,14 @@ namespace realestate_ia_site.Server.Application.Common.Exceptions
     }
 
     /// <summary>
-    /// ExceÁ„o para limites de busca excedidos
+    /// Exce√ß√£o para limites de busca excedidos
     /// </summary>
     public class SearchLimitExceededException : ApplicationException
     {
         public SearchLimitExceededException(int limit, int requested) 
             : base(
                 "SEARCH_LIMIT_EXCEEDED", 
-                $"Limite de pesquisa excedido. M·ximo permitido: {limit}",
+                $"Limite de pesquisa excedido. M√°ximo permitido: {limit}",
                 $"Requested {requested} results but limit is {limit}",
                 new { Limit = limit, Requested = requested })
         {
@@ -69,14 +69,14 @@ namespace realestate_ia_site.Server.Application.Common.Exceptions
     }
 
     /// <summary>
-    /// ExceÁ„o para usu·rio n„o autorizado
+    /// Exce√ß√£o para usu√°rio n√£o autorizado
     /// </summary>
     public class UnauthorizedAccessException : ApplicationException
     {
         public UnauthorizedAccessException(string action) 
             : base(
                 "UNAUTHORIZED_ACCESS", 
-                "Acesso n„o autorizado",
+                "Acesso n√£o autorizado",
                 $"User is not authorized to perform action: {action}",
                 new { Action = action })
         {
@@ -84,7 +84,7 @@ namespace realestate_ia_site.Server.Application.Common.Exceptions
     }
 
     /// <summary>
-    /// ExceÁ„o para recursos que requerem Premium
+    /// Exce√ß√£o para recursos que requerem Premium
     /// </summary>
     public class PremiumRequiredException : ApplicationException
     {
@@ -99,14 +99,14 @@ namespace realestate_ia_site.Server.Application.Common.Exceptions
     }
 
     /// <summary>
-    /// ExceÁ„o para dados de propriedade inv·lidos
+    /// Exce√ß√£o para dados de propriedade inv√°lidos
     /// </summary>
     public class InvalidPropertyDataException : ApplicationException
     {
         public InvalidPropertyDataException(string field, string? value = null) 
             : base(
                 "INVALID_PROPERTY_DATA", 
-                $"Dados da propriedade inv·lidos: {field}",
+                $"Dados da propriedade inv√°lidos: {field}",
                 $"Invalid property data for field '{field}'{(value != null ? $" with value '{value}'" : "")}",
                 new { Field = field, Value = value })
         {
@@ -114,14 +114,14 @@ namespace realestate_ia_site.Server.Application.Common.Exceptions
     }
 
     /// <summary>
-    /// ExceÁ„o para localizaÁıes n„o encontradas
+    /// Exce√ß√£o para localiza√ß√µes n√£o encontradas
     /// </summary>
     public class LocationNotFoundException : ApplicationException
     {
         public LocationNotFoundException(string location) 
             : base(
                 "LOCATION_NOT_FOUND", 
-                "LocalizaÁ„o n„o encontrada",
+                "Localiza√ß√£o n√£o encontrada",
                 $"Location '{location}' was not found",
                 new { Location = location })
         {
@@ -129,14 +129,14 @@ namespace realestate_ia_site.Server.Application.Common.Exceptions
     }
 
     /// <summary>
-    /// ExceÁ„o para serviÁos externos indisponÌveis
+    /// Exce√ß√£o para servi√ßos externos indispon√≠veis
     /// </summary>
     public class ExternalServiceException : ApplicationException
     {
         public ExternalServiceException(string serviceName, string? message = null, Exception? innerException = null) 
             : base(
                 "EXTERNAL_SERVICE_ERROR", 
-                "ServiÁo temporariamente indisponÌvel. Tente novamente em alguns instantes.",
+                "Servi√ßo temporariamente indispon√≠vel. Tente novamente em alguns instantes.",
                 $"External service '{serviceName}' is unavailable: {message}",
                 new { ServiceName = serviceName },
                 innerException)
@@ -145,14 +145,14 @@ namespace realestate_ia_site.Server.Application.Common.Exceptions
     }
 
     /// <summary>
-    /// ExceÁ„o para dados duplicados
+    /// Exce√ß√£o para dados duplicados
     /// </summary>
     public class DuplicateDataException : ApplicationException
     {
         public DuplicateDataException(string resource, string identifier) 
             : base(
                 "DUPLICATE_DATA", 
-                $"{resource} j· existe",
+                $"{resource} j√° existe",
                 $"Duplicate {resource} with identifier '{identifier}'",
                 new { Resource = resource, Identifier = identifier })
         {
@@ -160,7 +160,7 @@ namespace realestate_ia_site.Server.Application.Common.Exceptions
     }
 
     /// <summary>
-    /// ExceÁ„o para validaÁ„o de dados
+    /// Exce√ß√£o para valida√ß√£o de dados
     /// </summary>
     public class ValidationException : ApplicationException
     {
@@ -169,7 +169,7 @@ namespace realestate_ia_site.Server.Application.Common.Exceptions
         public ValidationException(Dictionary<string, string[]> validationErrors) 
             : base(
                 "VALIDATION_ERROR", 
-                "Dados inv·lidos fornecidos",
+                "Dados inv√°lidos fornecidos",
                 "Validation failed for one or more fields",
                 validationErrors)
         {

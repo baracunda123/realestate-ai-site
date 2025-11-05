@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using realestate_ia_site.Server.Data;
 using realestate_ia_site.Server.Infrastructure.Persistence;
 
 namespace realestate_ia_site.Server.Infrastructure.Scraper
@@ -7,59 +6,70 @@ namespace realestate_ia_site.Server.Infrastructure.Scraper
     public class ScraperStateProvider
     {
         private readonly ApplicationDbContext _context;
-        private readonly ILogger<ScraperStateProvider> _logger;
-        public ScraperStateProvider(ApplicationDbContext context, ILogger<ScraperStateProvider> logger)
+
+        public ScraperStateProvider(ApplicationDbContext context)
         {
             _context = context;
-            _logger = logger;
+        }
 
+        public async Task<Domain.Entities.ScrapingState?> GetStateAsync(string site, string location)
+        {
+            return await _context.ScrapingStates
+                .FirstOrDefaultAsync(s => s.Site == site && s.Location == location);
         }
 
         public async Task<int> GetCurrentPageAsync(string site, string location)
         {
-            _logger.LogInformation("Retrieving current page...");
-
-            var scrapingState = await _context.ScrapingStates
-                .FirstOrDefaultAsync(s => s.Site == site && s.Location == location);
-
-            var currentPage = scrapingState?.CurrentPage ?? 1;
-
-            _logger.LogInformation("Current scraper state: Page {CurrentPage} - Site: {Site}, Location: {Location}"
-                                  , currentPage, site, location);
-            return currentPage;
+            var state = await GetStateAsync(site, location);
+            return state?.CurrentPage ?? 1;
         }
 
-        public async Task UpdateCurrentPageAsync(string site, string location, int currentPage)
+        public async Task UpdateCurrentPageAsync(string site, string location, int page)
         {
-            _logger.LogInformation("Updating current scraper state - Site: {Site}, Location: {Location}, Page: {Page}",
-                site, location, currentPage);
-            var state = await _context.ScrapingStates.FirstOrDefaultAsync(s => s.Site == site && s.Location == location);
-           
-            if (state == null)
+            var state = await GetStateAsync(site, location);
+            
+            if (state != null)
             {
-                _logger.LogInformation("New site or location found");
-
+                state.CurrentPage = page;
+                state.UpdatedAt = DateTime.UtcNow;
+                _context.ScrapingStates.Update(state);
+            }
+            else
+            {
                 state = new Domain.Entities.ScrapingState
                 {
                     Id = Guid.NewGuid().ToString(),
                     Site = site,
                     Location = location,
+                    CurrentPage = page,
                     CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow,
-                    CurrentPage = currentPage
+                    UpdatedAt = DateTime.UtcNow
                 };
-                _context.ScrapingStates.Add(state);
+                await _context.ScrapingStates.AddAsync(state);
+            }
 
-                _logger.LogInformation("Added new state");
+            await _context.SaveChangesAsync();
+        }
 
+        public async Task SaveStateAsync(Domain.Entities.ScrapingState state)
+        {
+            var existing = await _context.ScrapingStates
+                .FirstOrDefaultAsync(s => s.Site == state.Site && s.Location == state.Location);
+
+            if (existing != null)
+            {
+                existing.CurrentPage = state.CurrentPage;
+                existing.UpdatedAt = DateTime.UtcNow;
+                _context.ScrapingStates.Update(existing);
             }
             else
             {
-                state.CurrentPage = currentPage;
+                state.CreatedAt = DateTime.UtcNow;
                 state.UpdatedAt = DateTime.UtcNow;
+                await _context.ScrapingStates.AddAsync(state);
             }
+
             await _context.SaveChangesAsync();
-            _logger.LogInformation("Current scraper state updated successfully");
         }
     }
 }

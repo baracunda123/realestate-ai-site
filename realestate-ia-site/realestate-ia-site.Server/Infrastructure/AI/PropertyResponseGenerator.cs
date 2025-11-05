@@ -1,8 +1,8 @@
-ï»¿using OpenAI.Chat;
-using realestate_ia_site.Server.Application.DTOs.PropertySearch;
-using realestate_ia_site.Server.Application.AI.Interfaces;
+using OpenAI.Chat;
+using realestate_ia_site.Server.Application.Common.DTOs;
+using realestate_ia_site.Server.Application.Features.AI.Interfaces;
 using realestate_ia_site.Server.Infrastructure.AI.Core;
-using realestate_ia_site.Server.Application.AI.Conversation;
+using realestate_ia_site.Server.Application.Features.AI.Conversation;
 
 namespace realestate_ia_site.Server.Infrastructure.AI
 {
@@ -37,7 +37,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             ArgumentException.ThrowIfNullOrWhiteSpace(originalQuery, nameof(originalQuery));
             ArgumentNullException.ThrowIfNull(properties, nameof(properties));
 
-            _logger.LogInformation("Gerando resposta para: {Question}. Propriedades: {PropertyCount}, SessÃ£o: {SessionId}",
+            _logger.LogInformation("Gerando resposta para: {Question}. Propriedades: {PropertyCount}, Sessão: {SessionId}",
                 originalQuery, properties.Count, sessionId);
 
             try
@@ -97,9 +97,9 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             {
                 MaxOutputTokenCount = 1200,     // Suficiente, sem ser verboso demais
                 Temperature = 0.5f,             // Profissional mas natural
-                TopP = 0.9f,                    // Mais focado em informaÃ§Ãµes relevantes
-                FrequencyPenalty = 0.3f,        // MantÃ©m (evita repetir "imÃ³vel", "propriedade")
-                PresencePenalty = 0.2f          // Menos divagaÃ§Ã£o, mais objetivo
+                TopP = 0.9f,                    // Mais focado em informações relevantes
+                FrequencyPenalty = 0.3f,        // Mantém (evita repetir "imóvel", "propriedade")
+                PresencePenalty = 0.2f          // Menos divagação, mais objetivo
             };
 
             return await _openAIService.CompleteChatAsync(messages, options, cancellationToken);

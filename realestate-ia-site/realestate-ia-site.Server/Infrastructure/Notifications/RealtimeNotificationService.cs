@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.SignalR;
 using realestate_ia_site.Server.Application.Notifications.Interfaces;
-using realestate_ia_site.Server.Application.PropertyAlerts.DTOs;
+using realestate_ia_site.Server.Application.Features.Properties.Alerts.DTOs;
 
 namespace realestate_ia_site.Server.Infrastructure.Notifications
 {
