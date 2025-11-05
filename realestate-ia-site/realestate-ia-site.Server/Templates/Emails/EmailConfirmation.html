@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Confirme seu email - ResideAI</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background-color: #f4f4f4;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f4f4f4; padding: 20px;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" border="0" style="background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    
+                    <!-- Header -->
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #D4825A 0%, #C17759 100%); padding: 40px 20px; text-align: center;">
+                            <h1 style="color: #ffffff; margin: 0; font-size: 28px; font-weight: 600;">ResideAI</h1>
+                            <p style="color: #ffffff; margin: 10px 0 0 0; font-size: 14px; opacity: 0.9;">Sua plataforma de imóveis inteligente</p>
+                        </td>
+                    </tr>
+                    
+                    <!-- Content -->
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <h2 style="color: #333333; margin: 0 0 20px 0; font-size: 24px; font-weight: 600;">
+                                Bem-vindo(a), {{UserName}}!
+                            </h2>
+                            
+                            <p style="color: #666666; line-height: 1.6; margin: 0 0 20px 0; font-size: 16px;">
+                                Obrigado por se registar na <strong>ResideAI</strong>. Estamos felizes em ter-lo(a) connosco!
+                            </p>
+                            
+                            <p style="color: #666666; line-height: 1.6; margin: 0 0 30px 0; font-size: 16px;">
+                                Para começar a usar todas as funcionalidades da plataforma, precisamos que confirme o seu endereço de email:
+                            </p>
+                            
+                            <!-- CTA Button -->
+                            <table width="100%" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td align="center" style="padding: 20px 0;">
+                                        <a href="{{ConfirmationLink}}" 
+                                           style="display: inline-block; 
+                                                  background: linear-gradient(135deg, #D4825A 0%, #C17759 100%); 
+                                                  color: #ffffff; 
+                                                  text-decoration: none; 
+                                                  padding: 16px 40px; 
+                                                  border-radius: 6px; 
+                                                  font-size: 16px; 
+                                                  font-weight: 600;
+                                                  box-shadow: 0 4px 12px rgba(212, 130, 90, 0.3);">
+                                            Confirmar Email
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                            
+                            <p style="color: #999999; line-height: 1.6; margin: 30px 0 0 0; font-size: 14px; text-align: center;">
+                                Este link é válido por <strong>24 horas</strong>.
+                            </p>
+                            
+                            <!-- Alternative Link -->
+                            <div style="margin-top: 30px; padding: 20px; background-color: #f9f9f9; border-radius: 6px; border-left: 4px solid #D4825A;">
+                                <p style="color: #666666; margin: 0 0 10px 0; font-size: 14px;">
+                                    <strong>O botão não funciona?</strong> Copie e cole este link no seu navegador:
+                                </p>
+                                <p style="color: #D4825A; margin: 0; font-size: 12px; word-break: break-all; font-family: monospace;">
+                                    {{ConfirmationLink}}
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <!-- Footer -->
+                    <tr>
+                        <td style="background-color: #f9f9f9; padding: 30px; text-align: center; border-top: 1px solid #eeeeee;">
+                            <p style="color: #999999; margin: 0 0 10px 0; font-size: 14px;">
+                                <strong>ResideAI</strong> - Encontre o seu próximo lar
+                            </p>
+                            <p style="color: #999999; margin: 0 0 10px 0; font-size: 12px;">
+                                Este é um email automático. Por favor, não responda.
+                            </p>
+                            <p style="color: #cccccc; margin: 10px 0 0 0; font-size: 12px;">
+                                © {{Year}} ResideAI. Todos os direitos reservados.
+                            </p>
+                        </td>
+                    </tr>
+                    
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>

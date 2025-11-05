@@ -1,9 +1,9 @@
-﻿using OpenAI.Chat;
-using realestate_ia_site.Server.Application.AI.Interfaces;
+using OpenAI.Chat;
+using realestate_ia_site.Server.Application.Features.AI.Interfaces;
 using realestate_ia_site.Server.Infrastructure.AI.Prompts;
 using realestate_ia_site.Server.Infrastructure.AI.Core;
 using System.Text.Json;
-using realestate_ia_site.Server.Application.AI.Conversation;
+using realestate_ia_site.Server.Application.Features.AI.Conversation;
 
 namespace realestate_ia_site.Server.Infrastructure.AI
 {
@@ -37,8 +37,8 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             var options = new ChatCompletionOptions
             {
                 MaxOutputTokenCount = 500,
-                Temperature = 0.0f,           // ✅ MUDADO: 0 para máxima consistência
-                TopP = 1.0f,                  // ✅ MUDADO: 1.0 para determinismo total
+                Temperature = 0.0f,           // MUDADO: 0 para máxima consistência
+                TopP = 1.0f,                  // MUDADO: 1.0 para determinismo total
                 FrequencyPenalty = 0.0f,
                 PresencePenalty = 0.0f
             };
@@ -55,7 +55,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
 
                     _logger.LogInformation("Filtros extraídos da IA (tentativa {Attempt}): {@ExtractedFilters}", attempt + 1, filters);
 
-                    // ✅ NOVO: Validar se os filtros fazem sentido
+                    // NOVO: Validar se os filtros fazem sentido
                     if (filters.Any() || context?.LastFilters == null || !context.LastFilters.Any())
                     {
                         // Filtros válidos ou primeira query - aceitar
@@ -74,7 +74,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                     
                     if (attempt == maxRetries)
                     {
-                        // Última tentativa falhou - usar contexto ou vazio
+                        // última tentativa falhou - usar contexto ou vazio
                         filters = context?.LastFilters ?? new Dictionary<string, object>();
                         break;
                     }
@@ -170,7 +170,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             
             foreach (var kv in incoming)
             {
-                // Se o filtro novo não está vazio, adiciona/substitui
+                // Se o filtro novo não estiver vazio, adiciona/substitui
                 if (!IsEmpty(kv.Value))
                 {
                     result[kv.Key] = kv.Value;
@@ -229,7 +229,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                         }
                     }
                     
-                    // Se definir min_price, limpar max_price anterior para evitar conflitos
+                    // Se definir min_price, limpar max_price anterior para evitar conflitos (mesma lógica)
                     if (kv.Key == "min_price" && result.ContainsKey("max_price"))
                     {
                         var maxPrice = Convert.ToDecimal(result["max_price"]);
@@ -241,7 +241,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                         }
                     }
                     
-                    // Se definir max_price, limpar min_price anterior para evitar conflitos
+                    // Se definir max_price, limpar min_price anterior para evitar conflitos (mesma lógica)
                     if (kv.Key == "max_price" && result.ContainsKey("min_price"))
                     {
                         var minPrice = Convert.ToDecimal(result["min_price"]);
@@ -301,7 +301,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                         }
                     }
                 }
-                // Se o novo filtro está vazio mas existe na requisição, remover do resultado
+                // Se o novo filtro estiver vazio mas existe na requisição, remover do resultado
                 else if (result.ContainsKey(kv.Key))
                 {
                     logger.LogDebug("Removendo filtro vazio: {FilterKey}", kv.Key);

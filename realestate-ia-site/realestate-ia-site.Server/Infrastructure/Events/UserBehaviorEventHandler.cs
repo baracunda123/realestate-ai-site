@@ -1,7 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Application.Common.Events;
 using realestate_ia_site.Server.Application.Common.Interfaces;
-using realestate_ia_site.Server.Application.Recommendations;
+using realestate_ia_site.Server.Application.Features.Properties.Recommendations;
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Domain.Events;
 

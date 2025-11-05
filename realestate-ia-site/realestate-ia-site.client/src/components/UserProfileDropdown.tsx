@@ -6,9 +6,11 @@ import {
   LogOut, 
   ChevronDown, 
   UserCircle,
-  Mail
+  Mail,
+  CreditCard
 } from 'lucide-react';
 import { getUniversalInitials } from '../utils/PersonalArea';
+import { useNavigate } from 'react-router-dom';
 
 interface User {
   id: string;
@@ -25,6 +27,8 @@ interface UserProfileDropdownProps {
 }
 
 export function UserProfileDropdown({ user, onLogout, onNavigateToPersonal }: UserProfileDropdownProps) {
+  const navigate = useNavigate();
+  
   const handleNavigation = (section?: string) => {
     if (onNavigateToPersonal) {
       onNavigateToPersonal();
@@ -35,6 +39,10 @@ export function UserProfileDropdown({ user, onLogout, onNavigateToPersonal }: Us
         }, 100);
       }
     }
+  };
+
+  const handleNavigateToPricing = () => {
+    navigate('/pricing');
   };
 
   const handleExternalLink = (url: string) => {
@@ -96,6 +104,14 @@ export function UserProfileDropdown({ user, onLogout, onNavigateToPersonal }: Us
         >
           <UserCircle className="h-4 w-4 mr-3 text-burnt-peach group-hover:text-burnt-peach-deep" />
           <span>Meu Perfil</span>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem 
+          onClick={handleNavigateToPricing}
+          className="px-4 py-2.5 hover:bg-pale-clay-light text-deep-mocha hover:text-deep-mocha cursor-pointer group"
+        >
+          <CreditCard className="h-4 w-4 mr-3 text-burnt-peach group-hover:text-burnt-peach-deep" />
+          <span>Atualizar plano</span>
         </DropdownMenuItem>
 
         <DropdownMenuSeparator className="bg-pale-clay-medium" />

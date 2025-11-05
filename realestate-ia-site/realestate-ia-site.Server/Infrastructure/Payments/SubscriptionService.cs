@@ -4,9 +4,9 @@ using Stripe;
 using Stripe.Checkout;
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Domain.Models;
-using realestate_ia_site.Server.Application.Payments.Interfaces;
+using realestate_ia_site.Server.Application.Features.Payments.Interfaces;
 using realestate_ia_site.Server.Infrastructure.Configurations;
-using realestate_ia_site.Server.Application.Common.Interfaces; // use abstraction
+using realestate_ia_site.Server.Application.Common.Interfaces;
 
 namespace realestate_ia_site.Server.Infrastructure.Payments
 {
@@ -44,13 +44,13 @@ namespace realestate_ia_site.Server.Infrastructure.Payments
                 var user = await _userManager.FindByIdAsync(userId);
                 if (user == null)
                 {
-                    return new SubscriptionResult { Success = false, Error = "Utilizador não encontrado" };
+                    return new SubscriptionResult { Success = false, Error = "Utilizador nï¿½o encontrado" };
                 }
 
                 var existingSubscription = await GetActiveSubscriptionAsync(userId);
                 if (existingSubscription != null)
                 {
-                    return new SubscriptionResult { Success = false, Error = "Utilizador já possui uma assinatura ativa" };
+                    return new SubscriptionResult { Success = false, Error = "Utilizador jï¿½ possui uma assinatura ativa" };
                 }
 
                 string customerId;
@@ -82,6 +82,8 @@ namespace realestate_ia_site.Server.Infrastructure.Payments
                         },
                     },
                     Mode = "subscription",
+                    SuccessUrl = _stripeOptions.SuccessUrl,
+                    CancelUrl = _stripeOptions.CancelUrl,
                     ClientReferenceId = userId,
                     Metadata = new Dictionary<string, string>
                     {
@@ -95,7 +97,7 @@ namespace realestate_ia_site.Server.Infrastructure.Payments
                 return new SubscriptionResult
                 {
                     Success = true,
-                    Message = "Sessão de checkout criada com sucesso",
+                    Message = "Sessï¿½o de checkout criada com sucesso",
                     CheckoutUrl = session.Url,
                     CustomerId = customerId
                 };
@@ -235,9 +237,11 @@ namespace realestate_ia_site.Server.Infrastructure.Payments
                 return new DateTimeOffset(specified).ToUnixTimeSeconds();
             }
 
+            var priceId = stripeSubscription.Items.Data.FirstOrDefault()?.Price.Id;
+            
             subscription.Status = stripeSubscription.Status;
-            subscription.PriceId = stripeSubscription.Items.Data.FirstOrDefault()?.Price.Id;
-            subscription.StripePriceId = stripeSubscription.Items.Data.FirstOrDefault()?.Price.Id;
+            subscription.PriceId = priceId;
+            subscription.StripePriceId = priceId;
             subscription.Currency = stripeSubscription.Items.Data.FirstOrDefault()?.Price.Currency;
             subscription.Interval = stripeSubscription.Items.Data.FirstOrDefault()?.Price.Recurring?.Interval;
             subscription.Amount = stripeSubscription.Items.Data.FirstOrDefault()?.Price.UnitAmount;

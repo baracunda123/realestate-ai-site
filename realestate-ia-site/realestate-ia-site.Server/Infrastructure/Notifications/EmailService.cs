@@ -11,11 +11,16 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
     {
         private readonly EmailConfiguration _config;
         private readonly ILogger<EmailService> _logger;
+        private readonly IWebHostEnvironment _environment;
 
-        public EmailService(IOptions<EmailConfiguration> config, ILogger<EmailService> logger)
+        public EmailService(
+            IOptions<EmailConfiguration> config, 
+            ILogger<EmailService> logger,
+            IWebHostEnvironment environment)
         {
             _config = config.Value;
             _logger = logger;
+            _environment = environment;
         }
 
         public async Task<bool> SendEmailAsync(EmailMessage message, CancellationToken cancellationToken = default)
@@ -61,16 +66,21 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
             {
                 _logger.LogInformation("Iniciando envio de email template {TemplateId} para {Email}", templateId, recipientEmail);
 
-                // Implementar templates de email aqui
+                // Obter definição do template
                 var template = GetEmailTemplate(templateId);
-                var body = ProcessTemplate(template, templateData);
+                
+                // Carregar template do disco (SO já faz cache de I/O)
+                var templateBody = await LoadTemplateFromFileAsync(template.TemplateFile, cancellationToken);
+                
+                // Processar placeholders
+                var body = ProcessTemplate(templateBody, templateData);
 
                 var message = new EmailMessage
                 {
                     ToEmail = recipientEmail,
                     Subject = template.Subject,
                     Body = body,
-                    IsHtml = true // Certificar que está definido como HTML
+                    IsHtml = true
                 };
 
                 _logger.LogInformation("Template {TemplateId} processado. Enviando email...", templateId);
@@ -145,34 +155,75 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
             return mail;
         }
 
-        private EmailTemplate GetEmailTemplate(string templateId) => templateId switch
+        private EmailTemplate GetEmailTemplate(string templateId)
         {
-            "email-confirmation" => new EmailTemplate { Subject = "Confirme seu email", Body = GetEmailConfirmationTemplate() },
-            "property-alert" => new EmailTemplate { Subject = "Nova Propriedade Encontrada!", Body = GetPropertyAlertTemplate() },
-            "price-drop" => new EmailTemplate { Subject = "Preço Reduzido!", Body = GetPriceDropTemplate() },
-            _ => throw new ArgumentException($"Template não encontrado: {templateId}")
-        };
+            return templateId switch
+            {
+                "email-confirmation" => new EmailTemplate 
+                { 
+                    Subject = "Confirme seu email - ResideAI", 
+                    TemplateFile = "EmailConfirmation.html" 
+                },
+                "property-alert" => new EmailTemplate 
+                { 
+                    Subject = "Nova Propriedade Encontrada!", 
+                    TemplateFile = "PropertyAlert.html" 
+                },
+                "price-drop" => new EmailTemplate 
+                { 
+                    Subject = "Preço Reduzido!", 
+                    TemplateFile = "PriceDropAlert.html" 
+                },
+                _ => throw new ArgumentException($"Template não encontrado: {templateId}")
+            };
+        }
 
-        private string ProcessTemplate(EmailTemplate template, object data)
+        private string ProcessTemplate(string templateBody, object data)
         {
-            var body = template.Body;
+            var body = templateBody;
+            
+            // Substituir placeholders usando reflection
             var properties = data.GetType().GetProperties();
             foreach (var prop in properties)
             {
                 var value = prop.GetValue(data)?.ToString() ?? string.Empty;
                 body = body.Replace($"{{{{{prop.Name}}}}}", value);
             }
+            
+            // Substituir {{Year}} com ano atual
+            body = body.Replace("{{Year}}", DateTime.Now.Year.ToString());
+            
             return body;
         }
 
-        private string GetEmailConfirmationTemplate() => @"<html><body><h1>Confirme seu email</h1><p>Olá {{UserName}},</p><p>Clique no link para confirmar: <a href='{{ConfirmationLink}}'>Confirmar Email</a></p></body></html>";
-        private string GetPropertyAlertTemplate() => @"<h2>Nova Propriedade Encontrada!</h2><p>{{PropertyTitle}}</p><p>{{Location}} - {{Price}}</p><a href='{{PropertyUrl}}'>Ver Propriedade</a>";
-        private string GetPriceDropTemplate() => @"<h2>Preço Reduzido!</h2><p>{{PropertyTitle}}</p><p>Antes: {{OldPrice}} Agora: {{NewPrice}}</p><p>Poupança: {{Savings}}</p><a href='{{PropertyUrl}}'>Ver Propriedade</a>";
+        /// <summary>
+        /// Carrega template do disco (SO já faz cache de I/O)
+        /// </summary>
+        private async Task<string> LoadTemplateFromFileAsync(string templateFileName, CancellationToken cancellationToken = default)
+        {
+            var templatesPath = Path.Combine(_environment.ContentRootPath, "Templates", "Emails");
+            var templatePath = Path.Combine(templatesPath, templateFileName);
+
+            if (!File.Exists(templatePath))
+            {
+                _logger.LogError("Template não encontrado: {Path}", templatePath);
+                throw new FileNotFoundException($"Template não encontrado: {templateFileName}");
+            }
+
+            var content = await File.ReadAllTextAsync(templatePath, cancellationToken);
+            
+            _logger.LogDebug("Template {FileName} carregado ({Length} chars)", templateFileName, content.Length);
+            
+            return content;
+        }
     }
 
+    /// <summary>
+    /// Definição simplificada de template (apenas metadados)
+    /// </summary>
     public record EmailTemplate
     {
         public required string Subject { get; init; }
-        public required string Body { get; init; }
+        public required string TemplateFile { get; init; }
     }
 }

@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Application.Common.Interfaces;
-using realestate_ia_site.Server.Application.Recommendations;
+using realestate_ia_site.Server.Application.Features.Properties.Recommendations;
 
 namespace realestate_ia_site.Server.Infrastructure.BackgroundServices
 {
