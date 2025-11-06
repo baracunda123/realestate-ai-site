@@ -184,24 +184,6 @@ export function ChatPanel({
                                             Descreva o tipo de propriedade que procura e a IA ajudará a encontrar as melhores opções.
                                         </p>
                                     </div>
-                                    <div className="space-y-2 text-left">
-                                        <p className="text-xs font-medium text-warm-taupe">Exemplos:</p>
-                                        <div className="space-y-1">
-                                            {[
-                                                'Procuro um apartamento T2 no Porto',
-                                                'Moradia com jardim até 300.000€',
-                                                'Casa perto da praia com 3 quartos'
-                                            ].map((example, i) => (
-                                                <button
-                                                    key={i}
-                                                    onClick={() => setInputValue(example)}
-                                                    className="w-full text-left text-xs p-2 rounded-lg bg-pale-clay-light hover:bg-pale-clay text-warm-taupe hover:text-deep-mocha transition-colors"
-                                                >
-                                                    {example}
-                                                </button>
-                                            ))}
-                                        </div>
-                                    </div>
                                 </div>
                             </div>
                         )}
