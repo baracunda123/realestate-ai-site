@@ -89,7 +89,16 @@ namespace realestate_ia_site.Server.Infrastructure.Payments
                     {
                         { "user_id", userId },
                         { "price_id", priceId }
-                    }
+                    },
+                    SubscriptionData = new SessionSubscriptionDataOptions
+                    {
+                        Metadata = new Dictionary<string, string>
+                        {
+                            { "user_id", userId },
+                            { "price_id", priceId }
+                        }
+                    },
+                    Customer = customerId
                 });
 
                 _logger.LogInformation("[Subscription] Checkout session criada: session={SessionId} utilizador={UserId}", session.Id, userId);
@@ -214,8 +223,23 @@ namespace realestate_ia_site.Server.Infrastructure.Payments
 
             if (subscription == null)
             {
-                var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == stripeSubscription.CustomerId);
-                if (user == null) return;
+                User? user = null;
+                
+                // Tentar encontrar utilizador pelos metadados da subscrição (método principal)
+                if (stripeSubscription.Metadata != null && stripeSubscription.Metadata.ContainsKey("user_id"))
+                {
+                    var userId = stripeSubscription.Metadata["user_id"];
+                    user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                    _logger.LogInformation("[Subscription] Utilizador encontrado por metadata user_id={UserId}", userId);
+                }
+                
+                if (user == null)
+                {
+                    _logger.LogError("[Subscription] Utilizador não encontrado para subscrição stripeId={StripeSubId} customerId={CustomerId} metadata={Metadata}", 
+                        stripeSubscription.Id, stripeSubscription.CustomerId, 
+                        stripeSubscription.Metadata != null ? string.Join(",", stripeSubscription.Metadata.Keys) : "null");
+                    return;
+                }
 
                 subscription = new Domain.Entities.Subscription
                 {
