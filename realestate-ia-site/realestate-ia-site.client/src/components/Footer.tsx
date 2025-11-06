@@ -16,7 +16,7 @@ export function Footer() {
                 ResideAI
               </h3>
             </div>
-            <p className="text-sm text-cocoa-taupe max-w-xs">
+            <p className="text-sm text-cocoa-taupe max-w-xs mx-auto md:mx-0">
               Encontre seu lar ideal com tecnologia de inteligência artificial
             </p>
           </div>
@@ -62,7 +62,7 @@ export function Footer() {
         {/* Copyright */}
         <div className="mt-6 pt-4 border-t border-cocoa-taupe/10">
           <p className="text-center text-sm text-warm-taupe">
-            © 2025 HomeFinder AI. Todos os direitos reservados.
+            © 2025 ResideAI. Todos os direitos reservados.
           </p>
         </div>
       </div>
