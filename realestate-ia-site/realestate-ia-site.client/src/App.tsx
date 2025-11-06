@@ -15,6 +15,13 @@ import { getFavoriteProperties, addToFavorites, removeFromFavorites } from './ap
 import { usePriceAlerts } from './hooks/usePriceAlerts';
 import { useSignalR } from './hooks/useSignalR';
 import { isQuotaExceededError } from './api/chat-usage.service';
+import { 
+  getChatSessions, 
+  createChatSession, 
+  deleteChatSession, 
+  getChatSession,
+  type ChatSessionDto 
+} from './api/chat-sessions.service';
 
 // Extend Window interface to include gtag for Google Analytics
 declare global {
@@ -85,6 +92,19 @@ export default function App() {
   const [authDefaultTab, setAuthDefaultTab] = useState<AuthTab>('signin');
   const [isInitializing, setIsInitializing] = useState(true);
   const [hasShownWelcomeToast, setHasShownWelcomeToast] = useState(false);
+
+  // Conversation history state
+  const [conversationHistory, setConversationHistory] = useState<Array<{
+    id: string;
+    type: 'user' | 'ai';
+    content: string;
+    timestamp: Date;
+    isQuotaError?: boolean;
+  }>>([]);
+
+  // Chat sessions state
+  const [chatSessions, setChatSessions] = useState<ChatSessionDto[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
   // Hook para gerenciar alertas de preço
   const {
@@ -413,9 +433,24 @@ export default function App() {
     });
   }, [user, navigate]);
 
-  const handleSubmitSearch = useCallback(async (query: string) => {
+  const handleSubmitSearch = useCallback(async (query: string, sessionId?: string) => {
     setAiLoading(true);
     setAiError(null);
+    
+    // Se não há sessão ativa, criar uma nova
+    let currentSessionId = sessionId || activeSessionId;
+    if (!currentSessionId) {
+      try {
+        const newSession = await createChatSession();
+        setChatSessions(prev => [newSession, ...prev]);
+        setActiveSessionId(newSession.id);
+        currentSessionId = newSession.id;
+        logger.info('Nova sessão criada automaticamente ao enviar primeira mensagem', 'APP');
+      } catch (error) {
+        logger.error('Erro ao criar sessão automaticamente', 'APP', error as Error);
+        // Continuar mesmo sem sessão - o backend pode lidar com isso
+      }
+    }
     
     // Add user message to history
     const userMessage = {
@@ -431,7 +466,8 @@ export default function App() {
       const result = await searchProperties({ 
         searchQuery: query,
         includeAiAnalysis: true,
-        includeMarketData: true
+        includeMarketData: true,
+        sessionId: currentSessionId || undefined
       });
       
       setSearchResults(result.properties || []);
@@ -499,26 +535,96 @@ export default function App() {
     } finally {
       setAiLoading(false);
     }
-  }, [currentView, navigate]);
-  
-  // Conversation history state
-  const [conversationHistory, setConversationHistory] = useState<Array<{
-    id: string;
-    type: 'user' | 'ai';
-    content: string;
-    timestamp: Date;
-    isQuotaError?: boolean;
-  }>>([]);
+  }, [currentView, navigate, activeSessionId]);
 
-  // Handler para limpar completamente a conversa
-  const handleClearConversation = useCallback(() => {
-    // Limpar histórico local
-    setConversationHistory([]);
-    // Limpar resultados de pesquisa
-    setSearchResults(null);
-    setSearchQuery('');
-    setAiError(null);
+  // Load chat sessions when user logs in
+  const loadChatSessions = useCallback(async () => {
+    if (!user) {
+      setChatSessions([]);
+      setActiveSessionId(null);
+      return;
+    }
+
+    try {
+      const sessions = await getChatSessions();
+      
+      // Apenas carregar as sessões, não definir sessão ativa automaticamente
+      setChatSessions(sessions);
+    } catch (error) {
+      logger.error('Erro ao carregar sessões de chat', 'APP', error as Error);
+      setChatSessions([]);
+    }
+  }, [user]);
+
+  // Load sessions when user changes
+  useEffect(() => {
+    loadChatSessions();
+  }, [loadChatSessions]);
+
+  // Handler para selecionar sessão
+  const handleSelectSession = useCallback(async (sessionId: string) => {
+    setActiveSessionId(sessionId);
+    
+    try {
+      // Carregar mensagens da sessão
+      const session = await getChatSession(sessionId);
+      
+      // Converter mensagens para formato do histórico
+      const history = session.messages.map(msg => ({
+        id: msg.id,
+        type: msg.role === 'user' ? 'user' as const : 'ai' as const,
+        content: msg.content,
+        timestamp: new Date(msg.timestamp)
+      }));
+      
+      setConversationHistory(history);
+    } catch (error) {
+      logger.error('Erro ao carregar sessão', 'APP', error as Error);
+      toast.error('Erro ao carregar conversa');
+    }
   }, []);
+
+  // Handler para criar nova sessão
+  const handleCreateSession = useCallback(async () => {
+    try {
+      const newSession = await createChatSession();
+      setChatSessions(prev => [newSession, ...prev]);
+      setActiveSessionId(newSession.id);
+      setConversationHistory([]);
+      setSearchResults(null);
+      setSearchQuery('');
+      toast.success('Nova conversa criada');
+    } catch (error) {
+      logger.error('Erro ao criar sessão', 'APP', error as Error);
+      toast.error('Erro ao criar nova conversa');
+    }
+  }, []);
+
+  // Handler para eliminar sessão
+  const handleDeleteSession = useCallback(async (sessionId: string) => {
+    try {
+      await deleteChatSession(sessionId);
+      
+      const remainingSessions = chatSessions.filter(s => s.id !== sessionId);
+      setChatSessions(remainingSessions);
+      
+      // Se eliminou a sessão ativa, mudar para outra
+      if (activeSessionId === sessionId) {
+        if (remainingSessions.length > 0) {
+          setActiveSessionId(remainingSessions[0].id);
+          await handleSelectSession(remainingSessions[0].id);
+        } else {
+          // Criar nova sessão se não houver nenhuma
+          await handleCreateSession();
+        }
+      }
+      
+      toast.success('Conversa eliminada');
+    } catch (error) {
+      logger.error('Erro ao eliminar sessão', 'APP', error as Error);
+      toast.error('Erro ao eliminar conversa');
+    }
+  }, [chatSessions, activeSessionId, handleSelectSession, handleCreateSession]);
 
   // Authentication handlers - otimizados
   const handleAuthSuccess = useCallback(async () => {
@@ -778,6 +884,8 @@ export default function App() {
                     user={user ? convertToUser(user) : null}
                     onStartSignup={() => openAuthModal('signup')}
                     onStartSearch={() => {
+                      // Limpar sessão ativa para começar nova conversa
+                      setActiveSessionId(null);
                       sessionStorage.setItem('showSearchPanel', 'true');
                       setShowSearchPanel(true);
                     }}
@@ -793,7 +901,11 @@ export default function App() {
                         loading={aiLoading}
                         error={aiError}
                         conversationHistory={conversationHistory}
-                        onClearConversation={handleClearConversation}
+                        sessions={chatSessions}
+                        activeSessionId={activeSessionId}
+                        onSelectSession={handleSelectSession}
+                        onCreateSession={handleCreateSession}
+                        onDeleteSession={handleDeleteSession}
                       />
                     </div>
                     

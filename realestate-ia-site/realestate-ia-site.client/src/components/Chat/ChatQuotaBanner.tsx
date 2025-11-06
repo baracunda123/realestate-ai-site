@@ -21,7 +21,7 @@ export function ChatQuotaBanner({ onRefresh }: ChatQuotaBannerProps) {
       const data = await getChatUsageStats();
       setStats(data);
     } catch (error) {
-      console.error('Erro ao carregar estatísticas de uso:', error);
+      console.error('Erro ao carregar estatÃ­sticas de uso:', error);
     } finally {
       setLoading(false);
     }
@@ -31,7 +31,7 @@ export function ChatQuotaBanner({ onRefresh }: ChatQuotaBannerProps) {
     loadStats();
   }, []);
 
-  // Refresh após cada mensagem enviada
+  // Refresh apÃ³s cada mensagem enviada
   useEffect(() => {
     if (onRefresh) {
       loadStats();
@@ -44,9 +44,10 @@ export function ChatQuotaBanner({ onRefresh }: ChatQuotaBannerProps) {
 
   const isNearLimit = stats.usagePercentage >= 80 && stats.usagePercentage < 100;
   const isAtLimit = stats.usagePercentage >= 100;
-  const isUnlimited = stats.planType === 'unlimited';
+  const isPremium = stats.planType === 'premium';
 
-  if (isUnlimited) {
+  // Premium tem chat ilimitado
+  if (isPremium) {
     return (
       <Card className="p-3 bg-gradient-to-r from-burnt-peach/10 to-pale-clay-light border-burnt-peach/30">
         <div className="flex items-center gap-3">
@@ -55,10 +56,10 @@ export function ChatQuotaBanner({ onRefresh }: ChatQuotaBannerProps) {
           </div>
           <div className="flex-1">
             <p className="text-sm font-medium text-deep-mocha">
-              Plano Ilimitado
+              Plano Premium
             </p>
             <p className="text-xs text-warm-taupe">
-              Conversas ilimitadas com a IA
+              Conversas ilimitadas com IA
             </p>
           </div>
         </div>
@@ -115,7 +116,7 @@ export function ChatQuotaBanner({ onRefresh }: ChatQuotaBannerProps) {
           </div>
         </div>
 
-        {/* Renovação */}
+        {/* RenovaÃ§Ã£o */}
         <p className="text-xs text-warm-taupe">
           Renova em {formatRenewalDate(stats.periodEnd)}
         </p>

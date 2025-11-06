@@ -4,8 +4,8 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI.DTOs;
 
 public sealed class SearchAIRequestDto
 {
-    [Required(ErrorMessage = "Query È obrigatÛria")]
-    [StringLength(500, ErrorMessage = "Query n„o pode exceder 500 caracteres")]
+    [Required(ErrorMessage = "Query √© obrigat√≥ria")]
+    [StringLength(500, ErrorMessage = "Query n√£o pode exceder 500 caracteres")]
     public string? Query { get; set; }
     public string SessionId { get; set; } = string.Empty;
 }
