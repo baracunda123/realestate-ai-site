@@ -43,6 +43,24 @@ export interface SubscriptionStatus {
   hasActiveSubscription: boolean;
 }
 
+export interface CheckoutSessionData {
+  sessionId: string;
+  status: string;
+  customerEmail?: string;
+  customerName?: string;
+  amountTotal?: number;
+  currency?: string;
+  subscriptionId?: string;
+  paymentStatus: string;
+}
+
+export interface CheckoutSessionVerificationResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+  sessionData?: CheckoutSessionData;
+}
+
 /**
  * Criar nova subscrição
  */
@@ -144,6 +162,27 @@ export async function getSubscriptionStatus(): Promise<SubscriptionStatus> {
     return response;
   } catch (error: any) {
     logger.error('Erro ao verificar status de subscrição', 'SUBSCRIPTION', error);
+    throw error;
+  }
+}
+
+/**
+ * Verificar sessão do Stripe Checkout após pagamento
+ * Este endpoint é público (AllowAnonymous) para permitir verificação após redirect do Stripe
+ */
+export async function verifyCheckoutSession(sessionId: string): Promise<CheckoutSessionVerificationResult> {
+  logger.info(`Verificando sessão de checkout: ${sessionId}`, 'SUBSCRIPTION');
+  
+  try {
+    const response = await apiClient.get<CheckoutSessionVerificationResult>(
+      `/api/subscription/verify-session/${sessionId}`
+    );
+    
+    logger.info(`Sessão verificada - Success: ${response.success}, PaymentStatus: ${response.sessionData?.paymentStatus}`, 'SUBSCRIPTION');
+    
+    return response;
+  } catch (error: any) {
+    logger.error('Erro ao verificar sessão de checkout', 'SUBSCRIPTION', error);
     throw error;
   }
 }

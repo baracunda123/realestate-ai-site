@@ -63,4 +63,24 @@ namespace realestate_ia_site.Server.Domain.Models
         public bool Success { get; set; }
         public string Message { get; set; } = string.Empty;
     }
+
+    public class CheckoutSessionVerificationResult
+    {
+        public bool Success { get; set; }
+        public string? Message { get; set; }
+        public string? Error { get; set; }
+        public CheckoutSessionData? SessionData { get; set; }
+    }
+
+    public class CheckoutSessionData
+    {
+        public string SessionId { get; set; } = string.Empty;
+        public string Status { get; set; } = string.Empty;
+        public string? CustomerEmail { get; set; }
+        public string? CustomerName { get; set; }
+        public long? AmountTotal { get; set; }
+        public string? Currency { get; set; }
+        public string? SubscriptionId { get; set; }
+        public string PaymentStatus { get; set; } = string.Empty;
+    }
 }

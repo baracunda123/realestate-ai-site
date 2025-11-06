@@ -38,11 +38,11 @@ export default function SubscriptionCancelPage() {
               Ver Planos Novamente
             </Button>
             <Button
-              onClick={() => navigate('/chat')}
+              onClick={() => navigate('/')}
               variant="outline"
               className="w-full"
             >
-              Continuar com Plano Gratuito
+              Voltar ao Início
             </Button>
           </div>
         </CardContent>
