@@ -94,7 +94,6 @@ export function PersonalAreaHistory({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-medium text-foreground">Histórico de Visualizações</h2>
           <p className="text-sm text-muted-foreground">
             {viewHistory.length} imóveis visualizados recentemente
           </p>

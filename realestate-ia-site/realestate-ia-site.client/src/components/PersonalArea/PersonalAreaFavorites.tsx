@@ -18,7 +18,7 @@ export function PersonalAreaFavorites({
     return (
       <EmptyState
         icon={Heart}
-        title="Nenhum imóvel favorito"
+        title="Nenhum imóvel favoritado"
         description="Explora imóveis e marca-os como favoritos para acompanhar facilmente."
         actionLabel="Explorar Imóveis"
         onAction={() => {
@@ -34,9 +34,8 @@ export function PersonalAreaFavorites({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-medium text-foreground">Os teus imóveis favoritos</h2>
           <p className="text-sm text-muted-foreground">
-            {favorites.length} imóveis favoritos
+            {favorites.length === 1 ? '1 imóvel' : `${favorites.length} imóveis`}
           </p>
         </div>
       </div>

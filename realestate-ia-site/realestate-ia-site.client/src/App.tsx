@@ -1,7 +1,6 @@
 import { useState, useEffect, lazy, Suspense, useCallback, useMemo } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { Header } from './components/Header';
-import { PersonalArea } from './components/PersonalArea';
 import { Footer } from './components/Footer';
 import { toast } from 'sonner';
 import { Toaster } from './components/ui/sonner';
@@ -41,6 +40,12 @@ const ChatPanel = lazy(() => import('./components/ChatPanel').then(m => ({ defau
 const PricingPage = lazy(() => import('./pages/PricingPage').then(m => ({ default: m.PricingPage })));
 const SubscriptionSuccessPage = lazy(() => import('./pages/SubscriptionSuccessPage'));
 const SubscriptionCancelPage = lazy(() => import('./pages/SubscriptionCancelPage'));
+
+// Profile pages
+const ProfilePage = lazy(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
+const FavoritesPage = lazy(() => import('./pages/FavoritesPage').then(m => ({ default: m.FavoritesPage })));
+const HistoryPage = lazy(() => import('./pages/HistoryPage').then(m => ({ default: m.HistoryPage })));
+const SettingsPage = lazy(() => import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
 
 // Loading components otimizados
 const LoadingSpinner = () => (
@@ -209,7 +214,8 @@ export default function App() {
 
   // Handle URL navigation - usando react-router
   useEffect(() => {
-    if (location.pathname === '/personal' && user) {
+    const profileRoutes = ['/profile', '/favorites', '/history', '/settings'];
+    if (profileRoutes.includes(location.pathname) && user) {
       setCurrentView('personal');
     } else if (location.pathname === '/' || location.pathname === '') {
       setCurrentView('home');
@@ -237,11 +243,12 @@ export default function App() {
 
   // Redirect to home if user logs out while in protected views
   useEffect(() => {
-    if (!user && currentView === 'personal') {
+    const profileRoutes = ['/profile', '/favorites', '/history', '/settings'];
+    if (!user && profileRoutes.includes(location.pathname)) {
       setCurrentView('home');
       navigate('/');
     }
-  }, [user, currentView, navigate]);
+  }, [user, location.pathname, navigate]);
 
   // Optimized callbacks
   const resetToDefaults = useCallback(() => {
@@ -254,7 +261,7 @@ export default function App() {
   const navigateToPersonalArea = useCallback(() => {
     if (user) {
       setCurrentView('personal');
-      navigate('/personal');
+      navigate('/profile');
     } else {
       setAuthDefaultTab('signin');
       setIsAuthModalOpen(true);
@@ -747,23 +754,85 @@ export default function App() {
             } 
           />
 
-          {/* Rota de área pessoal */}
+          {/* Profile Routes */}
           <Route 
-            path="/personal" 
+            path="/profile" 
             element={
               user ? (
-                <PersonalArea
-                  user={convertToUser(user)}
-                  onNavigateToHome={navigateToHome}
-                  favorites={favorites}
-                  onToggleFavorite={toggleFavorite}
-                  hasActiveSearch={!isDefaultState && searchResults !== null}
-                  onUpdateProfile={handleUpdateProfile}
-                  onDeleteAccount={handleDeleteAccount}
-                />
+                <Suspense fallback={<LoadingSpinner />}>
+                  <ProfilePage
+                    user={convertToUser(user)}
+                    onUpdateProfile={handleUpdateProfile}
+                    hasActiveSearch={!isDefaultState && searchResults !== null}
+                    onNavigateToHome={navigateToHome}
+                  />
+                </Suspense>
               ) : (
                 <div className="flex items-center justify-center p-8">
-                  <p className="text-muted-foreground">Por favor, faça login para acessar sua área pessoal.</p>
+                  <p className="text-muted-foreground">Por favor, faz login para aceder ao teu perfil.</p>
+                </div>
+              )
+            } 
+          />
+
+          <Route 
+            path="/favorites" 
+            element={
+              user ? (
+                <Suspense fallback={<LoadingSpinner />}>
+                  <FavoritesPage
+                    user={convertToUser(user)}
+                    favorites={favorites}
+                    onToggleFavorite={toggleFavorite}
+                    onPropertyView={handlePropertyView}
+                    hasActiveSearch={!isDefaultState && searchResults !== null}
+                    onNavigateToHome={navigateToHome}
+                  />
+                </Suspense>
+              ) : (
+                <div className="flex items-center justify-center p-8">
+                  <p className="text-muted-foreground">Por favor, faz login para aceder aos teus favoritos.</p>
+                </div>
+              )
+            } 
+          />
+
+          <Route 
+            path="/history" 
+            element={
+              user ? (
+                <Suspense fallback={<LoadingSpinner />}>
+                  <HistoryPage
+                    user={convertToUser(user)}
+                    favorites={favorites}
+                    onToggleFavorite={toggleFavorite}
+                    hasActiveSearch={!isDefaultState && searchResults !== null}
+                    onNavigateToHome={navigateToHome}
+                  />
+                </Suspense>
+              ) : (
+                <div className="flex items-center justify-center p-8">
+                  <p className="text-muted-foreground">Por favor, faz login para aceder ao teu histórico.</p>
+                </div>
+              )
+            } 
+          />
+
+          <Route 
+            path="/settings" 
+            element={
+              user ? (
+                <Suspense fallback={<LoadingSpinner />}>
+                  <SettingsPage
+                    user={convertToUser(user)}
+                    onDeleteAccount={handleDeleteAccount}
+                    hasActiveSearch={!isDefaultState && searchResults !== null}
+                    onNavigateToHome={navigateToHome}
+                  />
+                </Suspense>
+              ) : (
+                <div className="flex items-center justify-center p-8">
+                  <p className="text-muted-foreground">Por favor, faz login para aceder às configurações.</p>
                 </div>
               )
             } 
