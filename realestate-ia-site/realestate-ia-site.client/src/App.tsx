@@ -714,7 +714,7 @@ export default function App() {
         currentView={currentView}
       />
       
-      <main className="flex-1 site-container py-8">
+      <main className="flex-1 site-container py-4 sm:py-6 md:py-8">
         <Routes>
           {/* Rota de confirmação de email - token como path parameter */}
           <Route 
@@ -858,7 +858,7 @@ export default function App() {
                 </Suspense>
               ) : user && showSearchPanel ? (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
                     {/* Chat Panel */}
                     <div className="order-1 lg:order-1">
                       <ChatPanel
