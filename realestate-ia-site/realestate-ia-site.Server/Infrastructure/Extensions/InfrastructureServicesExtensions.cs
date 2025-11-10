@@ -121,6 +121,7 @@ public static class InfrastructureServicesExtensions
         // Chat & Quota
         services.AddScoped<IChatUsageService, ChatUsageService>();
         services.AddScoped<Application.Features.Chat.Interfaces.IChatSessionService, ChatSessionService>();
+        services.AddScoped<Application.Features.Chat.Interfaces.IChatSessionPropertyService, ChatSessionPropertyService>();
 
         // Configurations
         services.AddSingleton<StripeOptions>();

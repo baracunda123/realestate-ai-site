@@ -19,19 +19,22 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         private readonly IDomainEventDispatcher _eventDispatcher;
         private readonly IChatUsageService _chatUsageService;
         private readonly IChatSessionService _chatSessionService;
+        private readonly IChatSessionPropertyService _chatSessionPropertyService;
 
         public SearchAIController(
             ILogger<SearchAIController> logger, 
             SearchAIOrchestrator orchestrator,
             IDomainEventDispatcher eventDispatcher,
             IChatUsageService chatUsageService,
-            IChatSessionService chatSessionService)
+            IChatSessionService chatSessionService,
+            IChatSessionPropertyService chatSessionPropertyService)
         {
             _logger = logger;
             _orchestrator = orchestrator;
             _eventDispatcher = eventDispatcher;
             _chatUsageService = chatUsageService;
             _chatSessionService = chatSessionService;
+            _chatSessionPropertyService = chatSessionPropertyService;
         }
 
         [HttpPost]
@@ -94,6 +97,14 @@ namespace realestate_ia_site.Server.Presentation.Controllers
 
                 // Persistir resposta da IA
                 await _chatSessionService.AddMessageAsync(chatSessionId, "assistant", result.AIResponse, ct);
+
+                // Persistir propriedades retornadas na sessão
+                if (result.Properties != null && result.Properties.Any())
+                {
+                    var propertyIds = result.Properties.Select(p => p.Id).ToList();
+                    await _chatSessionPropertyService.AddPropertiesToSessionAsync(chatSessionId, propertyIds, ct);
+                    _logger.LogInformation("Persistidas {Count} propriedades na sessão {SessionId}", propertyIds.Count, chatSessionId);
+                }
 
                 // Consumir quota
                 var consumed = await _chatUsageService.ConsumePromptAsync(userId, ct);
