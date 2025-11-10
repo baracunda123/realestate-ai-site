@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { User, Mail, Edit, Save, X } from 'lucide-react';
+import { User, Mail, Edit, Save, X, Phone } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import type { User as UserType } from '../types/PersonalArea';
@@ -11,6 +11,7 @@ import AvatarUpload from '../components/PersonalArea/AvatarUpload';
 import { updateProfile } from '../api/auth.service';
 import { personalArea as logger } from '../utils/logger';
 import { ProfileLayout } from '../components/Profile/ProfileLayout';
+import { SubscriptionManagement } from '../components/Settings/SubscriptionManagement';
 
 interface ProfilePageProps {
   user: UserType;
@@ -22,20 +23,24 @@ interface ProfilePageProps {
 export function ProfilePage({ user, onUpdateProfile, hasActiveSearch, onNavigateToHome }: ProfilePageProps) {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileData, setProfileData] = useState({
-    name: user.name || user.fullName || user.email
+    name: user.name || user.fullName || user.email,
+    phone: user.phone || user.phoneNumber || ''
   });
 
   const handleSaveProfile = async () => {
     try {
       await updateProfile({
-        fullName: profileData.name
+        fullName: profileData.name,
+        phoneNumber: profileData.phone
       });
 
       if (onUpdateProfile) {
         onUpdateProfile({
           ...user,
           fullName: profileData.name,
-          name: profileData.name
+          name: profileData.name,
+          phoneNumber: profileData.phone,
+          phone: profileData.phone
         });
       }
       
@@ -54,7 +59,8 @@ export function ProfilePage({ user, onUpdateProfile, hasActiveSearch, onNavigate
 
   const handleCancelEdit = () => {
     setProfileData({
-      name: user.name || user.fullName || user.email
+      name: user.name || user.fullName || user.email,
+      phone: user.phone || user.phoneNumber || ''
     });
     setIsEditingProfile(false);
   };
@@ -90,9 +96,12 @@ export function ProfilePage({ user, onUpdateProfile, hasActiveSearch, onNavigate
         <div>
           <h1 className="text-3xl font-bold text-title">Meu Perfil</h1>
           <p className="text-muted-foreground mt-2">
-            Gere as tuas informações pessoais e preferências
+            Gere as tuas informações pessoais e subscrição
           </p>
         </div>
+
+        {/* Subscription Management */}
+        <SubscriptionManagement />
 
         {/* Profile Information Card */}
         <Card className="border border-pale-clay-deep bg-pure-white shadow-clay-deep">
@@ -201,6 +210,25 @@ export function ProfilePage({ user, onUpdateProfile, hasActiveSearch, onNavigate
                 <p className="text-xs text-muted-foreground">
                   O email não pode ser alterado
                 </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="phone">Telefone (opcional)</Label>
+                {isEditingProfile ? (
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={profileData.phone}
+                    onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
+                    className="border-pale-clay-deep focus:border-burnt-peach"
+                    placeholder="+351 912 345 678"
+                  />
+                ) : (
+                  <div className="flex items-center space-x-2 p-2 bg-pale-clay-light rounded-lg border border-pale-clay-deep">
+                    <Phone className="h-4 w-4 text-cocoa-taupe" />
+                    <span className="text-deep-mocha">{user.phone || user.phoneNumber || 'Não definido'}</span>
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -15,9 +15,13 @@ export default function SubscriptionSuccessPage() {
   const [error, setError] = useState<string | null>(null);
   const [sessionData, setSessionData] = useState<CheckoutSessionData | null>(null);
   const sessionId = searchParams.get('session_id');
+  const hasVerified = useRef(false);
 
   useEffect(() => {
     const verifySession = async () => {
+      // Prevenir execução dupla (React Strict Mode)
+      if (hasVerified.current) return;
+      hasVerified.current = true;
       if (!sessionId) {
         setError('ID da sessão não encontrado');
         setLoading(false);
@@ -101,10 +105,10 @@ export default function SubscriptionSuccessPage() {
             </div>
             <div className="flex flex-col gap-2">
               <Button
-                onClick={() => navigate('/personal')}
+                onClick={() => navigate('/profile')}
                 className="w-full bg-gradient-to-r from-burnt-peach to-warm-terracotta hover:opacity-90"
               >
-                Ir para Área Pessoal
+                Ir para o Perfil
               </Button>
               <Button
                 onClick={() => navigate('/pricing')}
@@ -137,13 +141,16 @@ export default function SubscriptionSuccessPage() {
         <CardContent className="space-y-4">
           <div className="bg-pale-clay-light p-4 rounded-lg space-y-2">
             <p className="text-sm text-warm-taupe">
-              <strong>O que acontece agora?</strong>
+              <strong>O que tens agora:</strong>
             </p>
             <ul className="text-sm text-warm-taupe space-y-1 list-disc list-inside">
-              <li>Acesso imediato a todas as funcionalidades Premium</li>
-              <li>2000 mensagens de chat por mês</li>
-              <li>Análise de mercado com IA</li>
-              <li>Suporte VIP 24/7</li>
+              <li>Chat IA ilimitado</li>
+              <li>Pesquisa de propriedades</li>
+              <li>Favoritos ilimitados</li>
+              <li>Alertas de baixa de preço</li>
+              <li>Notificações no site</li>
+              <li>Histórico de pesquisas</li>
+              <li>Recomendações personalizadas</li>
             </ul>
           </div>
 
@@ -164,10 +171,10 @@ export default function SubscriptionSuccessPage() {
 
           <div className="flex flex-col gap-2">
             <Button
-              onClick={() => navigate('/personal')}
+              onClick={() => navigate('/profile')}
               className="w-full bg-gradient-to-r from-burnt-peach to-warm-terracotta hover:opacity-90"
             >
-              Ir para Área Pessoal
+              Ir para o Perfil
             </Button>
             <Button
               onClick={() => navigate('/')}

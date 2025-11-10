@@ -305,14 +305,18 @@ namespace realestate_ia_site.Server.Infrastructure.Payments
                     return new DateTimeOffset(specified).ToUnixTimeSeconds();
                 }
 
-                var priceId = stripeSubscription.Items.Data.FirstOrDefault()?.Price.Id;
+                var firstItem = stripeSubscription.Items.Data.FirstOrDefault();
+                var priceId = firstItem?.Price.Id;
                 
                 subscription.Status = stripeSubscription.Status;
                 subscription.PriceId = priceId;
                 subscription.StripePriceId = priceId;
-                subscription.Currency = stripeSubscription.Items.Data.FirstOrDefault()?.Price.Currency;
-                subscription.Interval = stripeSubscription.Items.Data.FirstOrDefault()?.Price.Recurring?.Interval;
-                subscription.Amount = stripeSubscription.Items.Data.FirstOrDefault()?.Price.UnitAmount;
+                subscription.Currency = firstItem?.Price.Currency;
+                subscription.Interval = firstItem?.Price.Recurring?.Interval;
+                subscription.Amount = firstItem?.Price.UnitAmount;
+                subscription.CurrentPeriodStart = firstItem?.CurrentPeriodStart;
+                subscription.CurrentPeriodEnd = firstItem?.CurrentPeriodEnd;
+                subscription.CancelAtPeriodEnd = stripeSubscription.CancelAtPeriodEnd;
                 subscription.StartedAt = ToEpoch(stripeSubscription.StartDate);
                 subscription.EndedAt = ToEpoch(stripeSubscription.EndedAt);
                 subscription.CanceledAt = ToEpoch(stripeSubscription.CanceledAt);

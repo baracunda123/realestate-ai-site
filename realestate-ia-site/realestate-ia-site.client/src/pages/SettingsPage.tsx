@@ -9,6 +9,7 @@ import type { User } from '../types/PersonalArea';
 import { toast } from 'sonner';
 import { deleteAccount } from '../api/auth.service';
 import { personalArea as logger } from '../utils/logger';
+import { ChangePassword } from '../components/Settings/ChangePassword';
 
 interface SettingsPageProps {
   user: User;
@@ -70,6 +71,9 @@ export function SettingsPage({ onDeleteAccount, hasActiveSearch, onNavigateToHom
             Gere as tuas preferências e configurações de conta
           </p>
         </div>
+
+        {/* Change Password */}
+        <ChangePassword />
 
         {/* Danger Zone */}
         <Card className="border border-error-gentle bg-error-soft shadow-clay-deep">
