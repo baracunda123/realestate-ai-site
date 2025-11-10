@@ -314,8 +314,8 @@ namespace realestate_ia_site.Server.Infrastructure.Payments
                 subscription.Currency = firstItem?.Price.Currency;
                 subscription.Interval = firstItem?.Price.Recurring?.Interval;
                 subscription.Amount = firstItem?.Price.UnitAmount;
-                subscription.CurrentPeriodStart = firstItem?.CurrentPeriodStart;
-                subscription.CurrentPeriodEnd = firstItem?.CurrentPeriodEnd;
+                subscription.CurrentPeriodStart = ToEpoch(firstItem?.CurrentPeriodStart);
+                subscription.CurrentPeriodEnd = ToEpoch(firstItem?.CurrentPeriodEnd);
                 subscription.CancelAtPeriodEnd = stripeSubscription.CancelAtPeriodEnd;
                 subscription.StartedAt = ToEpoch(stripeSubscription.StartDate);
                 subscription.EndedAt = ToEpoch(stripeSubscription.EndedAt);
