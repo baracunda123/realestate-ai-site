@@ -54,8 +54,13 @@ export function SubscriptionManagement() {
       }
     } catch (error) {
       logger.error('Erro ao cancelar subscrição', 'SUBSCRIPTION_MANAGEMENT', error as Error);
+      
+      const errorMessage = error instanceof Error && !error.message.includes('status code') && !error.message.includes('Network Error')
+        ? error.message
+        : 'Ocorreu um erro ao processar o cancelamento. Tenta novamente.';
+      
       toast.error('Erro ao cancelar subscrição', {
-        description: error instanceof Error ? error.message : 'Tenta novamente'
+        description: errorMessage
       });
     } finally {
       setIsCancelling(false);
