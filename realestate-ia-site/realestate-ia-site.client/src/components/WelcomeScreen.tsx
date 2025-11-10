@@ -55,7 +55,7 @@ export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
     { 
       icon: Sparkles, 
       title: "IA Analisa", 
-      desc: "A nossa AI processar o pedido e aplicar filtros inteligentes",
+      desc: "A nossa AI vai processar o pedido e aplicar filtros inteligentes",
       gradient: "from-cocoa-taupe-lighter to-cocoa-taupe-light"
     },
     { 
