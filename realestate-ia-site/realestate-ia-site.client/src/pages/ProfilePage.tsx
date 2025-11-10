@@ -96,7 +96,7 @@ export function ProfilePage({ user, onUpdateProfile, hasActiveSearch, onNavigate
         <div>
           <h1 className="text-3xl font-bold text-title">Meu Perfil</h1>
           <p className="text-muted-foreground mt-2">
-            Gere as tuas informações pessoais e subscrição
+            Gera as tuas informações pessoais e subscrição
           </p>
         </div>
 
