@@ -33,7 +33,7 @@ namespace realestate_ia_site.Server.Application.Features.Chat.Interfaces
         /// <summary>
         /// Adicionar mensagem a uma sessão
         /// </summary>
-        Task<ChatMessageDto> AddMessageAsync(string sessionId, string role, string content, CancellationToken cancellationToken = default);
+        Task<AddMessageResultDto> AddMessageAsync(string sessionId, string role, string content, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Obter ou criar sessão ativa (para compatibilidade com fluxo atual)

@@ -370,6 +370,16 @@ export default function App() {
       setSearchResults(result.properties || []);
       setSearchQuery(query);
       
+      // Atualizar título da sessão se foi modificado
+      if (result.sessionTitleUpdated && result.updatedSessionTitle && currentSessionId) {
+        setChatSessions(prev => prev.map(session => 
+          session.id === currentSessionId 
+            ? { ...session, title: result.updatedSessionTitle! }
+            : session
+        ));
+        logger.info(`Título da sessão ${currentSessionId} atualizado para: ${result.updatedSessionTitle}`, 'APP');
+      }
+      
       // Add AI response to history
       if (result.aiResponse) {
         const aiMessage = {

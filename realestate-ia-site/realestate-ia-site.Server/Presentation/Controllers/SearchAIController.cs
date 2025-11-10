@@ -90,7 +90,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 }
 
                 // Persistir mensagem do utilizador
-                await _chatSessionService.AddMessageAsync(chatSessionId, "user", request.Query!, ct);
+                var userMessageResult = await _chatSessionService.AddMessageAsync(chatSessionId, "user", request.Query!, ct);
 
                 // Processar pesquisa
                 var result = await _orchestrator.HandleAsync(request, ct);
@@ -126,7 +126,18 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                     Filters = result.ExtractedFilters
                 }, ct);
 
-                return Ok(result);
+                // Criar resposta com informação de sessão atualizada
+                var response = new SearchAIResponseDto
+                {
+                    Properties = result.Properties,
+                    AIResponse = result.AIResponse,
+                    ExtractedFilters = result.ExtractedFilters,
+                    SessionId = chatSessionId,
+                    SessionTitleUpdated = userMessageResult.TitleUpdated,
+                    UpdatedSessionTitle = userMessageResult.UpdatedTitle
+                };
+
+                return Ok(response);
             }
             catch (Exception ex)
             {
