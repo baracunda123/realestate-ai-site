@@ -11,8 +11,6 @@ interface PersonalAreaHistoryProps {
   viewHistory: ViewHistoryItem[];
   onPropertyView?: (property: Property) => void;
   onToggleFavorite?: (property: Property) => void;
-  onCreatePriceAlert?: (property: Property) => void;
-  hasAlertForPropertyId?: (propertyId: string) => boolean;
   favorites?: Property[];
   isLoading?: boolean;
   onRefresh?: () => Promise<void>;
@@ -23,8 +21,6 @@ export function PersonalAreaHistory({
   viewHistory,
   onPropertyView,
   onToggleFavorite,
-  onCreatePriceAlert,
-  hasAlertForPropertyId,
   favorites = [],
   isLoading = false,
   onRefresh,
@@ -146,10 +142,8 @@ export function PersonalAreaHistory({
             <PropertyCard
               property={item.property}
               onToggleFavorite={onToggleFavorite}
-              onCreatePriceAlert={onCreatePriceAlert}
               onPropertyView={onPropertyView}
               isFavorite={favorites.some(f => f.id === item.property.id)}
-              hasPriceAlert={hasAlertForPropertyId ? hasAlertForPropertyId(item.property.id) : false}
             />
           </div>
         ))}

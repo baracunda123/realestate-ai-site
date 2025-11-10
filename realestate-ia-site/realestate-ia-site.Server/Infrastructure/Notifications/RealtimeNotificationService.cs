@@ -1,11 +1,10 @@
 using Microsoft.AspNetCore.SignalR;
 using realestate_ia_site.Server.Application.Notifications.Interfaces;
-using realestate_ia_site.Server.Application.Features.Properties.Alerts.DTOs;
 
 namespace realestate_ia_site.Server.Infrastructure.Notifications
 {
     /// <summary>
-    /// Implementação do serviço de notificações em tempo real via SignalR
+    /// ImplementaÃ§Ã£o do serviÃ§o de notificaÃ§Ãµes em tempo real via SignalR
     /// </summary>
     public class RealtimeNotificationService : IRealtimeNotificationService
     {
@@ -21,79 +20,7 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
         }
 
         /// <summary>
-        /// Enviar notificação de novo alerta de redução de preço
-        /// </summary>
-        public async Task SendPriceAlertNotificationAsync(string userId, PropertyAlertNotificationDto notification)
-        {
-            if (string.IsNullOrEmpty(userId))
-            {
-                _logger.LogWarning("Attempted to send price alert notification to null/empty userId");
-                return;
-            }
-
-            var userGroup = $"user_{userId}";
-            
-            try
-            {
-                _logger.LogInformation("Sending price alert notification to user {UserId}: Property {PropertyTitle}, Savings: {SavingsAmount}€", 
-                    userId, notification.PropertyTitle, notification.SavingsAmount);
-
-                var notificationData = new
-                {
-                    Type = "price_alert",
-                    Notification = notification,
-                    Timestamp = DateTime.UtcNow,
-                    Message = $"?? Redução de preço! {notification.PropertyTitle} baixou {notification.SavingsPercentage:F1}% (€{notification.SavingsAmount:N0})"
-                };
-
-                await _hubContext.Clients.Group(userGroup).SendAsync("NewPriceAlert", notificationData);
-                
-                _logger.LogInformation("Price alert notification sent successfully to user {UserId}", userId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error sending price alert notification to user {UserId}", userId);
-            }
-        }
-
-        /// <summary>
-        /// Enviar notificação de novo alerta criado
-        /// </summary>
-        public async Task SendAlertCreatedNotificationAsync(string userId, PropertyAlertDto alert)
-        {
-            if (string.IsNullOrEmpty(userId))
-            {
-                _logger.LogWarning("Attempted to send alert created notification to null/empty userId");
-                return;
-            }
-
-            var userGroup = $"user_{userId}";
-            
-            try
-            {
-                _logger.LogInformation("Sending alert created notification to user {UserId}: Property {PropertyTitle}", 
-                    userId, alert.PropertyTitle);
-
-                var notificationData = new
-                {
-                    Type = "alert_created",
-                    Alert = alert,
-                    Timestamp = DateTime.UtcNow,
-                    Message = $"?? Alerta criado! Será notificado de reduções de {alert.AlertThresholdPercentage}% ou mais em {alert.PropertyTitle}"
-                };
-
-                await _hubContext.Clients.Group(userGroup).SendAsync("AlertCreated", notificationData);
-                
-                _logger.LogInformation("Alert created notification sent successfully to user {UserId}", userId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error sending alert created notification to user {UserId}", userId);
-            }
-        }
-
-        /// <summary>
-        /// Enviar contagem atualizada de notificações não lidas
+        /// Enviar contagem atualizada de notificaÃ§Ãµes nÃ£o lidas
         /// </summary>
         public async Task SendUnreadCountUpdateAsync(string userId, int unreadCount)
         {
@@ -107,19 +34,18 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
             
             try
             {
-                _logger.LogDebug("Sending unread count update to user {UserId}: {UnreadCount} unread notifications", 
-                    userId, unreadCount);
+                _logger.LogInformation("Sending unread count update to user {UserId}: {UnreadCount}", userId, unreadCount);
 
-                var updateData = new
+                var notificationData = new
                 {
-                    Type = "unread_count_update",
+                    Type = "unread_count",
                     UnreadCount = unreadCount,
                     Timestamp = DateTime.UtcNow
                 };
 
-                await _hubContext.Clients.Group(userGroup).SendAsync("UnreadCountUpdate", updateData);
+                await _hubContext.Clients.Group(userGroup).SendAsync("UnreadCountUpdate", notificationData);
                 
-                _logger.LogDebug("Unread count update sent successfully to user {UserId}", userId);
+                _logger.LogInformation("Unread count update sent successfully to user {UserId}", userId);
             }
             catch (Exception ex)
             {
@@ -128,7 +54,7 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
         }
 
         /// <summary>
-        /// Enviar mensagem genérica
+        /// Enviar mensagem genÃ©rica para utilizador especÃ­fico
         /// </summary>
         public async Task SendMessageToUserAsync(string userId, string message, object? data = null)
         {
@@ -142,19 +68,18 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
             
             try
             {
-                _logger.LogInformation("Sending generic message to user {UserId}: {Message}", userId, message);
+                _logger.LogInformation("Sending message to user {UserId}: {Message}", userId, message);
 
                 var messageData = new
                 {
-                    Type = "generic_message",
                     Message = message,
                     Data = data,
                     Timestamp = DateTime.UtcNow
                 };
 
-                await _hubContext.Clients.Group(userGroup).SendAsync("Message", messageData);
+                await _hubContext.Clients.Group(userGroup).SendAsync("ReceiveMessage", messageData);
                 
-                _logger.LogInformation("Generic message sent successfully to user {UserId}", userId);
+                _logger.LogInformation("Message sent successfully to user {UserId}", userId);
             }
             catch (Exception ex)
             {
@@ -163,52 +88,48 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
         }
 
         /// <summary>
-        /// Verificar se utilizador está conectado (aproximação baseada em grupos)
+        /// Verificar se utilizador estÃ¡ conectado via SignalR
         /// </summary>
         public async Task<bool> IsUserConnectedAsync(string userId)
         {
             if (string.IsNullOrEmpty(userId))
+            {
                 return false;
+            }
 
             try
             {
-                // SignalR não tem método nativo para verificar se um grupo tem conexões ativas
-                // Como workaround, tentamos enviar uma mensagem de ping e verificamos se há erro
                 var userGroup = $"user_{userId}";
-                
-                await _hubContext.Clients.Group(userGroup).SendAsync("Ping", new { 
-                    Timestamp = DateTime.UtcNow 
-                });
-                
-                // Se chegou aqui, assumimos que há pelo menos uma conexão ativa
-                return true;
+                // SignalR nÃ£o tem mÃ©todo direto para verificar se grupo tem membros
+                // Esta Ã© uma implementaÃ§Ã£o simplificada
+                return await Task.FromResult(true); // Assume conectado por padrÃ£o
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error checking if user {UserId} is connected", userId);
                 return false;
             }
         }
 
         /// <summary>
-        /// Obter contagem aproximada de conexões (não implementado com precisão pelo SignalR core)
+        /// Obter nÃºmero de conexÃµes ativas para um utilizador
         /// </summary>
         public async Task<int> GetUserConnectionCountAsync(string userId)
         {
             if (string.IsNullOrEmpty(userId))
+            {
                 return 0;
+            }
 
             try
             {
-                // SignalR Core não fornece método direto para contar conexões num grupo
-                // Para implementação precisa seria necessário manter tracking manual das conexões
-                _logger.LogDebug("Connection count requested for user {UserId} (not precisely implemented)", userId);
-                
-                // Por agora retornamos se está conectado (1) ou não (0)
-                var isConnected = await IsUserConnectedAsync(userId);
-                return isConnected ? 1 : 0;
+                // SignalR nÃ£o tem mÃ©todo direto para contar conexÃµes de um grupo
+                // Esta Ã© uma implementaÃ§Ã£o simplificada
+                return await Task.FromResult(1); // Retorna 1 por padrÃ£o
             }
-            catch
+            catch (Exception ex)
             {
+                _logger.LogError(ex, "Error getting connection count for user {UserId}", userId);
                 return 0;
             }
         }

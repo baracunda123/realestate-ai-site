@@ -1,7 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using realestate_ia_site.Server.Domain.ValueObjects;
-using realestate_ia_site.Server.Domain.Events;
 using AddressVO = realestate_ia_site.Server.Domain.ValueObjects.Address;
 
 namespace realestate_ia_site.Server.Domain.Entities
@@ -76,39 +75,23 @@ namespace realestate_ia_site.Server.Domain.Entities
         public DateTime UpdatedAt { get; set; }
 
 
-        // Helpers para Value Objects (não persistidos diretamente)
+        // Helpers para Value Objects (nÃ£o persistidos diretamente)
         public Money? GetMoneyPrice(string currency = "EUR") => Price.HasValue ? Money.From(Price.Value, currency) : null;
-        public AddressVO ToAddressValueObject() => AddressVO.Create(Address, City, County, CivilParish, State, ZipCode, null); // remover país duplicado
+        public AddressVO ToAddressValueObject() => AddressVO.Create(Address, City, County, CivilParish, State, ZipCode, null);
 
-        // Price change domain logic centralization
-        public PriceChangeOutcome EvaluatePriceChange(decimal? originalPrice, string reason = "update")
+        // Price change domain logic - returns history only
+        public PropertyPriceHistory? EvaluatePriceChange(decimal? originalPrice, string reason = "update")
         {
-            if (!originalPrice.HasValue || !Price.HasValue) return PriceChangeOutcome.None;
-            if (originalPrice.Value == Price.Value) return PriceChangeOutcome.None;
+            if (!originalPrice.HasValue || !Price.HasValue) return null;
+            if (originalPrice.Value == Price.Value) return null;
 
-            var history = new PropertyPriceHistory
+            return new PropertyPriceHistory
             {
                 PropertyId = Id,
                 OldPrice = originalPrice.Value,
                 NewPrice = Price.Value,
                 ChangeReason = reason
             };
-
-            var @event = new PropertyPriceChangedEvent
-            {
-                PropertyId = Id,
-                Property = this,
-                OldPrice = originalPrice.Value,
-                NewPrice = Price.Value
-            };
-
-            return new PriceChangeOutcome(history, @event);
         }
-    }
-
-    public record PriceChangeOutcome(PropertyPriceHistory? History, PropertyPriceChangedEvent? Event)
-    {
-        public static PriceChangeOutcome None => new(null, null);
-        public bool HasChange => History is not null && Event is not null;
     }
 }

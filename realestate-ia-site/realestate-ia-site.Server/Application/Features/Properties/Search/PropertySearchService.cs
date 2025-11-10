@@ -28,9 +28,11 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search
             ArgumentNullException.ThrowIfNull(filtros, nameof(filtros));
             _logger.LogInformation("[Search] Inicio da pesquisa com filtros={FilterCount}", filtros.Count);
             _logger.LogDebug("[Search] Filtros recebidos {@Filters}", filtros);
+
             if (filtros.Count == 0) return new List<PropertySearchDto>();
 
             cancellationToken.ThrowIfCancellationRequested();
+
             var query = _context.Properties.AsQueryable();
 
             foreach (var filtroKey in filtros.Keys)
@@ -48,7 +50,27 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search
             try
             {
                 var properties = await query.Take(10).ToListAsync(cancellationToken);
-                var result = properties.Select(PropertySearchDto.FromDomain).ToList();
+                
+                // Get latest price changes for all properties (last 30 days)
+                var propertyIds = properties.Select(p => p.Id).ToList();
+                var cutoffDate = DateTime.UtcNow.AddDays(-30);
+                
+                var latestPriceChanges = await _context.PropertyPriceHistories
+                    .Where(h => propertyIds.Contains(h.PropertyId) && h.ChangedAt >= cutoffDate)
+                    .GroupBy(h => h.PropertyId)
+                    .Select(g => g.OrderByDescending(h => h.ChangedAt).FirstOrDefault())
+                    .ToListAsync(cancellationToken);
+                
+                var priceChangeDict = latestPriceChanges
+                    .Where(h => h != null)
+                    .ToDictionary(h => h!.PropertyId, h => h);
+
+                var result = properties.Select(p => 
+                {
+                    priceChangeDict.TryGetValue(p.Id, out var priceChange);
+                    return PropertySearchDto.FromDomain(p, priceChange);
+                }).ToList();
+
                 _logger.LogInformation("[Search] Concluida a pesquisa com {Count} propriedades", result.Count);
                 return result;
             }
@@ -65,12 +87,14 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search
         {
             ArgumentNullException.ThrowIfNull(filtros, nameof(filtros));
             _logger.LogInformation("[Search] Gerando Top Picks");
+
             var topPicksFilters = new Dictionary<string, object>(filtros)
             {
                 ["generate_top_picks"] = "true"
             };
 
             var query = _context.Properties.AsQueryable();
+
             foreach (var filtroKey in filtros.Keys.Where(k => k != "sort" && k != "cheaper_hint"))
             {
                 foreach (var filter in _filters.Where(f => f.CanHandle(filtroKey)))
@@ -86,7 +110,27 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search
             }
 
             var properties = await query.ToListAsync(cancellationToken);
-            var result = properties.Select(PropertySearchDto.FromDomain).ToList();
+            
+            // Get latest price changes for all properties (last 30 days)
+            var propertyIds = properties.Select(p => p.Id).ToList();
+            var cutoffDate = DateTime.UtcNow.AddDays(-30);
+            
+            var latestPriceChanges = await _context.PropertyPriceHistories
+                .Where(h => propertyIds.Contains(h.PropertyId) && h.ChangedAt >= cutoffDate)
+                .GroupBy(h => h.PropertyId)
+                .Select(g => g.OrderByDescending(h => h.ChangedAt).FirstOrDefault())
+                .ToListAsync(cancellationToken);
+            
+            var priceChangeDict = latestPriceChanges
+                .Where(h => h != null)
+                .ToDictionary(h => h!.PropertyId, h => h);
+
+            var result = properties.Select(p => 
+            {
+                priceChangeDict.TryGetValue(p.Id, out var priceChange);
+                return PropertySearchDto.FromDomain(p, priceChange);
+            }).ToList();
+
             _logger.LogInformation("[Search] Top Picks gerados count={Count}", result.Count);
             return result;
         }
