@@ -2,7 +2,7 @@ import React, { memo, useCallback } from 'react';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import { Heart, MapPin, Bed, Bath, Square, Calendar } from 'lucide-react';
+import { Heart, MapPin, Bed, Bath, Square, Calendar, TrendingDown, TrendingUp } from 'lucide-react';
 import { type Property } from '../types/property';
 import { trackPropertyView } from '../api/view-history.service';
 import { logger } from '../utils/logger';
@@ -123,6 +123,25 @@ function PropertyCardComponent({
                 {property.siteName && (
                   <Badge className={`property-badge ${getSiteNameColor(property.siteName)} text-xs font-medium border shadow-clay-soft py-0.5 px-1.5`}>
                     {property.siteName}
+                  </Badge>
+                )}
+                {property.hadRecentPriceChange && property.priceChangePercentage && (
+                  <Badge className={`property-badge text-xs font-semibold border shadow-sm py-0.5 px-1.5 flex items-center gap-1 ${
+                    property.priceChangePercentage < 0 
+                      ? 'bg-green-50 text-green-700 border-green-200' 
+                      : 'bg-orange-50 text-orange-700 border-orange-200'
+                  }`}>
+                    {property.priceChangePercentage < 0 ? (
+                      <>
+                        <TrendingDown className="h-3 w-3" />
+                        {property.priceChangePercentage}%
+                      </>
+                    ) : (
+                      <>
+                        <TrendingUp className="h-3 w-3" />
+                        +{property.priceChangePercentage}%
+                      </>
+                    )}
                   </Badge>
                 )}
                 <div className="bg-warm-white/95 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-clay-soft border border-clay-medium transition-all duration-300 hover:transform hover:scale-105 hover:shadow-burnt-peach">

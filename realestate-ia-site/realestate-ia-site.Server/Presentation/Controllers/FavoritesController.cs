@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+Ôªøusing Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -34,7 +34,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         }
 
         /// <summary>
-        /// Obter propriedades favoritas do usu·rio
+        /// Obter propriedades favoritas do utilizador
         /// </summary>
         [HttpGet]
         [ProducesResponseType(typeof(FavoritePropertiesResponse), StatusCodes.Status200OK)]
@@ -62,7 +62,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 var favorites = await query
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
-                    .Select(f => PropertySearchDto.FromDomain(f.Property))
+                    .Select(f => PropertySearchDto.FromDomain(f.Property, null))
                     .ToListAsync();
                 
                 _logger.LogInformation("Found {Count} favorite properties for user", favorites.Count);
@@ -100,7 +100,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 throw new AppUnauthorizedException("add to favorites");
 
             if (string.IsNullOrEmpty(request.PropertyId))
-                throw new ArgumentException("PropertyId È obrigatÛrio", nameof(request.PropertyId));
+                throw new ArgumentException("PropertyId obrigat√≥rio", nameof(request.PropertyId));
 
             _logger.LogInformation("Adding property {PropertyId} to favorites for user {UserId}", 
                 request.PropertyId, userId);
@@ -114,10 +114,10 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 if (!propertyExists)
                     throw new PropertyNotFoundException(request.PropertyId);
 
-                // Verificar se j· est· nos favoritos
+                // Verificar se j√° est√° nos favoritos
                 if (await IsFavoriteAsync(userId, request.PropertyId))
                 {
-                    return Conflict(new { message = "Propriedade j· est· nos favoritos" });
+                    return Conflict(new { message = "Propriedade j√° est√° nos favoritos" });
                 }
 
                 // Adicionar aos favoritos
@@ -140,7 +140,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
             }
             catch (PropertyNotFoundException)
             {
-                return NotFound(new { message = "Propriedade n„o encontrada" });
+                return NotFound(new { message = "Propriedade n√£o encontrada" });
             }
             catch (Exception ex)
             {
@@ -168,24 +168,24 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 _logger.LogInformation("Removing property {PropertyId} from favorites for user {UserId}", 
                     propertyId, userId);
 
-                // Verificar se est· nos favoritos e obter a propriedade
+                // Verificar se est√° nos favoritos e obter a propriedade
                 var favorite = await _context.Favorites
                     .Include(f => f.Property)
                     .FirstOrDefaultAsync(f => f.UserId == userId && f.PropertyId == propertyId);
 
                 if (favorite == null)
                 {
-                    return NotFound(new { message = "Propriedade n„o encontrada nos favoritas" });
+                    return NotFound(new { message = "Propriedade n√£o encontrada nos favoritos" });
                 }
 
-                // Guardar referÍncia ‡ propriedade antes de remover
+                // Guardar refer√™ncia √† propriedade antes de remover
                 var property = favorite.Property;
 
                 // Remover dos favoritos
                 _context.Favorites.Remove(favorite);
                 await _context.SaveChangesAsync();
 
-                // NOVO: Disparar evento de remoÁ„o de favorito
+                // NOVO: Disparar evento de remo√ß√£o de favorito
                 var favoriteRemovedEvent = new FavoriteRemovedEvent
                 {
                     UserId = userId,
@@ -199,7 +199,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 }
                 catch (Exception ex)
                 {
-                    // Log do erro mas n„o falha a remoÁ„o do favorito
+                    // Log do erro mas n√£o falha a remo√ß√£o do favorito
                     _logger.LogWarning(ex, "Failed to publish favorite removed event for user {UserId}", userId);
                 }
 
@@ -219,7 +219,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         }
 
         /// <summary>
-        /// Verificar se uma propriedade est· nos favoritos
+        /// Verificar se uma propriedade est√° nos favoritos
         /// </summary>
         [HttpGet("{propertyId}/status")]
         [ProducesResponseType(typeof(FavoriteStatusResponse), StatusCodes.Status200OK)]
@@ -252,7 +252,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         }
 
         /// <summary>
-        /// Limpar todos os favoritos do usu·rio
+        /// Limpar todos os favoritos do utilizador
         /// </summary>
         [HttpDelete]
         [ProducesResponseType(typeof(SuccessResponse), StatusCodes.Status200OK)]
@@ -290,7 +290,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
             }
         }
 
-        // MÈtodo auxiliar para verificar se uma propriedade È favorita
+        // M√©todo auxiliar para verificar se uma propriedade √© favorita
         private async Task<bool> IsFavoriteAsync(string userId, string propertyId)
         {
             return await _context.Favorites

@@ -29,7 +29,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         }
 
         /// <summary>
-        /// Registrar visualizaÁ„o de propriedade
+        /// Regista visualiza√ß√£o de propriedade
         /// </summary>
         [HttpPost("track")]
         [ProducesResponseType(typeof(TrackViewResponse), StatusCodes.Status200OK)]
@@ -40,17 +40,17 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         {
             var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
-                return Unauthorized(new { message = "Usu·rio n„o autenticado" });
+                return Unauthorized(new { message = "Utilizador n√£o autenticado" });
 
             if (string.IsNullOrEmpty(request.PropertyId))
-                return BadRequest(new { message = "PropertyId È obrigatÛrio" });
+                return BadRequest(new { message = "PropertyId obrigat√≥rio" });
 
             _logger.LogInformation("Tracking view for property {PropertyId} by user {UserId}", 
                 request.PropertyId, userId);
 
             try
             {
-                // 1. Verificar se j· existe (incluindo items hidden)
+                // 1. Verificar se j√° existe (incluindo items hidden)
                 var existing = await _context.PropertyViewHistories
                     .FirstOrDefaultAsync(h => h.UserId == userId && h.PropertyId == request.PropertyId);
 
@@ -74,16 +74,16 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 }
                 else
                 {
-                    // 2. ANTES de adicionar novo, verificar limite e remover antigos se necess·rio
+                    // 2. ANTES de adicionar novo, verificar limite e remover antigos se necess√°rio
                     var currentHistoryItems = await _context.PropertyViewHistories
-                        .Where(h => h.UserId == userId && !h.IsHidden) // SÛ contar os n„o hidden para o limite
+                        .Where(h => h.UserId == userId && !h.IsHidden) // Contar os n√£o hidden para o limite
                         .OrderBy(h => h.ViewedAt) // Mais antigos primeiro
                         .ToListAsync();
 
-                    // Se j· temos MAX_HISTORY_ITEMS (10), remover os mais antigos
+                    // Se j√° temos MAX_HISTORY_ITEMS (10), remover os mais antigos
                     if (currentHistoryItems.Count >= MAX_HISTORY_ITEMS)
                     {
-                        var itemsToRemove = currentHistoryItems.Count - MAX_HISTORY_ITEMS + 1; // +1 para dar espaÁo ao novo
+                        var itemsToRemove = currentHistoryItems.Count - MAX_HISTORY_ITEMS + 1; // +1 para dar espa√ßo ao novo
                         var toRemove = currentHistoryItems.Take(itemsToRemove).ToList();
                         
                         _context.PropertyViewHistories.RemoveRange(toRemove);
@@ -113,7 +113,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 return Ok(new TrackViewResponse
                 {
                     Success = true,
-                    Message = "VisualizaÁ„o registrada com sucesso",
+                    Message = "Visualiza√ß√£o registrada com sucesso",
                     ViewCount = existing.ViewCount
                 });
             }
@@ -126,7 +126,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         }
 
         /// <summary>
-        /// Ocultar item especÌfico do histÛrico de visualizaÁıes (soft delete)
+        /// Ocultar item espec√≠fico do hist√≥rico de visualiza√ß√µes (soft delete)
         /// </summary>
         [HttpPatch("{historyId}/remove")]
         [ProducesResponseType(typeof(RemoveFromHistoryResponse), StatusCodes.Status200OK)]
@@ -138,17 +138,17 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         {
             var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
-                return Unauthorized(new { message = "Usu·rio n„o autenticado" });
+                return Unauthorized(new { message = "Utilizador n√£o autenticado" });
 
             if (string.IsNullOrEmpty(historyId))
-                return BadRequest(new { message = "HistoryId È obrigatÛrio" });
+                return BadRequest(new { message = "HistoryId obrigat√≥rio" });
 
             _logger.LogInformation("Hiding view history item {HistoryId} for user {UserId}", 
                 historyId, userId);
 
             try
             {
-                // Buscar o item do histÛrico
+                // Buscar o item do hist√≥rico
                 var historyItem = await _context.PropertyViewHistories
                     .FirstOrDefaultAsync(h => h.Id == historyId && h.UserId == userId);
 
@@ -156,10 +156,10 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 {
                     _logger.LogWarning("View history item {HistoryId} not found for user {UserId}", 
                         historyId, userId);
-                    return NotFound(new { message = "Item do histÛrico n„o encontrado" });
+                    return NotFound(new { message = "Item do hist√≥rico n√£o encontrado" });
                 }
 
-                // Marcar como oculto ao invÈs de eliminar
+                // Marcar como oculto ao inv√©s de eliminar
                 historyItem.IsHidden = true;
                 historyItem.HiddenAt = DateTime.UtcNow;
 
@@ -171,7 +171,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 return Ok(new RemoveFromHistoryResponse
                 {
                     Success = true,
-                    Message = "Item removido do histÛrico com sucesso"
+                    Message = "Item removido do hist√≥rico com sucesso"
                 });
             }
             catch (Exception ex)
@@ -183,7 +183,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         }
 
         /// <summary>
-        /// Obter histÛrico de visualizaÁıes do usu·rio (excluindo itens ocultos)
+        /// Obter hist√≥rico de visualiza√ß√µes do usu√°rio (excluindo itens ocultos)
         /// </summary>
         [HttpGet]
         [ProducesResponseType(typeof(ViewHistoryResponse), StatusCodes.Status200OK)]
@@ -193,7 +193,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         {
             var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
-                return Unauthorized(new { message = "Usu·rio n„o autenticado" });
+                return Unauthorized(new { message = "Utilizador n√£o autenticado" });
 
             _logger.LogInformation("Getting view history for user {UserId}", userId);
 
@@ -218,11 +218,11 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                     {
                         Id = h.Id,
                         ViewedAt = h.ViewedAt,
-                        Property = PropertySearchDto.FromDomain(h.Property)
+                        Property = PropertySearchDto.FromDomain(h.Property,null)
                     })
                     .ToListAsync();
 
-                // Calcular totalViews apenas dos itens n„o ocultos
+                // Calcular totalViews apenas dos itens n√£o ocultos
                 var totalViews = await query.SumAsync(h => h.ViewCount);
 
                 _logger.LogInformation("Found {Count} view history items for user {UserId} (excluding hidden)", history.Count, userId);
@@ -242,7 +242,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         }
 
         /// <summary>
-        /// Reativar uma propriedade que estava oculta no histÛrico
+        /// Reativar uma propriedade que estava oculta no hist√≥rico
         /// </summary>
         [HttpPatch("{historyId}/reactivate")]
         [ProducesResponseType(typeof(TrackViewResponse), StatusCodes.Status200OK)]
@@ -254,17 +254,17 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         {
             var userId = GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
-                return Unauthorized(new { message = "Usu·rio n„o autenticado" });
+                return Unauthorized(new { message = "Utilizador n√£o autenticado" });
 
             if (string.IsNullOrEmpty(historyId))
-                return BadRequest(new { message = "HistoryId È obrigatÛrio" });
+                return BadRequest(new { message = "HistoryId obrigat√≥rio" });
 
             _logger.LogInformation("Reactivating view history item {HistoryId} for user {UserId}", 
                 historyId, userId);
 
             try
             {
-                // Buscar o item do histÛrico
+                // Buscar o item do hist√≥rico
                 var historyItem = await _context.PropertyViewHistories
                     .FirstOrDefaultAsync(h => h.Id == historyId && h.UserId == userId && h.IsHidden);
 
@@ -272,7 +272,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 {
                     _logger.LogWarning("Hidden view history item {HistoryId} not found for user {UserId}", 
                         historyId, userId);
-                    return NotFound(new { message = "Item do histÛrico n„o encontrado ou n„o est· oculto" });
+                    return NotFound(new { message = "Item do hist√≥rico n√£o encontrado ou n√£o est√° oculto" });
                 }
 
                 // Reativar

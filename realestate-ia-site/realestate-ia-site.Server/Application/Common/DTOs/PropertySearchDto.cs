@@ -1,3 +1,5 @@
+using Microsoft.EntityFrameworkCore;
+
 namespace realestate_ia_site.Server.Application.Common.DTOs;
 
 public class PropertySearchDto
@@ -14,12 +16,20 @@ public class PropertySearchDto
     public double Area { get; set; }
     public string? ImageUrl { get; set; }
     public string? Link { get; set; }
-    public string? SiteName { get; set; } 
+    public string? SiteName { get; set; }
     public DateTime? CreatedAt { get; set; }
+    
+    // Price Change Info
+    public bool HadRecentPriceChange { get; set; }
+    public decimal? PriceChangePercentage { get; set; } // Positive = increase, Negative = decrease
+    public DateTime? LastPriceChangeDate { get; set; }
+    public decimal? OldPrice { get; set; }
 
-    public static PropertySearchDto FromDomain(realestate_ia_site.Server.Domain.Entities.Property property)
+    public static PropertySearchDto FromDomain(
+        realestate_ia_site.Server.Domain.Entities.Property property,
+        realestate_ia_site.Server.Domain.Entities.PropertyPriceHistory? latestPriceChange = null)
     {
-        return new PropertySearchDto
+        var dto = new PropertySearchDto
         {
             Id = property.Id,
             SiteName = GetFriendlySiteName(property.SourceSite),
@@ -36,6 +46,20 @@ public class PropertySearchDto
             Link = property.Link,
             CreatedAt = property.CreatedAt
         };
+
+        // Calculate price change info if available
+        if (latestPriceChange != null && latestPriceChange.NewPrice != latestPriceChange.OldPrice)
+        {
+            var change = latestPriceChange.NewPrice - latestPriceChange.OldPrice;
+            var changePercentage = (change / latestPriceChange.OldPrice) * 100;
+
+            dto.HadRecentPriceChange = true;
+            dto.PriceChangePercentage = Math.Round(changePercentage, 1); // Negative = decrease, Positive = increase
+            dto.LastPriceChangeDate = latestPriceChange.ChangedAt;
+            dto.OldPrice = latestPriceChange.OldPrice;
+        }
+
+        return dto;
     }
 
     /// <summary>
@@ -54,11 +78,11 @@ public class PropertySearchDto
         if (!string.IsNullOrWhiteSpace(property.State) && property.State != "Portugal")
             parts.Add(property.State);
         
-        return parts.Count > 0 ? string.Join(", ", parts) : "Localização não disponivel";
+        return parts.Count > 0 ? string.Join(", ", parts) : "Localização não disponível";
     }
 
     /// <summary>
-    /// Converte o nome t́cnico do site em nome amigável (Idealista, Imovirtual, etc.)
+    /// Converte o nome técnico do site em nome amigável (Idealista, Imovirtual, etc.)
     /// </summary>
     private static string GetFriendlySiteName(string? sourceSite)
     {
@@ -69,13 +93,13 @@ public class PropertySearchDto
         {
             "idealista" => "Idealista",
             "imovirtual" => "Imovirtual",
-            "casasapo" => "Casa Sapo", 
+            "casasapo" => "Casa Sapo",
             "custojusto" => "Custo Justo",
             "olx" => "OLX",
             "remax" => "RE/MAX",
             "era" => "ERA",
             "century21" => "Century 21",
-            _ => sourceSite 
+            _ => sourceSite
         };
     }
 }

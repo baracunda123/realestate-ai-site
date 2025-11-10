@@ -319,11 +319,10 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
                 else if (entry.State == EntityState.Modified)
                 {
                     var originalPrice = entry.OriginalValues.GetValue<decimal?>(nameof(Property.Price));
-                    var outcome = entry.Entity.EvaluatePriceChange(originalPrice);
-                    if (outcome.HasChange)
+                    var priceHistory = entry.Entity.EvaluatePriceChange(originalPrice);
+                    if (priceHistory != null)
                     {
-                        PropertyPriceHistories.Add(outcome.History!);
-                        domainEvents.Add(outcome.Event!);
+                        PropertyPriceHistories.Add(priceHistory);
                     }
                 }
             }
