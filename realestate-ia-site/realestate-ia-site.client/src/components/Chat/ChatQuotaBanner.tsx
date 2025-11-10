@@ -118,7 +118,7 @@ export function ChatQuotaBanner({ onRefresh }: ChatQuotaBannerProps) {
 
         {/* Renovação */}
         <p className="text-xs text-warm-taupe">
-          Renova em {formatRenewalDate(stats.periodEnd)}
+          Renova a {formatRenewalDate(stats.periodEnd)}
         </p>
 
         {/* Upgrade Button */}
