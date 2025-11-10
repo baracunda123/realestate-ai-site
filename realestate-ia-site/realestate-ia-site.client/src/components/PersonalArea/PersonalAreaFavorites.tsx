@@ -22,9 +22,9 @@ export function PersonalAreaFavorites({
     return (
       <EmptyState
         icon={Heart}
-        title="Nenhuma propriedade favorita"
-        description="Explore propriedades e marque suas favoritas para acompanhar facilmente."
-        actionLabel="Explorar Propriedades"
+        title="Nenhum imóvel favorito"
+        description="Explora imóveis e marca-os como favoritos para acompanhar facilmente."
+        actionLabel="Explorar Imóveis"
         onAction={() => {
           // This should navigate to home/search
           window.location.href = '/';
@@ -38,9 +38,9 @@ export function PersonalAreaFavorites({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="font-medium text-foreground">Suas Propriedades Favoritas</h2>
+          <h2 className="font-medium text-foreground">Os teus imóveis favoritos</h2>
           <p className="text-sm text-muted-foreground">
-            {favorites.length} propriedades favoritadas
+            {favorites.length} imóveis favoritos
           </p>
         </div>
       </div>

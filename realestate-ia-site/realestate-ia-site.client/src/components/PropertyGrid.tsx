@@ -33,7 +33,7 @@ export function PropertyGrid({
       <div className="flex flex-col gap-3">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
           <h2 className="text-base sm:text-lg md:text-xl font-medium text-foreground">
-            {properties.length} {properties.length === 1 ? 'Propriedade' : 'Propriedades'}
+            {properties.length} {properties.length === 1 ? 'Imóvel' : 'Imóveis'}
           </h2>
         </div>
       </div>
@@ -60,11 +60,11 @@ export function PropertyGrid({
           <div className="w-12 h-12 sm:w-16 sm:h-16 bg-pale-clay-light rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
             <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-cocoa-taupe" />
           </div>
-          <p className="text-foreground mb-2 text-sm sm:text-base">Nenhuma propriedade encontrada</p>
-          <p className="text-xs sm:text-sm text-muted-foreground px-4">Tente ajustar os seus filtros ou termos de procura</p>
+          <p className="text-foreground mb-2 text-sm sm:text-base">Nenhum imóvel encontrado</p>
+          <p className="text-xs sm:text-sm text-muted-foreground px-4">Tenta ajustar os seus filtros ou termos de pesquisa</p>
           {searchQuery && (
             <p className="text-xs sm:text-sm text-burnt-peach mt-2 px-4">
-              Experimente procurar por características específicas como localização ou tipo de imóvel
+              Experimenta pesquisar por características específicas como localização ou tipo de imóvel
             </p>
           )}
         </div>

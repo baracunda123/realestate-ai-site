@@ -47,7 +47,7 @@ export function PersonalAreaSettings({
       
       setIsEditingProfile(false);
       toast.success('Perfil atualizado com sucesso!', {
-        description: 'As suas informações foram guardadas.',
+        description: 'As tuas informações foram guardadas.',
       });
     } catch (error: unknown) {
       logger.error('Erro ao atualizar perfil', error as Error);
@@ -79,7 +79,7 @@ export function PersonalAreaSettings({
   const handleDeleteAccount = async () => {
     if (!deletePassword.trim()) {
       toast.error('Password obrigatória', {
-        description: 'Por favor, insira a sua password para confirmar.',
+        description: 'Por favor, insere a tua password para confirmar.',
       });
       return;
     }
@@ -94,7 +94,7 @@ export function PersonalAreaSettings({
       if (response.success) {
         logger.info('Conta eliminada com sucesso');
         toast.success('Conta eliminada com sucesso!', {
-          description: 'Os seus dados foram removidos permanentemente.',
+          description: 'Os teus dados foram removidos permanentemente.',
         });
         
         // Chamar callback para logout e redirecionamento
@@ -172,7 +172,7 @@ export function PersonalAreaSettings({
               />
               <div className="text-center max-w-xs">
                 <p className="text-xs text-muted-foreground">
-                  Clique na imagem ou arraste um ficheiro
+                  Clica na imagem ou arraste um ficheiro
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Formatos: JPG, PNG, GIF, WebP (máx. 5MB)
@@ -240,7 +240,7 @@ export function PersonalAreaSettings({
             <div>
               <h4 className="font-medium text-foreground">Eliminar Conta</h4>
               <p className="text-sm text-muted-foreground">
-                Elimine permanentemente a sua conta e todos os dados associados
+                Elimina permanentemente a tua conta e todos os dados associados
               </p>
             </div>
             
@@ -258,21 +258,21 @@ export function PersonalAreaSettings({
                 <AlertDialogHeader>
                   <AlertDialogTitle>Eliminar Conta Permanentemente</AlertDialogTitle>
                   <AlertDialogDescription>
-                    Esta acção não pode ser desfeita. Isto eliminará permanentemente a sua conta
-                    e removerá todos os seus dados dos nossos servidores, incluindo:
+                    Esta acção não pode ser desfeita. Isto eliminará permanentemente a tua conta
+                    e removerá todos os teus dados dos nossos servidores, incluindo:
                     <br /><br />
-                    • Propriedades favoritas<br />
+                    • Imóveis favoritos<br />
                     • Pesquisas guardadas<br />
                     • Histórico de visualizações<br />
                     • Alertas configurados<br />
                     <br /><br />
-                    <strong>Para confirmar, insira a sua password:</strong>
+                    <strong>Para confirmar, insere a tua password:</strong>
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="py-4">
                   <Input
                     type="password"
-                    placeholder="Insira a sua password"
+                    placeholder="Insere a tua password"
                     value={deletePassword}
                     onChange={(e) => setDeletePassword(e.target.value)}
                     className="w-full"

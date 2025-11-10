@@ -49,19 +49,19 @@ export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
     { 
       icon: Search, 
       title: "Pesquise", 
-      desc: "Use linguagem natural para descrever o que você procura",
+      desc: "Escreve à AI o que procuras num imóvel",
       gradient: "from-burnt-peach-lighter to-burnt-peach-light"
     },
     { 
       icon: Sparkles, 
       title: "IA Analisa", 
-      desc: "Nossa IA processa sua pesquisa e aplica filtros inteligentes",
+      desc: "A nossa AI processar o pedido e aplicar filtros inteligentes",
       gradient: "from-cocoa-taupe-lighter to-cocoa-taupe-light"
     },
     { 
       icon: Star, 
       title: "Encontre", 
-      desc: "Veja resultados ranqueados pela relevância da IA",
+      desc: "Vê os resultados mais relevantes ranqueados pela IA",
       gradient: "from-pale-clay-light to-pale-clay-medium"
     }
   ];
@@ -201,9 +201,9 @@ export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
               transition={{ delay: 0.2, duration: 0.4 }}
             >
               {user ? (
-                "Sua busca inteligente por propriedades começa aqui. Use linguagem natural e deixe nossa IA encontrar exatamente o que você procura."
+                "Começa aqui a tua procura inteligente pelo imóvel certo. Indica o que tens em mente e a nossa AI fará o resto por ti."
               ) : (
-                "Descubra milhares de propriedades com nossa tecnologia de busca alimentada por IA. Para começar suas pesquisas personalizadas, você precisa criar uma conta gratuita."
+                "Descobre milhares de imóveis com a nossa tecnologia de pesquisa alimentada por AI. Para começares as tuas pesquisas personalizadas, cria uma conta gratuita."
               )}
             </motion.p>
             
@@ -248,7 +248,7 @@ export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
             Como funciona
           </h2>
           <p className="text-sm" style={{ color: 'var(--warm-taupe-light)' }}>
-            Três passos simples para encontrar sua propriedade ideal
+            Três passos simples para encontrares o teu imóvel ideal
           </p>
         </motion.div>
 
@@ -370,7 +370,7 @@ export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
               {/* Ícone com animação */}
               <Sparkles className="h-5 w-5 mr-2 group-hover:rotate-12 group-hover:scale-110 transition-transform duration-300 relative z-10" />
               
-              <span className="relative z-10">Começar a Pesquisar com IA</span>
+              <span className="relative z-10">Começar a Pesquisar com AI</span>
               
               {/* Seta animada */}
               <motion.svg
@@ -427,7 +427,7 @@ export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.8, duration: 0.3 }}
               >
-                Você pode fazer pesquisas similares a estas usando a barra de pesquisa:
+                Podes fazer pesquisas semelhantes a estas usando a barra de pesquisa:
               </motion.p>
               <div className="grid gap-2">
                 {exampleSearches.map((search, index) => (

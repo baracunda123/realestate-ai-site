@@ -18,8 +18,8 @@ namespace realestate_ia_site.Server.Infrastructure.Configurations
             WebhookSecret = config["Stripe:WebhookSecret"] ?? throw new InvalidOperationException("Stripe Webhook Secret não configurada");
             
             // URLs de redirecionamento (com fallback para desenvolvimento)
-            SuccessUrl = config["Stripe:SuccessUrl"] ?? "http://localhost:64222/subscription/success?session_id={CHECKOUT_SESSION_ID}";
-            CancelUrl = config["Stripe:CancelUrl"] ?? "http://localhost:64222/subscription/cancel";
+            SuccessUrl = config["Stripe:SuccessUrl"] ?? "https://localhost:64222/subscription/success?session_id={CHECKOUT_SESSION_ID}";
+            CancelUrl = config["Stripe:CancelUrl"] ?? "https://localhost:64222/subscription/cancel";
             
             Stripe.StripeConfiguration.ApiKey = SecretKey;
             _logger.LogInformation("Stripe configurado com sucesso - SuccessUrl: {SuccessUrl}, CancelUrl: {CancelUrl}", SuccessUrl, CancelUrl);

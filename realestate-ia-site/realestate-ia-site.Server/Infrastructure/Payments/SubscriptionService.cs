@@ -54,23 +54,61 @@ namespace realestate_ia_site.Server.Infrastructure.Payments
                 }
 
                 string customerId;
-                if (string.IsNullOrEmpty(user.UserId))
+                
+                // Tentar reutilizar customer existente
+                if (!string.IsNullOrEmpty(user.UserId))
                 {
-                    var customer = await _customerService.CreateAsync(new CustomerCreateOptions
+                    try
                     {
-                        Email = user.Email!,
-                        Name = user.Name
-                    });
-                    customerId = customer.Id;
-                    user.UserId = customerId;
-                    await _userManager.UpdateAsync(user);
+                        // Verificar se o customer ainda existe no Stripe
+                        var existingCustomer = await _customerService.GetAsync(user.UserId);
+                        customerId = existingCustomer.Id;
+                        _logger.LogInformation("[Subscription] Reutilizando customer existente customerId={CustomerId}", customerId);
+                    }
+                    catch (StripeException ex)
+                    {
+                        // Customer não existe no Stripe, criar novo
+                        _logger.LogWarning("[Subscription] Customer não encontrado no Stripe customerId={CustomerId}, criando novo. Erro: {Error}", 
+                            user.UserId, ex.Message);
+                        var customer = await _customerService.CreateAsync(new CustomerCreateOptions
+                        {
+                            Email = user.Email!,
+                            Name = user.Name,
+                            Metadata = new Dictionary<string, string>
+                            {
+                                { "user_id", userId }
+                            }
+                        });
+                        customerId = customer.Id;
+                        user.UserId = customerId;
+                        await _userManager.UpdateAsync(user);
+                        _logger.LogInformation("[Subscription] Novo customer criado customerId={CustomerId}", customerId);
+                    }
                 }
                 else
                 {
-                    customerId = user.UserId;
+                    // User não tem customer, criar novo
+                    var customer = await _customerService.CreateAsync(new CustomerCreateOptions
+                    {
+                        Email = user.Email!,
+                        Name = user.Name,
+                        Metadata = new Dictionary<string, string>
+                        {
+                            { "user_id", userId }
+                        }
+                    });
+                    customerId = customer.Id;
+                    user.UserId = customerId;
+                    var updateResult = await _userManager.UpdateAsync(user);
+                    if (!updateResult.Succeeded)
+                    {
+                        _logger.LogError("[Subscription] Falha ao atualizar user com customerId={CustomerId} errors={Errors}", 
+                            customerId, string.Join(", ", updateResult.Errors.Select(e => e.Description)));
+                    }
+                    _logger.LogInformation("[Subscription] Primeiro customer criado para user customerId={CustomerId}", customerId);
                 }
 
-                var session = await _sessionService.CreateAsync(new SessionCreateOptions
+                var sessionOptions = new SessionCreateOptions
                 {
                     PaymentMethodTypes = new List<string> { "card" },
                     LineItems = new List<SessionLineItemOptions>
@@ -85,6 +123,7 @@ namespace realestate_ia_site.Server.Infrastructure.Payments
                     SuccessUrl = _stripeOptions.SuccessUrl,
                     CancelUrl = _stripeOptions.CancelUrl,
                     ClientReferenceId = userId,
+                    Customer = customerId,
                     Metadata = new Dictionary<string, string>
                     {
                         { "user_id", userId },
@@ -97,9 +136,10 @@ namespace realestate_ia_site.Server.Infrastructure.Payments
                             { "user_id", userId },
                             { "price_id", priceId }
                         }
-                    },
-                    Customer = customerId
-                });
+                    }
+                };
+
+                var session = await _sessionService.CreateAsync(sessionOptions);
 
                 _logger.LogInformation("[Subscription] Checkout session criada: session={SessionId} utilizador={UserId}", session.Id, userId);
 
@@ -218,64 +258,80 @@ namespace realestate_ia_site.Server.Infrastructure.Payments
 
         public async Task UpdateSubscriptionFromStripeAsync(Stripe.Subscription stripeSubscription)
         {
-            var subscription = await _context.Subscriptions
-                .FirstOrDefaultAsync(s => s.StripeId == stripeSubscription.Id);
-
-            if (subscription == null)
+            try
             {
-                User? user = null;
+                _logger.LogInformation("[Subscription] Iniciando sincronização stripeId={StripeSubId}", stripeSubscription.Id);
                 
-                // Tentar encontrar utilizador pelos metadados da subscrição (método principal)
-                if (stripeSubscription.Metadata != null && stripeSubscription.Metadata.ContainsKey("user_id"))
+                var subscription = await _context.Subscriptions
+                    .FirstOrDefaultAsync(s => s.StripeId == stripeSubscription.Id);
+
+                if (subscription == null)
                 {
-                    var userId = stripeSubscription.Metadata["user_id"];
-                    user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
-                    _logger.LogInformation("[Subscription] Utilizador encontrado por metadata user_id={UserId}", userId);
-                }
-                
-                if (user == null)
-                {
-                    _logger.LogError("[Subscription] Utilizador não encontrado para subscrição stripeId={StripeSubId} customerId={CustomerId} metadata={Metadata}", 
-                        stripeSubscription.Id, stripeSubscription.CustomerId, 
-                        stripeSubscription.Metadata != null ? string.Join(",", stripeSubscription.Metadata.Keys) : "null");
-                    return;
+                    User? user = null;
+                    
+                    // Tentar encontrar utilizador pelos metadados da subscrição (método principal)
+                    if (stripeSubscription.Metadata != null && stripeSubscription.Metadata.ContainsKey("user_id"))
+                    {
+                        var userId = stripeSubscription.Metadata["user_id"];
+                        user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                        _logger.LogInformation("[Subscription] Utilizador encontrado por metadata user_id={UserId}", userId);
+                    }
+                    
+                    if (user == null)
+                    {
+                        _logger.LogError("[Subscription] Utilizador não encontrado para subscrição stripeId={StripeSubId} customerId={CustomerId} metadata={Metadata}", 
+                            stripeSubscription.Id, stripeSubscription.CustomerId, 
+                            stripeSubscription.Metadata != null ? string.Join(",", stripeSubscription.Metadata.Keys) : "null");
+                        return;
+                    }
+
+                    subscription = new Domain.Entities.Subscription
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        UserId = user.Id,
+                        StripeId = stripeSubscription.Id,
+                        CustomerId = stripeSubscription.CustomerId,
+                        CreatedAt = DateTime.UtcNow
+                    };
+
+                    _context.Subscriptions.Add(subscription);
+                    _logger.LogInformation("[Subscription] Nova assinatura registada stripeId={StripeSubId} utilizador={UserId}", stripeSubscription.Id, user.Id);
                 }
 
-                subscription = new Domain.Entities.Subscription
+                long? ToEpoch(DateTime? dt)
                 {
-                    Id = Guid.NewGuid().ToString(),
-                    UserId = user.Id,
-                    StripeId = stripeSubscription.Id,
-                    CustomerId = stripeSubscription.CustomerId,
-                    CreatedAt = DateTime.UtcNow
-                };
+                    if (!dt.HasValue) return null;
+                    var specified = DateTime.SpecifyKind(dt.Value, DateTimeKind.Utc);
+                    return new DateTimeOffset(specified).ToUnixTimeSeconds();
+                }
 
-                _context.Subscriptions.Add(subscription);
-                _logger.LogInformation("[Subscription] Nova assinatura registada stripeId={StripeSubId} utilizador={UserId}", stripeSubscription.Id, user.Id);
+                var priceId = stripeSubscription.Items.Data.FirstOrDefault()?.Price.Id;
+                
+                subscription.Status = stripeSubscription.Status;
+                subscription.PriceId = priceId;
+                subscription.StripePriceId = priceId;
+                subscription.Currency = stripeSubscription.Items.Data.FirstOrDefault()?.Price.Currency;
+                subscription.Interval = stripeSubscription.Items.Data.FirstOrDefault()?.Price.Recurring?.Interval;
+                subscription.Amount = stripeSubscription.Items.Data.FirstOrDefault()?.Price.UnitAmount;
+                subscription.StartedAt = ToEpoch(stripeSubscription.StartDate);
+                subscription.EndedAt = ToEpoch(stripeSubscription.EndedAt);
+                subscription.CanceledAt = ToEpoch(stripeSubscription.CanceledAt);
+                subscription.UpdatedAt = DateTime.UtcNow;
+
+                _logger.LogInformation("[Subscription] Salvando na BD stripeId={StripeSubId} userId={UserId} status={Status}", 
+                    stripeSubscription.Id, subscription.UserId, subscription.Status);
+                
+                await _context.SaveChangesAsync();
+                
+                _logger.LogInformation("[Subscription] ✅ Subscrição sincronizada com sucesso stripeId={StripeSubId} status={Status}", 
+                    stripeSubscription.Id, subscription.Status);
             }
-
-            long? ToEpoch(DateTime? dt)
+            catch (Exception ex)
             {
-                if (!dt.HasValue) return null;
-                var specified = DateTime.SpecifyKind(dt.Value, DateTimeKind.Utc);
-                return new DateTimeOffset(specified).ToUnixTimeSeconds();
+                _logger.LogError(ex, "[Subscription] ❌ ERRO ao sincronizar subscrição stripeId={StripeSubId} - {ErrorMessage}", 
+                    stripeSubscription.Id, ex.Message);
+                throw; // Re-lançar para o webhook handler capturar
             }
-
-            var priceId = stripeSubscription.Items.Data.FirstOrDefault()?.Price.Id;
-            
-            subscription.Status = stripeSubscription.Status;
-            subscription.PriceId = priceId;
-            subscription.StripePriceId = priceId;
-            subscription.Currency = stripeSubscription.Items.Data.FirstOrDefault()?.Price.Currency;
-            subscription.Interval = stripeSubscription.Items.Data.FirstOrDefault()?.Price.Recurring?.Interval;
-            subscription.Amount = stripeSubscription.Items.Data.FirstOrDefault()?.Price.UnitAmount;
-            subscription.StartedAt = ToEpoch(stripeSubscription.StartDate);
-            subscription.EndedAt = ToEpoch(stripeSubscription.EndedAt);
-            subscription.CanceledAt = ToEpoch(stripeSubscription.CanceledAt);
-            subscription.UpdatedAt = DateTime.UtcNow;
-
-            await _context.SaveChangesAsync();
-            _logger.LogDebug("[Subscription] Sincronizada assinatura stripeId={StripeSubId} status={Status}", stripeSubscription.Id, subscription.Status);
         }
 
         public async Task HandleSubscriptionDeletedAsync(string subscriptionId)
