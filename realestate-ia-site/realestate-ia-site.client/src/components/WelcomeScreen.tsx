@@ -67,8 +67,11 @@ export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
   ];
 
 
-  // Mouse tracking
+  // Mouse tracking - Disable on mobile for performance
   useEffect(() => {
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) return;
+
     const handleMouseMove = (e: MouseEvent) => {
       setMousePosition({ x: e.clientX, y: e.clientY });
     };
@@ -122,8 +125,8 @@ export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
       initial="hidden"
       animate="visible"
     >
-      {/* Subtle Background Elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+      {/* Subtle Background Elements - Hidden on mobile */}
+      <div className="hidden md:block fixed inset-0 overflow-hidden pointer-events-none">
         <motion.div
           className="absolute top-20 left-20 w-24 h-24 rounded-full blur-2xl opacity-30"
           style={{ backgroundColor: 'var(--pale-clay-light)' }}
@@ -156,7 +159,7 @@ export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
       {/* Main Welcome Section */}
       <motion.div variants={itemVariants}>
         <Card className="border-0 shadow-none bg-transparent relative overflow-hidden">
-          <CardContent className="p-8 text-center relative z-10">
+          <CardContent className="p-4 sm:p-6 md:p-8 text-center relative z-10">
             <motion.div 
               className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-6 relative gpu-accelerate"
               style={{
@@ -173,7 +176,7 @@ export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
             </motion.div>
             
             <motion.h1 
-              className="text-2xl font-medium mb-3"
+              className="text-xl sm:text-2xl md:text-3xl font-medium mb-3"
               style={{ color: 'var(--deep-mocha)' }}
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
@@ -182,7 +185,7 @@ export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
               Bem-vindo ao ResideAI
               {user && (
                 <motion.span 
-                  className="block text-lg mt-2"
+                  className="block text-base sm:text-lg mt-2"
                   style={{ color: 'var(--warm-taupe)' }}
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
@@ -194,7 +197,7 @@ export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
             </motion.h1>
             
             <motion.p 
-              className="text-base mb-6 max-w-2xl mx-auto leading-relaxed"
+              className="text-sm sm:text-base mb-4 sm:mb-6 max-w-2xl mx-auto leading-relaxed px-2"
               style={{ color: 'var(--warm-taupe)' }}
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -243,16 +246,16 @@ export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
         className="max-w-4xl mx-auto"
         variants={containerVariants}
       >
-        <motion.div variants={itemVariants} className="text-center mb-6">
-          <h2 className="text-lg font-medium mb-2" style={{ color: 'var(--deep-mocha)' }}>
+        <motion.div variants={itemVariants} className="text-center mb-4 sm:mb-6 px-4">
+          <h2 className="text-base sm:text-lg font-medium mb-2" style={{ color: 'var(--deep-mocha)' }}>
             Como funciona
           </h2>
-          <p className="text-sm" style={{ color: 'var(--warm-taupe-light)' }}>
+          <p className="text-xs sm:text-sm" style={{ color: 'var(--warm-taupe-light)' }}>
             Três passos simples para encontrares o teu imóvel ideal
           </p>
         </motion.div>
 
-        <div className="grid md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 px-2 sm:px-0">
           {stepItems.map((step, index) => (
             <motion.div
               key={`step-${step.title}-${index}`}
@@ -260,7 +263,7 @@ export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
               className="group gpu-accelerate"
             >
               <motion.div
-                className="relative p-4 rounded-2xl border gpu-accelerate"
+                className="relative p-3 sm:p-4 rounded-2xl border gpu-accelerate"
                 style={{
                   backgroundColor: 'var(--porcelain-soft)',
                   borderColor: 'var(--pale-clay-medium)',
@@ -324,7 +327,7 @@ export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
 
                 {/* Content */}
                 <div className="text-center">
-                  <h3 className="font-medium mb-2 text-base" style={{ color: 'var(--deep-mocha)' }}>
+                  <h3 className="font-medium mb-1 sm:mb-2 text-sm sm:text-base" style={{ color: 'var(--deep-mocha)' }}>
                     {step.title}
                   </h3>
                   <p className="text-xs leading-relaxed" style={{ color: 'var(--warm-taupe)' }}>
@@ -362,15 +365,15 @@ export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
             <Button
               onClick={onStartSearch}
               size="lg"
-              className="group relative overflow-hidden h-14 px-8 text-base font-semibold shadow-xl transition-all duration-300 bg-gradient-to-r from-burnt-peach to-burnt-peach-light hover:from-burnt-peach-light hover:to-burnt-peach border-0 text-deep-mocha hover:shadow-2xl shadow-burnt-peach/40 hover:shadow-burnt-peach/50"
+              className="group relative overflow-hidden h-12 sm:h-14 px-6 sm:px-8 text-sm sm:text-base font-semibold shadow-xl transition-all duration-300 bg-gradient-to-r from-burnt-peach to-burnt-peach-light hover:from-burnt-peach-light hover:to-burnt-peach border-0 text-deep-mocha hover:shadow-2xl shadow-burnt-peach/40 hover:shadow-burnt-peach/50 w-full sm:w-auto"
             >
               {/* Efeito de brilho animado */}
               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-out" />
               
               {/* Ícone com animação */}
-              <Sparkles className="h-5 w-5 mr-2 group-hover:rotate-12 group-hover:scale-110 transition-transform duration-300 relative z-10" />
+              <Sparkles className="h-4 w-4 sm:h-5 sm:w-5 mr-2 group-hover:rotate-12 group-hover:scale-110 transition-transform duration-300 relative z-10" />
               
-              <span className="relative z-10">Começar a Pesquisar com AI</span>
+              <span className="relative z-10">Começar a Pesquisar</span>
               
               {/* Seta animada */}
               <motion.svg
@@ -406,8 +409,8 @@ export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
               border: '1px solid var(--pale-clay-medium)'
             }}
           >
-            <CardHeader className="pb-3">
-              <CardTitle className="flex items-center space-x-2 text-base">
+            <CardHeader className="pb-2 sm:pb-3">
+              <CardTitle className="flex items-center space-x-2 text-sm sm:text-base">
                 <motion.div 
                   className="w-5 h-5 rounded-lg flex items-center justify-center gpu-accelerate"
                   style={{ backgroundColor: 'var(--burnt-peach-lighter)' }}
@@ -421,7 +424,7 @@ export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
             </CardHeader>
             <CardContent className="space-y-3">
               <motion.p 
-                className="text-sm mb-3"
+                className="text-xs sm:text-sm mb-2 sm:mb-3"
                 style={{ color: 'var(--warm-taupe)' }}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -439,14 +442,14 @@ export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
                     transition={{ delay: 1 + index * 0.05, duration: 0.3 }}
                   >
                     <div
-                      className="flex items-center space-x-3 p-3 rounded-lg"
+                      className="flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 rounded-lg"
                       style={{
                         backgroundColor: 'var(--porcelain-soft)',
                         border: '1px solid var(--pale-clay-medium)'
                       }}
                     >
                       <motion.div
-                        className="w-8 h-8 rounded-lg flex items-center justify-center gpu-accelerate"
+                        className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center gpu-accelerate flex-shrink-0"
                         style={{ 
                           backgroundColor: 'var(--pale-clay-light)',
                           willChange: 'transform, background-color'
@@ -457,9 +460,9 @@ export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
                         }}
                         transition={{ duration: 0.15 }}
                       >
-                        <search.icon className="h-3.5 w-3.5" style={{ color: 'var(--cocoa-taupe)' }} />
+                        <search.icon className="h-3 w-3 sm:h-3.5 sm:w-3.5" style={{ color: 'var(--cocoa-taupe)' }} />
                       </motion.div>
-                      <span className="text-sm font-normal" style={{ color: 'var(--deep-mocha-light)' }}>{search.text}</span>
+                      <span className="text-xs sm:text-sm font-normal" style={{ color: 'var(--deep-mocha-light)' }}>{search.text}</span>
                     </div>
                   </motion.div>
                 ))}
