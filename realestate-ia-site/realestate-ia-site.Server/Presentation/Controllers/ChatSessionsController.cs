@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using realestate_ia_site.Server.Application.Common.DTOs;
 using realestate_ia_site.Server.Application.Features.Chat.DTOs;
 using realestate_ia_site.Server.Application.Features.Chat.Interfaces;
 
@@ -11,13 +12,16 @@ namespace realestate_ia_site.Server.Presentation.Controllers
     public class ChatSessionsController : BaseController
     {
         private readonly IChatSessionService _chatSessionService;
+        private readonly IChatSessionPropertyService _chatSessionPropertyService;
         private readonly ILogger<ChatSessionsController> _logger;
 
         public ChatSessionsController(
             IChatSessionService chatSessionService,
+            IChatSessionPropertyService chatSessionPropertyService,
             ILogger<ChatSessionsController> logger)
         {
             _chatSessionService = chatSessionService;
+            _chatSessionPropertyService = chatSessionPropertyService;
             _logger = logger;
         }
 
@@ -177,6 +181,28 @@ namespace realestate_ia_site.Server.Presentation.Controllers
             {
                 _logger.LogError(ex, "Erro ao obter/criar sessão ativa");
                 return StatusCode(500, new { error = "Erro ao obter sessão ativa" });
+            }
+        }
+
+        /// <summary>
+        /// Obter propriedades associadas a uma sessão
+        /// </summary>
+        [HttpGet("{sessionId}/properties")]
+        [ProducesResponseType(typeof(List<PropertySearchDto>), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+        public async Task<ActionResult<List<PropertySearchDto>>> GetSessionProperties(
+            string sessionId,
+            CancellationToken ct = default)
+        {
+            try
+            {
+                var properties = await _chatSessionPropertyService.GetSessionPropertiesAsync(sessionId, ct);
+                return Ok(properties);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao obter propriedades da sessão {SessionId}", sessionId);
+                return StatusCode(500, new { error = "Erro ao obter propriedades da sessão" });
             }
         }
     }

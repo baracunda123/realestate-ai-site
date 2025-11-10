@@ -131,4 +131,19 @@ export async function getOrCreateActiveSession(): Promise<ChatSessionDto> {
   }
 }
 
+/**
+ * Obter propriedades associadas a uma sessão
+ */
+export async function getSessionProperties(sessionId: string): Promise<any[]> {
+  try {
+    logger.info(`Obtendo propriedades da sessão ${sessionId}`, 'CHAT_SESSIONS');
+    const properties = await apiClient.get<any[]>(`/api/ChatSessions/${sessionId}/properties`);
+    logger.info(`${properties.length} propriedades encontradas na sessão ${sessionId}`, 'CHAT_SESSIONS');
+    return properties;
+  } catch (error) {
+    logger.error(`Erro ao obter propriedades da sessão ${sessionId}`, 'CHAT_SESSIONS', error as Error);
+    throw error;
+  }
+}
+
 logger.info('Chat Sessions Service carregado', 'CHAT_SESSIONS');

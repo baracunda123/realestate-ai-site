@@ -17,6 +17,7 @@ public interface IApplicationDbContext
     DbSet<ChatUsageQuota> ChatUsageQuotas { get; }
     DbSet<ChatSession> ChatSessions { get; }
     DbSet<ChatMessage> ChatMessages { get; }
+    DbSet<ChatSessionProperty> ChatSessionProperties { get; }
     DbSet<User> Users { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

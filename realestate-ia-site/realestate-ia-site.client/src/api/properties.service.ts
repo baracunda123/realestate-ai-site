@@ -24,6 +24,9 @@ interface SearchAIResponse {
     totalListings: number;
     recommendations: string[];
   };
+  sessionId?: string;
+  sessionTitleUpdated?: boolean;
+  updatedSessionTitle?: string;
 }
 
 interface FavoritePropertiesResponse {

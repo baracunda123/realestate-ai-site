@@ -32,6 +32,7 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
         public DbSet<ChatUsageQuota> ChatUsageQuotas { get; set; }
         public DbSet<ChatSession> ChatSessions { get; set; }
         public DbSet<ChatMessage> ChatMessages { get; set; }
+        public DbSet<ChatSessionProperty> ChatSessionProperties { get; set; }
         public DbSet<User> Users => Set<User>();
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -247,6 +248,25 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
                 entity.HasOne(e => e.Session)
                       .WithMany(s => s.Messages)
                       .HasForeignKey(e => e.SessionId)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
+
+            // Configurações para ChatSessionProperty
+            builder.Entity<ChatSessionProperty>(entity =>
+            {
+                entity.HasIndex(e => e.SessionId);
+                entity.HasIndex(e => e.PropertyId);
+                entity.HasIndex(e => new { e.SessionId, e.DisplayOrder });
+                entity.HasIndex(e => new { e.SessionId, e.PropertyId }).IsUnique();
+
+                entity.HasOne(e => e.Session)
+                      .WithMany()
+                      .HasForeignKey(e => e.SessionId)
+                      .OnDelete(DeleteBehavior.Cascade);
+
+                entity.HasOne(e => e.Property)
+                      .WithMany()
+                      .HasForeignKey(e => e.PropertyId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
 

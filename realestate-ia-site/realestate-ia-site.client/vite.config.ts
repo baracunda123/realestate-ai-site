@@ -15,10 +15,10 @@ const certificateName = "realestate-ia-site.client";
 const certFilePath = path.join(baseFolder, `${certificateName}.pem`);
 const keyFilePath = path.join(baseFolder, `${certificateName}.key`);
 
-// Detectar se est· em ambiente de CI/CD
+// Detectar se est√° em ambiente de CI/CD
 const isCI = env.CI === 'true' || env.GITHUB_ACTIONS === 'true' || env.AZURE_STATIC_WEB_APPS_API_TOKEN;
 
-// SÛ tentar criar certificados se n„o estiver em CI
+// Se n√£o estiver em CI, tentar criar certificados
 if (!isCI) {
     if (!fs.existsSync(baseFolder)) {
         fs.mkdirSync(baseFolder, { recursive: true });
@@ -42,7 +42,7 @@ if (!isCI) {
 const target = env.ASPNETCORE_HTTPS_PORT ? `https://localhost:${env.ASPNETCORE_HTTPS_PORT}` :
     env.ASPNETCORE_URLS ? env.ASPNETCORE_URLS.split(';')[0] : 'https://localhost:7027';
 
-// Configurar HTTPS apenas se n„o estiver em CI e os certificados existirem
+// Configurar HTTPS apenas se n√£o estiver em CI e os certificados existirem
 let httpsConfig = undefined;
 if (!isCI && fs.existsSync(certFilePath) && fs.existsSync(keyFilePath)) {
     try {
@@ -64,7 +64,7 @@ export default defineConfig({
         }
     },
     build: {
-        // OtimizaÁıes b·sicas de build
+        // Otimiza√ß√µes b√°sicas de build
         target: 'es2020',
         minify: 'esbuild',
         outDir: 'dist',

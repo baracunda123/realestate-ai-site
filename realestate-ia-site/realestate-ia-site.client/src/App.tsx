@@ -16,8 +16,7 @@ import { isQuotaExceededError } from './api/chat-usage.service';
 import { 
   getChatSessions, 
   createChatSession, 
-  deleteChatSession, 
-  getChatSession,
+  deleteChatSession,
   type ChatSessionDto 
 } from './api/chat-sessions.service';
 
@@ -371,6 +370,16 @@ export default function App() {
       setSearchResults(result.properties || []);
       setSearchQuery(query);
       
+      // Atualizar título da sessão se foi modificado
+      if (result.sessionTitleUpdated && result.updatedSessionTitle && currentSessionId) {
+        setChatSessions(prev => prev.map(session => 
+          session.id === currentSessionId 
+            ? { ...session, title: result.updatedSessionTitle! }
+            : session
+        ));
+        logger.info(`Título da sessão ${currentSessionId} atualizado para: ${result.updatedSessionTitle}`, 'APP');
+      }
+      
       // Add AI response to history
       if (result.aiResponse) {
         const aiMessage = {
@@ -465,6 +474,7 @@ export default function App() {
     
     try {
       // Carregar mensagens da sessão
+      const { getChatSession, getSessionProperties } = await import('./api/chat-sessions.service');
       const session = await getChatSession(sessionId);
       
       // Converter mensagens para formato do histórico
@@ -476,6 +486,20 @@ export default function App() {
       }));
       
       setConversationHistory(history);
+      
+      // Carregar propriedades associadas à sessão
+      try {
+        const properties = await getSessionProperties(sessionId);
+        if (properties && properties.length > 0) {
+          setSearchResults(properties);
+          logger.info(`${properties.length} propriedades carregadas da sessão ${sessionId}`, 'APP');
+        } else {
+          setSearchResults(null);
+        }
+      } catch (propError) {
+        logger.warn('Erro ao carregar propriedades da sessão, continuando sem elas', 'APP');
+        setSearchResults(null);
+      }
     } catch (error) {
       logger.error('Erro ao carregar sessão', 'APP', error as Error);
       toast.error('Erro ao carregar conversa');

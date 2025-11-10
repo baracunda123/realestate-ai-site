@@ -168,7 +168,7 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
             return true;
         }
 
-        public async Task<ChatMessageDto> AddMessageAsync(string sessionId, string role, string content, CancellationToken cancellationToken = default)
+        public async Task<AddMessageResultDto> AddMessageAsync(string sessionId, string role, string content, CancellationToken cancellationToken = default)
         {
             var message = new ChatMessage
             {
@@ -180,6 +180,9 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
             };
 
             _context.ChatMessages.Add(message);
+
+            bool titleUpdated = false;
+            string? updatedTitle = null;
 
             // Atualizar timestamp da sessão
             var session = await _context.ChatSessions
@@ -198,19 +201,26 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
                     if (messageCount == 0) // Esta será a primeira mensagem
                     {
                         session.Title = await GenerateSessionTitleAsync(content, cancellationToken);
+                        titleUpdated = true;
+                        updatedTitle = session.Title;
                     }
                 }
             }
 
             await _context.SaveChangesAsync(cancellationToken);
 
-            return new ChatMessageDto
+            return new AddMessageResultDto
             {
-                Id = message.Id,
-                SessionId = message.SessionId,
-                Role = message.Role,
-                Content = message.Content,
-                Timestamp = message.Timestamp
+                Message = new ChatMessageDto
+                {
+                    Id = message.Id,
+                    SessionId = message.SessionId,
+                    Role = message.Role,
+                    Content = message.Content,
+                    Timestamp = message.Timestamp
+                },
+                TitleUpdated = titleUpdated,
+                UpdatedTitle = updatedTitle
             };
         }
 
