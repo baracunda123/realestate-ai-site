@@ -51,7 +51,7 @@ const plans: PricingPlan[] = [
     chatLimit: -1,
     popular: true,
     features: [
-      '✨ Chat IA ilimitado',
+      'Chat IA ilimitado',
       'Pesquisa de propriedades',
       'Favoritos ilimitados',
       'Alertas de baixa de preço',
@@ -224,25 +224,25 @@ export function PricingPage() {
             <div>
               <h3 className="font-semibold text-deep-mocha mb-2">Porquê pagar €8/mês?</h3>
               <p className="text-sm text-warm-taupe">
-                Com o Premium tem conversas ilimitadas com a nossa IA especializada em imobiliário. Pergunte o que quiser, quantas vezes quiser, sem limites. É como ter um consultor imobiliário 24/7 por apenas €8/mês.
+                Com o Premium tens conversas ilimitadas com a nossa AI especializada em imobiliário. Pergunte o que quiserES, quantas vezes quiseres, sem limites. É como ter um consultor imobiliário 24/7 por apenas €8/mês.
               </p>
             </div>
             <div>
               <h3 className="font-semibold text-deep-mocha mb-2">O que acontece se exceder o limite no plano gratuito?</h3>
               <p className="text-sm text-warm-taupe">
-                Quando atingir as 50 mensagens, pode fazer upgrade imediatamente para continuar a usar o chat, ou aguardar pela renovação mensal do plano gratuito.
+                Quando atingir as 50 mensagens, podes fazer upgrade imediatamente para continuar a usar o chat, ou aguardar pela renovação mensal do plano gratuito.
               </p>
             </div>
             <div>
               <h3 className="font-semibold text-deep-mocha mb-2">Posso cancelar a qualquer momento?</h3>
               <p className="text-sm text-warm-taupe">
-                Sim! Sem compromissos nem contratos. Cancele quando quiser e continuará a ter acesso Premium até ao fim do período pago.
+                Sim! Sem compromissos nem contratos. Cancela quando quiseres e continuarás a ter acesso Premium até ao fim do período pago.
               </p>
             </div>
             <div>
               <h3 className="font-semibold text-deep-mocha mb-2">Como funciona o pagamento?</h3>
               <p className="text-sm text-warm-taupe">
-                Pagamentos 100% seguros processados através do Stripe. Aceitamos todos os cartões de crédito e débito. Os seus dados nunca são armazenados nos nossos servidores.
+                Pagamentos 100% seguros processados através do Stripe. Aceitamos todos os cartões de crédito e débito. Os teus dados nunca são armazenados nos nossos servidores.
               </p>
             </div>
           </CardContent>
