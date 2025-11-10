@@ -1,8 +1,6 @@
 import { Home, User } from 'lucide-react';
 import { Button } from './ui/button';
 import { UserProfileDropdown } from './UserProfileDropdown';
-import { NotificationBell } from './NotificationBell/NotificationBell';
-import { useUnreadNotificationsCount } from '../hooks/useNotifications';
 
 // Extended user interface for internal use
 interface ExtendedUserProfile {
@@ -31,8 +29,6 @@ export function Header({
   onNavigateToHome,
   currentView
 }: HeaderProps) {
-  // SIGNALR: Hook SEMPRE executado - agora usa SignalR em vez de polling
-  const { unreadCount, isLoading: notificationsLoading } = useUnreadNotificationsCount();
 
   const handleNavigateToHome = () => {
     onNavigateToHome();
@@ -42,10 +38,6 @@ export function Header({
     onNavigateToPersonal();
   };
 
-  // Handler para navegar para área pessoal na aba de alertas
-  const handleNavigateToAlerts = () => {
-    onNavigateToPersonal();
-  };
 
   const renderViewTitle = () => {
     switch (currentView) {
@@ -94,15 +86,6 @@ export function Header({
               <User className="h-4 w-4 mr-2" />
               A minha área
             </Button>
-          )}
-          
-          {user && (
-            <NotificationBell 
-              onClick={handleNavigateToAlerts}
-              className="hover:bg-clay-soft text-clay-secondary hover:text-title"
-              unreadCount={unreadCount}
-              isLoading={notificationsLoading}
-            />
           )}
           
           <UserProfileDropdown 

@@ -5,41 +5,47 @@ export interface Property {
   description: string | null;
   type: string | null; // Alinhado com BD: 'house' | 'apartment' | 'condo' | 'townhouse' etc
   price: number | null;
-  
-  // EndereÁo - alinhado com BD
+
+  // Endere√ßo - alinhado com BD
   address: string | null;
   city: string | null;
   state: string | null;
   county: string | null;
   civilParish: string | null;
   zipCode: string | null;
-  
-  // CaracterÌsticas
+
+  // Caracter√≠sticas
   area: number | null;
   usableArea: number | null;
   bedrooms: number | null;
   bathrooms: number | null;
   garage: boolean;
-  
+
   // URLs e links
   imageUrl: string | null;
   link: string | null;
-  siteName: string | null; // Nome amig·vel do site (vem do backend via PropertySearchDto)
-  
+  siteName: string | null; // Nome amig√°vel do site (vem do backend via PropertySearchDto)
+
   // Timestamps
   createdAt: string; // ISO string da BD
   updatedAt: string; // ISO string da BD
-  
-  // Campos calculados/derivados para UI (n„o persistidos na BD)
-  location?: string; // CombinaÁ„o de city, county, state para exibiÁ„o
+
+  // Campos calculados/derivados para UI (n√£o persistidos na BD)
+  location?: string; // Combina√ß√£o de city, county, state para exibi√ß√£o
   images?: string[]; // Array derivado de imageUrl
   features?: string[]; // Features calculadas (garage, etc.)
-  yearBuilt?: number; // Calculado se necess·rio
+  yearBuilt?: number; // Calculado se necess√°rio
   propertyType?: 'house' | 'apartment' | 'condo' | 'townhouse'; // Mapeamento de type
   listingAgent?: {
     name: string;
     phone: string;
     email: string;
   };
-  aiRelevanceScore?: number; // PontuaÁ„o de IA
+  aiRelevanceScore?: number; // Pontua√ß√£o de IA
+
+  // Price Change Info (calculado no backend)
+  hadRecentPriceChange?: boolean;
+  priceChangePercentage?: number; // Positivo = aumento, Negativo = redu√ß√£o
+  lastPriceChangeDate?: string; // ISO string
+  oldPrice?: number;
 }

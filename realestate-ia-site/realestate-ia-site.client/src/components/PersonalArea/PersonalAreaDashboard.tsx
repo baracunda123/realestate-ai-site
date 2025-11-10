@@ -3,21 +3,17 @@ import { useState } from 'react';
 import { Card, CardContent } from '../ui/card';
 import { 
   Heart, 
-  Bell, 
   ArrowRight,
 } from 'lucide-react';
 import { DashboardRecommendations } from '../Recommendations/DashboardRecommendations';
-import { DashboardAlertNotifications } from '../AlertNotifications/DashboardAlertNotifications';
 
 interface PersonalAreaDashboardProps {
   favoritesCount: number;
-  alertsCount: number;
   onCardClick: (tabName: string) => void;
 }
 
 export function PersonalAreaDashboard({ 
   favoritesCount, 
-  alertsCount,
   onCardClick
 }: PersonalAreaDashboardProps) {
   const [hoveredCard, setHoveredCard] = useState<string | null>(null);
@@ -25,7 +21,7 @@ export function PersonalAreaDashboard({
   return (
     <div className="space-y-6">
       {/* Quick Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 gap-6">
         {/* Favorites Card */}
         <motion.div
           whileHover={{ scale: 1.01, y: -1 }}
@@ -71,61 +67,12 @@ export function PersonalAreaDashboard({
             </CardContent>
           </Card>
         </motion.div>
-
-        {/* Alerts Card */}
-        <motion.div
-          whileHover={{ scale: 1.01, y: -1 }}
-          whileTap={{ scale: 0.99 }}
-          transition={{ 
-            type: "spring", 
-            stiffness: 400, 
-            damping: 25,
-            duration: 0.15
-          }}
-          className="dashboard-card-container cursor-pointer"
-          onClick={() => onCardClick('alerts')}
-          onMouseEnter={() => setHoveredCard('alerts')}
-          onMouseLeave={() => setHoveredCard(null)}
-        >
-          <Card className="dashboard-section-card border border-cocoa-taupe-light bg-pure-white shadow-clay-soft overflow-hidden group">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center space-x-2 mb-2">
-                    <Bell className="h-5 w-5 text-cocoa-taupe-dark" />
-                    <span className="text-sm font-medium text-warm-taupe">Alertas Ativos</span>
-                  </div>
-                  <p className="text-3xl font-bold text-title">
-                    {alertsCount}
-                  </p>
-                </div>
-                <div className="p-3 bg-cocoa-taupe-lighter rounded-lg shadow-clay-soft group-hover:shadow-cocoa-taupe group-hover:scale-110 transition-all duration-200">
-                  <Bell className="h-6 w-6 text-cocoa-taupe-dark" />
-                </div>
-              </div>
-              <motion.div 
-                className="mt-4 flex items-center text-sm text-cocoa-taupe-darker font-semibold"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ 
-                  opacity: hoveredCard === 'alerts' ? 1 : 0, 
-                  y: hoveredCard === 'alerts' ? 0 : 10 
-                }}
-                transition={{ duration: 0.2, ease: "easeOut" }}
-              >
-                Ver alertas <ArrowRight className="h-4 w-4 ml-1" />
-              </motion.div>
-            </CardContent>
-          </Card>
-        </motion.div>
       </div>
 
       {/* Recommendations Section */}
       <DashboardRecommendations 
         limit={6}
       />
-
-      {/* Alert Notifications */}
-      <DashboardAlertNotifications limit={5} />
     </div>
   );
 }

@@ -9,12 +9,10 @@ public interface IApplicationDbContext
     DbSet<Subscription> Subscriptions { get; }
     DbSet<ScrapingState> ScrapingStates { get; }
     DbSet<WebhookEvent> WebhookEvents { get; }
-    DbSet<PropertyAlert> PropertyAlerts { get; }
     DbSet<PropertyPriceHistory> PropertyPriceHistories { get; }
     DbSet<UserLoginSession> UserLoginSessions { get; }
     DbSet<Favorite> Favorites { get; }
     DbSet<PropertyRecommendation> PropertyRecommendations { get; }
-    DbSet<PropertyAlertNotification> PropertyAlertNotifications { get; }
     DbSet<UserSearchHistory> UserSearchHistories { get; }
     DbSet<ChatUsageQuota> ChatUsageQuotas { get; }
     DbSet<ChatSession> ChatSessions { get; }

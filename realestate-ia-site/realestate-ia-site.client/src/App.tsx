@@ -12,8 +12,6 @@ import { logger } from './utils/logger';
 import type { UserProfile } from './api/client';
 import type { User } from './types/PersonalArea';
 import { getFavoriteProperties, addToFavorites, removeFromFavorites } from './api/favorites.service';
-import { usePriceAlerts } from './hooks/usePriceAlerts';
-import { useSignalR } from './hooks/useSignalR';
 import { isQuotaExceededError } from './api/chat-usage.service';
 import { 
   getChatSessions, 
@@ -106,46 +104,6 @@ export default function App() {
   const [chatSessions, setChatSessions] = useState<ChatSessionDto[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
 
-  // Hook para gerenciar alertas de preço
-  const {
-    alerts,
-    hasAlertForPropertyId,
-    createAlertForProperty,
-    removeAlertForProperty,
-    removeAlert,
-    updateAlertThreshold,
-  } = usePriceAlerts();
-
-  // Hook para gerenciar SignalR (notificações em tempo real)
-  const {
-    isConnected: signalRConnected,
-    connect: connectSignalR,
-    disconnect: disconnectSignalR
-  } = useSignalR({
-    autoConnect: false, // NUNCA conectar automaticamente
-    showToasts: true    // Mostrar toasts para notificações
-  });
-
-  // Wrapper functions para compatibilidade com PersonalArea
-  const handleDeleteAlert = useCallback(async (alertId: string) => {
-    try {
-      await removeAlert(alertId);
-      toast.success('Alerta removido');
-    } catch (error) {
-      logger.error('Erro ao remover alerta', 'PRICE_ALERTS', error as Error);
-      toast.error('Erro ao remover alerta');
-    }
-  }, [removeAlert]);
-
-  const handleUpdateAlert = useCallback(async (alertId: string, threshold: number) => {
-    try {
-      await updateAlertThreshold(alertId, threshold);
-      toast.success(`Alerta atualizado`);
-    } catch (error) {
-      logger.error('Erro ao atualizar alerta', 'PRICE_ALERTS', error as Error);
-      toast.error('Erro ao atualizar alerta');
-    }
-  }, [updateAlertThreshold]);
 
   // Memoized values para evitar recálculos
   const isDefaultState = useMemo((): boolean => {
@@ -209,8 +167,7 @@ export default function App() {
               // Session restored silently without toast
               logger.info('Sessão restaurada silenciosamente', 'APP');
               
-              // NÃO conectar SignalR automaticamente na restauração
-              logger.info('Sessão restaurada - SignalR permanece desativado até ser necessário', 'APP');
+              logger.info('Sessão restaurada silenciosamente', 'APP');
             } else if (!isCleanup) {
               logger.warn('Falha ao validar sessão - usuário não encontrado', 'APP');
               authUtils.clearTokens();
@@ -250,26 +207,6 @@ export default function App() {
     loadFavorites();
   }, [loadFavorites]);
 
-  // Monitorar alertas e gerenciar conexão SignalR
-  useEffect(() => {
-    if (!user) return;
-
-    const hasActiveAlerts = alerts.length > 0;
-    
-    if (hasActiveAlerts && !signalRConnected) {
-      // Tem alertas mas SignalR não está conectado - conectar silenciosamente
-      logger.info('Alertas ativos detectados - conectando SignalR silenciosamente', 'APP');
-      connectSignalR().catch(() => {
-        logger.warn('Falha ao conectar SignalR automaticamente', 'APP');
-      });
-    } else if (!hasActiveAlerts && signalRConnected) {
-      // Não tem alertas mas SignalR está conectado - desconectar
-      logger.info('Nenhum alerta ativo - desconectando SignalR', 'APP');
-      disconnectSignalR().catch(() => {
-        logger.warn('Falha ao desconectar SignalR', 'APP');
-      });
-    }
-  }, [user, alerts.length, signalRConnected, connectSignalR, disconnectSignalR]);
 
   // Handle URL navigation - usando react-router
   useEffect(() => {
@@ -371,45 +308,6 @@ export default function App() {
     }
   }, [favorites, user]);
 
-  // Handler para criar/remover alertas de preço
-  const handleCreatePriceAlert = useCallback(async (property: Property) => {
-    if (!user) {
-      setAuthDefaultTab('signin');
-      setIsAuthModalOpen(true);
-      return;
-    }
-    
-    try {
-      const hasAlert = hasAlertForPropertyId(property.id);
-      
-      if (hasAlert) {
-        await removeAlertForProperty(property.id);
-        toast.success('Alerta removido');
-        
-        // Se não há mais alertas, desconectar SignalR silenciosamente
-        const remainingAlerts = alerts.filter(a => a.propertyId !== property.id);
-        if (remainingAlerts.length === 0 && signalRConnected) {
-          await disconnectSignalR();
-        }
-      } else {
-        await createAlertForProperty(property, 5); // Default 5%
-        toast.success('Alerta criado');
-        
-        // Primeira vez criando alerta - conectar SignalR silenciosamente
-        if (!signalRConnected) {
-          try {
-            await connectSignalR();
-          } catch {
-            logger.warn('Falha ao ativar SignalR', 'APP');
-            // Não mostrar erro ao utilizador - alerta funciona mesmo sem SignalR
-          }
-        }
-      }
-    } catch (error) {
-      logger.error('Erro ao gerenciar alerta', 'APP', error as Error);
-      toast.error('Erro ao gerenciar alerta');
-    }
-  }, [user, hasAlertForPropertyId, removeAlertForProperty, createAlertForProperty, alerts, signalRConnected, connectSignalR, disconnectSignalR]);
 
   // Handler para visualização de propriedades
   const handlePropertyView = useCallback((property: Property) => {
@@ -647,8 +545,7 @@ export default function App() {
           setHasShownWelcomeToast(true);
         }
 
-        // NÃO conectar SignalR automaticamente - só quando necessário
-        logger.info('Login bem-sucedido - SignalR será ativado apenas se houver alertas', 'APP');
+        logger.info('Login bem-sucedido', 'APP');
       } else {
         // Caso de registro sem confirmação de email - não há user profile ainda
         logger.info('Auth success mas sem user profile - provavelmente aguardando confirmação de email', 'APP');
@@ -662,25 +559,17 @@ export default function App() {
 
   const handleLogout = useCallback(async () => {
     try {
-      // Desconectar SignalR se estiver conectado
-      if (signalRConnected) {
-        await disconnectSignalR();
-      }
-      
       await logout();
       setUser(null);
       setFavorites([]);
       setHasShownWelcomeToast(false);
-      navigateToHome(true); // Usa a função existente que limpa tudo e redireciona
+      navigateToHome(true);
       
       toast.success('Logout realizado com sucesso!', {
         description: 'Até breve!',
       });
     } catch (error) {
       logger.error('Erro no logout', 'APP', error as Error);
-      if (signalRConnected) {
-        await disconnectSignalR(); // Tentar desconectar mesmo em caso de erro
-      }
       authUtils.clearTokens();
       setUser(null);
       setFavorites([]);
@@ -688,7 +577,7 @@ export default function App() {
       navigateToHome(true);
       toast.error('Erro no logout, mas desconectado localmente.');
     }
-  }, [disconnectSignalR, signalRConnected, navigateToHome]);
+  }, [navigateToHome]);
 
   // Modal handlers - otimizados
   const openAuthModal = useCallback((tab: AuthTab = 'signin') => {
@@ -751,11 +640,6 @@ export default function App() {
   // Handler para eliminação de conta - logout e redirecionamento
   const handleDeleteAccount = useCallback(async () => {
     try {
-      // Desconectar SignalR se estiver conectado
-      if (signalRConnected) {
-        await disconnectSignalR();
-      }
-      
       // Limpar todos os estados locais
       authUtils.clearTokens();
       setUser(null);
@@ -766,21 +650,15 @@ export default function App() {
       navigate('/');
       
       logger.info('Conta eliminada - utilizador deslogado e redirecionado', 'APP');
-      
-      // Nota: O toast de sucesso já foi mostrado pelo PersonalAreaSettings
     } catch (error) {
       logger.error('Erro no processo de eliminação de conta', 'APP', error as Error);
-      // Limpar dados localmente mesmo se houver erro
-      if (signalRConnected) {
-        await disconnectSignalR();
-      }
       authUtils.clearTokens();
       setUser(null);
       setFavorites([]);
       setHasShownWelcomeToast(false);
       navigate('/');
     }
-  }, [resetToDefaults, disconnectSignalR, signalRConnected, navigate]);
+  }, [resetToDefaults, navigate]);
 
   // Show loading spinner during initialization
   if (isInitializing) {
@@ -856,11 +734,6 @@ export default function App() {
                   favorites={favorites}
                   onToggleFavorite={toggleFavorite}
                   hasActiveSearch={!isDefaultState && searchResults !== null}
-                  onCreatePriceAlert={handleCreatePriceAlert}
-                  hasAlertForPropertyId={hasAlertForPropertyId}
-                  alerts={alerts}
-                  onDeleteAlert={handleDeleteAlert}
-                  onUpdateAlert={handleUpdateAlert}
                   onUpdateProfile={handleUpdateProfile}
                   onDeleteAccount={handleDeleteAccount}
                 />
@@ -915,8 +788,6 @@ export default function App() {
                         serverResults={searchResults || undefined}
                         favorites={favorites}
                         onToggleFavorite={toggleFavorite}
-                        onCreatePriceAlert={handleCreatePriceAlert}
-                        hasAlertForPropertyId={hasAlertForPropertyId}
                         onPropertyView={handlePropertyView}
                       />
                     </div>
