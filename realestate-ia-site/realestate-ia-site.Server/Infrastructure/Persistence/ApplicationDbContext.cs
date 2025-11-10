@@ -23,12 +23,10 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
         public DbSet<Subscription> Subscriptions { get; set; }
         public DbSet<ScrapingState> ScrapingStates { get; set; }
         public DbSet<WebhookEvent> WebhookEvents { get; set; }
-        public DbSet<PropertyAlert> PropertyAlerts { get; set; }
         public DbSet<PropertyPriceHistory> PropertyPriceHistories { get; set; }
         public DbSet<UserLoginSession> UserLoginSessions { get; set; }
         public DbSet<Favorite> Favorites { get; set; }
         public DbSet<PropertyRecommendation> PropertyRecommendations { get; set; }
-        public DbSet<PropertyAlertNotification> PropertyAlertNotifications { get; set; }
         public DbSet<UserSearchHistory> UserSearchHistories { get; set; }
         public DbSet<PropertyViewHistory> PropertyViewHistories { get; set; }
         public DbSet<ChatUsageQuota> ChatUsageQuotas { get; set; }
@@ -120,30 +118,6 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // Configurações para PropertyAlert - Nova estrutura simplificada
-            builder.Entity<PropertyAlert>(entity =>
-            {
-                entity.HasIndex(e => e.UserId);
-                entity.HasIndex(e => e.PropertyId);
-                entity.HasIndex(e => new { e.UserId, e.PropertyId }).IsUnique(); // Um alerta por utilizador por propriedade
-                entity.HasIndex(e => e.IsActive);
-                entity.HasIndex(e => e.CreatedAt);
-                entity.HasIndex(e => e.LastTriggered);
-
-                entity.HasOne(e => e.User)
-                      .WithMany()
-                      .HasForeignKey(e => e.UserId)
-                      .OnDelete(DeleteBehavior.Cascade);
-
-                entity.HasOne(e => e.Property)
-                      .WithMany()
-                      .HasForeignKey(e => e.PropertyId)
-                      .OnDelete(DeleteBehavior.Cascade);
-
-                entity.Property(e => e.CurrentPrice)
-                      .HasPrecision(18, 2);
-            });
-
             // Configurações para PropertyRecommendation
             builder.Entity<PropertyRecommendation>(entity =>
             {
@@ -163,35 +137,6 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
                       .WithMany()
                       .HasForeignKey(e => e.PropertyId)
                       .OnDelete(DeleteBehavior.Cascade);
-            });
-
-            // Configurações para PropertyAlertNotification
-            builder.Entity<PropertyAlertNotification>(entity =>
-            {
-                entity.HasIndex(e => e.UserId);
-                entity.HasIndex(e => e.PropertyId);
-                entity.HasIndex(e => e.AlertId);
-                entity.HasIndex(e => new { e.UserId, e.PropertyId });
-                entity.HasIndex(e => e.IsActive);
-                entity.HasIndex(e => e.AlertType);
-                entity.HasIndex(e => e.CreatedAt);
-                entity.HasIndex(e => e.ReadAt);
-
-                entity.HasOne(e => e.User)
-                      .WithMany()
-                      .HasForeignKey(e => e.UserId)
-                      .OnDelete(DeleteBehavior.Cascade);
-
-                entity.HasOne(e => e.Property)
-                      .WithMany()
-                      .HasForeignKey(e => e.PropertyId)
-                      .OnDelete(DeleteBehavior.Cascade);
-
-                entity.Property(e => e.PropertyPrice)
-                      .HasPrecision(18, 2);
-
-                entity.Property(e => e.OldPrice)
-                      .HasPrecision(18, 2);
             });
 
             // Configurações para PropertyPriceHistory

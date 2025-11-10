@@ -1,5 +1,4 @@
 using realestate_ia_site.Server.Application.Features.AI.SearchAI;
-using realestate_ia_site.Server.Application.Features.Properties.Alerts;
 using realestate_ia_site.Server.Application.Features.Properties.Search;
 using realestate_ia_site.Server.Application.Features.Properties.Recommendations;
 using realestate_ia_site.Server.Application.Features.Properties.Import;
@@ -23,7 +22,6 @@ public static class ApplicationServicesExtensions
         services.AddScoped<SearchAIOrchestrator>();
         
         // Property Services
-        services.AddScoped<PropertyAlertService>();
         services.AddScoped<PropertyRecommendationService>();
         services.AddScoped<IPropertySearchService, PropertySearchService>();
         services.AddScoped<PropertyImportService>();

@@ -155,14 +155,12 @@ public static class InfrastructureServicesExtensions
 
         // Domain Events
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
-        services.AddScoped<IDomainEventHandler<PropertyPriceChangedEvent>, PropertyAlertEventHandler>();
         services.AddScoped<IDomainEventHandler<FavoriteAddedEvent>, UserBehaviorEventHandler>();
         services.AddScoped<IDomainEventHandler<FavoriteRemovedEvent>, UserBehaviorEventHandler>();
         services.AddScoped<IDomainEventHandler<SearchExecutedEvent>, UserBehaviorEventHandler>();
 
         // Background Services
         services.AddHostedService<RecommendationBackgroundService>();
-        services.AddHostedService<PropertyAlertBackgroundService>();
 
         return services;
     }

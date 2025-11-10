@@ -76,9 +76,9 @@ namespace realestate_ia_site.Server.Domain.Entities
         public DateTime UpdatedAt { get; set; }
 
 
-        // Helpers para Value Objects (não persistidos diretamente)
+        // Helpers para Value Objects (nÃ£o persistidos diretamente)
         public Money? GetMoneyPrice(string currency = "EUR") => Price.HasValue ? Money.From(Price.Value, currency) : null;
-        public AddressVO ToAddressValueObject() => AddressVO.Create(Address, City, County, CivilParish, State, ZipCode, null); // remover país duplicado
+        public AddressVO ToAddressValueObject() => AddressVO.Create(Address, City, County, CivilParish, State, ZipCode, null);
 
         // Price change domain logic centralization
         public PriceChangeOutcome EvaluatePriceChange(decimal? originalPrice, string reason = "update")
