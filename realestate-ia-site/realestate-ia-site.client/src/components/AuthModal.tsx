@@ -450,7 +450,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
                 Bem-vindo ao ResideAI
               </DialogTitle>
               <DialogDescription className="text-warm-taupe leading-relaxed text-center break-words px-2">
-                Encontre a sua casa ideal com tecnologia de ponta. Inicie sessão ou crie uma nova conta para começar.
+                Encontra a tua casa ideal com tecnologia de ponta. Inicia sessão ou cria uma conta para começar.
               </DialogDescription>
             </DialogHeader>
 
@@ -483,7 +483,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
                       <Input
                         id="signin-email"
                         type="email"
-                        placeholder="seu.email@exemplo.com"
+                        placeholder="email@exemplo.com"
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
                         className="pl-10 pr-4 border-pale-clay-deep focus:border-burnt-peach focus:ring-burnt-peach/20 rounded-xl bg-clay-white h-12 transition-all duration-200 text-left"
@@ -502,7 +502,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
                       <Input
                         id="signin-password"
                         type={showSignInPassword ? 'text' : 'password'}
-                        placeholder="A sua palavra-passe"
+                        placeholder="A tua palavra-passe"
                         value={formData.password}
                         onChange={(e) => handleInputChange('password', e.target.value)}
                         className="pl-10 pr-12 border-pale-clay-deep focus:border-burnt-peach focus:ring-burnt-peach/20 rounded-xl bg-clay-white h-12 no-password-reveal transition-all duration-200 text-left"
@@ -553,7 +553,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
                     className="text-sm text-warm-taupe hover:bg-pale-clay-light hover:text-deep-moca rounded-lg transition-colors"
                     disabled={isLoading}
                   >
-                    Esqueceu a palavra-passe?
+                    Esqueceste a palavra-passe?
                   </Button>
                 </div>
               </TabsContent>
@@ -586,7 +586,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
                       <Input
                         id="signup-email"
                         type="email"
-                        placeholder="seu.email@exemplo.com"
+                        placeholder="teu.email@exemplo.com"
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
                         className="pl-10 pr-4 border-pale-clay-deep focus:border-burnt-peach focus:ring-burnt-peach/20 rounded-xl bg-clay-white h-12 transition-all duration-200 text-left"

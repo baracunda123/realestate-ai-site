@@ -59,7 +59,7 @@ export function ChatQuotaBanner({ onRefresh }: ChatQuotaBannerProps) {
               Plano Premium
             </p>
             <p className="text-xs text-warm-taupe">
-              Conversas ilimitadas com IA
+              Conversas ilimitadas com AI
             </p>
           </div>
         </div>
@@ -86,7 +86,7 @@ export function ChatQuotaBanner({ onRefresh }: ChatQuotaBannerProps) {
             )}
             <div>
               <p className="text-sm font-medium text-deep-mocha">
-                Uso do Chat IA
+                Uso do Chat AI
               </p>
               <p className="text-xs text-warm-taupe">
                 Plano {getPlanLabel(stats.planType)}

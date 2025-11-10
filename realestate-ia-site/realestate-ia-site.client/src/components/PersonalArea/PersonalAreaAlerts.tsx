@@ -28,8 +28,8 @@ export function PersonalAreaAlerts({
       <EmptyState
         icon={Bell}
         title="Nenhum alerta de preço ativo"
-        description="Crie alertas de redução de preço clicando no sininho das propriedades que lhe interessam. Será notificado quando o preço baixar."
-        actionLabel="Explorar Propriedades"
+        description="Cria alertas de redução de preço clicando no sininho dos imóveis que te interessarem. Serás notificado quando o preço baixar."
+        actionLabel="Explorar Imóveis"
         onAction={onNavigateToHome || (() => window.location.href = '/')}
       />
     );
@@ -208,8 +208,8 @@ export function PersonalAreaAlerts({
             <div className="space-y-1">
               <h4 className="text-sm font-medium text-title">Como funcionam os alertas de preço</h4>
               <p className="text-xs text-warm-taupe leading-relaxed">
-                Clique no sininho em qualquer propriedade para criar um alerta. Será notificado quando o preço baixar 
-                conforme a percentagem definida. Pode ajustar a sensibilidade do alerta a qualquer momento.
+                Clica no sininho em qualquer imóvel para criar um alerta. Serás notificado quando o preço baixar 
+                conforme a percentagem definida. Podes ajustar a sensibilidade do alerta a qualquer momento.
               </p>
             </div>
           </div>

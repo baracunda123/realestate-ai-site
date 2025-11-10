@@ -17,7 +17,7 @@ export function Footer() {
               </h3>
             </div>
             <p className="text-sm text-cocoa-taupe max-w-xs mx-auto md:mx-0">
-              Encontre seu lar ideal com tecnologia de inteligência artificial
+              Encontra o teu lar ideal com tecnologia de inteligência artificial
             </p>
           </div>
 

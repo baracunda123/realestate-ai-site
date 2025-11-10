@@ -13,12 +13,9 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
         private readonly ILogger<ChatUsageService> _logger;
 
         // Mapeamento de Stripe Price IDs para planos
-        // TODO: Configurar estes IDs no appsettings.json ou variáveis de ambiente
         private readonly Dictionary<string, string> _stripePriceToPlan = new()
         {
-            // Exemplo - substituir pelos IDs reais do Stripe
-            ["price_premium_monthly"] = "premium",
-            ["price_premium_yearly"] = "premium"
+            ["price_1RkjFOGbRiVruKbr4KdFaaI4"] = "premium"
         };
 
         public ChatUsageService(
@@ -129,14 +126,14 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
 
             if (quota.PlanType != newPlanType)
             {
-                var oldPlan = quota.PlanType;
-                quota.UpdatePlan(newPlanType);
+                quota.PlanType = newPlanType;
+                quota.UpdatedAt = DateTime.UtcNow;
                 _context.ChatUsageQuotas.Update(quota);
                 await _context.SaveChangesAsync(ct);
 
                 _logger.LogInformation(
-                    "Plano atualizado para usuário {UserId} - {OldPlan} ? {NewPlan} (Limite: {Limit})",
-                    userId, oldPlan, newPlanType, quota.MaxPrompts);
+                    "PlanType atualizado para userId={UserId}: {PlanType}",
+                    userId, newPlanType);
             }
         }
 
@@ -153,7 +150,20 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
         public async Task<ChatUsageStats> GetUsageStatsAsync(string userId, CancellationToken ct = default)
         {
             var quota = await GetOrCreateQuotaAsync(userId, ct);
-            var hasSubscription = await _subscriptionService.HasActiveSubscriptionAsync(userId);
+            
+            // Validar contra Subscription e atualizar se necessário
+            var subscription = await _subscriptionService.GetActiveSubscriptionAsync(userId);
+            var currentPlanType = DeterminePlanType(subscription?.StripePriceId);
+            
+            // Atualizar PlanType se mudou
+            if (quota.PlanType != currentPlanType)
+            {
+                quota.UpdatePlan(currentPlanType);
+                _context.ChatUsageQuotas.Update(quota);
+                await _context.SaveChangesAsync(ct);
+                _logger.LogInformation("PlanType atualizado para userId={UserId}: {OldPlan} -> {NewPlan}", 
+                    userId, quota.PlanType, currentPlanType);
+            }
 
             return new ChatUsageStats
             {
@@ -165,7 +175,7 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
                 PeriodStart = quota.PeriodStart,
                 PeriodEnd = quota.PeriodEnd,
                 LastUsedAt = quota.LastUsedAt,
-                HasActiveSubscription = hasSubscription
+                HasActiveSubscription = subscription != null
             };
         }
 

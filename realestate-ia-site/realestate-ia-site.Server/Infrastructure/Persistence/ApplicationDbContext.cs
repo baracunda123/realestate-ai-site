@@ -304,6 +304,22 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
                       .HasForeignKey(e => e.SessionId)
                       .OnDelete(DeleteBehavior.Cascade);
             });
+
+            // Configurações para Subscription
+            builder.Entity<Subscription>(entity =>
+            {
+                entity.HasIndex(e => e.UserId);
+                entity.HasIndex(e => e.StripeId).IsUnique();
+                entity.HasIndex(e => e.CustomerId);
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => new { e.UserId, e.Status });
+
+                entity.HasOne(e => e.User)
+                      .WithMany(u => u.Subscriptions)
+                      .HasForeignKey(e => e.UserId)
+                      .HasPrincipalKey(u => u.Id)
+                      .OnDelete(DeleteBehavior.Cascade);
+            });
         }
 
         public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)

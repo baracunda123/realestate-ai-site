@@ -11,7 +11,8 @@ namespace realestate_ia_site.Server.Domain.Entities
         [Key]
         [Column("id")]
         public string Id { get; set; } = string.Empty;
-        [Column("user_id")][ForeignKey("User")] public string? UserId { get; set; }
+        [Column("user_id")]
+        public string? UserId { get; set; }
         [Column("stripe_id")] public string? StripeId { get; set; }
         [Column("price_id")] public string? PriceId { get; set; }
         [Column("stripe_price_id")] public string? StripePriceId { get; set; }

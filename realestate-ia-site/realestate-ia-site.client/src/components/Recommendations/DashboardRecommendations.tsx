@@ -322,10 +322,10 @@ export function DashboardRecommendations({
         <div className="text-center py-8 px-4">
           <TrendingUp className="h-10 w-10 text-muted-foreground mx-auto mb-3 opacity-50" />
           <h3 className="text-base font-medium text-foreground mb-1">
-            Sem recomendações no momento
+            Sem recomendações neste momento
           </h3>
           <p className="text-muted-foreground text-xs mb-3">
-            Explore propriedades e crie alertas para receber recomendações personalizadas
+            Explora imóveis e cria alertas para receber recomendações personalizadas
           </p>
           <Button 
             onClick={handleRefresh} 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
@@ -7,6 +7,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import apiClient from '../api/client';
 import { createSubscription } from '../api/subscription.service';
+import { getChatUsageStats } from '../api/chat-usage.service';
 
 interface PricingPlan {
   id: string;
@@ -65,7 +66,23 @@ const plans: PricingPlan[] = [
 
 export function PricingPage() {
   const [loading, setLoading] = useState<string | null>(null);
+  const [currentPlan, setCurrentPlan] = useState<string>('free');
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const loadCurrentPlan = async () => {
+      try {
+        const data = await getChatUsageStats();
+        setCurrentPlan(data.planType);
+      } catch (error) {
+        console.error('Erro ao carregar plano atual:', error);
+      }
+    };
+
+    if (apiClient.isAuthenticated()) {
+      loadCurrentPlan();
+    }
+  }, []);
 
   const handleSubscribe = async (plan: PricingPlan) => {
     if (plan.id === 'free') {
@@ -175,7 +192,7 @@ export function PricingPage() {
               <CardFooter>
                 <Button
                   onClick={() => handleSubscribe(plan)}
-                  disabled={loading === plan.id || plan.id === 'free'}
+                  disabled={loading === plan.id || currentPlan === plan.id}
                   className={`w-full ${
                     plan.popular
                       ? 'bg-burnt-peach hover:bg-burnt-peach-light text-deep-mocha'
@@ -184,10 +201,10 @@ export function PricingPage() {
                 >
                   {loading === plan.id ? (
                     <>
-                      <span className="animate-spin mr-2">?</span>
+                      <span className="animate-spin mr-2">⏳</span>
                       A processar...
                     </>
-                  ) : plan.id === 'free' ? (
+                  ) : currentPlan === plan.id ? (
                     'Plano Atual'
                   ) : (
                     'Começar Agora'

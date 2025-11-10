@@ -199,7 +199,7 @@ export function DashboardAlertNotifications({
               Sem notificações
             </h3>
             <p className="text-muted-foreground text-sm mb-4">
-              Você será notificado quando houver reduções de preço nas propriedades dos seus alertas
+              Serás notificado quando houver reduções de preço nos imóveis dos teus alertas
             </p>
             <Button onClick={refresh} disabled={isRefreshing}>
               <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />

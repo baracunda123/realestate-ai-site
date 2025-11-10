@@ -181,7 +181,7 @@ export function ChatPanel({
                                             Como posso ajudar?
                                         </h3>
                                         <p className="text-xs sm:text-sm text-warm-taupe">
-                                            Descreva o tipo de propriedade que procura e a IA ajudará a encontrar as melhores opções.
+                                            Descreve o tipo de imóvel que procuras e a AI vai-te ajudar a encontrar as melhores opções.
                                         </p>
                                     </div>
                                 </div>

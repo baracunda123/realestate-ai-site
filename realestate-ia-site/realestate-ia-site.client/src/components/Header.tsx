@@ -92,7 +92,7 @@ export function Header({
               className="hidden md:flex hover:bg-clay-soft text-clay-secondary hover:text-title bg-clay-soft text-title px-3 py-2"
             >
               <User className="h-4 w-4 mr-2" />
-              Minha Área
+              A minha área
             </Button>
           )}
           
@@ -142,7 +142,7 @@ export function Header({
                   ResideAI
                 </span>
                 <div className="text-xs text-clay-secondary -mt-0.5 hidden md:block">
-                  Encontre seu lar ideal
+                  Encontra o teu lar ideal
                 </div>
               </div>
             </div>

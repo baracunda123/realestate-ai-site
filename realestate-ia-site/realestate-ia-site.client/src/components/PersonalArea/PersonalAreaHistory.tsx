@@ -84,8 +84,8 @@ export function PersonalAreaHistory({
       <EmptyState
         icon={Clock}
         title="Nenhum histórico de visualizações"
-        description="Você ainda não visualizou nenhuma propriedade. Comece explorando nossa seleção para ver o histórico aqui!"
-        actionLabel="Explorar Propriedades"
+        description="Ainda não visualizaste nenhum imóvel. Começa a explorar para veres o histórico aqui!"
+        actionLabel="Explorar Imóveis"
         onAction={() => {
           window.location.href = '/';
         }}
@@ -100,7 +100,7 @@ export function PersonalAreaHistory({
         <div>
           <h2 className="font-medium text-foreground">Histórico de Visualizações</h2>
           <p className="text-sm text-muted-foreground">
-            {viewHistory.length} propriedades visualizadas recentemente
+            {viewHistory.length} imóveis visualizados recentemente
           </p>
         </div>
       </div>
@@ -158,10 +158,10 @@ export function PersonalAreaHistory({
       {/* Footer Information */}
       <div className="text-center pt-4 border-t border-whisper-clay">
         <p className="text-xs text-muted-foreground">
-          Mostrando as últimas {viewHistory.length} propriedades visualizadas
+          Mostrando os últimos {viewHistory.length} imóveis visualizados
         </p>
         <p className="text-xs text-muted-foreground mt-1">
-          O histórico mantém apenas as 10 visualizações mais recentes
+          O histórico mantém apenas os 10 imóveis mais recentes
         </p>
       </div>
     </div>
