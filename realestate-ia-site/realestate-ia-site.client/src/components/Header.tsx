@@ -1,4 +1,4 @@
-import { Home, User } from 'lucide-react';
+import { Home } from 'lucide-react';
 import { Button } from './ui/button';
 import { UserProfileDropdown } from './UserProfileDropdown';
 
@@ -76,18 +76,6 @@ export function Header({
 
       return (
         <div className="flex items-center space-x-1 sm:space-x-2">
-          {currentView === 'home' && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleNavigateToPersonal}
-              className="hidden md:flex hover:bg-clay-soft text-clay-secondary hover:text-title bg-clay-soft text-title px-3 py-2"
-            >
-              <User className="h-4 w-4 mr-2" />
-              A minha área
-            </Button>
-          )}
-          
           <UserProfileDropdown 
             user={userForDropdown} 
             onLogout={onLogout} 

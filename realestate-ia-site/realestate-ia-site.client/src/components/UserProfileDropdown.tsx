@@ -7,7 +7,10 @@ import {
   ChevronDown, 
   UserCircle,
   Mail,
-  CreditCard
+  CreditCard,
+  Heart,
+  Clock,
+  Settings
 } from 'lucide-react';
 import { getUniversalInitials } from '../utils/PersonalArea';
 import { useNavigate } from 'react-router-dom';
@@ -23,27 +26,11 @@ interface User {
 interface UserProfileDropdownProps {
   user: User;
   onLogout: () => void;
-  onNavigateToPersonal?: () => void;
+  onNavigateToPersonal?: () => void; // Deprecated - kept for compatibility
 }
 
-export function UserProfileDropdown({ user, onLogout, onNavigateToPersonal }: UserProfileDropdownProps) {
+export function UserProfileDropdown({ user, onLogout }: UserProfileDropdownProps) {
   const navigate = useNavigate();
-  
-  const handleNavigation = (section?: string) => {
-    if (onNavigateToPersonal) {
-      onNavigateToPersonal();
-      // If specific section, navigate to it (future enhancement)
-      if (section) {
-        setTimeout(() => {
-          window.location.hash = `#personal-${section}`;
-        }, 100);
-      }
-    }
-  };
-
-  const handleNavigateToPricing = () => {
-    navigate('/pricing');
-  };
 
   const handleExternalLink = (url: string) => {
     window.open(url, '_blank');
@@ -99,7 +86,7 @@ export function UserProfileDropdown({ user, onLogout, onNavigateToPersonal }: Us
         </DropdownMenuLabel>
         
         <DropdownMenuItem 
-          onClick={() => handleNavigation()}
+          onClick={() => navigate('/profile')}
           className="px-4 py-2.5 hover:bg-pale-clay-light text-deep-mocha hover:text-deep-mocha cursor-pointer group"
         >
           <UserCircle className="h-4 w-4 mr-3 text-burnt-peach group-hover:text-burnt-peach-deep" />
@@ -107,11 +94,38 @@ export function UserProfileDropdown({ user, onLogout, onNavigateToPersonal }: Us
         </DropdownMenuItem>
 
         <DropdownMenuItem 
-          onClick={handleNavigateToPricing}
+          onClick={() => navigate('/favorites')}
+          className="px-4 py-2.5 hover:bg-pale-clay-light text-deep-mocha hover:text-deep-mocha cursor-pointer group"
+        >
+          <Heart className="h-4 w-4 mr-3 text-burnt-peach group-hover:text-burnt-peach-deep" />
+          <span>Favoritos</span>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem 
+          onClick={() => navigate('/history')}
+          className="px-4 py-2.5 hover:bg-pale-clay-light text-deep-mocha hover:text-deep-mocha cursor-pointer group"
+        >
+          <Clock className="h-4 w-4 mr-3 text-burnt-peach group-hover:text-burnt-peach-deep" />
+          <span>Histórico</span>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem 
+          onClick={() => navigate('/settings')}
+          className="px-4 py-2.5 hover:bg-pale-clay-light text-deep-mocha hover:text-deep-mocha cursor-pointer group"
+        >
+          <Settings className="h-4 w-4 mr-3 text-burnt-peach group-hover:text-burnt-peach-deep" />
+          <span>Configurações</span>
+        </DropdownMenuItem>
+
+        <DropdownMenuSeparator className="bg-pale-clay-medium" />
+
+        {/* Pricing */}
+        <DropdownMenuItem 
+          onClick={() => navigate('/pricing')}
           className="px-4 py-2.5 hover:bg-pale-clay-light text-deep-mocha hover:text-deep-mocha cursor-pointer group"
         >
           <CreditCard className="h-4 w-4 mr-3 text-burnt-peach group-hover:text-burnt-peach-deep" />
-          <span>Atualizar plano</span>
+          <span>Ver Planos</span>
         </DropdownMenuItem>
 
         <DropdownMenuSeparator className="bg-pale-clay-medium" />
