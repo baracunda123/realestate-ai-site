@@ -670,10 +670,8 @@ export default function App() {
       await logout();
       setUser(null);
       setFavorites([]);
-      setCurrentView('home');
-      resetToDefaults();
       setHasShownWelcomeToast(false);
-      navigate('/');
+      navigateToHome(true); // Usa a função existente que limpa tudo e redireciona
       
       toast.success('Logout realizado com sucesso!', {
         description: 'Até breve!',
@@ -687,9 +685,10 @@ export default function App() {
       setUser(null);
       setFavorites([]);
       setHasShownWelcomeToast(false);
+      navigateToHome(true);
       toast.error('Erro no logout, mas desconectado localmente.');
     }
-  }, [resetToDefaults, disconnectSignalR, signalRConnected, navigate]);
+  }, [disconnectSignalR, signalRConnected, navigateToHome]);
 
   // Modal handlers - otimizados
   const openAuthModal = useCallback((tab: AuthTab = 'signin') => {
