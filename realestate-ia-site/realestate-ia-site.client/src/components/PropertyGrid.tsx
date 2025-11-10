@@ -8,8 +8,6 @@ interface PropertyGridProps {
   serverResults?: Property[];
   favorites?: Property[];
   onToggleFavorite?: (property: Property) => void;
-  onCreatePriceAlert?: (property: Property) => void;
-  hasAlertForPropertyId?: (propertyId: string) => boolean;
   onPropertyView?: (property: Property) => void;
 }
 
@@ -18,8 +16,6 @@ export function PropertyGrid({
   serverResults, 
   favorites = [], 
   onToggleFavorite,
-  onCreatePriceAlert,
-  hasAlertForPropertyId,
   onPropertyView
 }: PropertyGridProps) {
   const properties = useMemo(() => {
@@ -46,8 +42,6 @@ export function PropertyGrid({
               property={property}
               isFavorite={favorites.some(f => f.id === property.id)}
               onToggleFavorite={onToggleFavorite}
-              onCreatePriceAlert={onCreatePriceAlert}
-              hasPriceAlert={hasAlertForPropertyId ? hasAlertForPropertyId(property.id) : false}
               onPropertyView={onPropertyView}
             />
           </div>

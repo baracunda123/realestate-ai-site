@@ -2,7 +2,7 @@ import React, { memo, useCallback } from 'react';
 import { Card, CardContent } from './ui/card';
 import { Badge } from './ui/badge';
 import { Button } from './ui/button';
-import { Heart, MapPin, Bed, Bath, Square, Calendar, Bell } from 'lucide-react';
+import { Heart, MapPin, Bed, Bath, Square, Calendar } from 'lucide-react';
 import { type Property } from '../types/property';
 import { trackPropertyView } from '../api/view-history.service';
 import { logger } from '../utils/logger';
@@ -11,8 +11,6 @@ interface PropertyCardProps {
   property: Property;
   isFavorite?: boolean;
   onToggleFavorite?: (property: Property) => void;
-  onCreatePriceAlert?: (property: Property) => void;
-  hasPriceAlert?: boolean;
   onPropertyView?: (property: Property) => void;
 }
 
@@ -20,8 +18,6 @@ function PropertyCardComponent({
   property, 
   isFavorite = false, 
   onToggleFavorite,
-  onCreatePriceAlert,
-  hasPriceAlert = false,
   onPropertyView
 }: PropertyCardProps) {
   // Memoized formatters
@@ -79,10 +75,6 @@ function PropertyCardComponent({
     if (onToggleFavorite) onToggleFavorite(property);
   }, [onToggleFavorite, property]);
 
-  const handlePriceAlertClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (onCreatePriceAlert) onCreatePriceAlert(property);
-  }, [onCreatePriceAlert, property]);
 
   const handleViewMoreClick = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -148,22 +140,6 @@ function PropertyCardComponent({
             
             {/* Action buttons */}
             <div className="flex items-center space-x-1 ml-0 sm:ml-2">
-              {/* Price Alert Button */}
-              <Button
-                variant="ghost"
-                size="sm"
-                aria-pressed={hasPriceAlert}
-                aria-label={hasPriceAlert ? 'Remover alerta de preço' : 'Criar alerta de redução de preço'}
-                className={`btn-price-alert h-7 w-7 p-0 backdrop-blur-sm flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-burnt-peach/20 ${
-                  hasPriceAlert ? 'active' : ''
-                }`}
-                onClick={handlePriceAlertClick}
-              >
-                <Bell className={`bell-icon h-3.5 w-3.5 transition-all duration-200 ${
-                  hasPriceAlert ? 'text-burnt-peach fill-current' : 'text-warm-taupe'
-                }`} />
-              </Button>
-
               {/* Favorite Button */}
               <Button
                 variant="ghost"

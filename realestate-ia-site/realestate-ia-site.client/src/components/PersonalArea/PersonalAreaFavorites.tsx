@@ -6,16 +6,12 @@ import { EmptyState } from '../EmptyState';
 interface PersonalAreaFavoritesProps {
   favorites: Property[];
   onToggleFavorite?: (property: Property) => void;
-  onCreatePriceAlert?: (property: Property) => void;
-  hasAlertForPropertyId?: (propertyId: string) => boolean;
   onPropertyView?: (property: Property) => void;
 }
 
 export function PersonalAreaFavorites({
   favorites,
   onToggleFavorite,
-  onCreatePriceAlert,
-  hasAlertForPropertyId,
   onPropertyView,
 }: PersonalAreaFavoritesProps) {
   if (favorites.length === 0) {
@@ -52,10 +48,8 @@ export function PersonalAreaFavorites({
             key={property.id}
             property={property}
             onToggleFavorite={onToggleFavorite}
-            onCreatePriceAlert={onCreatePriceAlert}
             onPropertyView={onPropertyView}
             isFavorite={true}
-            hasPriceAlert={hasAlertForPropertyId ? hasAlertForPropertyId(property.id) : false}
           />
         ))}
       </div>

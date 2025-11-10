@@ -11,18 +11,18 @@ class Logger {
   private config: LoggerConfig;
 
   constructor() {
-    // ? PRODUÇÃO: Desabilitar TODOS os logs (incluindo errors)
+    // ? PRODUÃ‡ÃƒO: Desabilitar TODOS os logs (incluindo errors)
     const isDev = import.meta.env.DEV;
     
     this.config = {
       isDevelopment: isDev,
-      enabledLevels: isDev ? new Set(['info', 'warn', 'error', 'debug']) : new Set(), // ? Set vazio em produção
+      enabledLevels: isDev ? new Set(['info', 'warn', 'error', 'debug']) : new Set(), // ? Set vazio em produÃ§Ã£o
       timestamp: isDev
     };
   }
 
   private shouldLog(level: LogLevel): boolean {
-    // ? PRODUÇÃO: Nunca logar
+    // ? PRODUÃ‡ÃƒO: Nunca logar
     return this.config.isDevelopment && this.config.enabledLevels.has(level);
   }
 
@@ -60,20 +60,6 @@ class Logger {
   }
 
   // Service-specific loggers with consistent formatting
-  priceAlerts = {
-    info: (message: string) => this.info(message, 'PRICE_ALERTS'),
-    warn: (message: string) => this.warn(message, 'PRICE_ALERTS'),
-    error: (message: string, error?: Error) => this.error(message, 'PRICE_ALERTS', error),
-    debug: (message: string) => this.debug(message, 'PRICE_ALERTS')
-  };
-
-  alertNotifications = {
-    info: (message: string) => this.info(message, 'ALERT_NOTIFICATIONS'),
-    warn: (message: string) => this.warn(message, 'ALERT_NOTIFICATIONS'),
-    error: (message: string, error?: Error) => this.error(message, 'ALERT_NOTIFICATIONS', error),
-    debug: (message: string) => this.debug(message, 'ALERT_NOTIFICATIONS')
-  };
-
   properties = {
     info: (message: string) => this.info(message, 'PROPERTIES'),
     warn: (message: string) => this.warn(message, 'PROPERTIES'),
@@ -86,13 +72,6 @@ class Logger {
     warn: (message: string) => this.warn(message, 'CLIENT'),
     error: (message: string, error?: Error) => this.error(message, 'CLIENT', error),
     debug: (message: string) => this.debug(message, 'CLIENT')
-  };
-
-  signalr = {
-    info: (message: string) => this.info(message, 'SIGNALR'),
-    warn: (message: string) => this.warn(message, 'SIGNALR'),
-    error: (message: string, error?: Error) => this.error(message, 'SIGNALR', error),
-    debug: (message: string) => this.debug(message, 'SIGNALR')
   };
 
   auth = {
@@ -122,24 +101,6 @@ class Logger {
     error: (message: string, error?: Error) => this.error(message, 'FAVORITES', error),
     debug: (message: string) => this.debug(message, 'FAVORITES')
   };
-
-  hooks = {
-    signalr: {
-      info: (message: string) => this.info(message, 'SIGNALR_HOOK'),
-      warn: (message: string) => this.warn(message, 'SIGNALR_HOOK'),
-      error: (message: string, error?: Error) => this.error(message, 'SIGNALR_HOOK', error),
-      debug: (message: string) => this.debug(message, 'SIGNALR_HOOK')
-    }
-  };
-
-  services = {
-    signalr: {
-      info: (message: string) => this.info(message, 'SIGNALR_SERVICE'),
-      warn: (message: string) => this.warn(message, 'SIGNALR_SERVICE'),
-      error: (message: string, error?: Error) => this.error(message, 'SIGNALR_SERVICE', error),
-      debug: (message: string) => this.debug(message, 'SIGNALR_SERVICE')
-    }
-  };
 }
 
 // Export singleton instance
@@ -147,17 +108,12 @@ export const logger = new Logger();
 
 // Export individual service loggers for convenience
 export const { 
-  priceAlerts, 
-  alertNotifications, 
   properties, 
   client, 
-  signalr, 
   auth,
   personalArea,
   recommendations,
-  favorites,
-  hooks,
-  services
+  favorites
 } = logger;
 
 // Export the main logger as default

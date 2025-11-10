@@ -1,4 +1,4 @@
-import type { User, PropertyAlert } from '../types/PersonalArea';
+import type { User } from '../types/PersonalArea';
 import { personalArea } from '../utils/logger';
 
 // Format price in European format (EUR)
@@ -231,84 +231,6 @@ export const isValidPhoneNumber = (phone: string): boolean => {
   return /^\+?351\d{9}$|^\d{9}$/.test(cleanPhone);
 };
 
-/**
- * Utilitários para PropertyAlert - Novos alertas de redução de preço
- */
-export const priceAlertUtils = {
-  /**
-   * Formatar informações do alerta
-   */
-  formatAlertInfo: (alert: PropertyAlert): string => {
-    const parts = [];
-    
-    parts.push(`📍 ${alert.propertyLocation}`);
-    parts.push(`💰 ${formatPrice(alert.currentPrice)}`);
-    parts.push(`📉 Alerta: ${alert.alertThresholdPercentage}%`);
-    
-    return parts.join(' • ');
-  },
-
-  /**
-   * Obter status do alerta
-   */
-  getAlertStatus: (alert: PropertyAlert): 'active' | 'inactive' | 'triggered' => {
-    if (!alert.isActive) return 'inactive';
-    if (alert.notificationCount > 0) return 'triggered';
-    return 'active';
-  },
-
-  /**
-   * Formatar limite do alerta
-   */
-  formatThreshold: (percentage: number): string => {
-    return `${percentage}% ou mais`;
-  },
-
-  /**
-   * Verificar se alerta teve atividade recente
-   */
-  hasRecentActivity: (alert: PropertyAlert): boolean => {
-    if (!alert.lastTriggered) return false;
-    const hoursSinceTriggered = (Date.now() - new Date(alert.lastTriggered).getTime()) / (1000 * 60 * 60);
-    return hoursSinceTriggered < 24;
-  },
-
-  /**
-   * Formatar última atividade
-   */
-  formatLastActivity: (alert: PropertyAlert): string => {
-    if (!alert.lastTriggered) return 'Nunca disparado';
-    
-    const date = new Date(alert.lastTriggered);
-    const now = new Date();
-    const diffHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
-    if (diffHours < 1) return 'Disparado recentemente';
-    if (diffHours < 24) return `Disparado há ${diffHours}h`;
-    
-    const diffDays = Math.floor(diffHours / 24);
-    if (diffDays < 7) return `Disparado há ${diffDays}d`;
-    
-    return `Disparado em ${formatDate(date)}`;
-  },
-
-  /**
-   * Obter cor baseada no status
-   */
-  getStatusColor: (alert: PropertyAlert): string => {
-    const status = priceAlertUtils.getAlertStatus(alert);
-    if (status === 'triggered') return 'green';
-    if (status === 'active') return 'blue';
-    return 'gray';
-  },
-
-  /**
-   * Calcular poupança estimada baseada no threshold
-   */
-  calculateEstimatedSavings: (alert: PropertyAlert): number => {
-    return Math.round((alert.currentPrice * alert.alertThresholdPercentage) / 100);
-  }
-};
 
 /**
  * Função auxiliar para obter iniciais de qualquer string de nome
