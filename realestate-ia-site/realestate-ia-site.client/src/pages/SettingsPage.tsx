@@ -10,6 +10,8 @@ import { toast } from 'sonner';
 import { deleteAccount } from '../api/auth.service';
 import { personalArea as logger } from '../utils/logger';
 import { ChangePassword } from '../components/Settings/ChangePassword';
+import { ActiveSessions } from '../components/Settings/ActiveSessions';
+import { PrivacyPreferences } from '../components/Settings/PrivacyPreferences';
 
 interface SettingsPageProps {
   user: User;
@@ -74,6 +76,12 @@ export function SettingsPage({ onDeleteAccount, hasActiveSearch, onNavigateToHom
 
         {/* Change Password */}
         <ChangePassword />
+
+        {/* Active Sessions */}
+        <ActiveSessions />
+
+        {/* Privacy Preferences */}
+        <PrivacyPreferences />
 
         {/* Danger Zone */}
         <Card className="border border-error-gentle bg-error-soft shadow-clay-deep">

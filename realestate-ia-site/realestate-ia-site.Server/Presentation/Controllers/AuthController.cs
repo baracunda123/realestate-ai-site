@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -154,7 +154,8 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 }
 
                 var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
-                var (result, tokens) = await _authService.LoginAsync(request, ip);
+                var userAgent = HttpContext.Request.Headers["User-Agent"].ToString();
+                var (result, tokens) = await _authService.LoginAsync(request, ip, userAgent);
                 
                 if (!result.Success)
                 {
@@ -211,7 +212,8 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 }
 
                 var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
-                var (result, tokens) = await _authService.ExternalLoginAsync(externalLoginInfo, ip);
+                var userAgent = HttpContext.Request.Headers["User-Agent"].ToString();
+                var (result, tokens) = await _authService.ExternalLoginAsync(externalLoginInfo, ip, userAgent);
                 
                 if (!result.Success)
                 {

@@ -45,15 +45,15 @@ namespace realestate_ia_site.Server.Domain.Entities
         [Column("full_name")]
         public string? FullName { get; set; }
 
-        // Propriedades que agora ser„o mapeadas para a base de dados
+        // Propriedades que agora ser√£o mapeadas para a base de dados
         [Column("refresh_token")]
         public string? RefreshToken { get; set; }
         
         [Column("refresh_token_expires")]
         public DateTime? RefreshTokenExpires { get; set; }
 
-        // Propriedades adicionais que n„o est„o no schema mas podem ser ˙teis
-        // Estas n„o ser„o mapeadas para colunas especÌficas
+        // Propriedades adicionais que n√£o est√£o no schema mas podem ser √∫teis
+        // Estas n√£o ser√£o mapeadas para colunas espec√≠ficas
         [NotMapped]
         public DateTime? LastLoginAt { get; set; }
 
@@ -75,11 +75,11 @@ namespace realestate_ia_site.Server.Domain.Entities
         [NotMapped]
         public DateTime? LockedUntil { get; set; }
 
-        // NavegaÁ„o
+        // Navega√ß√£o
         public virtual ICollection<Subscription> Subscriptions { get; set; } = new List<Subscription>();
         public virtual ICollection<UserLoginSession> LoginSessions { get; set; } = new List<UserLoginSession>();
         
-        // MÈtodos auxiliares
+        // M√©todos auxiliares
         [NotMapped]
         public bool IsLocked => LockedUntil.HasValue && LockedUntil > DateTime.UtcNow;
         
@@ -115,7 +115,7 @@ namespace realestate_ia_site.Server.Domain.Entities
             UpdatedAt = DateTime.UtcNow;
         }
 
-        // Convers„o de credits para int quando necess·rio
+        // Convers√£o de credits para int quando necess√°rio
         [NotMapped]
         public int CreditsAsInt 
         { 

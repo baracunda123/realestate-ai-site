@@ -45,7 +45,7 @@ namespace realestate_ia_site.Server.Domain.Entities
         [Column("logout_at")]
         public DateTime? LogoutAt { get; set; }
         
-        // Navegação
+        // NavegaÃ§Ã£o
         [ForeignKey("UserId")]
         public virtual User User { get; set; } = null!;
         

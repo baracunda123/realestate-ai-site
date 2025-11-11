@@ -360,21 +360,14 @@ export async function getActiveSessions(): Promise<Array<{
     ipAddress: string | null;
     lastActivity: string;
     isCurrentSession: boolean;
-  }>>('/api/auth/sessions');
-}
-
-/**
- * Revogar sessão específica
- */
-export async function revokeSession(sessionId: string): Promise<{ success: boolean; message: string }> {
-  return await apiClient.delete<{ success: boolean; message: string }>(`/api/auth/sessions/${sessionId}`);
+  }>>('/api/sessions');
 }
 
 /**
  * Revogar todas as outras sessões (manter apenas a atual)
  */
-export async function revokeAllOtherSessions(): Promise<{ success: boolean; message: string; revokedCount: number }> {
-  return await apiClient.post<{ success: boolean; message: string; revokedCount: number }>('/api/auth/revoke-all-sessions');
+export async function revokeAllOtherSessions(): Promise<{ success: boolean; revokedCount: number }> {
+  return await apiClient.post<{ success: boolean; revokedCount: number }>('/api/sessions/revoke-all');
 }
 
 /**
