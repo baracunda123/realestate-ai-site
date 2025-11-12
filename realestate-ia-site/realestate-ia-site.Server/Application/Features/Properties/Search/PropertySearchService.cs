@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Infrastructure.Persistence;
 using realestate_ia_site.Server.Application.Common.DTOs;
 using realestate_ia_site.Server.Application.Features.Properties.Search.Filters;
+using realestate_ia_site.Server.Domain.Enums;
 
 namespace realestate_ia_site.Server.Application.Features.Properties.Search
 {
@@ -33,7 +34,10 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            var query = _context.Properties.AsQueryable();
+            // Filtrar apenas anúncios ativos
+            var query = _context.Properties
+                .Where(p => p.Status == PropertyStatus.Active)
+                .AsQueryable();
 
             foreach (var filtroKey in filtros.Keys)
             {
@@ -93,7 +97,10 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search
                 ["generate_top_picks"] = "true"
             };
 
-            var query = _context.Properties.AsQueryable();
+            // Filtrar apenas anúncios ativos
+            var query = _context.Properties
+                .Where(p => p.Status == PropertyStatus.Active)
+                .AsQueryable();
 
             foreach (var filtroKey in filtros.Keys.Where(k => k != "sort" && k != "cheaper_hint"))
             {

@@ -5,6 +5,7 @@ using realestate_ia_site.Server.Application.Features.Properties.Import;
 using realestate_ia_site.Server.Application.Features.Payments;
 using realestate_ia_site.Server.Infrastructure.Auth;
 using realestate_ia_site.Server.Application.Features.AI.Interfaces;
+using realestate_ia_site.Server.Application.Services;
 
 namespace realestate_ia_site.Server.Infrastructure.Extensions;
 
@@ -25,6 +26,7 @@ public static class ApplicationServicesExtensions
         services.AddScoped<PropertyRecommendationService>();
         services.AddScoped<IPropertySearchService, PropertySearchService>();
         services.AddScoped<PropertyImportService>();
+        services.AddScoped<IPropertyTrackingService, PropertyTrackingService>();
         
         // Auth Services
         services.AddScoped<AuthService>();

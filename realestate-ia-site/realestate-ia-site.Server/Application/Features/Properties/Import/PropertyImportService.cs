@@ -4,6 +4,8 @@ using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Application.Common.DTOs;
 using realestate_ia_site.Server.Application.ExternalServices.Interfaces;
 using realestate_ia_site.Server.Application.Common.Mappings;
+using realestate_ia_site.Server.Application.Services;
+using realestate_ia_site.Server.Domain.Enums;
 
 namespace realestate_ia_site.Server.Application.Features.Properties.Import
 {
@@ -12,12 +14,18 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Import
         private readonly ApplicationDbContext _context;
         private readonly ILogger<PropertyImportService> _logger;
         private readonly IGeocodingService _geocodingService;
+        private readonly IPropertyTrackingService _trackingService;
 
-        public PropertyImportService(ApplicationDbContext context, ILogger<PropertyImportService> logger, IGeocodingService geocodingService)
+        public PropertyImportService(
+            ApplicationDbContext context, 
+            ILogger<PropertyImportService> logger, 
+            IGeocodingService geocodingService,
+            IPropertyTrackingService trackingService)
         {
             _context = context;
             _logger = logger;
             _geocodingService = geocodingService;
+            _trackingService = trackingService;
         }
 
         public async Task<ImportResult> ImportScrapperPropertiesAsync(ScraperPropertyDto[] scrapperProperties)
@@ -48,12 +56,45 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Import
             var result = new ImportResult();
             try
             {
+                // Coletar IDs das propriedades processadas e source site
+                var processedPropertyIds = new List<string>();
+                string? sourceSite = null;
+
                 foreach (var scrapperProperty in uniqueProperties)
                 {
-                    await ProcessSinglePropertyAsync(scrapperProperty, result);
+                    var propertyId = await ProcessSinglePropertyAsync(scrapperProperty, result);
+                    if (!string.IsNullOrEmpty(propertyId))
+                    {
+                        processedPropertyIds.Add(propertyId);
+                    }
+                    
+                    // Capturar o source site do primeiro anúncio
+                    if (sourceSite == null && !string.IsNullOrWhiteSpace(scrapperProperty.site))
+                    {
+                        sourceSite = scrapperProperty.site;
+                    }
                 }
+                
                 await _context.SaveChangesAsync();
-                _logger.LogInformation("[Import] Concluido criadas={Created} atualizadas={Updated} erros={Errors}", result.Created, result.Updated, result.Errors);
+                
+                // Fazer tracking automático após o import
+                if (!string.IsNullOrWhiteSpace(sourceSite) && processedPropertyIds.Any())
+                {
+                    _logger.LogInformation("[Import] Iniciando tracking para {Count} propriedades de {Source}", 
+                        processedPropertyIds.Count, sourceSite);
+                    
+                    var (updated, archived) = await _trackingService.UpdatePropertyTrackingAsync(
+                        processedPropertyIds, 
+                        sourceSite);
+                    
+                    result.Archived = archived;
+                    
+                    _logger.LogInformation("[Import] Tracking concluído: {Updated} atualizadas, {Archived} arquivadas", 
+                        updated, archived);
+                }
+                
+                _logger.LogInformation("[Import] Concluido criadas={Created} atualizadas={Updated} arquivadas={Archived} erros={Errors}", 
+                    result.Created, result.Updated, result.Archived, result.Errors);
                 return result;
             }
             catch (Exception ex)
@@ -63,7 +104,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Import
             }
         }
 
-        private async Task ProcessSinglePropertyAsync(ScraperPropertyDto scrapperDto, ImportResult result)
+        private async Task<string?> ProcessSinglePropertyAsync(ScraperPropertyDto scrapperDto, ImportResult result)
         {
             try
             {
@@ -73,7 +114,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Import
                     _logger.LogWarning("[Import] Propriedade sem URL ignorada. Title={Title}", 
                         scrapperDto.titleFromListing);
                     result.Errors++;
-                    return;
+                    return null;
                 }
                      
                 // Apenas trim - manter URL exatamente como vem do scraper
@@ -114,15 +155,32 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Import
                     _logger.LogInformation("[Import] UPDATE propriedade existente id={Id}, price={Price}", 
                         existingProperty.Id,existingProperty.Price);
                     PropertyMapper.UpdatePropertyFromScrapper(existingProperty, scrapperDto);
+                    
+                    // Atualizar LastSeenAt e reativar se estava arquivado
+                    existingProperty.LastSeenAt = DateTime.UtcNow;
+                    if (existingProperty.Status != PropertyStatus.Active)
+                    {
+                        existingProperty.Status = PropertyStatus.Active;
+                        existingProperty.ArchivedAt = null;
+                        _logger.LogInformation("[Import] Propriedade {Id} reativada", existingProperty.Id);
+                    }
+                    
                     result.Updated++;
+                    return existingProperty.Id;
                 }
                 else
                 {
                     _logger.LogInformation("[Import] CREATE nova propriedade url={Url}", 
                         urlToSearch);
                     var newProperty = await PropertyMapper.MapToPropertyEntityAsync(scrapperDto, _geocodingService);
+                    
+                    // Inicializar campos de tracking
+                    newProperty.LastSeenAt = DateTime.UtcNow;
+                    newProperty.Status = PropertyStatus.Active;
+                    
                     _context.Properties.Add(newProperty);
                     result.Created++;
+                    return newProperty.Id;
                 }
             }
             catch (Exception ex)
@@ -130,6 +188,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Import
                 result.Errors++;
                 _logger.LogError(ex, "[Import] Erro a processar propriedade url={Url} title={Title}", 
                     scrapperDto.url, scrapperDto.titleFromListing);
+                return null;
             }
         }
 
@@ -140,6 +199,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Import
         public int Created { get; set; }
         public int Updated { get; set; }
         public int Errors { get; set; }
+        public int Archived { get; set; }
         public int Total => Created + Updated + Errors;
     }
 }

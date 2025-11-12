@@ -209,6 +209,12 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
                 entity.HasIndex(e => e.Price);
                 entity.HasIndex(e => e.CreatedAt);
                 entity.HasIndex(e => new { e.City, e.Type, e.Price }); // Índice composto para pesquisas comuns
+                
+                // Índices para tracking de anúncios
+                entity.HasIndex(e => e.Status);
+                entity.HasIndex(e => e.LastSeenAt);
+                entity.HasIndex(e => new { e.Status, e.LastSeenAt }); // Para queries de limpeza
+                entity.HasIndex(e => new { e.SourceSite, e.Status }); // Para queries por source
             });
 
             // Configurações para ChatUsageQuota

@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using realestate_ia_site.Server.Domain.ValueObjects;
+using realestate_ia_site.Server.Domain.Enums;
 using AddressVO = realestate_ia_site.Server.Domain.ValueObjects.Address;
 
 namespace realestate_ia_site.Server.Domain.Entities
@@ -73,6 +74,15 @@ namespace realestate_ia_site.Server.Domain.Entities
         
         [Column("updatedAt")]
         public DateTime UpdatedAt { get; set; }
+
+        [Column("lastSeenAt")]
+        public DateTime LastSeenAt { get; set; }
+
+        [Column("status")]
+        public PropertyStatus Status { get; set; } = PropertyStatus.Active;
+
+        [Column("archivedAt")]
+        public DateTime? ArchivedAt { get; set; }
 
 
         // Helpers para Value Objects (não persistidos diretamente)

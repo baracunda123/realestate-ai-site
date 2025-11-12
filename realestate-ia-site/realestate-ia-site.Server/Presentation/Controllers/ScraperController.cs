@@ -16,7 +16,10 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         private readonly PropertyImportService _propertyImportService;
         private readonly ScraperStateProvider _scraperStateService;
 
-        public ScraperController(ILogger<ScraperController> logger, PropertyImportService propertyImportService, ScraperStateProvider scraperStateService)
+        public ScraperController(
+            ILogger<ScraperController> logger, 
+            PropertyImportService propertyImportService, 
+            ScraperStateProvider scraperStateService)
         {
             _logger = logger;
             _propertyImportService = propertyImportService;
