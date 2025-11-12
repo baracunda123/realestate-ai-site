@@ -101,7 +101,7 @@ public class AuthService
 
         user.UpdateLastLogin(ip);
         await _userManager.UpdateAsync(user);
-        await CreateLoginSessionAsync(user, ip, userAgent, ct);
+        await CreateLoginSessionAsync(user, ip, userAgent, request.DeviceFingerprint, ct);
         
         // CORRIGIDO: Verificar se já tem refresh token válido
         bool needsNewRefreshToken = string.IsNullOrEmpty(user.RefreshToken) || 
@@ -134,7 +134,7 @@ public class AuthService
         return (AuthResult.SuccessResult(tokens, MapToUserProfile(user), "Login realizado com sucesso"), tokens);
     }
 
-    public async Task<(AuthResult result, TokenResponse? tokens)> ExternalLoginAsync(ExternalLoginInfo externalLoginInfo, string? ip, string? userAgent, CancellationToken ct = default)
+    public async Task<(AuthResult result, TokenResponse? tokens)> ExternalLoginAsync(ExternalLoginInfo externalLoginInfo, string? ip, string? userAgent, string? deviceFingerprint = null, CancellationToken ct = default)
     {
         _logger.LogInformation("[ExternalLogin] Iniciando login externo...");
         
@@ -164,7 +164,7 @@ public class AuthService
             
             user.UpdateLastLogin(ip);
             await _userManager.UpdateAsync(user);
-            await CreateLoginSessionAsync(user, ip, userAgent, ct);
+            await CreateLoginSessionAsync(user, ip, userAgent, deviceFingerprint, ct);
             
             // CORRIGIDO: Verificar se já tem refresh token válido
             bool needsNewRefreshToken = string.IsNullOrEmpty(user.RefreshToken) || 
@@ -236,7 +236,7 @@ public class AuthService
 
             user.UpdateLastLogin(ip);
             await _userManager.UpdateAsync(user);
-            await CreateLoginSessionAsync(user, ip, userAgent, ct);
+            await CreateLoginSessionAsync(user, ip, userAgent, deviceFingerprint, ct);
             
             // CORRIGIDO: Verificar se já tem refresh token válido
             bool needsNewRefreshToken = string.IsNullOrEmpty(user.RefreshToken) || 
@@ -317,7 +317,7 @@ public class AuthService
 
         user.UpdateLastLogin(ip);
         await _userManager.UpdateAsync(user);
-        await CreateLoginSessionAsync(user, ip, userAgent, ct);
+        await CreateLoginSessionAsync(user, ip, userAgent, deviceFingerprint, ct);
         var newUserTokens = await GenerateTokensAsync(user, ct);
         _logger.LogInformation("[ExternalLogin] Novo utilizador criado com login externo utilizador={UserId} provider={Provider}", user.Id, externalLoginInfo.LoginProvider);
         return (AuthResult.SuccessResult(newUserTokens, MapToUserProfile(user), "Conta criada com sucesso"), newUserTokens);
@@ -457,54 +457,65 @@ public class AuthService
         return Convert.ToBase64String(bytes);
     }
 
-    public async Task CreateLoginSessionAsync(User user, string? ip, string? userAgent, CancellationToken ct)
+    public async Task CreateLoginSessionAsync(User user, string? ip, string? userAgent, string? deviceFingerprint = null, CancellationToken ct = default)
     {
         var utcNow = DateTime.UtcNow;
         var normalizedUserAgent = userAgent ?? "Unknown";
         
-        // Verificar se já existe uma sessão ativa do mesmo dispositivo (mesmo IP + UserAgent)
-        var existingSession = await _context.UserLoginSessions
-            .Where(s => s.UserId == user.Id 
-                     && s.IpAddress == ip 
-                     && s.UserAgent == normalizedUserAgent
-                     && s.ExpiresAt > utcNow)
-            .FirstOrDefaultAsync(ct);
+        // NOVA LÓGICA: Verificar se já existe uma sessão ativa do mesmo dispositivo usando fingerprint
+        // Se não houver fingerprint, usar IP + UserAgent como fallback (comportamento antigo)
+        UserLoginSession? existingSession = null;
         
-        if (existingSession != null)
+        if (!string.IsNullOrEmpty(deviceFingerprint))
         {
-            // Só atualizar se passou mais de 5 minutos desde a última atividade (evitar spam)
-            var timeSinceLastActivity = utcNow - existingSession.LastActivity;
-            if (timeSinceLastActivity.TotalMinutes >= 5)
-            {
-                existingSession.LastActivity = utcNow;
-                existingSession.ExpiresAt = utcNow.AddDays(30);
-                await _context.SaveChangesAsync(ct);
-                _logger.LogInformation("[Auth] Login session updated userId={UserId} sessionId={SessionId}", 
-                    user.Id, existingSession.Id);
-            }
-            else
-            {
-                _logger.LogDebug("[Auth] Login session skipped update (too recent) userId={UserId} sessionId={SessionId}", 
-                    user.Id, existingSession.Id);
-            }
+            // Procurar por fingerprint do dispositivo (método preferido)
+            existingSession = await _context.UserLoginSessions
+                .Where(s => s.UserId == user.Id 
+                         && s.DeviceFingerprint == deviceFingerprint
+                         && s.ExpiresAt > utcNow)
+                .FirstOrDefaultAsync(ct);
         }
         else
         {
-            // Criar nova sessão
+            // Fallback: usar IP + UserAgent (comportamento antigo)
+            existingSession = await _context.UserLoginSessions
+                .Where(s => s.UserId == user.Id 
+                         && s.IpAddress == ip 
+                         && s.UserAgent == normalizedUserAgent
+                         && s.ExpiresAt > utcNow)
+                .FirstOrDefaultAsync(ct);
+        }
+        
+        if (existingSession != null)
+        {
+            // Atualizar sessão existente do mesmo dispositivo
+            existingSession.LastActivity = utcNow;
+            existingSession.ExpiresAt = utcNow.AddDays(30);
+            existingSession.IpAddress = ip; // Atualizar IP (pode mudar)
+            existingSession.UserAgent = normalizedUserAgent; // Atualizar UserAgent (pode mudar)
+            
+            await _context.SaveChangesAsync(ct);
+            _logger.LogInformation("[Auth] Login session updated userId={UserId} sessionId={SessionId} fingerprint={Fingerprint}", 
+                user.Id, existingSession.Id, deviceFingerprint ?? "none");
+        }
+        else
+        {
+            // Criar nova sessão para novo dispositivo
             var session = new UserLoginSession
             {
                 UserId = user.Id,
                 SessionToken = Guid.NewGuid().ToString(),
                 IpAddress = ip,
                 UserAgent = normalizedUserAgent,
+                DeviceFingerprint = deviceFingerprint,
                 LoginAt = utcNow,
                 LastActivity = utcNow,
                 ExpiresAt = utcNow.AddDays(30)
             };
             _context.UserLoginSessions.Add(session);
             await _context.SaveChangesAsync(ct);
-            _logger.LogInformation("[Auth] Login session created userId={UserId} ip={IP} userAgent={UserAgent}", 
-                user.Id, ip, userAgent);
+            _logger.LogInformation("[Auth] Login session created userId={UserId} ip={IP} fingerprint={Fingerprint}", 
+                user.Id, ip, deviceFingerprint ?? "none");
         }
     }
 
