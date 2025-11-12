@@ -215,6 +215,13 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
                 entity.HasIndex(e => e.LastSeenAt);
                 entity.HasIndex(e => new { e.Status, e.LastSeenAt }); // Para queries de limpeza
                 entity.HasIndex(e => new { e.SourceSite, e.Status }); // Para queries por source
+                
+                // Default values para campos de tracking
+                entity.Property(e => e.LastSeenAt)
+                    .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                
+                entity.Property(e => e.Status)
+                    .HasDefaultValue(Domain.Enums.PropertyStatus.Active);
             });
 
             // Configurações para ChatUsageQuota
