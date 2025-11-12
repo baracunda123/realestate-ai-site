@@ -29,7 +29,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         }
 
         /// <summary>
-        /// Obter recomendações para o dashboard do utilizador
+        /// Obter recomendaÃ§Ãµes para o dashboard do utilizador
         /// </summary>
         [HttpGet("dashboard")]
         [ProducesResponseType(typeof(DashboardRecommendationsDto), StatusCodes.Status200OK)]
@@ -62,7 +62,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         }
 
         /// <summary>
-        /// Marcar recomendação como visualizada
+        /// Marcar recomendaÃ§Ã£o como visualizada
         /// </summary>
         [HttpPost("{propertyId}/mark-viewed")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
@@ -84,14 +84,14 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                     .FirstOrDefaultAsync(r => r.UserId == userId && r.PropertyId == propertyId && r.IsActive);
 
                 if (recommendation == null)
-                    return NotFound(new { message = "Recomendação não encontrada" });
+                    return NotFound(new { message = "RecomendaÃ§Ã£o nÃ£o encontrada" });
 
                 recommendation.ViewedAt = DateTime.UtcNow;
                 await _context.SaveChangesAsync();
 
                 _logger.LogInformation("Recommendation marked as viewed successfully");
 
-                return Ok(new { success = true, message = "Recomendação marcada como visualizada" });
+                return Ok(new { success = true, message = "RecomendaÃ§Ã£o marcada como visualizada" });
             }
             catch (Exception ex)
             {
@@ -101,7 +101,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         }
 
         /// <summary>
-        /// Descartar recomendação (marcar como inativa)
+        /// Descartar recomendaÃ§Ã£o (marcar como inativa)
         /// </summary>
         [HttpDelete("{propertyId}")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
@@ -123,7 +123,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                     .FirstOrDefaultAsync(r => r.UserId == userId && r.PropertyId == propertyId && r.IsActive);
 
                 if (recommendation == null)
-                    return NotFound(new { message = "Recomendação não encontrada" });
+                    return NotFound(new { message = "RecomendaÃ§Ã£o nÃ£o encontrada" });
 
                 recommendation.IsActive = false;
                 recommendation.UpdatedAt = DateTime.UtcNow;
@@ -131,7 +131,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
 
                 _logger.LogInformation("Recommendation dismissed successfully");
 
-                return Ok(new { success = true, message = "Recomendação descartada" });
+                return Ok(new { success = true, message = "RecomendaÃ§Ã£o descartada" });
             }
             catch (Exception ex)
             {
@@ -141,7 +141,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         }
 
         /// <summary>
-        /// Obter estatísticas das recomendações do utilizador
+        /// Obter estatÃ­sticas das recomendaÃ§Ãµes do utilizador
         /// </summary>
         [HttpGet("stats")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
@@ -185,7 +185,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         }
 
         /// <summary>
-        /// Refresh completo das recomendações baseado no perfil atual do utilizador
+        /// Refresh completo das recomendaÃ§Ãµes baseado no perfil atual do utilizador
         /// </summary>
         [HttpPost("refresh")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
@@ -206,7 +206,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 return Ok(new 
                 { 
                     success = true, 
-                    message = "Recomendações atualizadas com base no seu perfil atual"
+                    message = "RecomendaÃ§Ãµes atualizadas com base no seu perfil atual"
                 });
             }
             catch (Exception ex)
@@ -217,7 +217,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         }
 
         /// <summary>
-        /// Obter recomendações similares a uma propriedade específica
+        /// Obter recomendaÃ§Ãµes similares a uma propriedade especÃ­fica
         /// </summary>
         [HttpPost("similar-to/{propertyId}")]
         [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
@@ -237,14 +237,14 @@ namespace realestate_ia_site.Server.Presentation.Controllers
             {
                 var property = await _context.Properties.FirstOrDefaultAsync(p => p.Id == propertyId);
                 if (property == null)
-                    return NotFound(new { message = "Propriedade não encontrada" });
+                    return NotFound(new { message = "Propriedade nÃ£o encontrada" });
 
                 await _recommendationService.ProcessSimilarPropertiesAsync(userId, property, HttpContext.RequestAborted);
 
                 return Ok(new 
                 { 
                     success = true, 
-                    message = "Recomendações similares geradas com sucesso"
+                    message = "RecomendaÃ§Ãµes similares geradas com sucesso"
                 });
             }
             catch (Exception ex)
