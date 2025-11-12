@@ -164,12 +164,11 @@ namespace realestate_ia_site.Server.Application.Common.Mappings
                 return null;
 
             // Primeiro tenta extrair padrões explícitos como "3 quartos" ou "2 suítes"
-            // Estes são mais confiáveis que o padrão T
             var bedroomPatterns = new[]
             {
-                @"(\d+)\s*suítes?\s*e\s*(\d+)\s*quartos?", // X suites e Y quartos
-                @"(\d+)\s*quartos?", // X quartos
-                @"(\d+)\s*suítes?" // X suites
+                @"\b(\d{1,2})\s*suítes?\s*e\s*(\d{1,2})\s*quartos?\b", // X suites e Y quartos
+                @"\b(\d{1,2})\s*quartos?\b", // X quartos
+                @"\b(\d{1,2})\s*suítes?\b" // X suites
             };
 
             foreach (var pattern in bedroomPatterns)
@@ -177,30 +176,32 @@ namespace realestate_ia_site.Server.Application.Common.Mappings
                 var match = Regex.Match(text, pattern, RegexOptions.IgnoreCase | RegexOptions.Multiline);
                 if (match.Success)
                 {
-                    // Se encontrar "suites e quartos", somar ambos
                     if (match.Groups.Count > 2 && match.Groups[2].Success)
                     {
                         if (int.TryParse(match.Groups[1].Value, out var suites) && 
                             int.TryParse(match.Groups[2].Value, out var rooms))
                         {
-                            return suites + rooms;
+                            var total = suites + rooms;
+                            if (total <= 50)
+                                return total;
                         }
                     }
                     else if (int.TryParse(match.Groups[1].Value, out var bedrooms))
                     {
-                        return bedrooms;
+                        if (bedrooms <= 50)
+                            return bedrooms;
                     }
                 }
             }
 
-            // Só tenta extrair padrão T se não encontrou padrões explícitos
-            // E apenas se estiver no contexto correto (início do texto, após tipo de imóvel)
-            // Padrão: (apartamento|moradia|casa|vivenda) seguido de T e número
-            // Usa negative lookbehind (?<![A-Z0-9]) para evitar capturar de referências como "ZMPT576908"
-            var titleMatch = Regex.Match(text, @"\b(apartamento|moradia|casa|vivenda|loja|escritório)\s+(?<![A-Z0-9])T(\d+)\b", RegexOptions.IgnoreCase);
+            // Padrão T: valida que antes e depois do T não há letras
+            // (?<![A-Za-z]) = não pode ter letra antes do T
+            // (?![A-Za-z]) = não pode ter letra depois do número
+            var titleMatch = Regex.Match(text, @"\b(apartamento|moradia|casa|vivenda|loja|escritório)\b.*?(?<![A-Za-z])T(\d{1,2})(?![A-Za-z])", RegexOptions.IgnoreCase);
             if (titleMatch.Success && int.TryParse(titleMatch.Groups[2].Value, out var bedroomsFromTitle))
             {
-                return bedroomsFromTitle;
+                if (bedroomsFromTitle <= 50)
+                    return bedroomsFromTitle;
             }
 
             return null;
@@ -313,13 +314,13 @@ namespace realestate_ia_site.Server.Application.Common.Mappings
             if (newUsableArea.HasValue)
                 existing.UsableArea = newUsableArea;
 
+            // Atualiza bedrooms sempre, mesmo que seja null (para limpar valores incorretos)
             var newBedrooms = ExtractBedrooms(text) ?? ExtractBedrooms(title);
-            if (newBedrooms.HasValue)
-                existing.Bedrooms = newBedrooms;
+            existing.Bedrooms = newBedrooms;
 
+            // Atualiza bathrooms sempre, mesmo que seja null (para limpar valores incorretos)
             var newBathrooms = ExtractBathrooms(text);
-            if (newBathrooms.HasValue)
-                existing.Bathrooms = newBathrooms;
+            existing.Bathrooms = newBathrooms;
 
             existing.Garage = HasGarage(text);
         }
