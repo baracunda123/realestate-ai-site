@@ -166,9 +166,9 @@ namespace realestate_ia_site.Server.Application.Common.Mappings
             // Primeiro tenta extrair padrões explícitos como "3 quartos" ou "2 suítes"
             var bedroomPatterns = new[]
             {
-                @"\b(\d{1,2})\s*suítes?\s*e\s*(\d{1,2})\s*quartos?\b", // X suites e Y quartos
-                @"\b(\d{1,2})\s*quartos?\b", // X quartos
-                @"\b(\d{1,2})\s*suítes?\b" // X suites
+                @"\b(\d{1,2})\s*suítes?\s*e\s*(\d{1,2})\s*quartos?\b",
+                @"\b(\d{1,2})\s*quartos?\b",
+                @"\b(\d{1,2})\s*suítes?\b"
             };
 
             foreach (var pattern in bedroomPatterns)
@@ -178,7 +178,7 @@ namespace realestate_ia_site.Server.Application.Common.Mappings
                 {
                     if (match.Groups.Count > 2 && match.Groups[2].Success)
                     {
-                        if (int.TryParse(match.Groups[1].Value, out var suites) && 
+                        if (int.TryParse(match.Groups[1].Value, out var suites) &&
                             int.TryParse(match.Groups[2].Value, out var rooms))
                         {
                             var total = suites + rooms;
@@ -194,11 +194,10 @@ namespace realestate_ia_site.Server.Application.Common.Mappings
                 }
             }
 
-            // Padrão T: valida que antes e depois do T não há letras
-            // (?<![A-Za-z]) = não pode ter letra antes do T
-            // (?![A-Za-z]) = não pode ter letra depois do número
-            var titleMatch = Regex.Match(text, @"\b(apartamento|moradia|casa|vivenda|loja|escritório)\b.*?(?<![A-Za-z])T(\d{1,2})(?![A-Za-z])", RegexOptions.IgnoreCase);
-            if (titleMatch.Success && int.TryParse(titleMatch.Groups[2].Value, out var bedroomsFromTitle))
+            // Padrão T: procura tipo de imóvel + T ou só T isolado
+            // Valida que antes e depois do T não há letras
+            var titleMatch = Regex.Match(text, @"(?:\b(?:apartamento|moradia|casa|vivenda|loja|escritório)\b.*?)?(?<![A-Za-z])T(\d{1,2})(?![A-Za-z])", RegexOptions.IgnoreCase);
+            if (titleMatch.Success && int.TryParse(titleMatch.Groups[1].Value, out var bedroomsFromTitle))
             {
                 if (bedroomsFromTitle <= 50)
                     return bedroomsFromTitle;
