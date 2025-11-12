@@ -162,6 +162,7 @@ public static class InfrastructureServicesExtensions
 
         // Background Services
         services.AddHostedService<RecommendationBackgroundService>();
+        services.AddHostedService<PropertyCleanupBackgroundService>();
 
         return services;
     }
