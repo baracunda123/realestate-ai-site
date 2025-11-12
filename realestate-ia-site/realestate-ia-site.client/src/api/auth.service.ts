@@ -2,12 +2,14 @@
 import apiClient from './client';
 import { auth as logger } from '../utils/logger';
 import type { TokenResponse, UserProfile } from './client';
+import { getDeviceFingerprint } from '../utils/deviceFingerprint';
 
 // Request interfaces para autenticação
 interface LoginRequest {
   email: string;
   password: string;
   rememberMe?: boolean;
+  deviceFingerprint?: string;
 }
 
 interface RegisterRequest {
@@ -140,7 +142,8 @@ export async function login(credentials: LoginPayload): Promise<AuthResult> {
     const requestData: LoginRequest = {
       email: credentials.email,
       password: credentials.password,
-      rememberMe: credentials.rememberMe
+      rememberMe: credentials.rememberMe,
+      deviceFingerprint: getDeviceFingerprint()
     };
 
     const response = await apiClient.post<AuthResult>('/api/auth/login', requestData);
@@ -301,7 +304,8 @@ export async function googleLogin(credential: string): Promise<AuthResult> {
   try {
     const requestData = {
       accessToken: credential,
-      provider: 'Google'
+      provider: 'Google',
+      deviceFingerprint: getDeviceFingerprint()
     };
 
     const response = await apiClient.post<AuthResult>('/api/auth/google-login', requestData);
@@ -365,9 +369,12 @@ export async function getActiveSessions(): Promise<Array<{
 
 /**
  * Revogar todas as outras sessões (manter apenas a atual)
+ * Requer confirmação por password para segurança
  */
-export async function revokeAllOtherSessions(): Promise<{ success: boolean; revokedCount: number }> {
-  return await apiClient.post<{ success: boolean; revokedCount: number }>('/api/sessions/revoke-all');
+export async function revokeAllOtherSessions(password: string): Promise<{ success: boolean; revokedCount: number; message?: string }> {
+  return await apiClient.post<{ success: boolean; revokedCount: number; message?: string }>('/api/sessions/revoke-all', {
+    password
+  });
 }
 
 /**

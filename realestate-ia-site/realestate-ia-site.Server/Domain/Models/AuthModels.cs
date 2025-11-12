@@ -38,6 +38,8 @@ namespace realestate_ia_site.Server.Domain.Models
         public string Password { get; set; } = string.Empty;
 
         public bool RememberMe { get; set; } = false;
+        
+        public string? DeviceFingerprint { get; set; }
     }
 
     public class ChangePasswordRequest
@@ -63,6 +65,8 @@ namespace realestate_ia_site.Server.Domain.Models
 
         [Required(ErrorMessage = "Provider é obrigatório")]
         public string Provider { get; set; } = string.Empty;
+        
+        public string? DeviceFingerprint { get; set; }
     }
 
     public class AuthResult

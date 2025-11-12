@@ -70,11 +70,12 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         /// <summary>
         /// Terminar todas as outras sessões (manter apenas a atual)
         /// Invalida o Refresh Token para forçar novo login em todos os dispositivos
+        /// REQUER confirmação por password para segurança adicional
         /// </summary>
         [HttpPost("revoke-all")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<ActionResult> RevokeAllOtherSessions(CancellationToken ct = default)
+        public async Task<ActionResult> RevokeAllOtherSessions([FromBody] RevokeSessionsRequest request, CancellationToken ct = default)
         {
             try
             {
@@ -84,6 +85,15 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 if (user == null)
                 {
                     return NotFound(new { success = false, message = "Utilizador não encontrado" });
+                }
+                
+                // SEGURANÇA: Verificar password antes de terminar sessões
+                if (!await _userManager.CheckPasswordAsync(user, request.Password))
+                {
+                    _logger.LogWarning("[Sessions] Tentativa de terminar sessões com password incorreta userId={UserId}", userId);
+                    _auditService.LogSecurityEvent(SecurityEventType.SuspiciousActivity, "Failed session revocation - wrong password", 
+                        new { UserId = userId });
+                    return BadRequest(new { success = false, message = "Password incorreta" });
                 }
                 
                 // Contar sessões antes de limpar
@@ -124,5 +134,10 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 return StatusCode(500, new { success = false, message = "Erro ao terminar sessões" });
             }
         }
+    }
+    
+    public class RevokeSessionsRequest
+    {
+        public string Password { get; set; } = string.Empty;
     }
 }

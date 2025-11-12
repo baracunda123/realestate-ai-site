@@ -30,6 +30,10 @@ namespace realestate_ia_site.Server.Domain.Entities
         [StringLength(200)]
         public string? DeviceInfo { get; set; }
         
+        [Column("device_fingerprint")]
+        [StringLength(100)]
+        public string? DeviceFingerprint { get; set; }
+        
         [Column("login_at")]
         public DateTime LoginAt { get; set; } = DateTime.UtcNow;
         

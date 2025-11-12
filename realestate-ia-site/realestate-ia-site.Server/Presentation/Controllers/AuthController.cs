@@ -213,7 +213,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
 
                 var ip = HttpContext.Connection.RemoteIpAddress?.ToString();
                 var userAgent = HttpContext.Request.Headers["User-Agent"].ToString();
-                var (result, tokens) = await _authService.ExternalLoginAsync(externalLoginInfo, ip, userAgent);
+                var (result, tokens) = await _authService.ExternalLoginAsync(externalLoginInfo, ip, userAgent, request.DeviceFingerprint);
                 
                 if (!result.Success)
                 {

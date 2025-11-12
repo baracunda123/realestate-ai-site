@@ -163,18 +163,12 @@ namespace realestate_ia_site.Server.Application.Common.Mappings
             if (string.IsNullOrWhiteSpace(text))
                 return null;
 
-            // Primeiro tenta extrair do titulo (padrão T1, T2, etc.)
-            var titleMatch = Regex.Match(text, @"T(\d+)", RegexOptions.IgnoreCase);
-            if (titleMatch.Success && int.TryParse(titleMatch.Groups[1].Value, out var bedroomsFromTitle))
-            {
-                return bedroomsFromTitle;
-            }
-
-            // Depois tenta extrair padrões como "3 quartos"
+            // Primeiro tenta extrair padrões explícitos como "3 quartos" ou "2 suítes"
+            // Estes são mais confiáveis que o padrão T
             var bedroomPatterns = new[]
             {
-                @"(\d+)\s*quartos?", // X quartos
                 @"(\d+)\s*suítes?\s*e\s*(\d+)\s*quartos?", // X suites e Y quartos
+                @"(\d+)\s*quartos?", // X quartos
                 @"(\d+)\s*suítes?" // X suites
             };
 
@@ -197,6 +191,16 @@ namespace realestate_ia_site.Server.Application.Common.Mappings
                         return bedrooms;
                     }
                 }
+            }
+
+            // Só tenta extrair padrão T se não encontrou padrões explícitos
+            // E apenas se estiver no contexto correto (início do texto, após tipo de imóvel)
+            // Padrão: (apartamento|moradia|casa|vivenda) seguido de T e número
+            // Usa negative lookbehind (?<![A-Z0-9]) para evitar capturar de referências como "ZMPT576908"
+            var titleMatch = Regex.Match(text, @"\b(apartamento|moradia|casa|vivenda|loja|escritório)\s+(?<![A-Z0-9])T(\d+)\b", RegexOptions.IgnoreCase);
+            if (titleMatch.Success && int.TryParse(titleMatch.Groups[2].Value, out var bedroomsFromTitle))
+            {
+                return bedroomsFromTitle;
             }
 
             return null;
@@ -289,8 +293,9 @@ namespace realestate_ia_site.Server.Application.Common.Mappings
         public static void UpdatePropertyFromScrapper(Property existing, ScraperPropertyDto dto)
         {
             var text = dto.caracteristicas ?? string.Empty;
+            var title = dto.titleFromListing?.Trim() ?? string.Empty;
 
-            existing.Title = dto.titleFromListing?.Trim() ?? existing.Title;
+            existing.Title = title ?? existing.Title;
             existing.Description = string.Join(" ", dto.descricao ?? "") ?? existing.Description;
             existing.Price = ParsePrice(dto.preco) ?? existing.Price;
             // Link NÃO deve ser atualizado - é o identificador único!
@@ -308,7 +313,7 @@ namespace realestate_ia_site.Server.Application.Common.Mappings
             if (newUsableArea.HasValue)
                 existing.UsableArea = newUsableArea;
 
-            var newBedrooms = ExtractBedrooms(text);
+            var newBedrooms = ExtractBedrooms(text) ?? ExtractBedrooms(title);
             if (newBedrooms.HasValue)
                 existing.Bedrooms = newBedrooms;
 

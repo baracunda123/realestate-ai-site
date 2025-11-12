@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../ui/card';
 import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 import { Monitor, Smartphone, Tablet, Clock, Loader2, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
 import { getActiveSessions, revokeAllOtherSessions } from '../../api/auth.service';
@@ -21,6 +23,8 @@ export function ActiveSessions() {
   const [sessions, setSessions] = useState<Session[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRevokingAll, setIsRevokingAll] = useState(false);
+  const [password, setPassword] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -71,19 +75,32 @@ export function ActiveSessions() {
 
 
   const handleRevokeAllOthers = async () => {
+    if (!password.trim()) {
+      toast.error('Password obrigatória', {
+        description: 'Por favor, insere a tua password para confirmar.'
+      });
+      return;
+    }
+    
     setIsRevokingAll(true);
     try {
-      const result = await revokeAllOtherSessions();
+      const result = await revokeAllOtherSessions(password);
       if (result.success) {
         toast.success('Sessões encerradas', {
           description: `${result.revokedCount} sessão(ões) ${result.revokedCount === 1 ? 'foi encerrada' : 'foram encerradas'} com sucesso.`
         });
+        setDialogOpen(false);
+        setPassword('');
         await loadSessions();
+      } else {
+        toast.error('Erro', {
+          description: result.message || 'Não foi possível encerrar as sessões.'
+        });
       }
     } catch (error) {
       logger.error('Erro ao terminar todas as sessões', 'ACTIVE_SESSIONS', error as Error);
       toast.error('Erro ao encerrar sessões', {
-        description: 'Não foi possível encerrar as sessões. Por favor, tente novamente.'
+        description: 'Password incorreta ou erro no servidor.'
       });
     } finally {
       setIsRevokingAll(false);
@@ -124,12 +141,12 @@ export function ActiveSessions() {
               <span className="text-deep-mocha">Sessões Ativas</span>
             </CardTitle>
             <CardDescription>
-              Gerir os dispositivos com sessão iniciada
+              Gerir os dispositivos com sessão iniciada. Por segurança, podes terminar sessões em dispositivos que já não usas.
             </CardDescription>
           </div>
           <div className="flex gap-2">
             {sessions.length > 1 && (
-            <AlertDialog>
+            <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
               <AlertDialogTrigger asChild>
                 <Button
                   variant="outline"
@@ -155,15 +172,42 @@ export function ActiveSessions() {
                   <AlertDialogTitle>Terminar todas as outras sessões?</AlertDialogTitle>
                   <AlertDialogDescription>
                     Esta ação irá encerrar todas as sessões ativas nos outros dispositivos. Será necessário iniciar sessão novamente nesses dispositivos. A sessão atual permanecerá ativa.
+                    <br /><br />
+                    <strong>Recomendado se:</strong> Suspeitas de acesso não autorizado, perdeste um dispositivo, ou usaste um computador público.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
+                <div className="py-4">
+                  <Label htmlFor="password" className="text-sm font-medium">
+                    Confirma a tua password
+                  </Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Insere a tua password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="mt-2"
+                    disabled={isRevokingAll}
+                  />
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Por segurança, precisamos confirmar que és tu.
+                  </p>
+                </div>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                  <AlertDialogCancel onClick={() => setPassword('')}>Cancelar</AlertDialogCancel>
                   <AlertDialogAction
                     className="bg-error-gentle hover:bg-error-strong"
                     onClick={handleRevokeAllOthers}
+                    disabled={isRevokingAll}
                   >
-                    Confirmar
+                    {isRevokingAll ? (
+                      <>
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        A terminar...
+                      </>
+                    ) : (
+                      'Confirmar'
+                    )}
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
