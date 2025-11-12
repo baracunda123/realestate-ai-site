@@ -20,6 +20,20 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         public string Email { get; set; } = string.Empty;
     }
 
+    public class ResetPasswordRequest
+    {
+        [Required(ErrorMessage = "Token é obrigatório")]
+        public string Token { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Palavra-passe é obrigatória")]
+        [StringLength(100, MinimumLength = 8, ErrorMessage = "A palavra-passe deve ter entre 8 e 100 caracteres")]
+        public string Password { get; set; } = string.Empty;
+
+        [Required(ErrorMessage = "Confirmação de palavra-passe é obrigatória")]
+        [Compare("Password", ErrorMessage = "As palavras-passe não coincidem")]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+
     public class UpdateProfileRequest
     {
         public string? FullName { get; set; }
@@ -680,8 +694,37 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 if (user != null)
                 {
                     var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-                    // TODO: Send password reset email
-                    _auditService.LogSecurityEvent(SecurityEventType.LoginSuccess, "Password reset requested", new { Email = request.Email });
+                    
+                    // Encode token for URL safety
+                    var urlSafeToken = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlEncode(
+                        System.Text.Encoding.UTF8.GetBytes(token)
+                    );
+                    
+                    var frontendUrl = Environment.GetEnvironmentVariable("APP_FRONTEND_URL")
+                                   ?? _configuration["App:FrontendUrl"] 
+                                   ?? "http://localhost:64222";
+                    
+                    var resetLink = $"{frontendUrl}/reset-password/{urlSafeToken}";
+                    
+                    // Send password reset email
+                    var emailService = HttpContext.RequestServices.GetRequiredService<IEmailService>();
+                    
+                    var emailSent = await emailService.SendTemplateEmailAsync(
+                        "password-reset",
+                        user.Email!,
+                        new { UserName = user.FullName ?? "Utilizador", ResetLink = resetLink },
+                        default
+                    );
+                    
+                    if (emailSent)
+                    {
+                        _auditService.LogSecurityEvent(SecurityEventType.LoginSuccess, "Password reset email sent", new { Email = request.Email });
+                        _logger.LogInformation("[Auth] Password reset email sent to={Email}", request.Email);
+                    }
+                    else
+                    {
+                        _logger.LogError("[Auth] Failed to send password reset email to={Email}", request.Email);
+                    }
                 }
                 else
                 {
@@ -694,6 +737,81 @@ namespace realestate_ia_site.Server.Presentation.Controllers
             {
                 _logger.LogError(ex, "Error processing forgot password request");
                 return StatusCode(500, new { message = "Erro interno do servidor" });
+            }
+        }
+
+        [HttpPost("reset-password")]
+        public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordRequest request)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
+                }
+
+                // Decode token
+                string decodedToken;
+                try
+                {
+                    var tokenBytes = Microsoft.AspNetCore.WebUtilities.WebEncoders.Base64UrlDecode(request.Token);
+                    decodedToken = System.Text.Encoding.UTF8.GetString(tokenBytes);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "[Auth] Failed to decode password reset token");
+                    return BadRequest(new { success = false, message = "Token inválido ou corrompido" });
+                }
+
+                // Find user by trying to reset password with the token
+                // We need to find the user first - try all users (not ideal but necessary with Identity)
+                var users = await _userManager.Users.ToListAsync();
+                User? targetUser = null;
+
+                foreach (var user in users)
+                {
+                    var isValidToken = await _userManager.VerifyUserTokenAsync(
+                        user,
+                        _userManager.Options.Tokens.PasswordResetTokenProvider,
+                        "ResetPassword",
+                        decodedToken
+                    );
+
+                    if (isValidToken)
+                    {
+                        targetUser = user;
+                        break;
+                    }
+                }
+
+                if (targetUser == null)
+                {
+                    _auditService.LogSuspiciousActivity("Invalid password reset token", "Token validation failed");
+                    return BadRequest(new { success = false, message = "Token inválido ou expirado" });
+                }
+
+                // Reset password
+                var result = await _userManager.ResetPasswordAsync(targetUser, decodedToken, request.Password);
+
+                if (result.Succeeded)
+                {
+                    _auditService.LogSecurityEvent(SecurityEventType.LoginSuccess, "Password reset successful", 
+                        new { UserId = targetUser.Id, Email = targetUser.Email });
+                    _logger.LogInformation("[Auth] Password reset successful for userId={UserId}", targetUser.Id);
+
+                    return Ok(new { success = true, message = "Palavra-passe redefinida com sucesso!" });
+                }
+                else
+                {
+                    var errors = string.Join(", ", result.Errors.Select(e => e.Description));
+                    _logger.LogWarning("[Auth] Password reset failed for userId={UserId}: {Errors}", targetUser.Id, errors);
+                    return BadRequest(new { success = false, message = "Erro ao redefinir palavra-passe", errors = result.Errors.Select(e => e.Description).ToArray() });
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Auth] Exception during password reset");
+                return StatusCode(500, new { success = false, message = "Erro interno do servidor" });
             }
         }
 

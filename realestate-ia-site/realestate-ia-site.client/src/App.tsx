@@ -34,8 +34,10 @@ declare global {
 // Lazy load components for better performance
 const PropertyGrid = lazy(() => import('./components/PropertyGrid').then(m => ({ default: m.PropertyGrid })));
 const AuthModal = lazy(() => import('./components/AuthModal').then(m => ({ default: m.AuthModal })));
+const ForgotPasswordModal = lazy(() => import('./components/ForgotPasswordModal').then(m => ({ default: m.ForgotPasswordModal })));
 const WelcomeScreen = lazy(() => import('./components/WelcomeScreen').then(m => ({ default: m.WelcomeScreen })));
 const EmailConfirmation = lazy(() => import('./components/EmailConfirmation'));
+const ResetPassword = lazy(() => import('./components/ResetPassword'));
 const ChatPanel = lazy(() => import('./components/ChatPanel').then(m => ({ default: m.ChatPanel })));
 const PricingPage = lazy(() => import('./pages/PricingPage').then(m => ({ default: m.PricingPage })));
 const SubscriptionSuccessPage = lazy(() => import('./pages/SubscriptionSuccessPage'));
@@ -91,6 +93,7 @@ export default function App() {
   // Authentication state - usando novos tipos
   const [user, setUser] = useState<ExtendedUserProfile | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isForgotPasswordModalOpen, setIsForgotPasswordModalOpen] = useState(false);
   const [authDefaultTab, setAuthDefaultTab] = useState<AuthTab>('signin');
   const [isInitializing, setIsInitializing] = useState(true);
   const [hasShownWelcomeToast, setHasShownWelcomeToast] = useState(false);
@@ -726,6 +729,16 @@ export default function App() {
             } 
           />
 
+          {/* Rota de reset de palavra-passe - token como path parameter */}
+          <Route 
+            path="/reset-password/:token" 
+            element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <ResetPassword />
+              </Suspense>
+            } 
+          />
+
           {/* Rota de Pricing */}
           <Route 
             path="/pricing" 
@@ -900,6 +913,18 @@ export default function App() {
           onClose={() => setIsAuthModalOpen(false)}
           onSuccess={handleAuthSuccess}
           defaultTab={authDefaultTab}
+          onOpenForgotPassword={() => setIsForgotPasswordModalOpen(true)}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <ForgotPasswordModal
+          isOpen={isForgotPasswordModalOpen}
+          onClose={() => setIsForgotPasswordModalOpen(false)}
+          onBackToAuth={() => {
+            setIsForgotPasswordModalOpen(false);
+            setIsAuthModalOpen(true);
+          }}
         />
       </Suspense>
 

@@ -27,6 +27,7 @@ interface AuthModalProps {
   onClose: () => void;
   onSuccess?: () => void;
   defaultTab?: 'signin' | 'signup';
+  onOpenForgotPassword?: () => void;
 }
 
 interface FormData {
@@ -56,7 +57,7 @@ const INITIAL_FORM_DATA: FormData = {
   confirmPassword: ''
 };
 
-export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }: AuthModalProps) {
+export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', onOpenForgotPassword }: AuthModalProps) {
   const [activeTab, setActiveTab] = useState<'signin' | 'signup'>(defaultTab);
   const [showSignInPassword, setShowSignInPassword] = useState(false);
   const [showSignUpPassword, setShowSignUpPassword] = useState(false);
@@ -549,9 +550,14 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin' }:
 
                 <div className="text-center">
                   <Button 
+                    type="button"
                     variant="ghost" 
-                    className="text-sm text-warm-taupe hover:bg-pale-clay-light hover:text-deep-moca rounded-lg transition-colors"
+                    className="text-sm text-warm-taupe hover:bg-pale-clay-light hover:text-deep-mocha rounded-lg transition-colors"
                     disabled={isLoading}
+                    onClick={() => {
+                      onClose(); // Fechar o AuthModal
+                      onOpenForgotPassword?.(); // Abrir o ForgotPasswordModal
+                    }}
                   >
                     Esqueceste a palavra-passe?
                   </Button>

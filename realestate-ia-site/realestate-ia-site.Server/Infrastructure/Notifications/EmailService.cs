@@ -29,10 +29,10 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
             {
                 _logger.LogInformation("Iniciando envio de email para {Email} com assunto '{Subject}'", message.ToEmail, message.Subject);
 
-                // Validar configuraÁıes antes de tentar criar o cliente
+                // Validar configura√ß√µes antes de tentar criar o cliente
                 if (string.IsNullOrEmpty(_config.SmtpHost) || string.IsNullOrEmpty(_config.Username) || string.IsNullOrEmpty(_config.Password))
                 {
-                    _logger.LogError("ConfiguraÁıes de email inv·lidas. SmtpHost: {Host}, Username: {Username}",
+                    _logger.LogError("Configura√ß√µes de email inv√°lidas. SmtpHost: {Host}, Username: {Username}",
                         _config.SmtpHost, _config.Username);
                     return false;
                 }
@@ -66,10 +66,10 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
             {
                 _logger.LogInformation("Iniciando envio de email template {TemplateId} para {Email}", templateId, recipientEmail);
 
-                // Obter definiÁ„o do template
+                // Obter defini√ß√£o do template
                 var template = GetEmailTemplate(templateId);
                 
-                // Carregar template do disco (SO j· faz cache de I/O)
+                // Carregar template do disco (SO faz cache de I/O)
                 var templateBody = await LoadTemplateFromFileAsync(template.TemplateFile, cancellationToken);
                 
                 // Processar placeholders
@@ -96,7 +96,7 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro crÌtico ao enviar email template {TemplateId} para {Email}", templateId, recipientEmail);
+                _logger.LogError(ex, "Erro cr√≠tico ao enviar email template {TemplateId} para {Email}", templateId, recipientEmail);
                 return false;
             }
         }
@@ -164,6 +164,11 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
                     Subject = "Confirme seu email - ResideAI", 
                     TemplateFile = "EmailConfirmation.html" 
                 },
+                "password-reset" => new EmailTemplate 
+                { 
+                    Subject = "Recupera√ß√£o de Palavra-passe - ResideAI", 
+                    TemplateFile = "PasswordReset.html" 
+                },
                 "property-alert" => new EmailTemplate 
                 { 
                     Subject = "Nova Propriedade Encontrada!", 
@@ -171,10 +176,10 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
                 },
                 "price-drop" => new EmailTemplate 
                 { 
-                    Subject = "PreÁo Reduzido!", 
+                    Subject = "Pre√ßo Reduzido!", 
                     TemplateFile = "PriceDropAlert.html" 
                 },
-                _ => throw new ArgumentException($"Template n„o encontrado: {templateId}")
+                _ => throw new ArgumentException($"Template n√£o encontrado: {templateId}")
             };
         }
 
@@ -197,7 +202,7 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
         }
 
         /// <summary>
-        /// Carrega template do disco (SO j· faz cache de I/O)
+        /// Carrega template do disco (SO faz cache de I/O)
         /// </summary>
         private async Task<string> LoadTemplateFromFileAsync(string templateFileName, CancellationToken cancellationToken = default)
         {
@@ -206,8 +211,8 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
 
             if (!File.Exists(templatePath))
             {
-                _logger.LogError("Template n„o encontrado: {Path}", templatePath);
-                throw new FileNotFoundException($"Template n„o encontrado: {templateFileName}");
+                _logger.LogError("Template n√£o encontrado: {Path}", templatePath);
+                throw new FileNotFoundException($"Template n√£o encontrado: {templateFileName}");
             }
 
             var content = await File.ReadAllTextAsync(templatePath, cancellationToken);
@@ -219,7 +224,7 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
     }
 
     /// <summary>
-    /// DefiniÁ„o simplificada de template (apenas metadados)
+    /// Defini√ß√£o simplificada de template (apenas metadados)
     /// </summary>
     public record EmailTemplate
     {
