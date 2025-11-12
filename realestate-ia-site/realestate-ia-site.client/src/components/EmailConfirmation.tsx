@@ -5,7 +5,7 @@ import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { CheckCircle, XCircle, Loader2, Mail, AlertCircle } from 'lucide-react';
-import { confirmEmail, resendConfirmationEmail } from '../api/auth.service';
+import { confirmEmail, resendConfirmationEmail, authUtils } from '../api/auth.service';
 import { client as logger } from '../utils/logger';
 
 type ConfirmationStatus = 'loading' | 'success' | 'error' | 'expired';
@@ -32,6 +32,12 @@ export function EmailConfirmation() {
     // Se já verificou, não executar novamente
     if (hasVerified.current) {
       return;
+    }
+
+    // Fazer logout se estiver logado (para garantir sessão limpa)
+    if (authUtils.isAuthenticated()) {
+      logger.info('Utilizador estava logado - fazendo logout para confirmação de email');
+      authUtils.clearTokens();
     }
 
     const verifyEmail = async () => {
