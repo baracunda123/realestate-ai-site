@@ -1003,15 +1003,24 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Recommendati
                 .OrderByDescending(h => h.CreatedAt)
                 .ToListAsync(cancellationToken);
 
-            _logger.LogDebug("AnalyzeUserBehavior for user {UserId}: {FavoriteCount} favorites, {SearchCount} recent searches", 
-                userId, favorites.Count, searchHistories.Count);
+            // Histórico de visualizações de propriedades
+            var viewHistories = await _context.PropertyViewHistories
+                .Include(v => v.Property)
+                .Where(v => v.UserId == userId && 
+                           v.ViewedAt > DateTime.UtcNow.AddDays(-UserBehaviorAnalysisDays) &&
+                           !v.IsHidden)
+                .OrderByDescending(v => v.ViewedAt)
+                .ToListAsync(cancellationToken);
 
-            var preferredLocations = ExtractPreferredLocations(favorites, searchHistories);
-            var preferredTypes = ExtractPreferredTypes(favorites, searchHistories);
-            var averageBudget = CalculateAverageBudget(favorites, searchHistories);
-            var preferredBedrooms = ExtractPreferredBedrooms(favorites, searchHistories);
-            var prefersGarage = ExtractGaragePreference(favorites, searchHistories);
-            var lastActivityDate = GetLastActivityDate(favorites, searchHistories);
+            _logger.LogDebug("AnalyzeUserBehavior for user {UserId}: {FavoriteCount} favorites, {SearchCount} recent searches, {ViewCount} property views", 
+                userId, favorites.Count, searchHistories.Count, viewHistories.Count);
+
+            var preferredLocations = ExtractPreferredLocations(favorites, searchHistories, viewHistories);
+            var preferredTypes = ExtractPreferredTypes(favorites, searchHistories, viewHistories);
+            var averageBudget = CalculateAverageBudget(favorites, searchHistories, viewHistories);
+            var preferredBedrooms = ExtractPreferredBedrooms(favorites, searchHistories, viewHistories);
+            var prefersGarage = ExtractGaragePreference(favorites, searchHistories, viewHistories);
+            var lastActivityDate = GetLastActivityDate(favorites, searchHistories, viewHistories);
 
             _logger.LogInformation(
                 "User {UserId} behavior analysis: Locations=[{Locations}], Types=[{Types}], Budget={Budget:N2}, Bedrooms={Bedrooms}, Garage={Garage}, LastActivity={LastActivity}",
@@ -1162,11 +1171,12 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Recommendati
         }
 
         // Métodos auxiliares para análise de comportamento
-        private List<string> ExtractPreferredLocations(List<Favorite> favorites, List<UserSearchHistory> searchHistories)
+        private List<string> ExtractPreferredLocations(List<Favorite> favorites, List<UserSearchHistory> searchHistories, List<PropertyViewHistory> viewHistories)
         {
             var locations = new Dictionary<string, double>(); // Location -> Weight
+            var now = DateTime.UtcNow;
 
-            // De favoritos (peso fixo)
+            // De favoritos (peso fixo - mais alto)
             foreach (var favorite in favorites.Where(f => !string.IsNullOrEmpty(f.Property.City)))
             {
                 var city = favorite.Property.City!;
@@ -1176,7 +1186,6 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Recommendati
             }
 
             // De histórico de pesquisas (peso baseado na recência)
-            var now = DateTime.UtcNow;
             foreach (var history in searchHistories)
             {
                 var location = GetLocationFromFilters(history.GetFilters());
@@ -1190,6 +1199,17 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Recommendati
                 }
             }
 
+            // De visualizações de propriedades (peso menor que favoritos, mas considera recência)
+            foreach (var view in viewHistories.Where(v => v.Property != null && !string.IsNullOrEmpty(v.Property.City)))
+            {
+                var city = view.Property.City!;
+                var weight = CalculateRecencyWeight(view.ViewedAt, now) * 0.8; // 80% do peso de pesquisa
+
+                if (!locations.ContainsKey(city))
+                    locations[city] = 0;
+                locations[city] += weight;
+            }
+
             // Retorna as N localizações com maior peso total
             return locations
                 .OrderByDescending(kvp => kvp.Value)
@@ -1198,9 +1218,10 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Recommendati
                 .ToList();
         }
 
-        private List<string> ExtractPreferredTypes(List<Favorite> favorites, List<UserSearchHistory> searchHistories)
+        private List<string> ExtractPreferredTypes(List<Favorite> favorites, List<UserSearchHistory> searchHistories, List<PropertyViewHistory> viewHistories)
         {
             var types = new Dictionary<string, double>(); // Type -> Weight
+            var now = DateTime.UtcNow;
 
             // De favoritos (peso fixo)
             foreach (var favorite in favorites.Where(f => !string.IsNullOrEmpty(f.Property.Type)))
@@ -1212,7 +1233,6 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Recommendati
             }
 
             // De histórico de pesquisas (peso baseado na recência)
-            var now = DateTime.UtcNow;
             foreach (var history in searchHistories)
             {
                 var filters = history.GetFilters();
@@ -1230,6 +1250,17 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Recommendati
                 }
             }
 
+            // De visualizações de propriedades
+            foreach (var view in viewHistories.Where(v => v.Property != null && !string.IsNullOrEmpty(v.Property.Type)))
+            {
+                var type = view.Property.Type!;
+                var weight = CalculateRecencyWeight(view.ViewedAt, now) * 0.8;
+
+                if (!types.ContainsKey(type))
+                    types[type] = 0;
+                types[type] += weight;
+            }
+
             return types
                 .OrderByDescending(kvp => kvp.Value)
                 .Take(MaxPreferredTypes)
@@ -1237,7 +1268,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Recommendati
                 .ToList();
         }
 
-        private decimal CalculateAverageBudget(List<Favorite> favorites, List<UserSearchHistory> searchHistories)
+        private decimal CalculateAverageBudget(List<Favorite> favorites, List<UserSearchHistory> searchHistories, List<PropertyViewHistory> viewHistories)
         {
             var pricesWithWeights = new List<(decimal Price, double Weight)>();
             var now = DateTime.UtcNow;
@@ -1271,6 +1302,13 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Recommendati
                 }
             }
 
+            // De visualizações de propriedades
+            foreach (var view in viewHistories.Where(v => v.Property != null && v.Property.Price.HasValue))
+            {
+                var weight = CalculateRecencyWeight(view.ViewedAt, now) * 0.8;
+                pricesWithWeights.Add((view.Property.Price!.Value, weight));
+            }
+
             if (!pricesWithWeights.Any())
                 return 0;
 
@@ -1281,7 +1319,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Recommendati
             return weightedSum / (decimal)totalWeight;
         }
 
-        private int? ExtractPreferredBedrooms(List<Favorite> favorites, List<UserSearchHistory> searchHistories)
+        private int? ExtractPreferredBedrooms(List<Favorite> favorites, List<UserSearchHistory> searchHistories, List<PropertyViewHistory> viewHistories)
         {
             var bedroomsWithWeights = new List<(int Bedrooms, double Weight)>();
             var now = DateTime.UtcNow;
@@ -1303,6 +1341,13 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Recommendati
                 }
             }
 
+            // De visualizações de propriedades
+            foreach (var view in viewHistories.Where(v => v.Property != null && v.Property.Bedrooms.HasValue))
+            {
+                var weight = CalculateRecencyWeight(view.ViewedAt, now) * 0.8;
+                bedroomsWithWeights.Add((view.Property.Bedrooms!.Value, weight));
+            }
+
             if (!bedroomsWithWeights.Any())
                 return null;
 
@@ -1313,7 +1358,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Recommendati
             return (int)Math.Round(weightedSum / totalWeight);
         }
 
-        private bool ExtractGaragePreference(List<Favorite> favorites, List<UserSearchHistory> searchHistories)
+        private bool ExtractGaragePreference(List<Favorite> favorites, List<UserSearchHistory> searchHistories, List<PropertyViewHistory> viewHistories)
         {
             var garageCount = favorites.Count(f => f.Property.Garage);
             var totalFavorites = favorites.Count;
@@ -1330,18 +1375,24 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Recommendati
                 }
             }
 
+            // Analisar visualizações de propriedades com garagem
+            var viewsWithGarage = viewHistories.Count(v => v.Property != null && v.Property.Garage);
+            var totalViews = viewHistories.Count;
+
             var favoritePreference = totalFavorites > 0 && (garageCount / (double)totalFavorites) > 0.5;
             var searchPreference = totalSearches > 0 && (garageSearches / (double)totalSearches) > 0.3;
+            var viewPreference = totalViews > 0 && (viewsWithGarage / (double)totalViews) > 0.4;
 
-            return favoritePreference || searchPreference;
+            return favoritePreference || searchPreference || viewPreference;
         }
 
-        private DateTime GetLastActivityDate(List<Favorite> favorites, List<UserSearchHistory> searchHistories)
+        private DateTime GetLastActivityDate(List<Favorite> favorites, List<UserSearchHistory> searchHistories, List<PropertyViewHistory> viewHistories)
         {
             var dates = new List<DateTime>();
 
             dates.AddRange(favorites.Select(f => f.CreatedAt));
             dates.AddRange(searchHistories.Select(h => h.CreatedAt));
+            dates.AddRange(viewHistories.Select(v => v.ViewedAt));
 
             return dates.Any() ? dates.Max() : DateTime.UtcNow.AddDays(-365);
         }

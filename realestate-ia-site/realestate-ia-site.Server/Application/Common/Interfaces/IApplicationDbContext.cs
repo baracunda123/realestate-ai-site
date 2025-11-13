@@ -14,6 +14,7 @@ public interface IApplicationDbContext
     DbSet<Favorite> Favorites { get; }
     DbSet<PropertyRecommendation> PropertyRecommendations { get; }
     DbSet<UserSearchHistory> UserSearchHistories { get; }
+    DbSet<PropertyViewHistory> PropertyViewHistories { get; }
     DbSet<ChatUsageQuota> ChatUsageQuotas { get; }
     DbSet<ChatSession> ChatSessions { get; }
     DbSet<ChatMessage> ChatMessages { get; }
