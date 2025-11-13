@@ -135,7 +135,7 @@ export default function SubscriptionSuccessPage() {
             Pagamento Confirmado!
           </CardTitle>
           <CardDescription>
-            A sua subscrição Premium foi ativada com sucesso
+            A sua subscrição Premium foi ativada com sucesso. Agora tens acesso à IA avançada!
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -145,6 +145,7 @@ export default function SubscriptionSuccessPage() {
             </p>
             <ul className="text-sm text-warm-taupe space-y-1 list-disc list-inside">
               <li>Chat IA ilimitado</li>
+              <li>Respostas mais precisas e detalhadas</li>
               <li>Pesquisa de propriedades</li>
               <li>Favoritos ilimitados</li>
               <li>Alertas de baixa de preço</li>

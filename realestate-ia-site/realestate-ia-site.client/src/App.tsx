@@ -782,7 +782,7 @@ export default function App() {
                 </Suspense>
               ) : (
                 <div className="flex items-center justify-center p-8">
-                  <p className="text-muted-foreground">Por favor, faz login para aceder ao teu perfil.</p>
+                  <p className="text-muted-foreground">Por favor, faz login para aceder ao perfil.</p>
                 </div>
               )
             } 

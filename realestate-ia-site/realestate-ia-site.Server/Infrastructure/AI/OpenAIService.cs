@@ -7,42 +7,76 @@ namespace realestate_ia_site.Server.Infrastructure.AI
     public class OpenAIService : IOpenAIService
     {
         private readonly OpenAIClient _client;
-        private readonly string _model;
+        private readonly string _defaultModel;
         private readonly ILogger<OpenAIService> _logger;
+
+        // Mapeamento de planos para modelos GPT
+        private readonly Dictionary<string, string> _planToModel = new()
+        {
+            ["free"] = "gpt-4o-mini",
+            ["premium"] = "gpt-4o"
+        };
 
         public OpenAIService(IConfiguration config, ILogger<OpenAIService> logger)
         {
             _logger = logger;
             var apiKey = config["OpenAI:ApiKey"];
-            _model = config["OpenAI:Model"] ?? "gpt-4o-mini";
+            _defaultModel = config["OpenAI:Model"] ?? "gpt-4o-mini";
             _client = new OpenAIClient(apiKey);
-            
-            _logger.LogInformation("OpenAI Service inicializado com modelo: {Model}", _model);
+
+            _logger.LogInformation("OpenAI Service inicializado com modelo padr√£o: {Model}", _defaultModel);
         }
 
         public async Task<string> CompleteChatAsync(List<ChatMessage> messages, ChatCompletionOptions options, CancellationToken cancellationToken = default)
         {
-            _logger.LogDebug("Enviando requisiÁ„o para OpenAI. Modelo: {Model}, MaxTokens: {MaxTokens}, Temperature: {Temperature}", 
-                _model, options.MaxOutputTokenCount, options.Temperature);
+            return await CompleteChatAsync(messages, options, _defaultModel, cancellationToken);
+        }
+
+        public async Task<string> CompleteChatAsync(List<ChatMessage> messages, ChatCompletionOptions options, string modelOverride, CancellationToken cancellationToken = default)
+        {
+            var model = string.IsNullOrWhiteSpace(modelOverride) ? _defaultModel : modelOverride;
+
+            _logger.LogDebug("Enviando requisi√ß√£o para OpenAI. Modelo: {Model}, MaxTokens: {MaxTokens}, Temperature: {Temperature}",
+                model, options.MaxOutputTokenCount, options.Temperature);
 
             try
             {
-                var response = await _client.GetChatClient(_model).CompleteChatAsync(messages, options, cancellationToken);
+                var response = await _client.GetChatClient(model).CompleteChatAsync(messages, options, cancellationToken);
                 var result = response.Value.Content[0].Text;
-                
+
                 _logger.LogDebug("Resposta recebida da OpenAI: {Response}", result);
                 return result;
             }
             catch (OperationCanceledException)
             {
-                _logger.LogWarning("RequisiÁ„o OpenAI cancelada");
+                _logger.LogWarning("Requisi√ß√£o OpenAI cancelada");
                 throw;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro na comunicaÁ„o com OpenAI");
+                _logger.LogError(ex, "Erro na comunica√ß√£o com OpenAI");
                 throw;
             }
+        }
+
+        public string GetModelForPlan(string planType)
+        {
+            if (string.IsNullOrWhiteSpace(planType))
+            {
+                _logger.LogWarning("PlanType vazio, usando modelo padr√£o: {Model}", _defaultModel);
+                return _defaultModel;
+            }
+
+            var normalizedPlan = planType.ToLower().Trim();
+
+            if (_planToModel.TryGetValue(normalizedPlan, out var model))
+            {
+                _logger.LogInformation("Modelo selecionado para plano '{Plan}': {Model}", planType, model);
+                return model;
+            }
+
+            _logger.LogWarning("Plano desconhecido '{Plan}', usando modelo padr√£o: {Model}", planType, _defaultModel);
+            return _defaultModel;
         }
     }
 }

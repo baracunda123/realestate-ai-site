@@ -3,6 +3,7 @@ using System;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using realestate_ia_site.Server.Infrastructure.Persistence;
@@ -12,9 +13,11 @@ using realestate_ia_site.Server.Infrastructure.Persistence;
 namespace realestate_ia_site.Server.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251113162456_RemovePropertyRecommendationsTable")]
+    partial class RemovePropertyRecommendationsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -217,45 +220,6 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("chat_usage_quotas");
-                });
-
-            modelBuilder.Entity("realestate_ia_site.Server.Domain.Entities.ConversationContextData", b =>
-                {
-                    b.Property<string>("Id")
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("FilterHistoryJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("LastActivity")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("LastFiltersJson")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("LastQuery")
-                        .HasColumnType("text");
-
-                    b.Property<string>("SessionId")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LastActivity");
-
-                    b.HasIndex("SessionId")
-                        .IsUnique();
-
-                    b.ToTable("ConversationContexts");
                 });
 
             modelBuilder.Entity("realestate_ia_site.Server.Domain.Entities.Favorite", b =>
@@ -1015,17 +979,6 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("realestate_ia_site.Server.Domain.Entities.ConversationContextData", b =>
-                {
-                    b.HasOne("realestate_ia_site.Server.Domain.Entities.ChatSession", "Session")
-                        .WithMany()
-                        .HasForeignKey("SessionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Session");
                 });
 
             modelBuilder.Entity("realestate_ia_site.Server.Domain.Entities.Favorite", b =>

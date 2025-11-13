@@ -1,6 +1,5 @@
 using realestate_ia_site.Server.Application.Features.AI.SearchAI;
 using realestate_ia_site.Server.Application.Features.Properties.Search;
-using realestate_ia_site.Server.Application.Features.Properties.Recommendations;
 using realestate_ia_site.Server.Application.Features.Properties.Import;
 using realestate_ia_site.Server.Application.Features.Payments;
 using realestate_ia_site.Server.Infrastructure.Auth;
@@ -21,9 +20,11 @@ public static class ApplicationServicesExtensions
     {
         // AI Services
         services.AddScoped<SearchAIOrchestrator>();
+        services.AddScoped<IPropertySemanticAnalyzer, Infrastructure.AI.PropertySemanticAnalyzer>();
+        services.AddScoped<IIntelligentRecommendationEngine, Infrastructure.AI.IntelligentRecommendationEngine>();
+        services.AddScoped<IAdvancedQueryInterpreter, Infrastructure.AI.AdvancedQueryInterpreter>();
         
         // Property Services
-        services.AddScoped<PropertyRecommendationService>();
         services.AddScoped<IPropertySearchService, PropertySearchService>();
         services.AddScoped<PropertyImportService>();
         services.AddScoped<IPropertyTrackingService, PropertyTrackingService>();

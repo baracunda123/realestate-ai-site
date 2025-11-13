@@ -1,6 +1,5 @@
 import { ProfileLayout } from '../components/Profile/ProfileLayout';
 import { PersonalAreaFavorites } from '../components/PersonalArea/PersonalAreaFavorites';
-import { DashboardRecommendations } from '../components/Recommendations/DashboardRecommendations';
 import type { Property } from '../types/property';
 import type { User } from '../types/PersonalArea';
 
@@ -26,6 +25,9 @@ export function FavoritesPage({
         {/* Page Header */}
         <div>
           <h1 className="text-3xl font-bold text-title">Favoritos</h1>
+          <p className="text-muted-foreground mt-2">
+            Propriedades que guardaste para consultar mais tarde
+          </p>
         </div>
 
         {/* Favorites Content */}
@@ -34,14 +36,6 @@ export function FavoritesPage({
           onToggleFavorite={onToggleFavorite}
           onPropertyView={onPropertyView}
         />
-
-        {/* Recommendations Section - Always show */}
-        <div className="mt-8">
-          <h2 className="text-2xl font-bold text-title mb-4">
-            {favorites.length > 0 ? 'Pode também gostar' : 'Recomendações para ti'}
-          </h2>
-          <DashboardRecommendations limit={6} />
-        </div>
       </div>
     </ProfileLayout>
   );

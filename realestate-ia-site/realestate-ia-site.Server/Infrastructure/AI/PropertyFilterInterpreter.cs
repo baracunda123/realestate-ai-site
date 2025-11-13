@@ -27,6 +27,9 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             => await ExtractFiltersAsync(userQuery, string.Empty, cancellationToken);
 
         public async Task<Dictionary<string, object>> ExtractFiltersAsync(string userQuery, string sessionId, CancellationToken cancellationToken = default)
+            => await ExtractFiltersAsync(userQuery, sessionId, "free", cancellationToken);
+
+        public async Task<Dictionary<string, object>> ExtractFiltersAsync(string userQuery, string sessionId, string userPlan, CancellationToken cancellationToken = default)
         {
             var context = !string.IsNullOrWhiteSpace(sessionId)
                 ? await _contextService.GetOrCreateContextAsync(sessionId, cancellationToken)
@@ -43,6 +46,9 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                 PresencePenalty = 0.0f
             };
 
+            // Obter modelo baseado no plano do usuário
+            var model = _openAIService.GetModelForPlan(userPlan);
+
             const int maxRetries = 2;
             Dictionary<string, object>? filters = null;
 
@@ -50,10 +56,11 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             {
                 try
                 {
-                    var response = await _openAIService.CompleteChatAsync(messages, options, cancellationToken);
+                    var response = await _openAIService.CompleteChatAsync(messages, options, model, cancellationToken);
                     filters = ParseFiltersFromResponse(response);
 
-                    _logger.LogInformation("Filtros extraídos da IA (tentativa {Attempt}): {@ExtractedFilters}", attempt + 1, filters);
+                    _logger.LogInformation("Filtros extraídos da IA (tentativa {Attempt}, modelo: {Model}): {@ExtractedFilters}", 
+                        attempt + 1, model, filters);
 
                     // NOVO: Validar se os filtros fazem sentido
                     if (filters.Any() || context?.LastFilters == null || !context.LastFilters.Any())
@@ -89,6 +96,19 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             if (context != null && filters.Any())
             {
                 var previousFilters = new Dictionary<string, object>(context.LastFilters);
+                
+                // Guardar filtros anteriores no histórico antes de fundir
+                if (previousFilters.Any())
+                {
+                    context.FilterHistory.Add(new Dictionary<string, object>(previousFilters));
+                    
+                    // Limitar histórico a últimas 10 pesquisas
+                    if (context.FilterHistory.Count > 10)
+                    {
+                        context.FilterHistory.RemoveAt(0);
+                    }
+                }
+                
                 context.LastFilters = MergeFilters(context.LastFilters, filters, _logger);
                 _contextService.UpdateContext(sessionId, context);
                 
@@ -113,9 +133,12 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                     NormalizeFilterValues(filters);
                     return filters;
                 }
+
+                return new Dictionary<string, object>();
             }
             catch (JsonException)
             {
+                return new Dictionary<string, object>();
             }
 
             return new Dictionary<string, object>();
@@ -125,6 +148,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
         {
             var start = input.IndexOf('{');
             if (start < 0) return null;
+
             var depth = 0;
             for (int i = start; i < input.Length; i++)
             {
@@ -173,7 +197,25 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                 // Se o filtro novo não estiver vazio, adiciona/substitui
                 if (!IsEmpty(kv.Value))
                 {
-                    result[kv.Key] = kv.Value;
+                    // ========== FEATURES: Acumular em vez de substituir ==========
+                    if (kv.Key == "features" && kv.Value is List<string> newFeatures)
+                    {
+                        if (result.ContainsKey("features") && result["features"] is List<string> existingFeatures)
+                        {
+                            // Acumular features únicas
+                            var mergedFeatures = existingFeatures.Union(newFeatures).Distinct().ToList();
+                            result[kv.Key] = mergedFeatures;
+                            logger.LogDebug("Features acumuladas: {Features}", string.Join(", ", mergedFeatures));
+                        }
+                        else
+                        {
+                            result[kv.Key] = kv.Value;
+                        }
+                    }
+                    else
+                    {
+                        result[kv.Key] = kv.Value;
+                    }
                     
                     // ========== PREÇO: Gestão de conflitos ==========
                     

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Application.Common.Interfaces;
 using realestate_ia_site.Server.Application.Features.Chat.DTOs;
 using realestate_ia_site.Server.Application.Features.Chat.Interfaces;
+using realestate_ia_site.Server.Application.Features.AI.Interfaces;
 using realestate_ia_site.Server.Domain.Entities;
 
 namespace realestate_ia_site.Server.Infrastructure.Chat
@@ -9,13 +10,16 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
     public class ChatSessionService : IChatSessionService
     {
         private readonly IApplicationDbContext _context;
+        private readonly IConversationContextService _conversationContextService;
         private readonly ILogger<ChatSessionService> _logger;
 
         public ChatSessionService(
             IApplicationDbContext context,
+            IConversationContextService conversationContextService,
             ILogger<ChatSessionService> logger)
         {
             _context = context;
+            _conversationContextService = conversationContextService;
             _logger = logger;
         }
 
@@ -164,7 +168,10 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
             _context.ChatSessions.Remove(session);
             await _context.SaveChangesAsync(cancellationToken);
 
-            _logger.LogInformation("Sessão {SessionId} eliminada", sessionId);
+            // Limpar contexto da memória também
+            _conversationContextService.ClearContext(sessionId);
+
+            _logger.LogInformation("Sessão {SessionId} eliminada (BD + contexto memória)", sessionId);
             return true;
         }
 

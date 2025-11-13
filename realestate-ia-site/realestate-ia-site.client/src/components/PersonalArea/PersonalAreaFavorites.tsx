@@ -30,7 +30,7 @@ export function PersonalAreaFavorites({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -40,16 +40,17 @@ export function PersonalAreaFavorites({
         </div>
       </div>
 
-      {/* Properties Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+      {/* Properties List - Layout vertical consistente com a página principal */}
+      <div className="space-y-3 sm:space-y-4">
         {favorites.map((property) => (
-          <PropertyCard
-            key={property.id}
-            property={property}
-            onToggleFavorite={onToggleFavorite}
-            onPropertyView={onPropertyView}
-            isFavorite={true}
-          />
+          <div key={property.id} className="relative">
+            <PropertyCard
+              property={property}
+              onToggleFavorite={onToggleFavorite}
+              onPropertyView={onPropertyView}
+              isFavorite={true}
+            />
+          </div>
         ))}
       </div>
     </div>

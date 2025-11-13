@@ -115,8 +115,8 @@ function PropertyCardComponent({
         <div className="space-y-2">
           {/* Header section with title, type, price and action buttons */}
           <div className="flex flex-col sm:flex-row items-start justify-between gap-2">
-            <div className="flex-1 w-full sm:w-auto">
-              <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <div className="flex-1 w-full sm:w-auto min-w-0">
+              <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
                 <Badge className={`property-badge ${getPropertyTypeColor(safePropertyType)} text-xs font-medium border shadow-clay-soft py-0.5 px-1.5`}>
                   {getPropertyTypeName(safePropertyType)}
                 </Badge>
@@ -144,33 +144,49 @@ function PropertyCardComponent({
                     )}
                   </Badge>
                 )}
-                <div className="bg-warm-white/95 backdrop-blur-sm px-2 py-0.5 rounded-full shadow-clay-soft border border-clay-medium transition-all duration-300 hover:transform hover:scale-105 hover:shadow-burnt-peach">
-                  <span className="text-sm font-bold text-burnt-primary">
+                <div className="bg-warm-white/95 backdrop-blur-sm px-2.5 py-1 rounded-full shadow-clay-soft border border-clay-medium transition-all duration-300 hover:transform hover:scale-105 hover:shadow-burnt-peach flex-shrink-0">
+                  <span className="text-sm font-bold text-burnt-primary whitespace-nowrap">
                     {formatPrice(safePrice)}
                   </span>
                 </div>
               </div>
-              <h3 className="font-semibold text-base text-title line-clamp-1 mb-0.5">{safeTitle}</h3>
-              <div className="flex items-center text-xs text-clay-secondary">
+              <h3 className="font-semibold text-base text-title line-clamp-2 mb-1 mt-0.5">{safeTitle}</h3>
+              
+              {/* Matched Features - mostrar quando houver pesquisa por features */}
+              {property.matchedFeatures && property.matchedFeatures.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-1.5">
+                  {property.matchedFeatures.map((feature, index) => (
+                    <Badge 
+                      key={`matched-${feature}-${index}`} 
+                      className="text-xs font-medium bg-burnt-soft/10 text-burnt-primary border-burnt-soft border shadow-sm py-0.5 px-2 flex items-center gap-1"
+                    >
+                      <span className="text-burnt-primary">✓</span>
+                      {feature}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              
+              <div className="flex items-center text-xs text-clay-secondary min-w-0">
                 <MapPin className="property-info-icon h-3 w-3 mr-1 text-clay-secondary flex-shrink-0" />
                 <span className="truncate">{property.location}</span>
               </div>
             </div>
             
             {/* Action buttons */}
-            <div className="flex items-center space-x-1 ml-0 sm:ml-2">
+            <div className="flex items-center space-x-1 ml-0 sm:ml-2 flex-shrink-0">
               {/* Favorite Button */}
               <Button
                 variant="ghost"
                 size="sm"
                 aria-pressed={isFavorite}
                 aria-label={isFavorite ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}
-                className={`btn-favorite h-7 w-7 p-0 backdrop-blur-sm flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-burnt-peach/20 ${
+                className={`btn-favorite h-8 w-8 p-0 backdrop-blur-sm flex-shrink-0 focus:outline-none focus:ring-2 focus:ring-burnt-peach/20 ${
                   isFavorite ? 'active' : ''
                 }`}
                 onClick={handleFavoriteClick}
               >
-                <Heart className={`heart-icon h-3.5 w-3.5 transition-all duration-200 ${
+                <Heart className={`heart-icon h-4 w-4 transition-all duration-200 ${
                   isFavorite ? 'text-burnt-peach fill-current' : 'text-warm-taupe'
                 }`} />
               </Button>
@@ -178,9 +194,9 @@ function PropertyCardComponent({
           </div>
           
           {/* Property details and footer in one row */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pt-1">
             {/* Property details section */}
-            <div className="flex items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
               <div className="flex items-center space-x-1.5 text-clay-secondary">
                 <div className="property-detail-icon w-6 h-6 bg-pale-clay rounded flex items-center justify-center">
                   <Bed className="icon h-3 w-3 text-cocoa-primary" />
@@ -213,19 +229,19 @@ function PropertyCardComponent({
             </div>
             
             {/* Footer section */}
-            <div className="flex items-center gap-2 sm:gap-3 text-xs text-clay-secondary w-full sm:w-auto justify-between sm:justify-end">
-              <div className="flex items-center">
+            <div className="flex items-center gap-2 sm:gap-3 text-xs text-clay-secondary w-full sm:w-auto justify-between sm:justify-end flex-wrap sm:flex-nowrap">
+              <div className="flex items-center flex-shrink-0">
                 <Calendar className="property-info-icon h-3 w-3 mr-1 flex-shrink-0" />
-                {property.yearBuilt}
+                <span className="whitespace-nowrap">{property.yearBuilt}</span>
               </div>
-              <div className="text-sm text-burnt-primary font-semibold">
+              <div className="text-sm text-burnt-primary font-semibold flex-shrink-0 whitespace-nowrap">
                 €{pricePerSqm}/m²
               </div>
               {property.link && (
                 <Button
                   variant="outline"
                   size="sm"
-                  className="btn-ver-mais h-6 text-xs px-2 py-0 border-pale-clay-deep text-warm-taupe transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-burnt-peach/20"
+                  className="btn-ver-mais h-7 text-xs px-3 py-0 border-pale-clay-deep text-warm-taupe transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-burnt-peach/20 flex-shrink-0 whitespace-nowrap"
                   onClick={handleViewMoreClick}
                 >
                   Ver mais
@@ -236,14 +252,14 @@ function PropertyCardComponent({
           
           {/* Features section - only if there are features */}
           {property.features && property.features.length > 0 && (
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1.5 pt-1">
               {property.features.slice(0, 3).map((feature, index) => (
-                <Badge key={`${feature}-${index}`} className="property-badge text-xs border bg-pure-white text-title border-clay-medium py-0 px-1.5 leading-tight">
+                <Badge key={`${feature}-${index}`} className="property-badge text-xs border bg-pure-white text-title border-clay-medium py-0.5 px-2 leading-tight">
                   {feature}
                 </Badge>
               ))}
               {property.features.length > 3 && (
-                <Badge variant="outline" className="property-badge text-xs bg-pure-white text-clay-secondary border-clay-medium py-0 px-1.5 leading-tight">
+                <Badge variant="outline" className="property-badge text-xs bg-pure-white text-clay-secondary border-clay-medium py-0.5 px-2 leading-tight">
                   +{property.features.length - 3}
                 </Badge>
               )}

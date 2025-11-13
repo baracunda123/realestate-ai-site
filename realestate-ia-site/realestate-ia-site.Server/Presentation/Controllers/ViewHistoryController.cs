@@ -213,17 +213,35 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                     query = (IOrderedQueryable<PropertyViewHistory>)query.Take(MAX_HISTORY_ITEMS);
                 }
 
-                var history = await query
-                    .Select(h => new ViewHistoryItemDto
+                var historyList = await query.ToListAsync();
+                
+                // Get latest price changes for all properties in history (last 30 days)
+                var propertyIds = historyList.Select(h => h.PropertyId).ToList();
+                var cutoffDate = DateTime.UtcNow.AddDays(-30);
+                
+                var latestPriceChanges = await _context.PropertyPriceHistories
+                    .Where(ph => propertyIds.Contains(ph.PropertyId) && ph.ChangedAt >= cutoffDate)
+                    .GroupBy(ph => ph.PropertyId)
+                    .Select(g => g.OrderByDescending(ph => ph.ChangedAt).FirstOrDefault())
+                    .ToListAsync();
+                
+                var priceChangeDict = latestPriceChanges
+                    .Where(ph => ph != null)
+                    .ToDictionary(ph => ph!.PropertyId, ph => ph);
+
+                var history = historyList.Select(h => 
+                {
+                    priceChangeDict.TryGetValue(h.PropertyId, out var priceChange);
+                    return new ViewHistoryItemDto
                     {
                         Id = h.Id,
                         ViewedAt = h.ViewedAt,
-                        Property = PropertySearchDto.FromDomain(h.Property,null)
-                    })
-                    .ToListAsync();
+                        Property = PropertySearchDto.FromDomain(h.Property, priceChange)
+                    };
+                }).ToList();
 
                 // Calcular totalViews apenas dos itens não ocultos
-                var totalViews = await query.SumAsync(h => h.ViewCount);
+                var totalViews = historyList.Sum(h => h.ViewCount);
 
                 _logger.LogInformation("Found {Count} view history items for user {UserId} (excluding hidden)", history.Count, userId);
 

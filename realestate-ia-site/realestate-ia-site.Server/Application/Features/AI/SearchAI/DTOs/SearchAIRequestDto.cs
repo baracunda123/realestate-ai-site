@@ -8,4 +8,5 @@ public sealed class SearchAIRequestDto
     [StringLength(500, ErrorMessage = "Query não pode exceder 500 caracteres")]
     public string? Query { get; set; }
     public string SessionId { get; set; } = string.Empty;
+    public string? UserId { get; set; } // Para análise de comportamento
 }

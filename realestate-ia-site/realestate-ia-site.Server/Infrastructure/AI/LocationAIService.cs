@@ -17,8 +17,11 @@ namespace realestate_ia_site.Server.Infrastructure.AI
         }
 
         public async Task<List<string>> GetNearbyLocationsAsync(string location, CancellationToken cancellationToken = default)
+            => await GetNearbyLocationsAsync(location, "free", cancellationToken);
+
+        public async Task<List<string>> GetNearbyLocationsAsync(string location, string userPlan, CancellationToken cancellationToken = default)
         {
-            _logger.LogInformation("Obtendo localizações próximas para: {Location}", location);
+            _logger.LogInformation("Obtendo localizaÃ§Ãµes prÃ³ximas para: {Location}, Plano: {Plan}", location, userPlan);
             var messages = PromptBuilder.BuildForLocationExpansion(location);
 
             var options = new ChatCompletionOptions
@@ -29,22 +32,23 @@ namespace realestate_ia_site.Server.Infrastructure.AI
 
             try
             {
-                var jsonResponse = await _openAIService.CompleteChatAsync(messages, options, cancellationToken);
+                var model = _openAIService.GetModelForPlan(userPlan);
+                var jsonResponse = await _openAIService.CompleteChatAsync(messages, options, model, cancellationToken);
                 var locations = JsonSerializer.Deserialize<List<string>>(jsonResponse);
 
-                _logger.LogInformation("IA encontrou {Count} localizações próximas para {Location}: {NearbyLocations}",
+                _logger.LogInformation("IA encontrou {Count} localizaÃ§Ãµes prÃ³ximas para {Location}: {NearbyLocations}",
                     locations?.Count ?? 0, location, string.Join(", ", locations ?? new List<string>()));
 
                 return locations ?? new List<string>();
             }
             catch (JsonException jsonEx)
             {
-                _logger.LogWarning(jsonEx, "Erro ao deserializar resposta da IA para localizações próximas. Location: {Location}", location);
+                _logger.LogWarning(jsonEx, "Erro ao deserializar resposta da IA para localizaÃ§Ãµes prÃ³ximas. Location: {Location}", location);
                 return new List<string>();
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao obter localizações próximas via IA. Location: {Location}", location);
+                _logger.LogError(ex, "Erro ao obter localizaÃ§Ãµes prÃ³ximas via IA. Location: {Location}", location);
                 return new List<string>();
             }
         }

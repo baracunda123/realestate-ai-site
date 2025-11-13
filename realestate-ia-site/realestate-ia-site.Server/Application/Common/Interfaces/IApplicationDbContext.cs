@@ -12,12 +12,13 @@ public interface IApplicationDbContext
     DbSet<PropertyPriceHistory> PropertyPriceHistories { get; }
     DbSet<UserLoginSession> UserLoginSessions { get; }
     DbSet<Favorite> Favorites { get; }
-    DbSet<PropertyRecommendation> PropertyRecommendations { get; }
     DbSet<UserSearchHistory> UserSearchHistories { get; }
+    DbSet<PropertyViewHistory> PropertyViewHistories { get; }
     DbSet<ChatUsageQuota> ChatUsageQuotas { get; }
     DbSet<ChatSession> ChatSessions { get; }
     DbSet<ChatMessage> ChatMessages { get; }
     DbSet<ChatSessionProperty> ChatSessionProperties { get; }
+    DbSet<ConversationContextData> ConversationContexts { get; }
     DbSet<User> Users { get; }
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 }

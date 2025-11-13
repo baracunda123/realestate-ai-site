@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
@@ -59,11 +59,30 @@ namespace realestate_ia_site.Server.Presentation.Controllers
 
                 var totalCount = await query.CountAsync();
                 
-                var favorites = await query
+                var favoritesList = await query
                     .Skip((page - 1) * pageSize)
                     .Take(pageSize)
-                    .Select(f => PropertySearchDto.FromDomain(f.Property, null))
                     .ToListAsync();
+                
+                // Get latest price changes for all favorite properties (last 30 days)
+                var propertyIds = favoritesList.Select(f => f.PropertyId).ToList();
+                var cutoffDate = DateTime.UtcNow.AddDays(-30);
+                
+                var latestPriceChanges = await _context.PropertyPriceHistories
+                    .Where(h => propertyIds.Contains(h.PropertyId) && h.ChangedAt >= cutoffDate)
+                    .GroupBy(h => h.PropertyId)
+                    .Select(g => g.OrderByDescending(h => h.ChangedAt).FirstOrDefault())
+                    .ToListAsync();
+                
+                var priceChangeDict = latestPriceChanges
+                    .Where(h => h != null)
+                    .ToDictionary(h => h!.PropertyId, h => h);
+
+                var favorites = favoritesList.Select(f => 
+                {
+                    priceChangeDict.TryGetValue(f.PropertyId, out var priceChange);
+                    return PropertySearchDto.FromDomain(f.Property, priceChange);
+                }).ToList();
                 
                 _logger.LogInformation("Found {Count} favorite properties for user", favorites.Count);
 
