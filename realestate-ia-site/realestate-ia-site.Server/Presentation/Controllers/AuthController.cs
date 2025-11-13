@@ -693,6 +693,15 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 
                 if (user != null)
                 {
+                    // Verificar se o email está confirmado
+                    if (!user.EmailConfirmed)
+                    {
+                        _logger.LogWarning("[Auth] Password reset attempted for unconfirmed email: {Email}", request.Email);
+                        _auditService.LogSuspiciousActivity("Password reset for unconfirmed email", $"Email: {request.Email}");
+                        // Retornar sucesso mesmo assim (não revelar que email existe mas não está confirmado)
+                        return Ok(new { message = "Se o email existir, será enviado um link de recuperação." });
+                    }
+
                     var token = await _userManager.GeneratePasswordResetTokenAsync(user);
                     
                     // Encode token for URL safety
