@@ -206,7 +206,9 @@ Retorna scores de relevância contextual:")
                     "gpt-4o-mini", // Modelo rápido para scoring
                     cancellationToken);
 
-                var scores = JsonSerializer.Deserialize<Dictionary<string, double>>(response);
+                // Extrair JSON se estiver envolto em markdown code blocks
+                var jsonContent = ExtractJsonFromMarkdown(response);
+                var scores = JsonSerializer.Deserialize<Dictionary<string, double>>(jsonContent);
                 return scores ?? new Dictionary<string, double>();
             }
             catch (Exception ex)
@@ -245,16 +247,23 @@ Retorna scores de relevância contextual:")
         {
             // Identificar o que mudou
             var changes = new List<string>();
+            var addedFilters = new List<string>();
+            var changedFilters = new List<string>();
+            var removedFilters = new List<string>();
             
             foreach (var filter in newFilters)
             {
                 if (!previousFilters.ContainsKey(filter.Key))
                 {
-                    changes.Add($"Adicionou: {filter.Key}={filter.Value}");
+                    var change = $"Adicionou: {filter.Key}={filter.Value}";
+                    changes.Add(change);
+                    addedFilters.Add(filter.Key);
                 }
                 else if (!previousFilters[filter.Key].Equals(filter.Value))
                 {
-                    changes.Add($"Mudou: {filter.Key} de {previousFilters[filter.Key]} para {filter.Value}");
+                    var change = $"Mudou: {filter.Key} de {previousFilters[filter.Key]} para {filter.Value}";
+                    changes.Add(change);
+                    changedFilters.Add(filter.Key);
                 }
             }
 
@@ -263,6 +272,7 @@ Retorna scores de relevância contextual:")
                 if (!newFilters.ContainsKey(filter.Key))
                 {
                     changes.Add($"Removeu: {filter.Key}");
+                    removedFilters.Add(filter.Key);
                 }
             }
 
@@ -274,12 +284,75 @@ Retorna scores de relevância contextual:")
                     sessionId,
                     string.Join(", ", changes));
 
-                // TODO: Armazenar padrões de refinamento para análise futura
+                // Analisar padrões de comportamento
+                var behaviorPattern = AnalyzeBehaviorPattern(addedFilters, changedFilters, removedFilters);
+                
+                _logger.LogInformation(
+                    "[Learning] Padrão detectado: {Pattern} - Adicionou: {Added}, Mudou: {Changed}, Removeu: {Removed}",
+                    behaviorPattern,
+                    addedFilters.Count,
+                    changedFilters.Count,
+                    removedFilters.Count);
+                
+                // TODO: Persistir padrões na BD para análise futura e personalização
                 // Pode ser usado para:
-                // - Sugerir refinamentos comuns
+                // - Sugerir refinamentos comuns baseados em histórico
                 // - Melhorar interpretação de queries ambíguas
                 // - Personalizar ordenação baseada em preferências do usuário
+                // - Detectar quando utilizador está indeciso vs focado
             }
+        }
+        
+        /// <summary>
+        /// Analisa o padrão de comportamento baseado nas mudanças de filtros
+        /// </summary>
+        private string AnalyzeBehaviorPattern(
+            List<string> added, 
+            List<string> changed, 
+            List<string> removed)
+        {
+            // Refinamento progressivo: adiciona critérios sem remover
+            if (added.Count > 0 && removed.Count == 0 && changed.Count == 0)
+                return "Refinamento Progressivo";
+            
+            // Ajuste fino: muda valores mas mantém critérios
+            if (changed.Count > 0 && added.Count == 0 && removed.Count == 0)
+                return "Ajuste Fino";
+            
+            // Exploração: remove filtros para ver mais opções
+            if (removed.Count > 0 && added.Count == 0)
+                return "Exploração (Ampliando)";
+            
+            // Pivô: muda drasticamente (remove e adiciona)
+            if (removed.Count > 0 && added.Count > 0)
+                return "Mudança de Direção (Pivô)";
+            
+            // Misto: combinação de ações
+            if (added.Count > 0 && changed.Count > 0)
+                return "Refinamento Misto";
+            
+            return "Padrão Indefinido";
+        }
+
+        /// <summary>
+        /// Extrai JSON de markdown code blocks (```json ... ```) se presente
+        /// </summary>
+        private static string ExtractJsonFromMarkdown(string response)
+        {
+            if (string.IsNullOrWhiteSpace(response))
+                return response;
+
+            // Verificar se tem markdown code block
+            var trimmed = response.Trim();
+            if (trimmed.StartsWith("```"))
+            {
+                // Remover ```json ou ``` do início
+                var lines = trimmed.Split('\n');
+                var jsonLines = lines.Skip(1).Take(lines.Length - 2).ToArray();
+                return string.Join("\n", jsonLines);
+            }
+
+            return response;
         }
     }
 }

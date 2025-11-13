@@ -96,6 +96,19 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             if (context != null && filters.Any())
             {
                 var previousFilters = new Dictionary<string, object>(context.LastFilters);
+                
+                // Guardar filtros anteriores no histórico antes de fundir
+                if (previousFilters.Any())
+                {
+                    context.FilterHistory.Add(new Dictionary<string, object>(previousFilters));
+                    
+                    // Limitar histórico a últimas 10 pesquisas
+                    if (context.FilterHistory.Count > 10)
+                    {
+                        context.FilterHistory.RemoveAt(0);
+                    }
+                }
+                
                 context.LastFilters = MergeFilters(context.LastFilters, filters, _logger);
                 _contextService.UpdateContext(sessionId, context);
                 
@@ -184,7 +197,25 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                 // Se o filtro novo não estiver vazio, adiciona/substitui
                 if (!IsEmpty(kv.Value))
                 {
-                    result[kv.Key] = kv.Value;
+                    // ========== FEATURES: Acumular em vez de substituir ==========
+                    if (kv.Key == "features" && kv.Value is List<string> newFeatures)
+                    {
+                        if (result.ContainsKey("features") && result["features"] is List<string> existingFeatures)
+                        {
+                            // Acumular features únicas
+                            var mergedFeatures = existingFeatures.Union(newFeatures).Distinct().ToList();
+                            result[kv.Key] = mergedFeatures;
+                            logger.LogDebug("Features acumuladas: {Features}", string.Join(", ", mergedFeatures));
+                        }
+                        else
+                        {
+                            result[kv.Key] = kv.Value;
+                        }
+                    }
+                    else
+                    {
+                        result[kv.Key] = kv.Value;
+                    }
                     
                     // ========== PREÇO: Gestão de conflitos ==========
                     

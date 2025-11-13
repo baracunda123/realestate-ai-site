@@ -88,6 +88,9 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                     chatSessionId = activeSession.Id;
                     request.SessionId = chatSessionId;
                 }
+                
+                // Adicionar UserId ao request para análise de comportamento
+                request.UserId = userId;
 
                 // Persistir mensagem do utilizador
                 var userMessageResult = await _chatSessionService.AddMessageAsync(chatSessionId, "user", request.Query!, ct);
@@ -102,12 +105,18 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 // Persistir resposta da IA
                 await _chatSessionService.AddMessageAsync(chatSessionId, "assistant", result.AIResponse, ct);
 
-                // Persistir propriedades retornadas na sessão
+                // Persistir propriedades retornadas na sessão (ou limpar se não houver resultados)
                 if (result.Properties != null && result.Properties.Any())
                 {
                     var propertyIds = result.Properties.Select(p => p.Id).ToList();
                     await _chatSessionPropertyService.AddPropertiesToSessionAsync(chatSessionId, propertyIds, ct);
                     _logger.LogInformation("Persistidas {Count} propriedades na sessão {SessionId}", propertyIds.Count, chatSessionId);
+                }
+                else
+                {
+                    // Limpar propriedades anteriores quando não há resultados
+                    await _chatSessionPropertyService.ClearSessionPropertiesAsync(chatSessionId, ct);
+                    _logger.LogInformation("Nenhuma propriedade encontrada - sessão {SessionId} limpa", chatSessionId);
                 }
 
                 // Consumir quota

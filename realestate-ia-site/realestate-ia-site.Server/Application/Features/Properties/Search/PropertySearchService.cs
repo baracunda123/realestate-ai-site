@@ -43,7 +43,9 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search
                 .Where(p => p.Status == PropertyStatus.Active)
                 .AsQueryable();
 
-            foreach (var filtroKey in filtros.Keys)
+            // Criar lista de chaves antes de iterar para evitar "Collection was modified"
+            var filtroKeys = filtros.Keys.ToList();
+            foreach (var filtroKey in filtroKeys)
             {
                 var applicable = _filters.FirstOrDefault(f => f.CanHandle(filtroKey));
                 if (applicable == null)
@@ -81,6 +83,22 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search
                     priceChangeDict.TryGetValue(p.Id, out var priceChange);
                     return PropertySearchDto.FromDomain(p, priceChange);
                 }).ToList();
+
+                // Aplicar features encontradas (se houver pesquisa por features)
+                if (filtros.TryGetValue("_matched_features", out var matchedFeaturesObj) && 
+                    matchedFeaturesObj is Dictionary<string, List<string>> matchedFeatures)
+                {
+                    foreach (var property in result)
+                    {
+                        if (matchedFeatures.TryGetValue(property.Id, out var features))
+                        {
+                            property.MatchedFeatures = features;
+                        }
+                    }
+                    
+                    _logger.LogInformation("[Search] Features aplicadas a {Count} propriedades", 
+                        result.Count(p => p.MatchedFeatures != null));
+                }
 
                 // Aplicar scoring inteligente se temos contexto
                 if (filtros.TryGetValue("session_id", out var sessionIdObj) && sessionIdObj != null)
@@ -130,7 +148,9 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search
                 .Where(p => p.Status == PropertyStatus.Active)
                 .AsQueryable();
 
-            foreach (var filtroKey in filtros.Keys.Where(k => k != "sort" && k != "cheaper_hint"))
+            // Criar lista de chaves antes de iterar para evitar "Collection was modified"
+            var filtroKeys = filtros.Keys.Where(k => k != "sort" && k != "cheaper_hint").ToList();
+            foreach (var filtroKey in filtroKeys)
             {
                 foreach (var filter in _filters.Where(f => f.CanHandle(filtroKey)))
                 {

@@ -164,6 +164,7 @@ public static class InfrastructureServicesExtensions
 
         // Background Services
         services.AddHostedService<PropertyCleanupBackgroundService>();
+        services.AddHostedService<ContextCleanupService>();
 
         return services;
     }

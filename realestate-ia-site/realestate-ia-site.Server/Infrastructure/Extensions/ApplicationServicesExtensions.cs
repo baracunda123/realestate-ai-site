@@ -20,6 +20,9 @@ public static class ApplicationServicesExtensions
     {
         // AI Services
         services.AddScoped<SearchAIOrchestrator>();
+        services.AddScoped<IPropertySemanticAnalyzer, Infrastructure.AI.PropertySemanticAnalyzer>();
+        services.AddScoped<IIntelligentRecommendationEngine, Infrastructure.AI.IntelligentRecommendationEngine>();
+        services.AddScoped<IAdvancedQueryInterpreter, Infrastructure.AI.AdvancedQueryInterpreter>();
         
         // Property Services
         services.AddScoped<IPropertySearchService, PropertySearchService>();

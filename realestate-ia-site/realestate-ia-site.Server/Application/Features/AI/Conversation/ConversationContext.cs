@@ -7,6 +7,7 @@ namespace realestate_ia_site.Server.Application.Features.AI.Conversation
         public string SessionId { get; set; } = string.Empty;
         public List<ChatMessage> Messages { get; } = new();
         public Dictionary<string, object> LastFilters { get; set; } = new();
+        public List<Dictionary<string, object>> FilterHistory { get; } = new(); // Histórico de filtros para análise de comportamento
         public DateTime LastActivity { get; private set; } = DateTime.UtcNow;
         public string? LastQuery { get; private set; }
 

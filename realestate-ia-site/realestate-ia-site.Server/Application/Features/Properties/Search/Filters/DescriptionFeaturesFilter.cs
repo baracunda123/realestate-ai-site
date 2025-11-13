@@ -38,7 +38,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
                 return query;
 
             // Parse features solicitadas
-            var requestedFeatures = ParseFeatures(featuresObj.ToString());
+            var requestedFeatures = ParseFeatures(featuresObj);
             if (!requestedFeatures.Any())
                 return query;
 
@@ -62,6 +62,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
 
             // Analisar descrições em paralelo (batch de 5 por vez para não sobrecarregar a API)
             var matchedPropertyIds = new List<string>();
+            var propertyFeatures = new Dictionary<string, List<string>>(); // Mapear PropertyId -> Features encontradas
             var batchSize = 5; // Reduzido de 10 para 5 para melhor controle
 
             for (int i = 0; i < properties.Count; i += batchSize)
@@ -86,31 +87,38 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
                                 matchScore,
                                 string.Join(", ", foundFeatures));
 
-                            return (p.Id, matchScore);
+                            return (p.Id, matchScore, foundFeatures);
                         }
 
-                        return (null, 0.0);
+                        return (null, 0.0, new List<string>());
                     }
                     catch (Exception ex)
                     {
                         _logger.LogWarning(ex, 
                             "[DescriptionFeaturesFilter] Erro ao analisar propriedade {PropertyId}",
                             p.Id);
-                        return (null, 0.0);
+                        return (null, 0.0, new List<string>());
                     }
                 });
 
                 var batchResults = await Task.WhenAll(matchTasks);
-                matchedPropertyIds.AddRange(
-                    batchResults
-                        .Where(r => r.Item1 != null)
-                        .Select(r => r.Item1!));
+                foreach (var result in batchResults.Where(r => r.Item1 != null))
+                {
+                    matchedPropertyIds.Add(result.Item1!);
+                    propertyFeatures[result.Item1!] = result.Item3;
+                }
 
                 // Delay entre batches para não sobrecarregar a API e evitar timeouts
                 if (i + batchSize < properties.Count)
                 {
                     await Task.Delay(500, cancellationToken); // Aumentado de 100ms para 500ms
                 }
+            }
+            
+            // Guardar features encontradas no filtro para uso posterior
+            if (propertyFeatures.Any())
+            {
+                filters["_matched_features"] = propertyFeatures;
             }
 
             if (!matchedPropertyIds.Any())
@@ -128,8 +136,21 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
             return query.Where(p => matchedPropertyIds.Contains(p.Id));
         }
 
-        private List<string> ParseFeatures(string? featuresString)
+        private List<string> ParseFeatures(object? featuresObj)
         {
+            if (featuresObj == null)
+                return new List<string>();
+
+            // Se já é uma lista, retornar diretamente
+            if (featuresObj is List<string> list)
+                return list;
+
+            // Se é IEnumerable<string>, converter para lista
+            if (featuresObj is IEnumerable<string> enumerable)
+                return enumerable.ToList();
+
+            // Se é string, fazer parse
+            var featuresString = featuresObj.ToString();
             if (string.IsNullOrWhiteSpace(featuresString))
                 return new List<string>();
 

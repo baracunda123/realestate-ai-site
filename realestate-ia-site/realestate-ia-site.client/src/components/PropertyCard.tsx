@@ -151,6 +151,22 @@ function PropertyCardComponent({
                 </div>
               </div>
               <h3 className="font-semibold text-base text-title line-clamp-2 mb-1 mt-0.5">{safeTitle}</h3>
+              
+              {/* Matched Features - mostrar quando houver pesquisa por features */}
+              {property.matchedFeatures && property.matchedFeatures.length > 0 && (
+                <div className="flex flex-wrap gap-1 mb-1.5">
+                  {property.matchedFeatures.map((feature, index) => (
+                    <Badge 
+                      key={`matched-${feature}-${index}`} 
+                      className="text-xs font-medium bg-burnt-soft/10 text-burnt-primary border-burnt-soft border shadow-sm py-0.5 px-2 flex items-center gap-1"
+                    >
+                      <span className="text-burnt-primary">✓</span>
+                      {feature}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              
               <div className="flex items-center text-xs text-clay-secondary min-w-0">
                 <MapPin className="property-info-icon h-3 w-3 mr-1 text-clay-secondary flex-shrink-0" />
                 <span className="truncate">{property.location}</span>

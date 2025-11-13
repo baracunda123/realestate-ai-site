@@ -24,6 +24,9 @@ public class PropertySearchDto
     public decimal? PriceChangePercentage { get; set; } // Positive = increase, Negative = decrease
     public DateTime? LastPriceChangeDate { get; set; }
     public decimal? OldPrice { get; set; }
+    
+    // Matched Features (quando pesquisa por features específicas)
+    public List<string>? MatchedFeatures { get; set; }
 
     public static PropertySearchDto FromDomain(
         realestate_ia_site.Server.Domain.Entities.Property property,

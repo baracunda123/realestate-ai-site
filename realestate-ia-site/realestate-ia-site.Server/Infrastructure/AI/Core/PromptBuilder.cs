@@ -1,4 +1,4 @@
-using OpenAI.Chat;
+ï»¿using OpenAI.Chat;
 using realestate_ia_site.Server.Application.Common.DTOs;
 using realestate_ia_site.Server.Infrastructure.AI.Prompts;
 
@@ -53,7 +53,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI.Core
             messages.Add(new UserChatMessage(userQuery));
 
             var propertiesList = FormatPropertiesForAI(properties);
-            messages.Add(new SystemChatMessage($"Propriedades disponíveis:\n{propertiesList}"));
+            messages.Add(new SystemChatMessage($"Propriedades disponÃ­veis:\n{propertiesList}"));
 
             return messages;
         }
@@ -72,24 +72,30 @@ namespace realestate_ia_site.Server.Infrastructure.AI.Core
         private static string FormatPropertiesForAI(List<PropertySearchDto> properties)
         {
             if (!properties.Any())
-                return "Nenhuma propriedade encontrada para os critérios especificados.";
+                return "Nenhuma propriedade encontrada para os critÃ©rios especificados.";
 
             return string.Join("\n", properties.Select((p, index) =>
             {
                 var num = index + 1;
-                var type = string.IsNullOrWhiteSpace(p.Type) ? "Imóvel" : p.Type;
-                var loc = string.IsNullOrWhiteSpace(p.Location) ? "localização não indicada" : p.Location;
-                var price = p.Price > 0 ? $"€{p.Price:N0}" : "preço sob consulta";
+                var type = string.IsNullOrWhiteSpace(p.Type) ? "ImÃ³vel" : p.Type;
+                var loc = string.IsNullOrWhiteSpace(p.Location) ? "localizaÃ§Ã£o nÃ£o indicada" : p.Location;
+                var price = p.Price > 0 ? $"â‚¬{p.Price:N0}" : "preÃ§o sob consulta";
                 var rooms = p.Bedrooms > 0 ? $"{p.Bedrooms} quartos" : null;
-                var area = p.Area > 0 ? $"{p.Area:N0} m²" : null;
+                var area = p.Area > 0 ? $"{p.Area:N0} m" : null;
                 var title = string.IsNullOrWhiteSpace(p.Title) ? null : p.Title;
 
                 var parts = new[] { type, "em " + loc, rooms, area, price }
                     .Where(s => !string.IsNullOrWhiteSpace(s));
                 var core = string.Join(", ", parts);
+                
+                // Adicionar matched features se existirem
+                var featuresInfo = p.MatchedFeatures != null && p.MatchedFeatures.Any()
+                    ? $" [FEATURES: {string.Join(", ", p.MatchedFeatures)}]"
+                    : "";
+                
                 var tail = string.IsNullOrWhiteSpace(p.ImageUrl) ? "" : $" ({p.ImageUrl})";
 
-                return $"PROPRIEDADE[{num}] {core}{(title != null ? $" - {title}" : "")}{tail}";
+                return $"PROPRIEDADE[{num}] {core}{featuresInfo}{(title != null ? $" - {title}" : "")}{tail}";
             }));
         }
     }

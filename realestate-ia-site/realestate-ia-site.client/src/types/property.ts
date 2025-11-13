@@ -48,4 +48,7 @@ export interface Property {
   priceChangePercentage?: number; // Positivo = aumento, Negativo = redução
   lastPriceChangeDate?: string; // ISO string
   oldPrice?: number;
+  
+  // Matched Features (quando pesquisa por features específicas)
+  matchedFeatures?: string[]; // Features encontradas na descrição que deram match com a pesquisa
 }
