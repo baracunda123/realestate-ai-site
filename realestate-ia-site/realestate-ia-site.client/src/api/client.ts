@@ -233,7 +233,7 @@ class ApiClient {
     this.client = axios.create({
       baseURL: baseURL,
       withCredentials: true, // Importante: envia cookies HttpOnly
-      timeout: 15000,
+      timeout: 30000, // 30 segundos para permitir queries mais complexas
       headers: {
         'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest'

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Infrastructure.Persistence;
 using realestate_ia_site.Server.Application.Common.DTOs;
 using realestate_ia_site.Server.Application.Features.Properties.Search.Filters;
+using realestate_ia_site.Server.Application.Features.Properties.Scoring;
 using realestate_ia_site.Server.Domain.Enums;
 
 namespace realestate_ia_site.Server.Application.Features.Properties.Search
@@ -11,15 +12,18 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search
         private readonly ApplicationDbContext _context;
         private readonly ILogger<PropertySearchService> _logger;
         private readonly IEnumerable<IPropertyFilter> _filters;
+        private readonly IPropertyScoringService _scoringService;
 
         public PropertySearchService(
             ApplicationDbContext context,
             ILogger<PropertySearchService> logger,
-            IEnumerable<IPropertyFilter> filters)
+            IEnumerable<IPropertyFilter> filters,
+            IPropertyScoringService scoringService)
         {
             _context = context;
             _logger = logger;
             _filters = filters;
+            _scoringService = scoringService;
         }
 
         public async Task<List<PropertySearchDto>> SearchPropertiesWithFiltersAsync(
@@ -53,7 +57,10 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search
 
             try
             {
-                var properties = await query.Take(10).ToListAsync(cancellationToken);
+                // Buscar mais resultados para permitir scoring inteligente
+                // A IA vai ordenar e retornar os 10 mais relevantes
+                // AsNoTracking para melhor performance (não precisa rastrear mudanças)
+                var properties = await query.AsNoTracking().Take(30).ToListAsync(cancellationToken);
                 
                 // Get latest price changes for all properties (last 30 days)
                 var propertyIds = properties.Select(p => p.Id).ToList();
@@ -74,6 +81,27 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search
                     priceChangeDict.TryGetValue(p.Id, out var priceChange);
                     return PropertySearchDto.FromDomain(p, priceChange);
                 }).ToList();
+
+                // Aplicar scoring inteligente se temos contexto
+                if (filtros.TryGetValue("session_id", out var sessionIdObj) && sessionIdObj != null)
+                {
+                    var sessionId = sessionIdObj.ToString();
+                    var userQuery = filtros.TryGetValue("user_query", out var queryObj) 
+                        ? queryObj?.ToString() ?? "" 
+                        : "";
+
+                    result = await _scoringService.ScoreAndRankPropertiesAsync(
+                        result,
+                        userQuery,
+                        sessionId!,
+                        filtros,
+                        cancellationToken);
+
+                    _logger.LogInformation("[Search] Propriedades ordenadas por scoring inteligente");
+                }
+
+                // Retornar top 10 após scoring
+                result = result.Take(10).ToList();
 
                 _logger.LogInformation("[Search] Concluida a pesquisa com {Count} propriedades", result.Count);
                 return result;

@@ -1,4 +1,4 @@
-﻿namespace realestate_ia_site.Server.Infrastructure.AI.Prompts
+namespace realestate_ia_site.Server.Infrastructure.AI.Prompts
 {
     internal static class AiPrompts
     {
@@ -23,7 +23,7 @@
         /// </summary>
         internal static string GetFilterExtractionContext() =>
             @"TAREFA ESPECÍFICA: Extrair filtros de pesquisa.
-            Responde APENAS com JSON válido. Campos disponíveis: type, location, min_price, max_price, target_price, min_area, max_area, target_area, rooms, min_rooms, max_rooms, tags, sort.
+            Responde APENAS com JSON válido. Campos disponíveis: type, location, min_price, max_price, target_price, min_area, max_area, target_area, rooms, min_rooms, max_rooms, tags, sort, features.
             
             REGRAS DE INTERPRETAÇÃO (aplicam-se a PREÇO e ÁREA):
             Analisa a intenção do utilizador e decide:
@@ -66,7 +66,19 @@
             Outros:
             'mais barato' → {""sort"": ""price_asc""}
             
-            IMPORTANTE: target_price e target_area são flexíveis - o sistema encontra automaticamente os mais próximos.
+            FEATURES ESPECÍFICAS (campo 'features'):
+            Se o utilizador mencionar características específicas do imóvel, usar array de features:
+            'apartamento com varanda' → {""type"": ""apartamento"", ""features"": [""varanda""]}
+            'casa com piscina e jardim' → {""type"": ""casa"", ""features"": [""piscina"", ""jardim""]}
+            'imóvel renovado com ar condicionado' → {""features"": [""renovado"", ""ar condicionado""]}
+            'T2 com garagem virado a sul' → {""rooms"": 2, ""features"": [""garagem"", ""virado a sul""]}
+            
+            Features comuns: varanda, terraço, jardim, piscina, garagem, arrecadação, renovado, ar condicionado, 
+            aquecimento central, cozinha equipada, elevador, vista mar, vista serra, virado a sul, virado a nascente
+            
+            IMPORTANTE: 
+            - target_price e target_area são flexíveis - o sistema encontra automaticamente os mais próximos.
+            - features são analisadas na descrição do imóvel pela IA
             
             Usa o teu entendimento de linguagem natural para interpretar a verdadeira intenção do utilizador.";
 

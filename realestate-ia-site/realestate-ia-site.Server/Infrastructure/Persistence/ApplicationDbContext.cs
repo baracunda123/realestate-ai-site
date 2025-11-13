@@ -26,7 +26,6 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
         public DbSet<PropertyPriceHistory> PropertyPriceHistories { get; set; }
         public DbSet<UserLoginSession> UserLoginSessions { get; set; }
         public DbSet<Favorite> Favorites { get; set; }
-        public DbSet<PropertyRecommendation> PropertyRecommendations { get; set; }
         public DbSet<UserSearchHistory> UserSearchHistories { get; set; }
         public DbSet<PropertyViewHistory> PropertyViewHistories { get; set; }
         public DbSet<ChatUsageQuota> ChatUsageQuotas { get; set; }
@@ -119,26 +118,6 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
                       .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // Configurações para PropertyRecommendation
-            builder.Entity<PropertyRecommendation>(entity =>
-            {
-                entity.HasIndex(e => e.UserId);
-                entity.HasIndex(e => e.PropertyId);
-                entity.HasIndex(e => new { e.UserId, e.PropertyId });
-                entity.HasIndex(e => e.IsActive);
-                entity.HasIndex(e => e.Score);
-                entity.HasIndex(e => e.CreatedAt);
-
-                entity.HasOne(e => e.User)
-                      .WithMany()
-                      .HasForeignKey(e => e.UserId)
-                      .OnDelete(DeleteBehavior.Cascade);
-
-                entity.HasOne(e => e.Property)
-                      .WithMany()
-                      .HasForeignKey(e => e.PropertyId)
-                      .OnDelete(DeleteBehavior.Cascade);
-            });
 
             // Configurações para PropertyPriceHistory
             builder.Entity<PropertyPriceHistory>(entity =>
@@ -327,14 +306,6 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
                 }
             }
 
-            // Atualizar timestamps para PropertyRecommendation
-            var recommendationEntries = ChangeTracker.Entries<PropertyRecommendation>()
-                .Where(e => e.State == EntityState.Modified);
-
-            foreach (var entry in recommendationEntries)
-            {
-                entry.Entity.UpdatedAt = DateTime.UtcNow;
-            }
 
             var domainEvents = new List<IDomainEvent>();
 

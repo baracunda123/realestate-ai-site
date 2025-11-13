@@ -114,9 +114,14 @@ public static class InfrastructureServicesExtensions
         services.AddSingleton<IOpenAIService, OpenAIService>();
         services.AddScoped<IPropertyFilterInterpreter, PropertyFilterInterpreter>();
         services.AddScoped<IPropertyResponseGenerator, PropertyResponseGenerator>();
+        services.AddScoped<IConversationContextService, ConversationContextService>();
         services.AddScoped<PropertyAIService>();
         services.AddScoped<LocationAIService>();
-        services.AddScoped<IConversationContextService, ConversationContextService>();
+        services.AddScoped<Application.Features.Properties.Scoring.IPropertyScoringService, PropertyScoringService>();
+        services.AddScoped<Application.Features.Properties.Analysis.IPropertyDescriptionAnalyzer, PropertyDescriptionAnalyzer>();
+        
+        // Feedback and Learning
+        services.AddScoped<Application.Features.Properties.Feedback.PropertyFeedbackService>();
 
         // Chat & Quota
         services.AddScoped<IChatUsageService, ChatUsageService>();
@@ -156,12 +161,8 @@ public static class InfrastructureServicesExtensions
 
         // Domain Events
         services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
-        services.AddScoped<IDomainEventHandler<FavoriteAddedEvent>, UserBehaviorEventHandler>();
-        services.AddScoped<IDomainEventHandler<FavoriteRemovedEvent>, UserBehaviorEventHandler>();
-        services.AddScoped<IDomainEventHandler<SearchExecutedEvent>, UserBehaviorEventHandler>();
 
         // Background Services
-        services.AddHostedService<RecommendationBackgroundService>();
         services.AddHostedService<PropertyCleanupBackgroundService>();
 
         return services;
@@ -226,5 +227,6 @@ public static class InfrastructureServicesExtensions
         services.AddScoped<IPropertyFilter, TagsFilter>();
         services.AddScoped<IPropertyFilter, SortFilter>();
         services.AddScoped<IPropertyFilter, TopPicksFilter>();
+        services.AddScoped<IPropertyFilter, DescriptionFeaturesFilter>();
     }
 }

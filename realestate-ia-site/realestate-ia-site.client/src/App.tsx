@@ -44,7 +44,6 @@ const SubscriptionSuccessPage = lazy(() => import('./pages/SubscriptionSuccessPa
 const SubscriptionCancelPage = lazy(() => import('./pages/SubscriptionCancelPage'));
 
 // Profile pages
-const DashboardPage = lazy(() => import('./pages/DashboardPage').then(m => ({ default: m.DashboardPage })));
 const ProfilePage = lazy(() => import('./pages/ProfilePage').then(m => ({ default: m.ProfilePage })));
 const FavoritesPage = lazy(() => import('./pages/FavoritesPage').then(m => ({ default: m.FavoritesPage })));
 const HistoryPage = lazy(() => import('./pages/HistoryPage').then(m => ({ default: m.HistoryPage })));
@@ -783,28 +782,7 @@ export default function App() {
                 </Suspense>
               ) : (
                 <div className="flex items-center justify-center p-8">
-                  <p className="text-muted-foreground">Por favor, faz login para aceder ao teu perfil.</p>
-                </div>
-              )
-            } 
-          />
-
-          <Route 
-            path="/dashboard" 
-            element={
-              user ? (
-                <Suspense fallback={<LoadingSpinner />}>
-                  <DashboardPage
-                    user={convertToUser(user)}
-                    hasActiveSearch={!isDefaultState && searchResults !== null}
-                    onNavigateToHome={navigateToHome}
-                    favoritesCount={favorites.length}
-                    searchesCount={0}
-                  />
-                </Suspense>
-              ) : (
-                <div className="flex items-center justify-center p-8">
-                  <p className="text-muted-foreground">Por favor, faz login para aceder ao dashboard.</p>
+                  <p className="text-muted-foreground">Por favor, faz login para aceder ao perfil.</p>
                 </div>
               )
             } 

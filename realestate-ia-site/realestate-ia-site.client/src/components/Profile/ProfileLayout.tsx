@@ -6,8 +6,7 @@ import {
   Heart, 
   Clock, 
   Settings,
-  ArrowLeft,
-  LayoutDashboard
+  ArrowLeft
 } from 'lucide-react';
 
 interface ProfileLayoutProps {
@@ -21,7 +20,6 @@ export function ProfileLayout({ children, hasActiveSearch, onNavigateToHome }: P
   const location = useLocation();
 
   const navItems = [
-    { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
     { path: '/profile', label: 'Perfil', icon: User },
     { path: '/favorites', label: 'Favoritos', icon: Heart },
     { path: '/history', label: 'Histórico', icon: Clock },
