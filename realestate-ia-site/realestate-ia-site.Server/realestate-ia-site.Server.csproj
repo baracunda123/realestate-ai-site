@@ -57,4 +57,11 @@
       <Folder Include="Infrastructure\Notifications\Services\" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Content Include="Templates\Emails\*.html">
+        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </Content>
+    </ItemGroup>
+
 </Project>
