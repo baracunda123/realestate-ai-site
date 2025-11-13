@@ -195,8 +195,9 @@ namespace realestate_ia_site.Server.Application.Common.Mappings
             }
 
             // Padrão T: procura tipo de imóvel + T ou só T isolado
-            // Valida que antes e depois do T não há letras
-            var titleMatch = Regex.Match(text, @"(?:\b(?:apartamento|moradia|casa|vivenda|loja|escritório)\b.*?)?(?<![A-Za-z])T(\d{1,2})(?![A-Za-z])", RegexOptions.IgnoreCase);
+            // Valida que antes e depois do T não há letras, dígitos ou underscores
+            // Garante que há exatamente 1 ou 2 dígitos (não mais) após o T
+            var titleMatch = Regex.Match(text, @"(?:\b(?:apartamento|moradia|casa|vivenda|loja|escritório)\b.*?)?(?<![0-9A-Za-z_])T(\d{1,2})(?![0-9A-Za-z_])", RegexOptions.IgnoreCase);
             if (titleMatch.Success && int.TryParse(titleMatch.Groups[1].Value, out var bedroomsFromTitle))
             {
                 if (bedroomsFromTitle <= 50)
