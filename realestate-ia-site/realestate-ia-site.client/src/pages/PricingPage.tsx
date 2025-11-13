@@ -45,13 +45,14 @@ const plans: PricingPlan[] = [
   {
     id: 'premium',
     name: 'Premium',
-    description: 'Conversas ilimitadas com IA',
+    description: 'IA avançada com respostas superiores',
     price: 8,
     interval: 'month',
     chatLimit: -1,
     popular: true,
     features: [
       'Chat IA ilimitado',
+      'Respostas mais precisas e detalhadas',
       'Pesquisa de propriedades',
       'Favoritos ilimitados',
       'Alertas de baixa de preço',
@@ -130,10 +131,10 @@ export function PricingPage() {
             Encontre a Casa Perfeita com IA
           </h1>
           <p className="text-xl text-warm-taupe max-w-2xl mx-auto">
-            Chat ilimitado com IA por apenas €8/mês. Sem contratos, cancele quando quiser.
+            Chat ilimitado com IA avançada por apenas €8/mês. Sem contratos, cancele quando quiser.
           </p>
           <p className="text-sm text-warm-taupe mt-2">
-            💡 Apenas €8/mês para ter um assistente imobiliário IA sempre disponível
+            Upgrade para Premium e tenha acesso a respostas mais inteligentes e precisas
           </p>
         </div>
 
@@ -224,7 +225,7 @@ export function PricingPage() {
             <div>
               <h3 className="font-semibold text-deep-mocha mb-2">Porquê pagar €8/mês?</h3>
               <p className="text-sm text-warm-taupe">
-                Com o Premium tens conversas ilimitadas com a nossa AI especializada em imobiliário. Pergunte o que quiserES, quantas vezes quiseres, sem limites. É como ter um consultor imobiliário 24/7 por apenas €8/mês.
+                Com o Premium tens conversas ilimitadas com a nossa IA especializada em imobiliário, usando tecnologia avançada para respostas mais precisas, detalhadas e contextualizadas. Pergunte o que quiseres, quantas vezes quiseres, sem limites. É como ter um consultor imobiliário expert 24/7 por apenas €8/mês.
               </p>
             </div>
             <div>

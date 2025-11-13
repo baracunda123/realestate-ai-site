@@ -14,5 +14,12 @@ namespace realestate_ia_site.Server.Application.Features.AI.Interfaces
             List<PropertySearchDto> properties,
             string sessionId,
             CancellationToken cancellationToken = default);
+
+        Task<string> GenerateResponseAsync(
+            string originalQuery,
+            List<PropertySearchDto> properties,
+            string sessionId,
+            string userPlan,
+            CancellationToken cancellationToken = default);
     }
 }

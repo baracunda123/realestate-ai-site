@@ -92,8 +92,12 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 // Persistir mensagem do utilizador
                 var userMessageResult = await _chatSessionService.AddMessageAsync(chatSessionId, "user", request.Query!, ct);
 
+                // Obter plano do usuário
+                var usageStats = await _chatUsageService.GetUsageStatsAsync(userId, ct);
+                var userPlan = usageStats.PlanType ?? "free";
+
                 // Processar pesquisa
-                var result = await _orchestrator.HandleAsync(request, ct);
+                var result = await _orchestrator.HandleAsync(request, userPlan, ct);
 
                 // Persistir resposta da IA
                 await _chatSessionService.AddMessageAsync(chatSessionId, "assistant", result.AIResponse, ct);

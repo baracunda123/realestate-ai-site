@@ -59,7 +59,7 @@ export function ChatQuotaBanner({ onRefresh }: ChatQuotaBannerProps) {
               Plano Premium
             </p>
             <p className="text-xs text-warm-taupe">
-              Conversas ilimitadas com AI
+              Conversas ilimitadas • IA avançada
             </p>
           </div>
         </div>

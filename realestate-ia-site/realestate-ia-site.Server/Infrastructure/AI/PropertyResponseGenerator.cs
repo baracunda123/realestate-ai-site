@@ -33,12 +33,20 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             List<PropertySearchDto> properties,
             string sessionId,
             CancellationToken cancellationToken = default)
+            => await GenerateResponseAsync(originalQuery, properties, sessionId, "free", cancellationToken);
+
+        public async Task<string> GenerateResponseAsync(
+            string originalQuery,
+            List<PropertySearchDto> properties,
+            string sessionId,
+            string userPlan,
+            CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(originalQuery, nameof(originalQuery));
             ArgumentNullException.ThrowIfNull(properties, nameof(properties));
 
-            _logger.LogInformation("Gerando resposta para: {Question}. Propriedades: {PropertyCount}, Sessão: {SessionId}",
-                originalQuery, properties.Count, sessionId);
+            _logger.LogInformation("Gerando resposta para: {Question}. Propriedades: {PropertyCount}, SessÃ£o: {SessionId}, Plano: {Plan}",
+                originalQuery, properties.Count, sessionId, userPlan);
 
             try
             {
@@ -53,7 +61,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                 }
 
                 var messages = BuildMessages(originalQuery, properties, context);
-                var response = await GenerateAIResponseAsync(messages, cancellationToken);
+                var response = await GenerateAIResponseAsync(messages, userPlan, cancellationToken);
 
                 if (hasValidSession && context != null)
                 {
@@ -91,18 +99,23 @@ namespace realestate_ia_site.Server.Infrastructure.AI
 
         private async Task<string> GenerateAIResponseAsync(
             List<ChatMessage> messages,
+            string userPlan,
             CancellationToken cancellationToken)
         {
             var options = new ChatCompletionOptions
             {
-                MaxOutputTokenCount = 1200,     // Suficiente, sem ser verboso demais
-                Temperature = 0.5f,             // Profissional mas natural
-                TopP = 0.9f,                    // Mais focado em informações relevantes
-                FrequencyPenalty = 0.3f,        // Mantém (evita repetir "imóvel", "propriedade")
-                PresencePenalty = 0.2f          // Menos divagação, mais objetivo
+                MaxOutputTokenCount = 1200,
+                Temperature = 0.5f,
+                TopP = 0.9f,
+                FrequencyPenalty = 0.3f,
+                PresencePenalty = 0.2f
             };
 
-            return await _openAIService.CompleteChatAsync(messages, options, cancellationToken);
+            // Obter modelo baseado no plano do usuÃ¡rio
+            var model = _openAIService.GetModelForPlan(userPlan);
+            _logger.LogInformation("Usando modelo {Model} para plano {Plan}", model, userPlan);
+
+            return await _openAIService.CompleteChatAsync(messages, options, model, cancellationToken);
         }
     }
 }

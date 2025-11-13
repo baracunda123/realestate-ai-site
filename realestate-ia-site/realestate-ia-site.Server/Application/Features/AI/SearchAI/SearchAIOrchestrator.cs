@@ -25,17 +25,20 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
         }
 
         public async Task<SearchAIResponseDto> HandleAsync(SearchAIRequestDto request, CancellationToken ct = default)
+            => await HandleAsync(request, "free", ct);
+
+        public async Task<SearchAIResponseDto> HandleAsync(SearchAIRequestDto request, string userPlan, CancellationToken ct = default)
         {
             ArgumentNullException.ThrowIfNull(request, nameof(request));
             ArgumentException.ThrowIfNullOrWhiteSpace(request.Query, nameof(request.Query));
 
-            _logger.LogInformation("Processing search request: {Query}", request.Query);
+            _logger.LogInformation("Processing search request: {Query}, Plano: {Plan}", request.Query, userPlan);
             
             try
             {
-                var filters = await _filterInterpreter.ExtractFiltersAsync(request.Query, request.SessionId, ct);
+                var filters = await _filterInterpreter.ExtractFiltersAsync(request.Query, request.SessionId, userPlan, ct);
                 var properties = await _propertySearchService.SearchPropertiesWithFiltersAsync(filters, ct);
-                var aiResponse = await _responseGenerator.GenerateResponseAsync(request.Query, properties, request.SessionId, ct);
+                var aiResponse = await _responseGenerator.GenerateResponseAsync(request.Query, properties, request.SessionId, userPlan, ct);
 
                 _logger.LogInformation("Search completed. Found {SearchCount} properties with filters: {Filters}", 
                     properties.Count, 
