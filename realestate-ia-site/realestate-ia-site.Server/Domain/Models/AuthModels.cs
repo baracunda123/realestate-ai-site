@@ -12,9 +12,6 @@ namespace realestate_ia_site.Server.Domain.Models
         [EmailAddress(ErrorMessage = "Email inválido")]
         public string Email { get; set; } = string.Empty;
 
-        [Phone(ErrorMessage = "Número de telefone inválido")]
-        public string? PhoneNumber { get; set; }
-
         [Required(ErrorMessage = "Senha é obrigatória")]
         [StringLength(100, MinimumLength = 8, ErrorMessage = "Senha deve ter pelo menos 8 caracteres.")]
         [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&.])[A-Za-z\d@$!%*?&.]+$", 

@@ -28,7 +28,7 @@ export function PrivacyPolicyPage() {
           </div>
           <div className="bg-pale-clay/30 border border-pale-clay-deep rounded-lg p-6 space-y-2">
             <p className="text-foreground"><strong>Nome:</strong> ResideAI</p>
-            <p className="text-foreground"><strong>Email:</strong> support@resideai.pt</p>
+            <p className="text-foreground"><strong>Email:</strong> suporte@resideai.pt</p>
             <p className="text-muted-foreground text-sm mt-4">
               Para questões sobre os seus dados pessoais, contacte-nos através do email acima.
             </p>
@@ -47,7 +47,6 @@ export function PrivacyPolicyPage() {
               <ul className="list-disc list-inside text-muted-foreground space-y-1">
                 <li>Nome completo</li>
                 <li>Email</li>
-                <li>Número de telefone (opcional)</li>
                 <li>Password (encriptada)</li>
                 <li>Foto de perfil (opcional)</li>
               </ul>
@@ -262,7 +261,7 @@ export function PrivacyPolicyPage() {
               Tem questões sobre esta política ou sobre como tratamos os seus dados?
             </p>
             <p className="text-foreground">
-              <strong>Email:</strong> <a href="mailto:support@resideai.pt" className="text-burnt-peach hover:underline">support@resideai.pt</a>
+              <strong>Email:</strong> <a href="mailto:suporte@resideai.pt" className="text-burnt-peach hover:underline">suporte@resideai.pt</a>
             </p>
           </div>
         </section>

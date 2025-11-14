@@ -47,7 +47,6 @@ public class AuthService
             UserName = request.Email.ToLowerInvariant(),
             Email = request.Email.ToLowerInvariant(),
             FullName = request.FullName.Trim(),
-            PhoneNumber = request.PhoneNumber?.Trim(),
             AccountStatus = AccountStatus.PendingVerification,
             CreatedAt = DateTime.UtcNow,
             TokenIdentifier = Guid.NewGuid().ToString()

@@ -37,7 +37,6 @@ namespace realestate_ia_site.Server.Presentation.Controllers
     public class UpdateProfileRequest
     {
         public string? FullName { get; set; }
-        public string? PhoneNumber { get; set; }
         public string? AvatarUrl { get; set; }
     }
 
@@ -492,11 +491,6 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 if (!string.IsNullOrWhiteSpace(request.FullName))
                 {
                     user.FullName = request.FullName.Trim();
-                }
-
-                if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
-                {
-                    user.PhoneNumber = request.PhoneNumber.Trim();
                 }
 
                 if (!string.IsNullOrWhiteSpace(request.AvatarUrl))
