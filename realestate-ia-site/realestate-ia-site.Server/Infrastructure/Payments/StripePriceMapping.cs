@@ -15,7 +15,7 @@ public static class StripePriceMapping
     // Price IDs de PRODUÇÃO
     private static readonly Dictionary<string, string> ProdPriceIds = new()
     {
-        { "premium", "prod_TQGwlPoaPm8j1C" }
+        { "premium", "price_1STQOYGvu4GjpjSqw2JXw7gW" }
     };
     
     // Seleciona o dicionário correto baseado no ambiente

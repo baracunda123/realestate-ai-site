@@ -13,6 +13,12 @@ namespace realestate_ia_site.Server.Application.Features.Payments.Interfaces
         Task<bool> HasActiveSubscriptionAsync(string userId);
         Task UpdateSubscriptionFromStripeAsync(Stripe.Subscription stripeSubscription);
         Task HandleSubscriptionDeletedAsync(string subscriptionId);
+        
+        // Novos métodos para webhooks
+        Task HandleCheckoutSessionCompletedAsync(Stripe.Checkout.Session session);
+        Task HandleInvoicePaymentSucceededAsync(Stripe.Invoice invoice);
+        Task HandleInvoicePaymentFailedAsync(Stripe.Invoice invoice);
+        Task HandlePaymentActionRequiredAsync(Stripe.Invoice invoice);
     }
 }
 

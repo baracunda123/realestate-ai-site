@@ -52,6 +52,23 @@ namespace realestate_ia_site.Server.Application.Features.Payments
             {
                 switch (stripeEvent.Type)
                 {
+                    // ===== CHECKOUT EVENTS =====
+                    case "checkout.session.completed":
+                        if (stripeEvent.Data.Object is Stripe.Checkout.Session session)
+                        {
+                            await _subscriptionService.HandleCheckoutSessionCompletedAsync(session);
+                        }
+                        else
+                        {
+                            var checkoutSession = JsonSerializer.Deserialize<Stripe.Checkout.Session>(stripeEvent.Data.Object.ToString() ?? "{}");
+                            if (checkoutSession != null)
+                            {
+                                await _subscriptionService.HandleCheckoutSessionCompletedAsync(checkoutSession);
+                            }
+                        }
+                        break;
+
+                    // ===== SUBSCRIPTION EVENTS =====
                     case "customer.subscription.created":
                     case "customer.subscription.updated":
                         if (stripeEvent.Data.Object is Stripe.Subscription subCreatedUpdated)
@@ -69,6 +86,7 @@ namespace realestate_ia_site.Server.Application.Features.Payments
                             }
                         }
                         break;
+                        
                     case "customer.subscription.deleted":
                         if (stripeEvent.Data.Object is Stripe.Subscription subDeleted)
                         {
@@ -76,12 +94,53 @@ namespace realestate_ia_site.Server.Application.Features.Payments
                             _logger.LogInformation("[Webhook] Assinatura marcada cancelada stripeId={StripeSubId}", subDeleted.Id);
                         }
                         break;
+
+                    // ===== INVOICE EVENTS =====
                     case "invoice.payment_succeeded":
-                        _logger.LogInformation("[Webhook] Pagamento invoice bem-sucedido id={EventId}", stripeEvent.Id);
+                        if (stripeEvent.Data.Object is Stripe.Invoice invoiceSucceeded)
+                        {
+                            await _subscriptionService.HandleInvoicePaymentSucceededAsync(invoiceSucceeded);
+                        }
+                        else
+                        {
+                            var invoice = JsonSerializer.Deserialize<Stripe.Invoice>(stripeEvent.Data.Object.ToString() ?? "{}");
+                            if (invoice != null)
+                            {
+                                await _subscriptionService.HandleInvoicePaymentSucceededAsync(invoice);
+                            }
+                        }
                         break;
+                        
                     case "invoice.payment_failed":
-                        _logger.LogWarning("[Webhook] Pagamento invoice falhou id={EventId}", stripeEvent.Id);
+                        if (stripeEvent.Data.Object is Stripe.Invoice invoiceFailed)
+                        {
+                            await _subscriptionService.HandleInvoicePaymentFailedAsync(invoiceFailed);
+                        }
+                        else
+                        {
+                            var invoice = JsonSerializer.Deserialize<Stripe.Invoice>(stripeEvent.Data.Object.ToString() ?? "{}");
+                            if (invoice != null)
+                            {
+                                await _subscriptionService.HandleInvoicePaymentFailedAsync(invoice);
+                            }
+                        }
                         break;
+                        
+                    case "invoice.payment_action_required":
+                        if (stripeEvent.Data.Object is Stripe.Invoice invoiceActionRequired)
+                        {
+                            await _subscriptionService.HandlePaymentActionRequiredAsync(invoiceActionRequired);
+                        }
+                        else
+                        {
+                            var invoice = JsonSerializer.Deserialize<Stripe.Invoice>(stripeEvent.Data.Object.ToString() ?? "{}");
+                            if (invoice != null)
+                            {
+                                await _subscriptionService.HandlePaymentActionRequiredAsync(invoice);
+                            }
+                        }
+                        break;
+
                     default:
                         _logger.LogDebug("[Webhook] Evento ignorado type={Type} id={EventId}", stripeEvent.Type, stripeEvent.Id);
                         break;

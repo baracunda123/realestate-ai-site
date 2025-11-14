@@ -354,5 +354,106 @@ namespace realestate_ia_site.Server.Infrastructure.Payments
                 _logger.LogInformation("[Subscription] Assinatura marcada como cancelada stripeId={StripeSubId}", subscriptionId);
             }
         }
+
+        public async Task HandleCheckoutSessionCompletedAsync(Stripe.Checkout.Session session)
+        {
+            try
+            {
+                _logger.LogInformation("[Webhook] Processando checkout.session.completed sessionId={SessionId} mode={Mode}", 
+                    session.Id, session.Mode);
+
+                // Apenas processar sessions de subscription
+                if (session.Mode != "subscription")
+                {
+                    _logger.LogInformation("[Webhook] Session não é subscription, ignorando mode={Mode}", session.Mode);
+                    return;
+                }
+
+                if (string.IsNullOrEmpty(session.SubscriptionId))
+                {
+                    _logger.LogWarning("[Webhook] Session de subscription sem SubscriptionId sessionId={SessionId}", session.Id);
+                    return;
+                }
+
+                // Buscar a subscription do Stripe
+                var stripeSubscription = await _subscriptionService.GetAsync(session.SubscriptionId);
+                
+                if (stripeSubscription == null)
+                {
+                    _logger.LogError("[Webhook] Subscription não encontrada no Stripe subscriptionId={SubscriptionId}", session.SubscriptionId);
+                    return;
+                }
+
+                // Sincronizar subscription na BD
+                await UpdateSubscriptionFromStripeAsync(stripeSubscription);
+                
+                _logger.LogInformation("[Webhook] ✅ Checkout session processada com sucesso sessionId={SessionId} subscriptionId={SubscriptionId}", 
+                    session.Id, session.SubscriptionId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Webhook] ❌ Erro ao processar checkout.session.completed sessionId={SessionId}", session.Id);
+                throw;
+            }
+        }
+
+        public async Task HandleInvoicePaymentSucceededAsync(Stripe.Invoice invoice)
+        {
+            try
+            {
+                _logger.LogInformation("[Webhook] ✅ Invoice payment succeeded invoiceId={InvoiceId} amount={Amount}", 
+                    invoice.Id, invoice.AmountPaid);
+
+                // TODO: Implementar lógica de atualização de subscription
+                // TODO: Enviar email de confirmação de pagamento ao utilizador
+                // TODO: Registar pagamento na tabela de histórico (se existir)
+                
+                await Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Webhook] ❌ Erro ao processar invoice.payment_succeeded invoiceId={InvoiceId}", invoice.Id);
+                throw;
+            }
+        }
+
+        public async Task HandleInvoicePaymentFailedAsync(Stripe.Invoice invoice)
+        {
+            try
+            {
+                _logger.LogWarning("[Webhook] ⚠️ Invoice payment failed invoiceId={InvoiceId} amount={Amount}", 
+                    invoice.Id, invoice.AmountDue);
+
+                // TODO: Implementar lógica de atualização de subscription para past_due
+                // TODO: Enviar email ao utilizador informando falha no pagamento
+                // TODO: Incluir link para atualizar método de pagamento
+                
+                await Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Webhook] ❌ Erro ao processar invoice.payment_failed invoiceId={InvoiceId}", invoice.Id);
+                throw;
+            }
+        }
+
+        public async Task HandlePaymentActionRequiredAsync(Stripe.Invoice invoice)
+        {
+            try
+            {
+                _logger.LogWarning("[Webhook] ⚠️ Payment action required (3D Secure) invoiceId={InvoiceId}", invoice.Id);
+
+                // TODO: Implementar lógica de atualização de subscription para incomplete
+                // TODO: Enviar email ao utilizador com link para autenticar pagamento
+                // Link: invoice.HostedInvoiceUrl ou PaymentIntent.NextAction.RedirectToUrl
+                
+                await Task.CompletedTask;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Webhook] ❌ Erro ao processar invoice.payment_action_required invoiceId={InvoiceId}", invoice.Id);
+                throw;
+            }
+        }
     }
 }
