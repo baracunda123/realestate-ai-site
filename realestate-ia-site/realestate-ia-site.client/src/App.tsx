@@ -115,6 +115,9 @@ export default function App() {
   // Chat sessions state
   const [chatSessions, setChatSessions] = useState<ChatSessionDto[]>([]);
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  
+  // AbortController para cancelar requisições
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
 
 
   // Memoized values para evitar recálculos
@@ -349,6 +352,10 @@ export default function App() {
     setAiLoading(true);
     setAiError(null);
     
+    // Criar novo AbortController para esta requisição
+    const controller = new AbortController();
+    setAbortController(controller);
+    
     // Se não há sessão ativa, criar uma nova
     let currentSessionId = sessionId || activeSessionId;
     if (!currentSessionId) {
@@ -379,7 +386,8 @@ export default function App() {
         searchQuery: query,
         includeAiAnalysis: true,
         includeMarketData: true,
-        sessionId: currentSessionId || undefined
+        sessionId: currentSessionId || undefined,
+        signal: controller.signal
       });
       
       setSearchResults(result.properties || []);
@@ -416,6 +424,21 @@ export default function App() {
         });
       }
     } catch (error) {
+      // Verificar se foi cancelado pelo utilizador
+      if (error instanceof Error && error.name === 'CanceledError') {
+        logger.info('Requisição cancelada pelo utilizador', 'APP');
+        
+        // Adicionar mensagem de cancelamento ao histórico
+        const cancelMessage = {
+          id: `ai-${Date.now()}`,
+          type: 'ai' as const,
+          content: 'Mensagem cancelada.',
+          timestamp: new Date()
+        };
+        setConversationHistory(prev => [...prev, cancelMessage]);
+        return;
+      }
+      
       // Verificar se é erro de quota
       if (isQuotaExceededError(error)) {
         // Adicionar mensagem de erro de quota ao histórico
@@ -456,8 +479,19 @@ export default function App() {
       }
     } finally {
       setAiLoading(false);
+      setAbortController(null);
     }
   }, [currentView, navigate, activeSessionId]);
+  
+  // Handler para cancelar query em processamento
+  const handleCancelQuery = useCallback(() => {
+    if (abortController) {
+      logger.info('Cancelando requisição em andamento', 'APP');
+      abortController.abort();
+      setAbortController(null);
+      setAiLoading(false);
+    }
+  }, [abortController]);
 
   // Load chat sessions when user logs in
   const loadChatSessions = useCallback(async () => {
@@ -899,6 +933,7 @@ export default function App() {
                     <div className="order-1 lg:order-1">
                       <ChatPanel
                         onSubmitQuery={handleSubmitSearch}
+                        onCancelQuery={handleCancelQuery}
                         loading={aiLoading}
                         error={aiError}
                         conversationHistory={conversationHistory}

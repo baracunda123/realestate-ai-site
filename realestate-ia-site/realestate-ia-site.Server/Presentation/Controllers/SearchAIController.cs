@@ -137,6 +137,40 @@ namespace realestate_ia_site.Server.Presentation.Controllers
 
                 return Ok(response);
             }
+            catch (OperationCanceledException)
+            {
+                var sessionId = GetSessionId();
+                var userId = GetCurrentUserId();
+                _logger.LogInformation("Requisição cancelada pelo cliente. SessionId: {SessionId}, UserId: {UserId}", sessionId, userId);
+                
+                // A mensagem do utilizador já foi persistida (linha 91)
+                // Adicionar mensagem de cancelamento para manter consistência do histórico
+                try
+                {
+                    var chatSessionId = request.SessionId;
+                    if (!string.IsNullOrEmpty(chatSessionId))
+                    {
+                        await _chatSessionService.AddMessageAsync(
+                            chatSessionId, 
+                            "assistant", 
+                            "Mensagem cancelada.",
+                            CancellationToken.None); // Usar CancellationToken.None para garantir que esta mensagem seja salva
+                        
+                        _logger.LogInformation("Mensagem de cancelamento adicionada ao histórico da sessão {SessionId}", chatSessionId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Falha ao adicionar mensagem de cancelamento ao histórico");
+                }
+                
+                // Quota NÃO é consumida quando cancelado - o utilizador não recebeu resposta completa
+                
+                return StatusCode(499, new { 
+                    error = "REQUEST_CANCELLED",
+                    message = "Requisição cancelada pelo cliente" 
+                });
+            }
             catch (Exception ex)
             {
                 var sessionId = GetSessionId();
