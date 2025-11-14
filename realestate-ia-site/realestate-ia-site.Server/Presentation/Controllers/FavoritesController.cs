@@ -6,8 +6,6 @@ using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Infrastructure.Persistence;
 using realestate_ia_site.Server.Application.Common.Exceptions;
 using realestate_ia_site.Server.Application.Common.DTOs;
-using realestate_ia_site.Server.Application.Common.Events;
-using realestate_ia_site.Server.Domain.Events;
 using System.ComponentModel.DataAnnotations;
 using AppUnauthorizedException = realestate_ia_site.Server.Application.Common.Exceptions.UnauthorizedAccessException;
 
@@ -21,16 +19,13 @@ namespace realestate_ia_site.Server.Presentation.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<FavoritesController> _logger;
-        private readonly IDomainEventDispatcher _eventDispatcher;
 
         public FavoritesController(
             ApplicationDbContext context,
-            ILogger<FavoritesController> logger,
-            IDomainEventDispatcher eventDispatcher)
+            ILogger<FavoritesController> logger)
         {
             _context = context;
             _logger = logger;
-            _eventDispatcher = eventDispatcher;
         }
 
         /// <summary>
@@ -197,30 +192,9 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                     return NotFound(new { message = "Propriedade não encontrada nos favoritos" });
                 }
 
-                // Guardar referência à propriedade antes de remover
-                var property = favorite.Property;
-
                 // Remover dos favoritos
                 _context.Favorites.Remove(favorite);
                 await _context.SaveChangesAsync();
-
-                // NOVO: Disparar evento de remoção de favorito
-                var favoriteRemovedEvent = new FavoriteRemovedEvent
-                {
-                    UserId = userId,
-                    PropertyId = propertyId,
-                    Property = property
-                };
-
-                try
-                {
-                    await _eventDispatcher.PublishAsync(favoriteRemovedEvent);
-                }
-                catch (Exception ex)
-                {
-                    // Log do erro mas não falha a remoção do favorito
-                    _logger.LogWarning(ex, "Failed to publish favorite removed event for user {UserId}", userId);
-                }
 
                 _logger.LogInformation("Property removed from favorites successfully");
 
