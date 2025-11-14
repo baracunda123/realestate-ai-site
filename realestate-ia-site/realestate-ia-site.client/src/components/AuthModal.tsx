@@ -703,23 +703,23 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
                     />
                     <Label htmlFor="accept-terms" className="text-xs text-warm-taupe leading-relaxed text-center break-words">
                       Aceito os{' '}
-                      <Button 
-                        variant="link" 
-                        className="p-0 h-auto text-xs text-burnt-peach hover:text-burnt-peach-deep underline-offset-2" 
-                        disabled={isLoading}
-                        type="button"
+                      <a 
+                        href="/terms"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-burnt-peach hover:text-burnt-peach-deep underline underline-offset-2" 
                       >
                         Termos de Uso
-                      </Button>{' '}
+                      </a>{' '}
                       e a{' '}
-                      <Button 
-                        variant="link" 
-                        className="p-0 h-auto text-xs text-burnt-peach hover:text-burnt-peach-deep underline-offset-2" 
-                        disabled={isLoading}
-                        type="button"
+                      <a 
+                        href="/privacy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-burnt-peach hover:text-burnt-peach-deep underline underline-offset-2" 
                       >
                         Política de Privacidade
-                      </Button>
+                      </a>
                     </Label>
                   </div>
 

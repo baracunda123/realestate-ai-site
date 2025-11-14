@@ -2,6 +2,7 @@ import { useState, useEffect, lazy, Suspense, useCallback, useMemo } from 'react
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
+import { CookieBanner } from './components/CookieBanner';
 import { toast } from 'sonner';
 import { Toaster } from './components/ui/sonner';
 import { type Property } from './types/property';
@@ -48,6 +49,10 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage').then(m => ({ defaul
 const FavoritesPage = lazy(() => import('./pages/FavoritesPage').then(m => ({ default: m.FavoritesPage })));
 const HistoryPage = lazy(() => import('./pages/HistoryPage').then(m => ({ default: m.HistoryPage })));
 const SettingsPage = lazy(() => import('./pages/SettingsPage').then(m => ({ default: m.SettingsPage })));
+
+// Legal pages
+const PrivacyPolicyPage = lazy(() => import('./pages/PrivacyPolicyPage').then(m => ({ default: m.PrivacyPolicyPage })));
+const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage').then(m => ({ default: m.TermsOfServicePage })));
 
 // Loading components otimizados
 const LoadingSpinner = () => (
@@ -767,6 +772,24 @@ export default function App() {
             } 
           />
 
+          {/* Legal Routes */}
+          <Route 
+            path="/privacy" 
+            element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <PrivacyPolicyPage />
+              </Suspense>
+            } 
+          />
+          <Route 
+            path="/terms" 
+            element={
+              <Suspense fallback={<LoadingSpinner />}>
+                <TermsOfServicePage />
+              </Suspense>
+            } 
+          />
+
           {/* Profile Routes */}
           <Route 
             path="/profile" 
@@ -906,6 +929,8 @@ export default function App() {
       </main>
 
       <Footer />
+
+      <CookieBanner />
 
       <Suspense fallback={null}>
         <AuthModal

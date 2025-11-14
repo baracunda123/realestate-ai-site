@@ -1,4 +1,5 @@
 import { Home, Mail } from 'lucide-react';
+import { Link } from 'react-router-dom';
 
 export function Footer() {
   return (
@@ -27,18 +28,18 @@ export function Footer() {
               Links Úteis
             </h4>
             <div className="flex flex-col space-y-2">
-              <button 
-                onClick={() => window.alert('Política de Privacidade em breve')}
+              <Link 
+                to="/privacy"
                 className="text-sm text-cocoa-taupe hover:text-burnt-peach transition-colors duration-200 text-center md:text-left"
               >
                 Política de Privacidade
-              </button>
-              <button 
-                onClick={() => window.alert('Termos e Condições em breve')}
+              </Link>
+              <Link 
+                to="/terms"
                 className="text-sm text-cocoa-taupe hover:text-burnt-peach transition-colors duration-200 text-center md:text-left"
               >
                 Termos e Condições
-              </button>
+              </Link>
             </div>
           </div>
 
