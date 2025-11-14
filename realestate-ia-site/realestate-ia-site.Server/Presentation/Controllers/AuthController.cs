@@ -37,7 +37,6 @@ namespace realestate_ia_site.Server.Presentation.Controllers
     public class UpdateProfileRequest
     {
         public string? FullName { get; set; }
-        public string? PhoneNumber { get; set; }
         public string? AvatarUrl { get; set; }
     }
 
@@ -494,11 +493,6 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                     user.FullName = request.FullName.Trim();
                 }
 
-                if (!string.IsNullOrWhiteSpace(request.PhoneNumber))
-                {
-                    user.PhoneNumber = request.PhoneNumber.Trim();
-                }
-
                 if (!string.IsNullOrWhiteSpace(request.AvatarUrl))
                 {
                     user.AvatarUrl = request.AvatarUrl;
@@ -930,28 +924,22 @@ namespace realestate_ia_site.Server.Presentation.Controllers
 
                 _logger.LogWarning("[Auth] Account deletion initiated for userId={UserId}, email={Email}", userId, user.Email);
 
-                // Eliminar avatar se existir
-                if (!string.IsNullOrEmpty(user.AvatarUrl))
-                {
-                    try
-                    {
-                        await _fileStorageService.DeleteFileAsync(user.AvatarUrl);
-                        _logger.LogInformation("[Auth] Avatar deleted for userId={UserId}", userId);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "[Auth] Failed to delete avatar for userId={UserId}", userId);
-                        // Continue with account deletion even if avatar deletion fails
-                    }
-                }
-
-                // Eliminar utilizador (cascade delete vai eliminar dados relacionados)
-                var result = await _userManager.DeleteAsync(user);
+                // Soft Delete - Marcar conta para eliminação em 30 dias
+                user.IsDeleted = true;
+                user.DeletedAt = DateTime.UtcNow;
+                user.PermanentDeletionAt = DateTime.UtcNow.AddDays(30);
+                user.UpdatedAt = DateTime.UtcNow;
+                
+                // Invalidar refresh token para forçar logout
+                user.RefreshToken = null;
+                user.RefreshTokenExpires = null;
+                
+                var result = await _userManager.UpdateAsync(user);
                 
                 if (!result.Succeeded)
                 {
                     var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                    _logger.LogError("[Auth] Failed to delete account for userId={UserId}: {Errors}", userId, errors);
+                    _logger.LogError("[Auth] Failed to mark account for deletion userId={UserId}: {Errors}", userId, errors);
                     _auditService.LogSuspiciousActivity("Failed account deletion", $"UserId: {userId}, Errors: {errors}");
                     return StatusCode(500, new { success = false, message = "Erro ao eliminar conta. Tente novamente." });
                 }

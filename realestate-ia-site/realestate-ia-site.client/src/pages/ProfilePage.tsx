@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
-import { User, Mail, Edit, Save, X, Phone } from 'lucide-react';
+import { User, Mail, Edit, Save, X } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import type { User as UserType } from '../types/PersonalArea';
@@ -23,24 +23,20 @@ interface ProfilePageProps {
 export function ProfilePage({ user, onUpdateProfile, hasActiveSearch, onNavigateToHome }: ProfilePageProps) {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [profileData, setProfileData] = useState({
-    name: user.name || user.fullName || user.email,
-    phone: user.phone || user.phoneNumber || ''
+    name: user.name || user.fullName || user.email
   });
 
   const handleSaveProfile = async () => {
     try {
       await updateProfile({
-        fullName: profileData.name,
-        phoneNumber: profileData.phone
+        fullName: profileData.name
       });
 
       if (onUpdateProfile) {
         onUpdateProfile({
           ...user,
           fullName: profileData.name,
-          name: profileData.name,
-          phoneNumber: profileData.phone,
-          phone: profileData.phone
+          name: profileData.name
         });
       }
       
@@ -59,8 +55,7 @@ export function ProfilePage({ user, onUpdateProfile, hasActiveSearch, onNavigate
 
   const handleCancelEdit = () => {
     setProfileData({
-      name: user.name || user.fullName || user.email,
-      phone: user.phone || user.phoneNumber || ''
+      name: user.name || user.fullName || user.email
     });
     setIsEditingProfile(false);
   };
@@ -212,24 +207,6 @@ export function ProfilePage({ user, onUpdateProfile, hasActiveSearch, onNavigate
                 </p>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="phone">Telefone (opcional)</Label>
-                {isEditingProfile ? (
-                  <Input
-                    id="phone"
-                    type="tel"
-                    value={profileData.phone}
-                    onChange={(e) => setProfileData({ ...profileData, phone: e.target.value })}
-                    className="border-pale-clay-deep focus:border-burnt-peach"
-                    placeholder="+351 912 345 678"
-                  />
-                ) : (
-                  <div className="flex items-center space-x-2 p-2 bg-pale-clay-light rounded-lg border border-pale-clay-deep">
-                    <Phone className="h-4 w-4 text-cocoa-taupe" />
-                    <span className="text-deep-mocha">{user.phone || user.phoneNumber || 'Não definido'}</span>
-                  </div>
-                )}
-              </div>
             </div>
           </CardContent>
         </Card>

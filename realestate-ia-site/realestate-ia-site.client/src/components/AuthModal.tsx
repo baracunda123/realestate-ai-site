@@ -9,7 +9,6 @@ import {
   Mail, 
   Lock, 
   User, 
-  Phone, 
   Eye, 
   EyeOff, 
   Sparkles,
@@ -605,25 +604,6 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="signup-phone" className="text-warm-taupe font-medium">Telefone <span className="text-warm-taupe-light">(opcional)</span></Label>
-                    <div className="relative">
-                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-warm-taupe flex-shrink-0" />
-                      <Input
-                        id="signup-phone"
-                        type="tel"
-                        placeholder="(11) 99999-9999"
-                        value={formData.phone}
-                        onChange={(e) => handleInputChange('phone', e.target.value)}
-                        className="pl-10 pr-4 border-pale-clay-deep focus:border-burnt-peach focus:ring-burnt-peach/20 rounded-xl bg-clay-white h-12 transition-all duration-200 text-left"
-                        disabled={isLoading}
-                        autoComplete="tel"
-                        autoCorrect="off"
-                        spellCheck={false}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
                     <Label htmlFor="signup-password" className="text-warm-taupe font-medium">Palavra-passe</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-warm-taupe flex-shrink-0" />
@@ -703,23 +683,23 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
                     />
                     <Label htmlFor="accept-terms" className="text-xs text-warm-taupe leading-relaxed text-center break-words">
                       Aceito os{' '}
-                      <Button 
-                        variant="link" 
-                        className="p-0 h-auto text-xs text-burnt-peach hover:text-burnt-peach-deep underline-offset-2" 
-                        disabled={isLoading}
-                        type="button"
+                      <a 
+                        href="/terms"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-burnt-peach hover:text-burnt-peach-deep underline underline-offset-2" 
                       >
                         Termos de Uso
-                      </Button>{' '}
+                      </a>{' '}
                       e a{' '}
-                      <Button 
-                        variant="link" 
-                        className="p-0 h-auto text-xs text-burnt-peach hover:text-burnt-peach-deep underline-offset-2" 
-                        disabled={isLoading}
-                        type="button"
+                      <a 
+                        href="/privacy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-burnt-peach hover:text-burnt-peach-deep underline underline-offset-2" 
                       >
                         Política de Privacidade
-                      </Button>
+                      </a>
                     </Label>
                   </div>
 
