@@ -492,6 +492,26 @@ export default function App() {
       setAiLoading(false);
     }
   }, [abortController]);
+  
+  // Cancelar requisições pendentes ao fazer refresh/fechar página
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (abortController) {
+        logger.info('Página sendo fechada - cancelando requisição pendente', 'APP');
+        abortController.abort();
+      }
+    };
+    
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      // Cleanup: cancelar qualquer requisição pendente ao desmontar
+      if (abortController) {
+        abortController.abort();
+      }
+    };
+  }, [abortController]);
 
   // Load chat sessions when user logs in
   const loadChatSessions = useCallback(async () => {
@@ -929,7 +949,7 @@ export default function App() {
               ) : user && showSearchPanel ? (
                 <Suspense fallback={<LoadingSpinner />}>
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-                    {/* Chat Panel */}
+                    {/* Chat Panel - Coluna fixa */}
                     <div className="order-1 lg:order-1">
                       <ChatPanel
                         onSubmitQuery={handleSubmitSearch}
@@ -945,7 +965,7 @@ export default function App() {
                       />
                     </div>
                     
-                    {/* Property Grid */}
+                    {/* Property Grid - Coluna com scroll */}
                     <div className="order-2 lg:order-2">
                       <PropertyGrid
                         searchQuery={searchQuery}

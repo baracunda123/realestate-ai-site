@@ -136,11 +136,11 @@ export function ChatPanel({
     const hasQuotaError = hasQuotaErrorInHistory || Boolean(error && error.toLowerCase().includes('limite'));
 
     return (
-        <div className="flex flex-col sticky top-20 lg:top-24 space-y-3">
+        <div className="flex flex-col space-y-3 sticky top-20 lg:top-24" style={{ maxHeight: 'calc(100vh - 80px)' }}>
             {/* Quota Banner */}
             <ChatQuotaBanner key={refreshQuota} />
 
-            <Card className="flex flex-col border border-pale-clay-deep bg-pure-white shadow-clay-deep overflow-hidden h-[500px]">
+            <Card className="flex flex-col border border-pale-clay-deep bg-pure-white shadow-clay-deep overflow-hidden" style={{ height: 'calc(100vh - 180px)', minHeight: '350px', maxHeight: 'calc(100vh - 180px)' }}>
                 {/* Tabs */}
                 {onSelectSession && onCreateSession && onDeleteSession && (
                     <ChatTabs
@@ -157,10 +157,11 @@ export function ChatPanel({
                 <CardContent className="flex-1 overflow-hidden p-0 relative">
                     <div
                         ref={conversationContainerRef}
-                        className="h-full overflow-y-auto p-3 sm:p-4 scrollbar-thin scrollbar-thumb-pale-clay-deep scrollbar-track-transparent hover:scrollbar-thumb-pale-clay-darker scroll-smooth"
+                        className="h-full overflow-y-auto p-3 sm:p-4 scrollbar-thin scrollbar-thumb-pale-clay-deep scrollbar-track-transparent hover:scrollbar-thumb-pale-clay-darker"
                         style={{
                             scrollBehavior: 'smooth',
-                            overscrollBehavior: 'contain'
+                            overscrollBehavior: 'contain',
+                            overflowAnchor: 'none'
                         }}
                     >
                         {!hasMessages && !loading && (
