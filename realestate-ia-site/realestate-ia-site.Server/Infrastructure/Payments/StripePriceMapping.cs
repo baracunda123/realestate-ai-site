@@ -2,13 +2,30 @@ namespace realestate_ia_site.Server.Infrastructure.Payments;
 
 /// <summary>
 /// Mapeamento centralizado de planos para Stripe Price IDs
+/// Suporta ambientes DEV e PROD
 /// </summary>
 public static class StripePriceMapping
 {
-    private static readonly Dictionary<string, string> PriceIds = new()
+    // Price IDs de DESENVOLVIMENTO
+    private static readonly Dictionary<string, string> DevPriceIds = new()
     {
         { "premium", "price_1RkjFOGbRiVruKbr4KdFaaI4" }
     };
+    
+    // Price IDs de PRODUÇÃO
+    private static readonly Dictionary<string, string> ProdPriceIds = new()
+    {
+        { "premium", "prod_TQGwlPoaPm8j1C" }
+    };
+    
+    // Seleciona o dicionário correto baseado no ambiente
+    private static Dictionary<string, string> PriceIds => 
+        Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Production" 
+            ? ProdPriceIds 
+            : DevPriceIds;
+    
+    // Mapeamento reverso (Price ID -> Plan)
+    private static Dictionary<string, string> PriceIdToPlan => PriceIds.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
 
     /// <summary>
     /// Obtém o Price ID do Stripe para um plano específico
@@ -44,4 +61,17 @@ public static class StripePriceMapping
     /// Obtém todos os planos disponíveis
     /// </summary>
     public static IReadOnlyCollection<string> GetAvailablePlans() => PriceIds.Keys;
+    
+    /// <summary>
+    /// Obtém o plano a partir do Price ID do Stripe
+    /// </summary>
+    /// <param name="priceId">Price ID do Stripe</param>
+    /// <returns>Nome do plano ou null se não encontrado</returns>
+    public static string? GetPlanFromPriceId(string priceId)
+    {
+        if (string.IsNullOrWhiteSpace(priceId))
+            return null;
+            
+        return PriceIdToPlan.TryGetValue(priceId, out var plan) ? plan : null;
+    }
 }

@@ -3,6 +3,7 @@ using realestate_ia_site.Server.Application.Chat.Interfaces;
 using realestate_ia_site.Server.Application.Common.Interfaces;
 using realestate_ia_site.Server.Application.Features.Payments.Interfaces;
 using realestate_ia_site.Server.Domain.Entities;
+using realestate_ia_site.Server.Infrastructure.Payments;
 
 namespace realestate_ia_site.Server.Infrastructure.Chat
 {
@@ -11,12 +12,6 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
         private readonly IApplicationDbContext _context;
         private readonly ISubscriptionService _subscriptionService;
         private readonly ILogger<ChatUsageService> _logger;
-
-        // Mapeamento de Stripe Price IDs para planos
-        private readonly Dictionary<string, string> _stripePriceToPlan = new()
-        {
-            ["price_1RkjFOGbRiVruKbr4KdFaaI4"] = "premium"
-        };
 
         public ChatUsageService(
             IApplicationDbContext context,
@@ -186,8 +181,9 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
                 return "free";
             }
 
-            // Tentar encontrar plano no mapeamento
-            if (_stripePriceToPlan.TryGetValue(stripePriceId, out var planType))
+            // Usar mapeamento centralizado
+            var planType = StripePriceMapping.GetPlanFromPriceId(stripePriceId);
+            if (planType != null)
             {
                 return planType;
             }
