@@ -192,24 +192,45 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             var roomsFilterKeys = new[] { "rooms", "min_rooms", "max_rooms" };
             var areaFilterKeys = new[] { "area", "min_area", "max_area", "target_area" };
             
+            // ========== DETECÇÃO DE NOVA PESQUISA vs REFINAMENTO ==========
+            // Se a query nova contém location, type ou rooms, é provável que seja uma nova pesquisa
+            // e não apenas um refinamento (ex: "modernos" após "casas em porto")
+            bool isNewSearch = incoming.ContainsKey("location") || 
+                               incoming.ContainsKey("type") ||
+                               incoming.ContainsKey("rooms") ||
+                               incoming.ContainsKey("min_rooms") ||
+                               incoming.ContainsKey("max_rooms");
+            
+            // Se é nova pesquisa, limpar features antigas para evitar acumulação indevida
+            // Exemplo: "casas em rio tinto modernos" → "casas no porto" não deve manter "modernos"
+            if (isNewSearch && result.ContainsKey("features"))
+            {
+                logger.LogInformation("Nova pesquisa detectada (location/type/rooms mudou) - limpando features antigas: {OldFeatures}", 
+                    string.Join(", ", (List<string>)result["features"]));
+                result.Remove("features");
+            }
+            
             foreach (var kv in incoming)
             {
                 // Se o filtro novo não estiver vazio, adiciona/substitui
                 if (!IsEmpty(kv.Value))
                 {
-                    // ========== FEATURES: Acumular em vez de substituir ==========
+                    // ========== FEATURES: Acumular apenas em refinamentos, substituir em novas pesquisas ==========
                     if (kv.Key == "features" && kv.Value is List<string> newFeatures)
                     {
-                        if (result.ContainsKey("features") && result["features"] is List<string> existingFeatures)
+                        // Só acumular se NÃO for nova pesquisa E já existirem features
+                        if (!isNewSearch && result.ContainsKey("features") && result["features"] is List<string> existingFeatures)
                         {
-                            // Acumular features únicas
+                            // Acumular features únicas (refinamento)
                             var mergedFeatures = existingFeatures.Union(newFeatures).Distinct().ToList();
                             result[kv.Key] = mergedFeatures;
-                            logger.LogDebug("Features acumuladas: {Features}", string.Join(", ", mergedFeatures));
+                            logger.LogDebug("Features acumuladas (refinamento): {Features}", string.Join(", ", mergedFeatures));
                         }
                         else
                         {
+                            // Substituir features (nova pesquisa ou primeira vez)
                             result[kv.Key] = kv.Value;
+                            logger.LogDebug("Features substituídas (nova pesquisa): {Features}", string.Join(", ", newFeatures));
                         }
                     }
                     else
