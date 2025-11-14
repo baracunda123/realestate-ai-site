@@ -38,6 +38,14 @@ public class AuthService
         var existing = await _userManager.FindByEmailAsync(request.Email);
         if (existing != null)
         {
+            // Verificar se a conta está marcada para eliminação
+            if (existing.IsDeleted)
+            {
+                _logger.LogWarning("[Auth] Tentativa de registo com email de conta eliminada email={Email}, DeletedAt={DeletedAt}", 
+                    request.Email, existing.DeletedAt);
+                return (AuthResult.ErrorResult("Este email está associado a uma conta recentemente eliminada. Por favor, aguarde 30 dias ou contacte o suporte."), null);
+            }
+            
             _logger.LogWarning("[Auth] Tentativa de registo com email já existente email={Email}", request.Email);
             return (AuthResult.ErrorResult("Email já em uso!"), null);
         }
@@ -76,6 +84,12 @@ public class AuthService
         {
             _logger.LogWarning("[Auth] Login falhou - email inexistente email={Email}", request.Email);
             return (AuthResult.ErrorResult("Email ou palavra-passe inválidos."), null);
+        }
+
+        if (user.IsDeleted)
+        {
+            _logger.LogWarning("[Auth] Login bloqueado - conta eliminada utilizador={UserId}, DeletedAt={DeletedAt}", user.Id, user.DeletedAt);
+            return (AuthResult.ErrorResult("Esta conta foi eliminada e não pode ser acedida."), null);
         }
 
         if (user.IsLocked)
@@ -161,6 +175,13 @@ public class AuthService
         {
             _logger.LogInformation("[ExternalLogin] Utilizador encontrado com login externo existente - ID: {UserId}", user.Id);
             
+            // Verificar se a conta está eliminada
+            if (user.IsDeleted)
+            {
+                _logger.LogWarning("[ExternalLogin] Login bloqueado - conta eliminada utilizador={UserId}, DeletedAt={DeletedAt}", user.Id, user.DeletedAt);
+                return (AuthResult.ErrorResult("Esta conta foi eliminada e não pode ser acedida."), null);
+            }
+            
             user.UpdateLastLogin(ip);
             await _userManager.UpdateAsync(user);
             await CreateLoginSessionAsync(user, ip, userAgent, deviceFingerprint, ct);
@@ -204,6 +225,13 @@ public class AuthService
         if (user != null)
         {
             _logger.LogInformation("[ExternalLogin] Utilizador encontrado por email - ID: {UserId}, associando login externo...", user.Id);
+            
+            // Verificar se a conta está eliminada
+            if (user.IsDeleted)
+            {
+                _logger.LogWarning("[ExternalLogin] Tentativa de associar login externo a conta eliminada utilizador={UserId}, DeletedAt={DeletedAt}", user.Id, user.DeletedAt);
+                return (AuthResult.ErrorResult("Esta conta foi eliminada e não pode ser acedida."), null);
+            }
             
             // Associar o login externo ao utilizador existente
             var addLoginResult = await _userManager.AddLoginAsync(user, externalLoginInfo);
