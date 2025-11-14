@@ -1,11 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using realestate_ia_site.Server.Application.Common.Events;
 using realestate_ia_site.Server.Application.Features.AI.SearchAI;
 using realestate_ia_site.Server.Application.Features.AI.SearchAI.DTOs;
 using realestate_ia_site.Server.Application.Features.Chat.Interfaces;
 using realestate_ia_site.Server.Application.Chat.Interfaces;
-using realestate_ia_site.Server.Domain.Events;
 
 namespace realestate_ia_site.Server.Presentation.Controllers
 {
@@ -16,7 +14,6 @@ namespace realestate_ia_site.Server.Presentation.Controllers
     {
         private readonly ILogger<SearchAIController> _logger;
         private readonly SearchAIOrchestrator _orchestrator;
-        private readonly IDomainEventDispatcher _eventDispatcher;
         private readonly IChatUsageService _chatUsageService;
         private readonly IChatSessionService _chatSessionService;
         private readonly IChatSessionPropertyService _chatSessionPropertyService;
@@ -24,14 +21,12 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         public SearchAIController(
             ILogger<SearchAIController> logger, 
             SearchAIOrchestrator orchestrator,
-            IDomainEventDispatcher eventDispatcher,
             IChatUsageService chatUsageService,
             IChatSessionService chatSessionService,
             IChatSessionPropertyService chatSessionPropertyService)
         {
             _logger = logger;
             _orchestrator = orchestrator;
-            _eventDispatcher = eventDispatcher;
             _chatUsageService = chatUsageService;
             _chatSessionService = chatSessionService;
             _chatSessionPropertyService = chatSessionPropertyService;
@@ -128,16 +123,6 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                         "Quota consumida para usuário {UserId} - {Used}/{Max} ({Percentage:F1}%)",
                         userId, stats.UsedPrompts, stats.MaxPrompts, stats.UsagePercentage);
                 }
-
-                // Publicar evento de pesquisa
-                await _eventDispatcher.PublishAsync(new SearchExecutedEvent
-                {
-                    UserId = userId,
-                    SessionId = sessionId,
-                    SearchQuery = request.Query!,
-                    ResultsCount = result.Properties?.Count ?? 0,
-                    Filters = result.ExtractedFilters
-                }, ct);
 
                 // Criar resposta com informação de sessão atualizada
                 var response = new SearchAIResponseDto

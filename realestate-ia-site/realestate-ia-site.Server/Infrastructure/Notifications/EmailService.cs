@@ -169,16 +169,6 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
                     Subject = "Recuperação de Palavra-passe - ResideAI", 
                     TemplateFile = "PasswordReset.html" 
                 },
-                "property-alert" => new EmailTemplate 
-                { 
-                    Subject = "Nova Propriedade Encontrada!", 
-                    TemplateFile = "PropertyAlert.html" 
-                },
-                "price-drop" => new EmailTemplate 
-                { 
-                    Subject = "Preço Reduzido!", 
-                    TemplateFile = "PriceDropAlert.html" 
-                },
                 _ => throw new ArgumentException($"Template não encontrado: {templateId}")
             };
         }

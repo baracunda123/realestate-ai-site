@@ -2,21 +2,15 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Domain.Entities;
-using realestate_ia_site.Server.Application.Common.Events;
-using realestate_ia_site.Server.Domain.Events;
 using realestate_ia_site.Server.Application.Common.Interfaces;
 
 namespace realestate_ia_site.Server.Infrastructure.Persistence
 {
     public class ApplicationDbContext : IdentityDbContext<User>, IApplicationDbContext
     {
-        private readonly IDomainEventDispatcher _eventDispatcher;
-
         public ApplicationDbContext(
-            DbContextOptions<ApplicationDbContext> options,
-            IDomainEventDispatcher eventDispatcher) : base(options)
+            DbContextOptions<ApplicationDbContext> options) : base(options)
         {
-            _eventDispatcher = eventDispatcher;
         }
 
         public DbSet<Property> Properties { get; set; }
@@ -319,21 +313,10 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
                 }
             }
 
-
-            var domainEvents = new List<IDomainEvent>();
-
-            // Eventos de propriedades
+            // Track price changes for properties
             foreach (var entry in ChangeTracker.Entries<Property>())
             {
-                if (entry.State == EntityState.Added)
-                {
-                    domainEvents.Add(new PropertyCreatedEvent
-                    {
-                        PropertyId = entry.Entity.Id,
-                        Property = entry.Entity
-                    });
-                }
-                else if (entry.State == EntityState.Modified)
+                if (entry.State == EntityState.Modified)
                 {
                     var originalPrice = entry.OriginalValues.GetValue<decimal?>(nameof(Property.Price));
                     var priceHistory = entry.Entity.EvaluatePriceChange(originalPrice);
@@ -343,12 +326,6 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
                     }
                 }
             }
-
-            // Eventos de Favoritos
-            var favoriteEntries = ChangeTracker.Entries<Favorite>()
-                .Where(e => e.State == EntityState.Added)
-                .Select(e => new { e.Entity.UserId, e.Entity.PropertyId })
-                .ToList(); // Materializar ANTES de SaveChanges
 
             // Guardar alterações com retry em caso de concorrência
             int result;
@@ -404,44 +381,7 @@ namespace realestate_ia_site.Server.Infrastructure.Persistence
                 }
             }
 
-            // Processar eventos de favoritos
-            foreach (var favorite in favoriteEntries)
-            {
-                try
-                {
-                    // Usar AsNoTracking para evitar conflitos
-                    var property = await Properties
-                        .AsNoTracking()
-                        .FirstOrDefaultAsync(p => p.Id == favorite.PropertyId, cancellationToken);
-                    
-                    if (property != null)
-                    {
-                        domainEvents.Add(new FavoriteAddedEvent
-                        {
-                            UserId = favorite.UserId,
-                            PropertyId = favorite.PropertyId,
-                            Property = property
-                        });
-                    }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error processing favorite event: {ex.Message}");
-                }
-            }
-
-            // Publicar eventos
-            foreach (var domainEvent in domainEvents)
-            {
-                try
-                {
-                    await _eventDispatcher.PublishAsync(domainEvent, cancellationToken);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error publishing event: {ex.Message}");
-                }
-            }
+            // Domain events system removed - no longer needed
 
             return result;
         }

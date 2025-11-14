@@ -3,7 +3,6 @@ using realestate_ia_site.Server.Infrastructure.AI;
 using realestate_ia_site.Server.Infrastructure.Auth;
 using realestate_ia_site.Server.Infrastructure.Chat;
 using realestate_ia_site.Server.Infrastructure.Configurations;
-using realestate_ia_site.Server.Infrastructure.Events;
 using realestate_ia_site.Server.Infrastructure.ExternalServices;
 using realestate_ia_site.Server.Infrastructure.Notifications;
 using realestate_ia_site.Server.Infrastructure.Payments;
@@ -16,9 +15,7 @@ using realestate_ia_site.Server.Application.Features.Payments;
 using realestate_ia_site.Server.Application.Notifications.Interfaces;
 using realestate_ia_site.Server.Application.Chat.Interfaces;
 using realestate_ia_site.Server.Application.ExternalServices.Interfaces;
-using realestate_ia_site.Server.Application.Common.Events;
 using realestate_ia_site.Server.Application.Security;
-using realestate_ia_site.Server.Domain.Events;
 using realestate_ia_site.Server.Application.Features.Properties.Search.Filters;
 
 namespace realestate_ia_site.Server.Infrastructure.Extensions;
@@ -115,7 +112,6 @@ public static class InfrastructureServicesExtensions
         services.AddScoped<IPropertyFilterInterpreter, PropertyFilterInterpreter>();
         services.AddScoped<IPropertyResponseGenerator, PropertyResponseGenerator>();
         services.AddScoped<IConversationContextService, ConversationContextService>();
-        services.AddScoped<PropertyAIService>();
         services.AddScoped<LocationAIService>();
         services.AddScoped<Application.Features.Properties.Scoring.IPropertyScoringService, PropertyScoringService>();
         services.AddScoped<Application.Features.Properties.Analysis.IPropertyDescriptionAnalyzer, PropertyDescriptionAnalyzer>();
@@ -158,9 +154,6 @@ public static class InfrastructureServicesExtensions
             options.HandshakeTimeout = TimeSpan.FromSeconds(15);
             options.MaximumReceiveMessageSize = 32 * 1024;
         });
-
-        // Domain Events
-        services.AddScoped<IDomainEventDispatcher, DomainEventDispatcher>();
 
         // Background Services
         services.AddHostedService<PropertyCleanupBackgroundService>();
