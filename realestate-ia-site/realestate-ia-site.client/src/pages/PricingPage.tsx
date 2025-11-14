@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
-import { Check, Sparkles, Zap } from 'lucide-react';
+import { Check, Sparkles, Zap, AlertTriangle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import apiClient from '../api/client';
-import { createSubscription } from '../api/subscription.service';
-import { getChatUsageStats } from '../api/chat-usage.service';
+import { createSubscription, getCurrentSubscription, cancelSubscription, type SubscriptionDto } from '../api/subscription.service';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 
 interface PricingPlan {
   id: string;
@@ -67,42 +67,59 @@ const plans: PricingPlan[] = [
 
 export function PricingPage() {
   const [loading, setLoading] = useState<string | null>(null);
-  const [currentPlan, setCurrentPlan] = useState<string>('free');
+  const [activeSubscription, setActiveSubscription] = useState<SubscriptionDto | null>(null);
+  const [showDowngradeDialog, setShowDowngradeDialog] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const loadCurrentPlan = async () => {
+    const loadSubscription = async () => {
       try {
-        const data = await getChatUsageStats();
-        setCurrentPlan(data.planType);
+        // Carregar subscrição ativa real do Stripe
+        const subscription = await getCurrentSubscription();
+        setActiveSubscription(subscription);
       } catch (error) {
-        console.error('Erro ao carregar plano atual:', error);
+        console.error('Erro ao carregar subscrição:', error);
       }
     };
 
     if (apiClient.isAuthenticated()) {
-      loadCurrentPlan();
+      loadSubscription();
     }
   }, []);
 
   const handleSubscribe = async (plan: PricingPlan) => {
-    if (plan.id === 'free') {
-      toast.info('Você já está no plano gratuito');
+    // Verificar se usuário está autenticado
+    if (!apiClient.isAuthenticated()) {
+      toast.error('Faça login para continuar', {
+        description: 'é necessário estar autenticado para gerir subscrições'
+      });
+      navigate('/');
       return;
     }
 
+    // Se clicar no plano gratuito
+    if (plan.id === 'free') {
+      // Verificar se tem subscrição Premium ativa
+      if (activeSubscription && activeSubscription.status === 'active' && !activeSubscription.cancelAtPeriodEnd) {
+        // Mostrar diálogo de confirmação para cancelar
+        setShowDowngradeDialog(true);
+        return;
+      } else {
+        // Já está no plano gratuito ou subscrição já está cancelada
+        toast.info('Você já está no plano gratuito', {
+          description: activeSubscription?.cancelAtPeriodEnd 
+            ? 'A tua subscrição Premium será cancelada no final do período atual.'
+            : undefined
+        });
+        return;
+      }
+    }
+
+    // Plano Premium
     setLoading(plan.id);
 
     try {
-      // Verificar se usuário está autenticado
-      if (!apiClient.isAuthenticated()) {
-        toast.error('Faça login para continuar', {
-          description: 'é necessário estar autenticado para fazer upgrade'
-        });
-        navigate('/');
-        return;
-      }
-
       // Criar sessão de checkout no Stripe usando o serviço
       const result = await createSubscription(plan.id);
 
@@ -119,6 +136,37 @@ export function PricingPage() {
       });
     } finally {
       setLoading(null);
+    }
+  };
+
+  const handleDowngradeToFree = async () => {
+    setIsCancelling(true);
+    try {
+      const result = await cancelSubscription({
+        reason: 'Downgrade to free plan',
+        comment: 'User requested downgrade from pricing page'
+      });
+
+      if (result.success) {
+        toast.success('Subscrição cancelada com sucesso', {
+          description: 'Continuarás a ter acesso Premium até ao final do período atual. Depois voltarás ao plano gratuito.'
+        });
+        
+        // Recarregar dados
+        const subscription = await getCurrentSubscription();
+        setActiveSubscription(subscription);
+        
+        setShowDowngradeDialog(false);
+      } else {
+        throw new Error(result.error || 'Erro ao cancelar subscrição');
+      }
+    } catch (error: any) {
+      console.error('Erro ao cancelar subscrição:', error);
+      toast.error('Erro ao cancelar subscrição', {
+        description: error?.response?.data?.error || error?.message || 'Tente novamente mais tarde'
+      });
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -193,7 +241,11 @@ export function PricingPage() {
               <CardFooter>
                 <Button
                   onClick={() => handleSubscribe(plan)}
-                  disabled={loading === plan.id || currentPlan === plan.id}
+                  disabled={
+                    loading === plan.id || 
+                    (plan.id === 'premium' && activeSubscription && activeSubscription.status === 'active' && !activeSubscription.cancelAtPeriodEnd) ||
+                    (plan.id === 'free' && !activeSubscription)
+                  }
                   className={`w-full ${
                     plan.popular
                       ? 'bg-burnt-peach hover:bg-burnt-peach-light text-deep-mocha'
@@ -205,7 +257,11 @@ export function PricingPage() {
                       <span className="animate-spin mr-2">⏳</span>
                       A processar...
                     </>
-                  ) : currentPlan === plan.id ? (
+                  ) : plan.id === 'premium' && activeSubscription && activeSubscription.status === 'active' && !activeSubscription.cancelAtPeriodEnd ? (
+                    'Plano Atual'
+                  ) : plan.id === 'free' && activeSubscription && activeSubscription.status === 'active' && !activeSubscription.cancelAtPeriodEnd ? (
+                    'Mudar para Gratuito'
+                  ) : plan.id === 'free' && (!activeSubscription || activeSubscription.cancelAtPeriodEnd) ? (
                     'Plano Atual'
                   ) : (
                     'Começar Agora'
@@ -215,6 +271,50 @@ export function PricingPage() {
             </Card>
           ))}
         </div>
+
+        {/* Downgrade Dialog */}
+        <AlertDialog open={showDowngradeDialog} onOpenChange={setShowDowngradeDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-warning-strong" />
+                Cancelar Plano Premium?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="space-y-2">
+                <p>
+                  Tens atualmente uma subscrição <strong>Premium ativa</strong>. Para mudar para o plano gratuito, precisas primeiro cancelar a tua subscrição atual.
+                </p>
+                <p className="text-sm">
+                  Ao cancelar:
+                </p>
+                <ul className="text-sm list-disc list-inside space-y-1 ml-2">
+                  <li>Continuarás a ter acesso Premium até <strong>{activeSubscription?.currentPeriodEnd ? new Date(activeSubscription.currentPeriodEnd).toLocaleDateString('pt-PT', { day: '2-digit', month: 'long', year: 'numeric' }) : 'ao final do período'}</strong></li>
+                  <li>Depois voltarás automaticamente ao plano gratuito (50 mensagens/mês)</li>
+                  <li>Não serás cobrado novamente</li>
+                </ul>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isCancelling}>
+                Manter Premium
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleDowngradeToFree}
+                disabled={isCancelling}
+                className="bg-warning-gentle hover:bg-warning-strong text-deep-mocha"
+              >
+                {isCancelling ? (
+                  <>
+                    <span className="animate-spin mr-2">⏳</span>
+                    A cancelar...
+                  </>
+                ) : (
+                  'Confirmar Cancelamento'
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
 
         {/* FAQ / Additional Info */}
         <Card className="border border-pale-clay-deep">
