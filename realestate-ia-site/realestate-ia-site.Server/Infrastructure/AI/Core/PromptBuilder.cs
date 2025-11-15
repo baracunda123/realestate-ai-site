@@ -6,7 +6,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI.Core
 {
     public static class PromptBuilder
     {
-        public static List<ChatMessage> BuildForFilterExtraction(string userQuery, Dictionary<string, object>? lastFilters = null)
+        public static List<ChatMessage> BuildForFilterExtraction(string userQuery, Dictionary<string, object>? lastFilters = null, UserIntentAnalysis? userIntent = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(userQuery, nameof(userQuery));
 
@@ -22,8 +22,50 @@ namespace realestate_ia_site.Server.Infrastructure.AI.Core
                 messages.Add(new SystemChatMessage($"Filtros ativos: {filterSummary}"));
             }
 
+            // Adicionar contexto de intenção se disponível
+            if (userIntent != null)
+            {
+                var intentContext = BuildIntentContext(userIntent);
+                if (!string.IsNullOrWhiteSpace(intentContext))
+                {
+                    messages.Add(new SystemChatMessage(intentContext));
+                }
+            }
+
             messages.Add(new UserChatMessage(userQuery));
             return messages;
+        }
+
+        private static string BuildIntentContext(UserIntentAnalysis intent)
+        {
+            var contextParts = new List<string> { "CONTEXTO DE INTENÇÃO DO UTILIZADOR:" };
+
+            if (!string.IsNullOrWhiteSpace(intent.Motivation) && intent.Motivation != "desconhecida")
+            {
+                contextParts.Add($"- Motivação: {intent.Motivation}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(intent.LifestylePreference) && intent.LifestylePreference != "não identificado")
+            {
+                contextParts.Add($"- Estilo de vida: {intent.LifestylePreference}");
+            }
+
+            if (intent.Concerns?.Any() == true)
+            {
+                contextParts.Add($"- Preocupações: {string.Join(", ", intent.Concerns)}");
+            }
+
+            if (intent.Priorities?.Any() == true)
+            {
+                contextParts.Add($"- Prioridades: {string.Join(", ", intent.Priorities)}");
+            }
+
+            if (intent.HiddenNeeds?.Any() == true)
+            {
+                contextParts.Add($"- Necessidades implícitas: {string.Join(", ", intent.HiddenNeeds)}");
+            }
+
+            return contextParts.Count > 1 ? string.Join("\n", contextParts) : string.Empty;
         }
 
         public static List<ChatMessage> BuildForResponse(

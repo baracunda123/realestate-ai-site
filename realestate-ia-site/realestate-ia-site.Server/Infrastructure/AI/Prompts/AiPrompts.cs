@@ -25,6 +25,12 @@ namespace realestate_ia_site.Server.Infrastructure.AI.Prompts
             @"TAREFA ESPECÍFICA: Extrair filtros de pesquisa.
             Responde APENAS com JSON válido. Campos disponíveis: type, location, locations, location_type, min_price, max_price, target_price, min_area, max_area, target_area, rooms, min_rooms, max_rooms, tags, sort, features.
             
+            IMPORTANTE: Se receberes CONTEXTO DE INTENÇÃO DO UTILIZADOR, considera-o ao extrair filtros:
+            - Motivação 'familiar' ou preocupações com 'segurança'/'escolas' → adiciona features relacionadas com família e segurança
+            - Estilo de vida 'tranquilo' → adiciona features de zona calma
+            - Necessidades implícitas → converte em features concretas
+            - O sistema irá enriquecer automaticamente os filtros, mas podes adicionar features explícitas se forem mencionadas na query
+            
             REGRAS DE INTERPRETAÇÃO (aplicam-se a PREÇO e ÁREA):
             Analisa a intenção do utilizador e decide:
             
