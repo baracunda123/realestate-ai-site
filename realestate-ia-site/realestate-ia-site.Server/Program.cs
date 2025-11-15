@@ -30,12 +30,52 @@ if (builder.Environment.IsProduction())
 // LOGGING
 // ============================================================================
 builder.Logging.ClearProviders();
-builder.Logging.AddConsole();
+builder.Logging.AddConsole(options =>
+{
+    options.FormatterName = "simple";
+});
+builder.Logging.AddSimpleConsole(options =>
+{
+    options.IncludeScopes = true;
+    options.SingleLine = false;
+    options.TimestampFormat = "[HH:mm:ss] ";
+    options.ColorBehavior = Microsoft.Extensions.Logging.Console.LoggerColorBehavior.Enabled;
+});
 builder.Logging.AddDebug();
 
-// Load environment variables in production
+// Configurar níveis de log globais
+// Mostrar TODOS os logs da aplicação (dev e produção)
+builder.Logging.SetMinimumLevel(LogLevel.Information);
+
+// Reduzir ruído do framework (ASP.NET Core e Entity Framework)
+builder.Logging.AddFilter("Microsoft.AspNetCore", LogLevel.Warning);
+builder.Logging.AddFilter("Microsoft.EntityFrameworkCore", LogLevel.Warning);
+builder.Logging.AddFilter("Microsoft.Extensions.Http", LogLevel.Warning);
+builder.Logging.AddFilter("System.Net.Http", LogLevel.Warning);
+
+// Garantir que TODOS os logs da nossa aplicação aparecem (dev e produção)
+builder.Logging.AddFilter("realestate_ia_site", LogLevel.Information);
+
+// Azure Application Insights (apenas em produção, para telemetria adicional)
 if (builder.Environment.IsProduction())
 {
+    var connectionString = builder.Configuration["ApplicationInsights:ConnectionString"];
+    if (!string.IsNullOrEmpty(connectionString))
+    {
+        builder.Services.AddApplicationInsightsTelemetry(options =>
+        {
+            options.ConnectionString = connectionString;
+            options.EnableAdaptiveSampling = true;
+            options.EnableQuickPulseMetricStream = true;
+        });
+        
+        // Adicionar Application Insights ao logging (envia logs para Azure)
+        builder.Logging.AddApplicationInsights(
+            configureTelemetryConfiguration: (config) => config.ConnectionString = connectionString,
+            configureApplicationInsightsLoggerOptions: (options) => { }
+        );
+    }
+    
     builder.Configuration.AddEnvironmentVariables();
 }
 
