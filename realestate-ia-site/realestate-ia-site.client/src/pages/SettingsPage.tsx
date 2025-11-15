@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ProfileLayout } from '../components/Profile/ProfileLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
@@ -7,7 +7,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Trash2 } from 'lucide-react';
 import type { User } from '../types/PersonalArea';
 import { toast } from 'sonner';
-import { deleteAccount } from '../api/auth.service';
+import { deleteAccount, getAuthMethod } from '../api/auth.service';
 import { personalArea as logger } from '../utils/logger';
 import { ChangePassword } from '../components/Settings/ChangePassword';
 import { ActiveSessions } from '../components/Settings/ActiveSessions';
@@ -23,9 +23,28 @@ interface SettingsPageProps {
 export function SettingsPage({ onDeleteAccount, hasActiveSearch, onNavigateToHome }: SettingsPageProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
+  const [hasPassword, setHasPassword] = useState(true);
+  const [isLoadingAuthMethod, setIsLoadingAuthMethod] = useState(true);
+
+  useEffect(() => {
+    const fetchAuthMethod = async () => {
+      try {
+        const authMethod = await getAuthMethod();
+        setHasPassword(authMethod.hasPassword);
+      } catch (error) {
+        logger.error('Erro ao obter método de autenticação', error as Error);
+        toast.error('Erro ao carregar informações de autenticação');
+      } finally {
+        setIsLoadingAuthMethod(false);
+      }
+    };
+
+    fetchAuthMethod();
+  }, []);
 
   const handleDeleteAccount = async () => {
-    if (!deletePassword.trim()) {
+    // Validar password apenas se o utilizador tiver password definida
+    if (hasPassword && !deletePassword.trim()) {
       toast.error('Password obrigatória', {
         description: 'Por favor, insere a tua password para confirmar.',
       });
@@ -37,7 +56,7 @@ export function SettingsPage({ onDeleteAccount, hasActiveSearch, onNavigateToHom
     try {
       logger.info('Iniciando processo de eliminação de conta');
       
-      const response = await deleteAccount(deletePassword);
+      const response = await deleteAccount(hasPassword ? deletePassword : undefined);
       
       if (response.success) {
         logger.info('Conta eliminada com sucesso');
@@ -122,19 +141,29 @@ export function SettingsPage({ onDeleteAccount, hasActiveSearch, onNavigateToHom
                       • Histórico de visualizações<br />
                       • Alertas configurados<br />
                       <br /><br />
-                      <strong>Para confirmar, insere a tua password:</strong>
+                      {hasPassword ? (
+                        <strong>Para confirmar, insere a tua password:</strong>
+                      ) : (
+                        <>
+                          <strong>Autenticação via provedor externo</strong>
+                          <br />
+                          Confirma que desejas eliminar permanentemente a tua conta.
+                        </>
+                      )}
                     </AlertDialogDescription>
                   </AlertDialogHeader>
-                  <div className="py-4">
-                    <Input
-                      type="password"
-                      placeholder="Insere a tua password"
-                      value={deletePassword}
-                      onChange={(e) => setDeletePassword(e.target.value)}
-                      className="w-full"
-                      disabled={isDeleting}
-                    />
-                  </div>
+                  {hasPassword && (
+                    <div className="py-4">
+                      <Input
+                        type="password"
+                        placeholder="Insere a tua password"
+                        value={deletePassword}
+                        onChange={(e) => setDeletePassword(e.target.value)}
+                        className="w-full"
+                        disabled={isDeleting}
+                      />
+                    </div>
+                  )}
                   <AlertDialogFooter>
                     <AlertDialogCancel 
                       onClick={() => setDeletePassword('')}
@@ -145,7 +174,7 @@ export function SettingsPage({ onDeleteAccount, hasActiveSearch, onNavigateToHom
                     <AlertDialogAction
                       className="bg-error-gentle hover:bg-error-strong"
                       onClick={handleDeleteAccount}
-                      disabled={isDeleting || !deletePassword.trim()}
+                      disabled={isDeleting || (hasPassword && !deletePassword.trim()) || isLoadingAuthMethod}
                     >
                       {isDeleting ? 'A eliminar...' : 'Sim, eliminar permanentemente'}
                     </AlertDialogAction>

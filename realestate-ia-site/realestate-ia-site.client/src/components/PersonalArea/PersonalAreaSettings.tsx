@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
@@ -9,7 +9,7 @@ import type { User as UserType } from '../../types/PersonalArea';
 import { formatDate } from '../../utils/PersonalArea';
 import { toast } from 'sonner';
 import AvatarUpload from './AvatarUpload';
-import { updateProfile, deleteAccount } from '../../api/auth.service';
+import { updateProfile, deleteAccount, getAuthMethod } from '../../api/auth.service';
 import { personalArea as logger } from '../../utils/logger';
 
 interface PersonalAreaSettingsProps {
@@ -29,6 +29,24 @@ export function PersonalAreaSettings({
   });
   const [isDeleting, setIsDeleting] = useState(false);
   const [deletePassword, setDeletePassword] = useState('');
+  const [hasPassword, setHasPassword] = useState(true);
+  const [isLoadingAuthMethod, setIsLoadingAuthMethod] = useState(true);
+
+  useEffect(() => {
+    const fetchAuthMethod = async () => {
+      try {
+        const authMethod = await getAuthMethod();
+        setHasPassword(authMethod.hasPassword);
+      } catch (error) {
+        logger.error('Erro ao obter método de autenticação', error as Error);
+        toast.error('Erro ao carregar informações de autenticação');
+      } finally {
+        setIsLoadingAuthMethod(false);
+      }
+    };
+
+    fetchAuthMethod();
+  }, []);
 
   const handleSaveProfile = async () => {
     try {
@@ -77,7 +95,8 @@ export function PersonalAreaSettings({
   };
 
   const handleDeleteAccount = async () => {
-    if (!deletePassword.trim()) {
+    // Validar password apenas se o utilizador tiver password definida
+    if (hasPassword && !deletePassword.trim()) {
       toast.error('Password obrigatória', {
         description: 'Por favor, insere a tua password para confirmar.',
       });
@@ -89,7 +108,7 @@ export function PersonalAreaSettings({
     try {
       logger.info('Iniciando processo de eliminação de conta');
       
-      const response = await deleteAccount(deletePassword);
+      const response = await deleteAccount(hasPassword ? deletePassword : undefined);
       
       if (response.success) {
         logger.info('Conta eliminada com sucesso');
@@ -266,19 +285,29 @@ export function PersonalAreaSettings({
                     • Histórico de visualizações<br />
                     • Alertas configurados<br />
                     <br /><br />
-                    <strong>Para confirmar, insere a tua password:</strong>
+                    {hasPassword ? (
+                      <strong>Para confirmar, insere a tua password:</strong>
+                    ) : (
+                      <>
+                        <strong>Autenticação via provedor externo</strong>
+                        <br />
+                        Confirma que desejas eliminar permanentemente a tua conta.
+                      </>
+                    )}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
-                <div className="py-4">
-                  <Input
-                    type="password"
-                    placeholder="Insere a tua password"
-                    value={deletePassword}
-                    onChange={(e) => setDeletePassword(e.target.value)}
-                    className="w-full"
-                    disabled={isDeleting}
-                  />
-                </div>
+                {hasPassword && (
+                  <div className="py-4">
+                    <Input
+                      type="password"
+                      placeholder="Insere a tua password"
+                      value={deletePassword}
+                      onChange={(e) => setDeletePassword(e.target.value)}
+                      className="w-full"
+                      disabled={isDeleting}
+                    />
+                  </div>
+                )}
                 <AlertDialogFooter>
                   <AlertDialogCancel 
                     onClick={() => setDeletePassword('')}
@@ -289,7 +318,7 @@ export function PersonalAreaSettings({
                   <AlertDialogAction
                     className="bg-error-gentle hover:bg-error-strong"
                     onClick={handleDeleteAccount}
-                    disabled={isDeleting || !deletePassword.trim()}
+                    disabled={isDeleting || (hasPassword && !deletePassword.trim()) || isLoadingAuthMethod}
                   >
                     {isDeleting ? 'A eliminar...' : 'Sim, eliminar permanentemente'}
                   </AlertDialogAction>

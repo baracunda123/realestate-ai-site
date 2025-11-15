@@ -45,8 +45,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
 
     public class DeleteAccountRequest
     {
-        [Required(ErrorMessage = "Password é obrigatória")]
-        public string Password { get; set; } = string.Empty;
+        public string? Password { get; set; }
     }
 
     [ApiController]
@@ -875,6 +874,44 @@ namespace realestate_ia_site.Server.Presentation.Controllers
             }
         }
 
+        [HttpGet("account/auth-method")]
+        [Authorize]
+        public async Task<IActionResult> GetAuthMethod()
+        {
+            try
+            {
+                var userId = GetCurrentUserId();
+                
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new { success = false, message = "Utilizador não autenticado" });
+                }
+
+                var user = await _userManager.FindByIdAsync(userId);
+                if (user == null)
+                {
+                    return NotFound(new { success = false, message = "Utilizador não encontrado" });
+                }
+
+                var hasPassword = await _userManager.HasPasswordAsync(user);
+                var externalLogins = await _userManager.GetLoginsAsync(user);
+
+                _logger.LogInformation("[Auth] Auth method queried userId={UserId} hasPassword={HasPassword} hasOAuth={HasOAuth}", 
+                    userId, hasPassword, externalLogins.Count > 0);
+
+                return Ok(new 
+                { 
+                    hasPassword = hasPassword,
+                    hasOAuth = externalLogins.Count > 0
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[Auth] Error getting auth method for user");
+                return StatusCode(500, new { message = "Erro interno do servidor" });
+            }
+        }
+
         [HttpDelete("account")]
         [Authorize]
         public async Task<IActionResult> DeleteAccount([FromBody] DeleteAccountRequest request)
@@ -901,12 +938,32 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                     return NotFound(new { success = false, message = "Utilizador não encontrado" });
                 }
 
-                // Verificar a password antes de eliminar
-                var passwordValid = await _userManager.CheckPasswordAsync(user, request.Password);
-                if (!passwordValid)
+                // Verificar se o utilizador tem logins externos (OAuth)
+                var externalLogins = await _userManager.GetLoginsAsync(user);
+                var hasPassword = await _userManager.HasPasswordAsync(user);
+                
+                // Se o utilizador tem password definida, validar
+                if (hasPassword)
                 {
-                    _auditService.LogSuspiciousActivity("Delete account with invalid password", $"UserId: {userId}, Email: {user.Email}");
-                    return BadRequest(new { success = false, message = "Password incorreta" });
+                    if (string.IsNullOrEmpty(request.Password))
+                    {
+                        _auditService.LogSuspiciousActivity("Delete account without password", $"UserId: {userId}, Email: {user.Email}");
+                        return BadRequest(new { success = false, message = "Password é obrigatória para eliminar a conta" });
+                    }
+                    
+                    var passwordValid = await _userManager.CheckPasswordAsync(user, request.Password);
+                    if (!passwordValid)
+                    {
+                        _auditService.LogSuspiciousActivity("Delete account with invalid password", $"UserId: {userId}, Email: {user.Email}");
+                        return BadRequest(new { success = false, message = "Password incorreta" });
+                    }
+                }
+                // Se não tem password mas tem logins externos (OAuth), permitir eliminação
+                else if (externalLogins.Count == 0)
+                {
+                    // Conta sem password e sem OAuth - situação anómala
+                    _auditService.LogSuspiciousActivity("Delete account with no password and no OAuth", $"UserId: {userId}, Email: {user.Email}");
+                    return BadRequest(new { success = false, message = "Conta em estado inválido. Contacte o suporte." });
                 }
 
                 _logger.LogWarning("[Auth] Account deletion initiated for userId={UserId}, email={Email}", userId, user.Email);
