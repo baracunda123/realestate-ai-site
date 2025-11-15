@@ -10,6 +10,7 @@ using realestate_ia_site.Server.Infrastructure.Auth;
 using realestate_ia_site.Server.Application.Security;
 using realestate_ia_site.Server.Infrastructure.Storage;
 using realestate_ia_site.Server.Application.Notifications.Interfaces;
+using realestate_ia_site.Server.Infrastructure.Notifications;
 
 namespace realestate_ia_site.Server.Presentation.Controllers
 {
@@ -709,25 +710,17 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                     
                     var resetLink = $"{frontendUrl}/reset-password/{urlSafeToken}";
                     
-                    // Send password reset email
-                    var emailService = HttpContext.RequestServices.GetRequiredService<IEmailService>();
+                    // Enfileirar email de reset (assíncrono - não bloqueia)
+                    var backgroundEmailService = HttpContext.RequestServices.GetRequiredService<BackgroundEmailService>();
                     
-                    var emailSent = await emailService.SendTemplateEmailAsync(
-                        "password-reset",
+                    var jobId = backgroundEmailService.EnqueuePasswordReset(
                         user.Email!,
-                        new { UserName = user.FullName ?? "Utilizador", ResetLink = resetLink },
-                        default
+                        user.FullName ?? "Utilizador",
+                        resetLink
                     );
                     
-                    if (emailSent)
-                    {
-                        _auditService.LogSecurityEvent(SecurityEventType.LoginSuccess, "Password reset email sent", new { Email = request.Email });
-                        _logger.LogInformation("[Auth] Password reset email sent to={Email}", request.Email);
-                    }
-                    else
-                    {
-                        _logger.LogError("[Auth] Failed to send password reset email to={Email}", request.Email);
-                    }
+                    _auditService.LogSecurityEvent(SecurityEventType.LoginSuccess, "Password reset email enqueued", new { Email = request.Email, JobId = jobId });
+                    _logger.LogInformation("[Auth] Password reset email enfileirado to={Email} jobId={JobId}", request.Email, jobId);
                 }
                 else
                 {
@@ -846,27 +839,19 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                     
                     var confirmLink = $"{frontendUrl}/confirm-email/{urlSafeToken}";
                     
-                    //Enviar email usando IEmailService
-                    var emailService = HttpContext.RequestServices.GetRequiredService<IEmailService>();
+                    // Enfileirar email de confirmação (assíncrono - não bloqueia)
+                    var backgroundEmailService = HttpContext.RequestServices.GetRequiredService<BackgroundEmailService>();
                     
-                    var emailSent = await emailService.SendTemplateEmailAsync(
-                        "email-confirmation",
+                    var jobId = backgroundEmailService.EnqueueEmailConfirmation(
                         user.Email!,
-                        new { UserName = user.FullName, ConfirmationLink = confirmLink },
-                        default
+                        user.FullName,
+                        confirmLink
                     );
                     
-                    if (emailSent)
-                    {
-                        _auditService.LogSecurityEvent(SecurityEventType.LoginSuccess, "Confirmation email resent", 
-                            new { Email = request.Email });
-                        
-                        _logger.LogInformation("[Auth] Email de confirmação reenviado com sucesso para={Email}", request.Email);
-                    }
-                    else
-                    {
-                        _logger.LogError("[Auth] Falha ao reenviar email de confirmação para={Email}", request.Email);
-                    }
+                    _auditService.LogSecurityEvent(SecurityEventType.LoginSuccess, "Confirmation email enqueued", 
+                        new { Email = request.Email, JobId = jobId });
+                    
+                    _logger.LogInformation("[Auth] Email de confirmação enfileirado para={Email} jobId={JobId}", request.Email, jobId);
                 }
                 else if (user != null && user.EmailConfirmed)
                 {

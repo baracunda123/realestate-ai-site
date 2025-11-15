@@ -9,25 +9,26 @@ using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Domain.Models;
 using realestate_ia_site.Server.Application.Notifications.Interfaces;
 using realestate_ia_site.Server.Application.Common.Interfaces;
+using realestate_ia_site.Server.Infrastructure.Notifications;
 
 namespace realestate_ia_site.Server.Infrastructure.Auth;
 
 public class AuthService
 {
     private readonly UserManager<User> _userManager;
-    private readonly IEmailService _emailService;
+    private readonly BackgroundEmailService _backgroundEmailService;
     private readonly IApplicationDbContext _context;
     private readonly IConfiguration _config;
     private readonly ILogger<AuthService> _logger;
 
     public AuthService(UserManager<User> userManager,
-        IEmailService emailService,
+        BackgroundEmailService backgroundEmailService,
         IApplicationDbContext context,
         IConfiguration config,
         ILogger<AuthService> logger)
     {
         _userManager = userManager;
-        _emailService = emailService;
+        _backgroundEmailService = backgroundEmailService;
         _context = context;
         _config = config;
         _logger = logger;
@@ -67,9 +68,9 @@ public class AuthService
             return (AuthResult.ErrorResult(create.Errors.Select(e => e.Description).ToArray()), null);
         }
 
-        // Enviar email de confirmação
+        // Enfileirar email de confirmação (assíncrono - não bloqueia)
         var emailToken = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-        await SendEmailConfirmationAsync(user, emailToken, ct);
+        EnqueueEmailConfirmation(user, emailToken);
         
         _logger.LogInformation("[Auth] Registo efetuado utilizador={UserId} email={Email} - aguardando confirmação de email", user.Id, user.Email);
         
@@ -546,11 +547,15 @@ public class AuthService
         }
     }
 
-    private async Task SendEmailConfirmationAsync(User user, string token, CancellationToken ct)
+    /// <summary>
+    /// Enfileira email de confirmação para envio em background.
+    /// Retorna imediatamente sem bloquear a thread HTTP.
+    /// </summary>
+    private void EnqueueEmailConfirmation(User user, string token)
     {
         if (string.IsNullOrWhiteSpace(user.Email))
         {
-            _logger.LogWarning("[Auth] Tentativa de envio de confirmação sem email userId={UserId}", user.Id);
+            _logger.LogWarning("[Auth] Tentativa de enfileirar confirmação sem email userId={UserId}", user.Id);
             return;
         }
 
@@ -571,28 +576,19 @@ public class AuthService
             
             var confirmLink = $"{frontendUrl}/confirm-email/{urlSafeToken}";
             
-            _logger.LogInformation("[Auth] Enviando email de confirmação para={Email} frontendUrl={FrontendUrl}", 
-                user.Email, frontendUrl);
-            
-            var emailSent = await _emailService.SendTemplateEmailAsync(
-                "email-confirmation", 
+            // Enfileirar email (retorna imediatamente)
+            var jobId = _backgroundEmailService.EnqueueEmailConfirmation(
                 user.Email, 
-                new { UserName = user.FullName, ConfirmationLink = confirmLink },
-                ct
+                user.FullName, 
+                confirmLink
             );
-
-            if (!emailSent)
-            {
-                _logger.LogError("[Auth] Falha ao enviar email de confirmação userId={UserId}", user.Id);
-            }
-            else
-            {
-                _logger.LogInformation("[Auth] Email de confirmação enviado com sucesso userId={UserId}", user.Id);
-            }
+            
+            _logger.LogInformation("[Auth] Email de confirmação enfileirado userId={UserId} jobId={JobId}", 
+                user.Id, jobId);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[Auth] Exceção ao enviar email de confirmação userId={UserId}", user.Id);
+            _logger.LogError(ex, "[Auth] Exceção ao enfileirar email de confirmação userId={UserId}", user.Id);
         }
     }
 

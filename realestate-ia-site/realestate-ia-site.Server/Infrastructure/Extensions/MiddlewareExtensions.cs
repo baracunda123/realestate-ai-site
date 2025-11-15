@@ -1,3 +1,5 @@
+using Hangfire;
+using Hangfire.Dashboard;
 using realestate_ia_site.Server.Infrastructure.Middleware;
 using realestate_ia_site.Server.Infrastructure.Notifications;
 
@@ -31,6 +33,22 @@ public static class MiddlewareExtensions
         {
             app.UseSwagger();
             app.UseSwaggerUI();
+        }
+
+        // Hangfire Dashboard (APENAS Development - NUNCA em produção sem autenticação!)
+        if (app.Environment.IsDevelopment())
+        {
+            app.UseHangfireDashboard("/hangfire", new DashboardOptions
+            {
+                Authorization = Array.Empty<IDashboardAuthorizationFilter>() // Sem auth APENAS em dev
+            });
+            Console.WriteLine("⚠️  Hangfire Dashboard available at /hangfire (DEVELOPMENT ONLY - NO AUTH)");
+        }
+        else
+        {
+            // Em produção: Dashboard DESABILITADO por segurança
+            // Para habilitar, criar HangfireAuthorizationFilter (ver DEPLOYMENT_CHECKLIST.md)
+            Console.WriteLine("ℹ️  Hangfire Dashboard DISABLED in production (security)");
         }
 
         app.UseHttpsRedirection();

@@ -132,7 +132,7 @@ export function EmailConfirmation() {
             </div>
             <div className="text-center space-y-2">
               <h3 className="text-2xl font-semibold text-deep-mocha">Email Confirmado!</h3>
-              <p className="text-sm text-warm-taupe-light">Agora você pode fazer login na sua conta.</p>
+              <p className="text-sm text-warm-taupe-light">Agora podes fazer login na tua conta.</p>
             </div>
             <Button 
               onClick={handleGoToLogin}
