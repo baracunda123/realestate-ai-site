@@ -56,6 +56,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
 
             // Obter modelo baseado no plano do usuário
             var model = _openAIService.GetModelForPlan(userPlan);
+            var isProModel = model.Contains("gpt-4o") && !model.Contains("mini");
 
             const int maxRetries = 2;
             Dictionary<string, object>? filters = null;
@@ -101,10 +102,17 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                 filters = new Dictionary<string, object>();
             }
 
-            // Enriquecer filtros com base na intenção do utilizador
-            if (userIntent != null)
+            // Enriquecer features abstratas APENAS se for modelo mini (GPT-4o já faz isso nativamente)
+            // GPT-4o-mini precisa de ajuda para expandir termos abstratos
+            // GPT-4o é inteligente o suficiente para fazer expansão contextual sozinho
+            if (!isProModel && filters.ContainsKey("features"))
             {
-                EnrichFiltersWithIntent(filters, userIntent);
+                EnrichAbstractFeatures(filters);
+                _logger.LogInformation("[Features] Expansão determinística aplicada (modelo mini)");
+            }
+            else if (isProModel && filters.ContainsKey("features"))
+            {
+                _logger.LogInformation("[Features] Usando expansão nativa do GPT-4o (sem override)");
             }
 
             if (context != null && filters.Any())
@@ -419,136 +427,87 @@ namespace realestate_ia_site.Server.Infrastructure.AI
         }
 
         /// <summary>
-        /// Enriquece filtros com base na análise de intenção do utilizador.
-        /// Mapeia motivações, preocupações e necessidades ocultas para features concretas.
+        /// Expande features ABSTRATAS com sinónimos para melhorar matching nas descrições.
+        /// Só processa features que JÁ EXISTEM no filtro (mencionadas explicitamente na query).
+        /// 
+        /// CRÍTICO: NÃO adiciona features novas, apenas expande as existentes.
+        /// 
+        /// Exemplos:
+        /// - Input: ["familiar"] → Output: ["familiar", "espaçoso", "zona residencial"]
+        /// - Input: ["segura"] → Output: ["segura", "zona segura", "condomínio fechado", "segurança"]
+        /// - Input: ["jardim"] → Output: ["jardim"] (feature concreta, não expande)
+        /// 
+        /// RAZÃO: Garante consistência entre GPT-4o-mini e GPT-4o.
         /// </summary>
+        private void EnrichAbstractFeatures(Dictionary<string, object> filters)
+        {
+            if (!filters.ContainsKey("features"))
+                return;
+
+            var existingFeatures = GetStringList(filters["features"]);
+            var expandedFeatures = new List<string>(existingFeatures);
+
+            // Mapeamento de features abstratas para sinónimos concretos
+            var abstractFeatureMap = new Dictionary<string, string[]>(StringComparer.OrdinalIgnoreCase)
+            {
+                // Segurança
+                ["segura"] = new[] { "zona segura", "condomínio fechado", "segurança", "portaria", "vigilância" },
+                ["segurança"] = new[] { "zona segura", "condomínio fechado", "portaria", "vigilância" },
+                
+                // Familiar
+                ["familiar"] = new[] { "espaçoso", "zona residencial", "zona familiar", "escolas próximas" },
+                ["familia"] = new[] { "espaçoso", "zona residencial", "zona familiar", "escolas próximas" },
+                
+                // Tranquilidade
+                ["tranquila"] = new[] { "zona tranquila", "zona calma", "sossegado", "pouco trânsito" },
+                ["tranquilo"] = new[] { "zona tranquila", "zona calma", "sossegado", "pouco trânsito" },
+                ["calma"] = new[] { "zona calma", "zona tranquila", "sossegado" },
+                ["calmo"] = new[] { "zona calma", "zona tranquila", "sossegado" },
+                ["sossegado"] = new[] { "zona tranquila", "zona calma", "pouco trânsito" },
+                
+                // Modernidade
+                ["moderna"] = new[] { "moderno", "renovado", "contemporâneo", "recente" },
+                ["moderno"] = new[] { "renovado", "contemporâneo", "recente" },
+                
+                // Luxo
+                ["luxo"] = new[] { "luxuoso", "premium", "alto padrão", "acabamentos de qualidade" },
+                ["luxuosa"] = new[] { "luxuoso", "premium", "alto padrão", "acabamentos de qualidade" },
+                ["luxuoso"] = new[] { "premium", "alto padrão", "acabamentos de qualidade" },
+                
+                // Espaço
+                ["espaçoso"] = new[] { "amplo", "grande", "áreas generosas" },
+                ["espaçosa"] = new[] { "amplo", "grande", "áreas generosas" },
+                ["amplo"] = new[] { "espaçoso", "grande", "áreas generosas" },
+                ["ampla"] = new[] { "espaçoso", "grande", "áreas generosas" }
+            };
+
+            // Expandir apenas features abstratas que foram mencionadas
+            foreach (var feature in existingFeatures)
+            {
+                if (abstractFeatureMap.TryGetValue(feature, out var synonyms))
+                {
+                    expandedFeatures.AddRange(synonyms);
+                    _logger.LogInformation(
+                        "[Features] Expandindo feature abstrata '{Feature}' com sinónimos: {Synonyms}",
+                        feature,
+                        string.Join(", ", synonyms));
+                }
+            }
+
+            // Remover duplicados (case-insensitive)
+            filters["features"] = expandedFeatures
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        /// <summary>
+        /// [OBSOLETO] Método antigo que adicionava features automaticamente baseado em intenção.
+        /// Substituído por EnrichAbstractFeatures que só expande features já mencionadas.
+        /// </summary>
+        [Obsolete("Substituído por EnrichAbstractFeatures - não adiciona features novas")]
         private void EnrichFiltersWithIntent(Dictionary<string, object> filters, UserIntentAnalysis userIntent)
         {
-            var additionalFeatures = new List<string>();
-
-            // Mapear motivação para features
-            switch (userIntent.Motivation?.ToLower())
-            {
-                case "primeira_casa":
-                case "familiar":
-                case "familia":
-                    additionalFeatures.AddRange(new[] { "zona residencial", "escolas próximas", "parques infantis" });
-                    // Garantir mínimo de quartos para família
-                    if (!filters.ContainsKey("min_rooms") && !filters.ContainsKey("rooms"))
-                    {
-                        filters["min_rooms"] = 2;
-                        _logger.LogInformation("[Intent] Motivação familiar detectada - adicionando min_rooms=2");
-                    }
-                    break;
-
-                case "investimento":
-                    additionalFeatures.AddRange(new[] { "rentabilidade", "zona valorizada", "transportes públicos" });
-                    break;
-
-                case "upgrade":
-                case "mudanca_vida":
-                    additionalFeatures.AddRange(new[] { "moderno", "renovado", "acabamentos de qualidade" });
-                    break;
-            }
-
-            // Mapear estilo de vida para features
-            switch (userIntent.LifestylePreference?.ToLower())
-            {
-                case "familiar":
-                case "familia":
-                    additionalFeatures.AddRange(new[] { "jardim", "espaço exterior", "zona calma", "segura" });
-                    break;
-
-                case "urbano":
-                case "dinamico":
-                    additionalFeatures.AddRange(new[] { "centro cidade", "comércio próximo", "vida noturna" });
-                    break;
-
-                case "tranquilo":
-                case "sossegado":
-                    additionalFeatures.AddRange(new[] { "zona tranquila", "pouco trânsito", "natureza próxima" });
-                    break;
-            }
-
-            // Mapear preocupações para features de segurança
-            if (userIntent.Concerns != null && userIntent.Concerns.Any())
-            {
-                foreach (var concern in userIntent.Concerns)
-                {
-                    switch (concern.ToLower())
-                    {
-                        case "segurança":
-                        case "seguranca":
-                            additionalFeatures.AddRange(new[] { "zona segura", "condomínio fechado", "portaria", "vigilância" });
-                            break;
-
-                        case "escolas":
-                        case "educação":
-                        case "educacao":
-                            additionalFeatures.AddRange(new[] { "escolas próximas", "zona escolar", "creches" });
-                            break;
-
-                        case "transportes":
-                        case "mobilidade":
-                            additionalFeatures.AddRange(new[] { "metro próximo", "autocarros", "estação comboio", "acessos" });
-                            break;
-
-                        case "barulho":
-                        case "ruído":
-                        case "ruido":
-                            additionalFeatures.AddRange(new[] { "zona tranquila", "isolamento acústico", "longe de estradas" });
-                            break;
-
-                        case "estacionamento":
-                        case "garagem":
-                            additionalFeatures.AddRange(new[] { "garagem", "estacionamento", "lugar de garagem" });
-                            break;
-                    }
-                }
-            }
-
-            // Mapear necessidades ocultas
-            if (userIntent.HiddenNeeds != null && userIntent.HiddenNeeds.Any())
-            {
-                foreach (var need in userIntent.HiddenNeeds)
-                {
-                    var needLower = need.ToLower();
-                    if (needLower.Contains("espaço exterior") || needLower.Contains("jardim"))
-                    {
-                        additionalFeatures.AddRange(new[] { "jardim", "terraço", "varanda", "quintal" });
-                    }
-                    else if (needLower.Contains("estacionamento") || needLower.Contains("garagem"))
-                    {
-                        additionalFeatures.AddRange(new[] { "garagem", "estacionamento privado", "lugar de garagem" });
-                    }
-                    else if (needLower.Contains("animais") || needLower.Contains("pets"))
-                    {
-                        additionalFeatures.AddRange(new[] { "aceita animais", "jardim", "espaço exterior" });
-                    }
-                }
-            }
-
-            // Adicionar features ao filtro (sem duplicados)
-            if (additionalFeatures.Any())
-            {
-                var existingFeatures = filters.ContainsKey("features") 
-                    ? GetStringList(filters["features"]) 
-                    : new List<string>();
-
-                var allFeatures = existingFeatures
-                    .Concat(additionalFeatures)
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-
-                filters["features"] = allFeatures;
-
-                _logger.LogInformation(
-                    "[Intent] Enriquecimento aplicado - Motivação: {Motivation}, Estilo: {Lifestyle}, Preocupações: {Concerns} → Features adicionadas: {Features}",
-                    userIntent.Motivation,
-                    userIntent.LifestylePreference,
-                    string.Join(", ", userIntent.Concerns ?? new List<string>()),
-                    string.Join(", ", additionalFeatures.Distinct()));
-            }
+            // Método obsoleto - usar EnrichAbstractFeatures
         }
     }
 }
