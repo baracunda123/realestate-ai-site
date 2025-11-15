@@ -205,8 +205,9 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             // Exemplo: "casas em rio tinto modernos" → "casas no porto" não deve manter "modernos"
             if (isNewSearch && result.ContainsKey("features"))
             {
+                var oldFeatures = GetStringList(result["features"]);
                 logger.LogInformation("Nova pesquisa detectada (location/type/rooms mudou) - limpando features antigas: {OldFeatures}", 
-                    string.Join(", ", (List<string>)result["features"]));
+                    string.Join(", ", oldFeatures));
                 result.Remove("features");
             }
             
@@ -216,11 +217,15 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                 if (!IsEmpty(kv.Value))
                 {
                     // ========== FEATURES: Acumular apenas em refinamentos, substituir em novas pesquisas ==========
-                    if (kv.Key == "features" && kv.Value is List<string> newFeatures)
+                    if (kv.Key == "features")
                     {
+                        var newFeatures = GetStringList(kv.Value);
+                        
                         // Só acumular se NÃO for nova pesquisa E já existirem features
-                        if (!isNewSearch && result.ContainsKey("features") && result["features"] is List<string> existingFeatures)
+                        if (!isNewSearch && result.ContainsKey("features"))
                         {
+                            var existingFeatures = GetStringList(result["features"]);
+                            
                             // Acumular features únicas (refinamento)
                             var mergedFeatures = existingFeatures.Union(newFeatures).Distinct().ToList();
                             result[kv.Key] = mergedFeatures;
@@ -229,7 +234,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                         else
                         {
                             // Substituir features (nova pesquisa ou primeira vez)
-                            result[kv.Key] = kv.Value;
+                            result[kv.Key] = newFeatures;
                             logger.LogDebug("Features substituídas (nova pesquisa): {Features}", string.Join(", ", newFeatures));
                         }
                     }
@@ -383,6 +388,19 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                 string s when string.IsNullOrWhiteSpace(s) => true,
                 IEnumerable<object> e => !e.Any(),
                 _ => false
+            };
+        }
+
+        private static List<string> GetStringList(object value)
+        {
+            return value switch
+            {
+                List<string> list => list,
+                List<object> objList => objList.Select(o => o?.ToString() ?? "").Where(s => !string.IsNullOrWhiteSpace(s)).ToList(),
+                JsonElement element when element.ValueKind == JsonValueKind.Array => 
+                    element.EnumerateArray().Select(e => e.GetString() ?? "").Where(s => !string.IsNullOrWhiteSpace(s)).ToList(),
+                string str => new List<string> { str },
+                _ => new List<string>()
             };
         }
     }
