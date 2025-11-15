@@ -30,12 +30,20 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             => await ExtractFiltersAsync(userQuery, sessionId, "free", cancellationToken);
 
         public async Task<Dictionary<string, object>> ExtractFiltersAsync(string userQuery, string sessionId, string userPlan, CancellationToken cancellationToken = default)
+            => await ExtractFiltersAsync(userQuery, sessionId, userPlan, null, cancellationToken);
+
+        public async Task<Dictionary<string, object>> ExtractFiltersAsync(
+            string userQuery, 
+            string sessionId, 
+            string userPlan, 
+            UserIntentAnalysis? userIntent, 
+            CancellationToken cancellationToken = default)
         {
             var context = !string.IsNullOrWhiteSpace(sessionId)
                 ? await _contextService.GetOrCreateContextAsync(sessionId, cancellationToken)
                 : null;
 
-            var messages = PromptBuilder.BuildForFilterExtraction(userQuery, context?.LastFilters);
+            var messages = PromptBuilder.BuildForFilterExtraction(userQuery, context?.LastFilters, userIntent);
 
             var options = new ChatCompletionOptions
             {
@@ -91,6 +99,12 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             if (filters == null)
             {
                 filters = new Dictionary<string, object>();
+            }
+
+            // Enriquecer filtros com base na intenção do utilizador
+            if (userIntent != null)
+            {
+                EnrichFiltersWithIntent(filters, userIntent);
             }
 
             if (context != null && filters.Any())
@@ -402,6 +416,139 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                 string str => new List<string> { str },
                 _ => new List<string>()
             };
+        }
+
+        /// <summary>
+        /// Enriquece filtros com base na análise de intenção do utilizador.
+        /// Mapeia motivações, preocupações e necessidades ocultas para features concretas.
+        /// </summary>
+        private void EnrichFiltersWithIntent(Dictionary<string, object> filters, UserIntentAnalysis userIntent)
+        {
+            var additionalFeatures = new List<string>();
+
+            // Mapear motivação para features
+            switch (userIntent.Motivation?.ToLower())
+            {
+                case "primeira_casa":
+                case "familiar":
+                case "familia":
+                    additionalFeatures.AddRange(new[] { "zona residencial", "escolas próximas", "parques infantis" });
+                    // Garantir mínimo de quartos para família
+                    if (!filters.ContainsKey("min_rooms") && !filters.ContainsKey("rooms"))
+                    {
+                        filters["min_rooms"] = 2;
+                        _logger.LogInformation("[Intent] Motivação familiar detectada - adicionando min_rooms=2");
+                    }
+                    break;
+
+                case "investimento":
+                    additionalFeatures.AddRange(new[] { "rentabilidade", "zona valorizada", "transportes públicos" });
+                    break;
+
+                case "upgrade":
+                case "mudanca_vida":
+                    additionalFeatures.AddRange(new[] { "moderno", "renovado", "acabamentos de qualidade" });
+                    break;
+            }
+
+            // Mapear estilo de vida para features
+            switch (userIntent.LifestylePreference?.ToLower())
+            {
+                case "familiar":
+                case "familia":
+                    additionalFeatures.AddRange(new[] { "jardim", "espaço exterior", "zona calma", "segura" });
+                    break;
+
+                case "urbano":
+                case "dinamico":
+                    additionalFeatures.AddRange(new[] { "centro cidade", "comércio próximo", "vida noturna" });
+                    break;
+
+                case "tranquilo":
+                case "sossegado":
+                    additionalFeatures.AddRange(new[] { "zona tranquila", "pouco trânsito", "natureza próxima" });
+                    break;
+            }
+
+            // Mapear preocupações para features de segurança
+            if (userIntent.Concerns != null && userIntent.Concerns.Any())
+            {
+                foreach (var concern in userIntent.Concerns)
+                {
+                    switch (concern.ToLower())
+                    {
+                        case "segurança":
+                        case "seguranca":
+                            additionalFeatures.AddRange(new[] { "zona segura", "condomínio fechado", "portaria", "vigilância" });
+                            break;
+
+                        case "escolas":
+                        case "educação":
+                        case "educacao":
+                            additionalFeatures.AddRange(new[] { "escolas próximas", "zona escolar", "creches" });
+                            break;
+
+                        case "transportes":
+                        case "mobilidade":
+                            additionalFeatures.AddRange(new[] { "metro próximo", "autocarros", "estação comboio", "acessos" });
+                            break;
+
+                        case "barulho":
+                        case "ruído":
+                        case "ruido":
+                            additionalFeatures.AddRange(new[] { "zona tranquila", "isolamento acústico", "longe de estradas" });
+                            break;
+
+                        case "estacionamento":
+                        case "garagem":
+                            additionalFeatures.AddRange(new[] { "garagem", "estacionamento", "lugar de garagem" });
+                            break;
+                    }
+                }
+            }
+
+            // Mapear necessidades ocultas
+            if (userIntent.HiddenNeeds != null && userIntent.HiddenNeeds.Any())
+            {
+                foreach (var need in userIntent.HiddenNeeds)
+                {
+                    var needLower = need.ToLower();
+                    if (needLower.Contains("espaço exterior") || needLower.Contains("jardim"))
+                    {
+                        additionalFeatures.AddRange(new[] { "jardim", "terraço", "varanda", "quintal" });
+                    }
+                    else if (needLower.Contains("estacionamento") || needLower.Contains("garagem"))
+                    {
+                        additionalFeatures.AddRange(new[] { "garagem", "estacionamento privado", "lugar de garagem" });
+                    }
+                    else if (needLower.Contains("animais") || needLower.Contains("pets"))
+                    {
+                        additionalFeatures.AddRange(new[] { "aceita animais", "jardim", "espaço exterior" });
+                    }
+                }
+            }
+
+            // Adicionar features ao filtro (sem duplicados)
+            if (additionalFeatures.Any())
+            {
+                var existingFeatures = filters.ContainsKey("features") 
+                    ? GetStringList(filters["features"]) 
+                    : new List<string>();
+
+                var allFeatures = existingFeatures
+                    .Concat(additionalFeatures)
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                filters["features"] = allFeatures;
+
+                _logger.LogInformation(
+                    "[Intent] Enriquecimento aplicado - Motivação: {Motivation}, Estilo: {Lifestyle}, Preocupações: {Concerns} → Features adicionadas: {Features}",
+                    userIntent.Motivation,
+                    userIntent.LifestylePreference,
+                    string.Join(", ", userIntent.Concerns ?? new List<string>()),
+                    string.Join(", ", additionalFeatures.Distinct()));
+            }
         }
     }
 }

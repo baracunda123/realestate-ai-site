@@ -117,16 +117,16 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                     }
                 }
                 
-                // [NOVO] 3. Analisar intenção do utilizador (se disponível)
+                // [CRÍTICO] 3. Analisar intenção do utilizador ANTES de extrair filtros
                 UserIntentAnalysis? userIntent = null;
-                if (_semanticAnalyzer != null && context != null)
+                if (_semanticAnalyzer != null)
                 {
                     try
                     {
-                        var conversationHistory = context.Messages
+                        var conversationHistory = context?.Messages
                             .Select(m => m.Content.FirstOrDefault()?.Text ?? string.Empty)
                             .Where(text => !string.IsNullOrEmpty(text))
-                            .ToList();
+                            .ToList() ?? new List<string>();
                         
                         userIntent = await _semanticAnalyzer.AnalyzeUserIntentAsync(
                             request.Query,
@@ -134,8 +134,12 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                             userPlan,
                             ct);
                         
-                        _logger.LogInformation("[Advanced] Intenção identificada: {Motivation}, Fase: {Phase}", 
-                            userIntent.Motivation, userIntent.DecisionPhase);
+                        _logger.LogInformation(
+                            "[Advanced] Intenção identificada ANTES da filtragem - Motivação: {Motivation}, Estilo: {Lifestyle}, Fase: {Phase}, Preocupações: {Concerns}", 
+                            userIntent.Motivation, 
+                            userIntent.LifestylePreference,
+                            userIntent.DecisionPhase,
+                            string.Join(", ", userIntent.Concerns ?? new List<string>()));
                     }
                     catch (Exception ex)
                     {
@@ -143,8 +147,9 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                     }
                 }
                 
-                // 4. Extrair e processar filtros (SISTEMA ANTIGO - MANTÉM)
-                var filters = await _filterInterpreter.ExtractFiltersAsync(request.Query, request.SessionId, userPlan, ct);
+                // 4. Extrair e processar filtros COM INTENÇÃO (sistema híbrido)
+                // A intenção enriquece os filtros com features contextuais (segurança, família, etc.)
+                var filters = await _filterInterpreter.ExtractFiltersAsync(request.Query, request.SessionId, userPlan, userIntent, ct);
                 var properties = await _propertySearchService.SearchPropertiesWithFiltersAsync(filters, ct);
                 
                 // [NOVO] 5. Gerar explicações para as top 3 propriedades (se disponível)
