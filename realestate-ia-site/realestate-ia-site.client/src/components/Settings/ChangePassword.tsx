@@ -38,8 +38,8 @@ export function ChangePassword() {
     if (!/[0-9]/.test(password)) {
       return { valid: false, message: 'A password deve conter pelo menos um número' };
     }
-    if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-      return { valid: false, message: 'A password deve conter pelo menos um caractere especial' };
+    if (!/[!@#$%^&*(),.?":{}|<>_+=\-\[\]\\;'/]/.test(password)) {
+      return { valid: false, message: 'A password deve conter pelo menos um caractere especial (!@#$%^&*(),.?":{}|<>_+=-[]\\;\'/)'};
     }
     return { valid: true };
   };
@@ -120,7 +120,7 @@ export function ChangePassword() {
     if (/[A-Z]/.test(password)) strength++;
     if (/[a-z]/.test(password)) strength++;
     if (/[0-9]/.test(password)) strength++;
-    if (/[!@#$%^&*(),.?":{}|<>]/.test(password)) strength++;
+    if (/[!@#$%^&*(),.?":{}|<>_+=\-\[\]\\;'/]/.test(password)) strength++;
 
     if (strength <= 2) return { strength, label: 'Fraca', color: 'bg-error-gentle' };
     if (strength <= 4) return { strength, label: 'Média', color: 'bg-warning-gentle' };
@@ -261,8 +261,8 @@ export function ChangePassword() {
                 </span>
               </li>
               <li className="flex items-center">
-                <span className={/[!@#$%^&*(),.?":{}|<>]/.test(formData.newPassword) ? 'text-success-strong' : ''}>
-                  {/[!@#$%^&*(),.?":{}|<>]/.test(formData.newPassword) ? '✓' : '•'} Um caractere especial
+                <span className={/[!@#$%^&*(),.?":{}|<>_+=\-\[\]\\;'/]/.test(formData.newPassword) ? 'text-success-strong' : ''}>
+                  {/[!@#$%^&*(),.?":{}|<>_+=\-\[\]\\;'/]/.test(formData.newPassword) ? '✓' : '•'} Um caractere especial
                 </span>
               </li>
             </ul>

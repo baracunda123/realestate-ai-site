@@ -35,7 +35,7 @@ export function ResetPassword() {
     const hasUpperCase = /[A-Z]/.test(pwd);
     const hasLowerCase = /[a-z]/.test(pwd);
     const hasNumber = /[0-9]/.test(pwd);
-    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(pwd);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>_+=\-\[\]\\;'/]/.test(pwd);
     
     return {
       isValid: hasMinLength && hasUpperCase && hasLowerCase && hasNumber && hasSpecialChar,

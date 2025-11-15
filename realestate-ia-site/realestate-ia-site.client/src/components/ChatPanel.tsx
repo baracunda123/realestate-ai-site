@@ -46,6 +46,7 @@ export function ChatPanel({
     const [refreshQuota, setRefreshQuota] = useState(0);
     const conversationEndRef = useRef<HTMLDivElement>(null);
     const conversationContainerRef = useRef<HTMLDivElement>(null);
+    const isComposingRef = useRef(false);
 
     // Sync with external history
     useEffect(() => {
@@ -87,7 +88,9 @@ export function ChatPanel({
     };
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
+        // Proteção IME: Não processar Enter se estiver em modo de composição
+        // Previne envio acidental quando utilizador seleciona autocomplete/sugestão em teclados mobile
+        if (e.key === 'Enter' && !e.shiftKey && !isComposingRef.current) {
             e.preventDefault();
             handleSubmit();
         }
@@ -213,6 +216,12 @@ export function ChatPanel({
                             value={inputValue}
                             onChange={(e) => setInputValue(e.target.value)}
                             onKeyDown={handleKeyDown}
+                            onCompositionStart={() => {
+                                isComposingRef.current = true;
+                            }}
+                            onCompositionEnd={() => {
+                                isComposingRef.current = false;
+                            }}
                             disabled={loading || hasQuotaError}
                             className="flex-1 border-pale-clay-deep focus:border-burnt-peach text-sm"
                         />
