@@ -25,12 +25,6 @@ namespace realestate_ia_site.Server.Infrastructure.AI.Prompts
             @"TAREFA ESPECÍFICA: Extrair filtros de pesquisa.
             Responde APENAS com JSON válido. Campos disponíveis: type, location, locations, location_type, min_price, max_price, target_price, min_area, max_area, target_area, rooms, min_rooms, max_rooms, tags, sort, features.
             
-            IMPORTANTE: Se receberes CONTEXTO DE INTENÇÃO DO UTILIZADOR, considera-o ao extrair filtros:
-            - Motivação 'familiar' ou preocupações com 'segurança'/'escolas' → adiciona features relacionadas com família e segurança
-            - Estilo de vida 'tranquilo' → adiciona features de zona calma
-            - Necessidades implícitas → converte em features concretas
-            - O sistema irá enriquecer automaticamente os filtros, mas podes adicionar features explícitas se forem mencionadas na query
-            
             REGRAS DE INTERPRETAÇÃO (aplicam-se a PREÇO e ÁREA):
             Analisa a intenção do utilizador e decide:
             
@@ -52,8 +46,6 @@ namespace realestate_ia_site.Server.Infrastructure.AI.Prompts
                → PREÇO: usar min_price E max_price
                → ÁREA: usar min_area E max_area
             
-            5. Se o utilizador mudar o critério, enviar APENAS os novos filtros relevantes
-            
             Exemplos práticos - PREÇO:
             'T3 no Porto até 300k' → {""rooms"": 3, ""location"": ""Porto"", ""max_price"": 300000}
             'acima de 200k' → {""min_price"": 200000}
@@ -69,50 +61,68 @@ namespace realestate_ia_site.Server.Infrastructure.AI.Prompts
             'tipo 150 metros quadrados' → {""target_area"": 150}
             'uns 200m²' → {""target_area"": 200}
             
-            Outros:
+            QUARTOS (rooms, min_rooms, max_rooms):
+            'T3' ou '3 quartos' → {""rooms"": 3}
+            'pelo menos 2 quartos' → {""min_rooms"": 2}
+            'até 4 quartos' → {""max_rooms"": 4}
+            'entre 2 e 4 quartos' → {""min_rooms"": 2, ""max_rooms"": 4}
+            
+            ORDENAÇÃO:
             'mais barato' → {""sort"": ""price_asc""}
+            'mais caro' → {""sort"": ""price_desc""}
             
-            LOCALIZAÇÕES MÚLTIPLAS (campo 'locations'):
-            Analisa a INTENÇÃO do utilizador:
+            LOCALIZAÇÕES:
+            Analisa a INTENÇÃO do utilizador e escolhe o formato correto:
             
-            A) Se mencionar 'ENTRE X e Y', 'de X ATÉ Y', 'desde X A Y':
+            1. LOCALIZAÇÃO ÚNICA (campo 'location'):
+               'em Lisboa' → {""location"": ""Lisboa""}
+               'no Porto' → {""location"": ""Porto""}
+            
+            2. MÚLTIPLAS LOCALIZAÇÕES - RANGE (campo 'locations' + 'location_type: between'):
+               Quando mencionar 'ENTRE X e Y', 'de X ATÉ Y', 'desde X A Y'
                → Quer propriedades NO CAMINHO/REGIÃO entre X e Y
-               → Usar: {""locations"": [""X"", ""Y""], ""location_type"": ""between""}
                
-            B) Se mencionar 'em X E Y', 'em X OU Y', 'X, Y':
+               'entre Setúbal e Leiria' → {""locations"": [""Setúbal"", ""Leiria""], ""location_type"": ""between""}
+               'de Lisboa até Porto' → {""locations"": [""Lisboa"", ""Porto""], ""location_type"": ""between""}
+            
+            3. MÚLTIPLAS LOCALIZAÇÕES - ESPECÍFICAS (campo 'locations' + 'location_type: specific'):
+               Quando mencionar 'em X E Y', 'em X OU Y', 'X, Y'
                → Quer propriedades APENAS nessas localizações específicas
-               → Usar: {""locations"": [""X"", ""Y""], ""location_type"": ""specific""}
-            
-            C) Se mencionar apenas UMA localização:
-               → Usar: {""location"": ""X""}
-            
-            Exemplos - RANGES (between):
-            'entre Setúbal e Leiria' → {""locations"": [""Setúbal"", ""Leiria""], ""location_type"": ""between""}
-            'de Lisboa até Porto' → {""locations"": [""Lisboa"", ""Porto""], ""location_type"": ""between""}
-            'desde Faro a Albufeira' → {""locations"": [""Faro"", ""Albufeira""], ""location_type"": ""between""}
-            
-            Exemplos - ESPECÍFICAS (specific):
-            'em Lisboa e Porto' → {""locations"": [""Lisboa"", ""Porto""], ""location_type"": ""specific""}
-            'Lisboa ou Porto' → {""locations"": [""Lisboa"", ""Porto""], ""location_type"": ""specific""}
-            'Setúbal, Leiria' → {""locations"": [""Setúbal"", ""Leiria""], ""location_type"": ""specific""}
-            
-            LOCALIZAÇÃO ÚNICA (campo 'location'):
-            Se mencionar apenas UMA localização:
-            'em Lisboa' → {""location"": ""Lisboa""}
-            'no Porto' → {""location"": ""Porto""}
+               
+               'em Lisboa e Porto' → {""locations"": [""Lisboa"", ""Porto""], ""location_type"": ""specific""}
+               'Lisboa ou Porto' → {""locations"": [""Lisboa"", ""Porto""], ""location_type"": ""specific""}
+               'Setúbal, Leiria' → {""locations"": [""Setúbal"", ""Leiria""], ""location_type"": ""specific""}
             
             FEATURES ESPECÍFICAS (campo 'features'):
-            Se o utilizador mencionar características específicas do imóvel, usar array de features:
-            'apartamento com varanda' → {""type"": ""apartamento"", ""features"": [""varanda""]}
+            REGRA CRÍTICA: Adicionar features APENAS se EXPLICITAMENTE mencionadas na query.
+            
+            Exemplos CORRETOS (features mencionadas):
+            'apartamento com varanda e moderno' → {""type"": ""apartamento"", ""features"": [""varanda"", ""moderno""]}
             'casa com piscina e jardim' → {""type"": ""casa"", ""features"": [""piscina"", ""jardim""]}
             'imóvel renovado com ar condicionado' → {""features"": [""renovado"", ""ar condicionado""]}
             'T2 com garagem virado a sul' → {""rooms"": 2, ""features"": [""garagem"", ""virado a sul""]}
             
-            Features comuns: varanda, terraço, jardim, piscina, garagem, arrecadação, renovado, ar condicionado, 
-            aquecimento central, cozinha equipada, elevador, vista mar, vista serra, virado a sul, virado a nascente
+            FEATURES ABSTRATAS (termos como 'familiar', 'segura', 'tranquila', 'moderna'):
+            - Se és GPT-4o: Expande com sinónimos contextuais relevantes
+            - Se és GPT-4o-mini: Adiciona o termo literal (o backend expande depois)
+            
+            Exemplos GPT-4o (expansão inteligente):
+            'casa segura' → {""type"": ""casa"", ""features"": [""zona segura"", ""condomínio fechado"", ""segurança""]}
+            'apartamento familiar' → {""type"": ""apartamento"", ""features"": [""espaçoso"", ""zona residencial"", ""familiar""]}
+            
+            Exemplos GPT-4o-mini (literal - backend expande):
+            'casa segura' → {""type"": ""casa"", ""features"": [""segura""]}
+            'apartamento familiar' → {""type"": ""apartamento"", ""features"": [""familiar""]}
+            
+            Exemplo SEM features:
+            'T3 no Porto' → {""rooms"": 3, ""location"": ""Porto""} (SEM campo features)
+            
+            Features comuns (usar APENAS se mencionadas): varanda, terraço, jardim, piscina, garagem, arrecadação, 
+            renovado, ar condicionado, aquecimento central, cozinha equipada, elevador, vista mar, vista serra, 
+            virado a sul, virado a nascente
             
             IMPORTANTE: 
-            - target_price e target_area são flexíveis - o sistema encontra automaticamente os mais próximos.
+            - target_price e target_area são flexíveis - o sistema encontra automaticamente os mais próximos
             - features são analisadas na descrição do imóvel pela IA
             
             Usa o teu entendimento de linguagem natural para interpretar a verdadeira intenção do utilizador.";
@@ -139,6 +149,8 @@ namespace realestate_ia_site.Server.Infrastructure.AI.Prompts
             - NUNCA sugerir localizações a centenas de km de distância
             - Validar distâncias reais usando conhecimento geográfico de Portugal
             - Máximo 10 localizações
+            - GPT-4o: Usa conhecimento geográfico preciso
+            - GPT-4o-mini: Foca em concelhos vizinhos óbvios
             
             Exemplos:
             'Setúbal' → [""Palmela"", ""Sesimbra"", ""Barreiro"", ""Montijo"", ""Almada"", ""Seixal"", ""Moita""]
