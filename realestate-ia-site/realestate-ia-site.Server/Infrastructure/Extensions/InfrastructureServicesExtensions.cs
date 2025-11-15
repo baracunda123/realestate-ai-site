@@ -1,4 +1,6 @@
 using System.Threading.RateLimiting;
+using Hangfire;
+using Hangfire.PostgreSql;
 using realestate_ia_site.Server.Infrastructure.AI;
 using realestate_ia_site.Server.Infrastructure.Auth;
 using realestate_ia_site.Server.Infrastructure.Chat;
@@ -140,9 +142,13 @@ public static class InfrastructureServicesExtensions
         // Property Filters
         AddPropertyFilters(services);
 
+        // Hangfire (Background Jobs)
+        AddHangfireServices(services, configuration, environment);
+
         // Notifications
         services.Configure<EmailConfiguration>(configuration.GetSection("Email"));
         services.AddScoped<IEmailService, EmailService>();
+        services.AddScoped<BackgroundEmailService>(); // Background email wrapper
         services.AddScoped<IRealtimeNotificationService, RealtimeNotificationService>();
 
         // SignalR
@@ -223,5 +229,42 @@ public static class InfrastructureServicesExtensions
         services.AddScoped<IPropertyFilter, SortFilter>();
         services.AddScoped<IPropertyFilter, TopPicksFilter>();
         services.AddScoped<IPropertyFilter, DescriptionFeaturesFilter>();
+    }
+
+    private static void AddHangfireServices(
+        IServiceCollection services,
+        IConfiguration configuration,
+        IWebHostEnvironment environment)
+    {
+        // Obter connection string do PostgreSQL
+        var connectionString = Environment.GetEnvironmentVariable("DATABASE_URL")
+                              ?? configuration.GetConnectionString("DefaultConnection");
+
+        if (string.IsNullOrEmpty(connectionString))
+        {
+            Console.WriteLine("WARNING: No database connection string found for Hangfire");
+            return;
+        }
+
+        // Configurar Hangfire com PostgreSQL
+        services.AddHangfire(config => config
+            .SetDataCompatibilityLevel(CompatibilityLevel.Version_180)
+            .UseSimpleAssemblyNameTypeSerializer()
+            .UseRecommendedSerializerSettings()
+            .UsePostgreSqlStorage(options =>
+            {
+                options.UseNpgsqlConnection(connectionString);
+            })
+        );
+
+        // Adicionar servidor Hangfire
+        services.AddHangfireServer(options =>
+        {
+            options.WorkerCount = environment.IsDevelopment() ? 2 : 5; // Mais workers em produção
+            options.Queues = new[] { "default", "emails", "critical" }; // Filas prioritárias
+            options.ServerName = $"ResideAI-{Environment.MachineName}";
+        });
+
+        Console.WriteLine("Hangfire configured with PostgreSQL storage");
     }
 }

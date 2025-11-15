@@ -9,5 +9,5 @@ public class EmailConfiguration
     public bool EnableSsl { get; set; } = true;
     public required string DefaultFromEmail { get; set; }
     public required string DefaultFromName { get; set; }
-    public int TimeoutMs { get; set; } = 30000;
+    public int TimeoutMs { get; set; } = 10000; // Reduzido de 30s para 10s
 }

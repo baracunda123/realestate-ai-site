@@ -103,9 +103,31 @@ namespace realestate_ia_site.Server.Infrastructure.Notifications
 
         public async Task<bool> SendBulkEmailAsync(IEnumerable<EmailMessage> messages, CancellationToken cancellationToken = default)
         {
-            var tasks = messages.Select(msg => SendEmailAsync(msg, cancellationToken));
-            var results = await Task.WhenAll(tasks);
-            return results.All(r => r);
+            const int BATCH_SIZE = 10; // Máximo 10 emails simultâneos
+            const int DELAY_MS = 100;  // 100ms entre batches para evitar rate limit
+            
+            var messageList = messages.ToList();
+            _logger.LogInformation("Iniciando envio em bulk de {Count} emails em batches de {BatchSize}", 
+                messageList.Count, BATCH_SIZE);
+            
+            var batches = messageList.Chunk(BATCH_SIZE);
+            var allResults = new List<bool>();
+            
+            foreach (var batch in batches)
+            {
+                var tasks = batch.Select(msg => SendEmailAsync(msg, cancellationToken));
+                var results = await Task.WhenAll(tasks);
+                allResults.AddRange(results);
+                
+                // Delay entre batches para evitar rate limiting
+                await Task.Delay(DELAY_MS, cancellationToken);
+            }
+            
+            var successCount = allResults.Count(r => r);
+            _logger.LogInformation("Bulk email concluído: {Success}/{Total} emails enviados com sucesso", 
+                successCount, messageList.Count);
+            
+            return allResults.All(r => r);
         }
 
         private SmtpClient CreateSmtpClient()
