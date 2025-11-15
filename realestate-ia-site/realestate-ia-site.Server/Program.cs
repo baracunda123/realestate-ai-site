@@ -29,7 +29,9 @@ if (builder.Environment.IsProduction())
 // ============================================================================
 // LOGGING
 // ============================================================================
-builder.Logging.ClearProviders();
+// NÃO usar ClearProviders() - remove o provider do Azure App Service!
+// builder.Logging.ClearProviders(); 
+
 builder.Logging.AddConsole(options =>
 {
     options.FormatterName = "simple";
@@ -42,6 +44,12 @@ builder.Logging.AddSimpleConsole(options =>
     options.ColorBehavior = Microsoft.Extensions.Logging.Console.LoggerColorBehavior.Enabled;
 });
 builder.Logging.AddDebug();
+
+// Adicionar Azure App Service logging provider (para Log Stream)
+if (builder.Environment.IsProduction())
+{
+    builder.Logging.AddAzureWebAppDiagnostics();
+}
 
 // Configurar níveis de log globais
 // Mostrar TODOS os logs da aplicação (dev e produção)
