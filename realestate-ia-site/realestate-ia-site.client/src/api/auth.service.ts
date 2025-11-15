@@ -378,11 +378,18 @@ export async function revokeAllOtherSessions(password: string): Promise<{ succes
 }
 
 /**
+ * Obter método de autenticação do utilizador
+ */
+export async function getAuthMethod(): Promise<{ hasPassword: boolean; hasOAuth: boolean }> {
+  return await apiClient.get<{ hasPassword: boolean; hasOAuth: boolean }>('/api/auth/account/auth-method');
+}
+
+/**
  * Excluir conta do utilizador
  */
-export async function deleteAccount(password: string): Promise<{ success: boolean; message: string }> {
+export async function deleteAccount(password?: string): Promise<{ success: boolean; message: string }> {
   const response = await apiClient.delete<{ success: boolean; message: string }>('/api/auth/account', {
-    data: { password }
+    data: { password: password || null }
   });
   
   // Limpar tokens após exclusão
