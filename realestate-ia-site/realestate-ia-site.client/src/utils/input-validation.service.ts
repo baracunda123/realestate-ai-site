@@ -1,45 +1,45 @@
-// input-validation.service.ts
+Ôªø// input-validation.service.ts
 export class InputValidationService {
-  // ValidaÁ„o b·sica de email para UX
+  // Valida√ß√£o b√°sica de email para UX
   static isValidEmail(email: string): boolean {
     const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$/;
     return emailRegex.test(email) && email.length <= 254 && email.length >= 5;
   }
 
-  // ValidaÁ„o b·sica de senha para UX (ajudar o usu·rio)
+  // Valida√ß√£o b√°sica de senha para UX (ajudar o usu√°rio)
   static validatePassword(password: string): { isValid: boolean; errors: string[]; strength: 'weak' | 'medium' | 'strong' } {
     const errors: string[] = [];
     let score = 0;
     
-    // VerificaÁıes b·sicas para ajudar o usu·rio
-    if (password.length < 8) errors.push('MÌnimo 8 caracteres');
+    // Verifica√ß√µes b√°sicas para ajudar o usu√°rio
+    if (password.length < 8) errors.push('M√≠nimo 8 caracteres');
     if (password.length >= 8) score += 1;
     if (password.length >= 12) score += 1;
     
-    if (!/[a-z]/.test(password)) errors.push('Pelo menos 1 letra min˙scula');
+    if (!/[a-z]/.test(password)) errors.push('Pelo menos 1 letra min√∫scula');
     else score += 1;
     
-    if (!/[A-Z]/.test(password)) errors.push('Pelo menos 1 letra mai˙scula');
+    if (!/[A-Z]/.test(password)) errors.push('Pelo menos 1 letra mai√∫scula');
     else score += 1;
     
-    if (!/\d/.test(password)) errors.push('Pelo menos 1 n˙mero');
+    if (!/\d/.test(password)) errors.push('Pelo menos 1 n√∫mero');
     else score += 1;
     
-    if (!/[@$!%*?&.#^()_+=-[\]{}|\\:";'<>?,./]/.test(password)) errors.push('Pelo menos 1 caractere especial');
+    if (!/[!@#$%^&*(),.?\":{}|<>_+=\-\[\]\\;'/]/.test(password)) errors.push('Pelo menos 1 caractere especial');
     else score += 1;
     
-    // VerificaÁıes de UX
+    // Verifica√ß√µes de UX
     if (/(.)\1{2,}/.test(password)) {
       errors.push('Evite mais de 2 caracteres repetidos consecutivos');
       score -= 1;
     }
     
     if (/123|abc|qwe|asd|zxc/i.test(password)) {
-      errors.push('Evite sequÍncias comuns');
+      errors.push('Evite sequ√™ncias comuns');
       score -= 1;
     }
     
-    // Calcular forÁa
+    // Calcular for√ßa
     let strength: 'weak' | 'medium' | 'strong' = 'weak';
     if (score >= 6) strength = 'strong';
     else if (score >= 4) strength = 'medium';
@@ -47,30 +47,23 @@ export class InputValidationService {
     return { isValid: errors.length === 0, errors, strength };
   }
 
-  // ValidaÁ„o simples de tamanho
-  static validateLength(input: string, maxLength: number, fieldName: string): { isValid: boolean; error?: string } {
-    if (input.length > maxLength) {
-      return {
-        isValid: false,
-        error: `${fieldName} deve ter no m·ximo ${maxLength} caracteres`
-      };
-    }
-    return { isValid: true };
+  // Valida√ß√£o simples de tamanho
+  static isValidLength(input: string, min: number, max: number): boolean {
+    return input.length >= min && input.length <= max;
   }
 
-  // ValidaÁ„o b·sica APENAS para UX - o servidor far· a validaÁ„o real
+  // Valida√ß√£o b√°sica APENAS para UX - o servidor far√° a valida√ß√£o real
   static validateUserInput(input: string, type: 'text' | 'email' | 'password' | 'search' | 'url' | 'phone'): ValidationResult {
     const result: ValidationResult = { 
       isValid: true, 
       errors: [], 
-      sanitized: input // N„o sanitizar - deixar o servidor fazer isso
+      warnings: [] 
     };
-
-    // ValidaÁıes b·sicas apenas para melhorar UX
+    
     switch (type) {
       case 'email': {
         if (!this.isValidEmail(input)) {
-          result.errors.push('Email inv·lido');
+          result.errors.push('Email inv√°lido');
           result.isValid = false;
         }
         break;
@@ -84,97 +77,82 @@ export class InputValidationService {
         }
         break;
       }
-
-      case 'url': {
-        try {
-          const url = new URL(input);
-          if (!['http:', 'https:'].includes(url.protocol)) {
-            result.errors.push('URL deve usar HTTP ou HTTPS');
-            result.isValid = false;
-          }
-        } catch {
-          result.errors.push('URL inv·lida');
+      
+      case 'text': {
+        if (input.length < 2) {
+          result.errors.push('M√≠nimo 2 caracteres');
           result.isValid = false;
         }
-        break;
-      }
-
-      case 'phone': {
-        const phoneRegex = /^[+]?[1-9][\d\s-()]{7,15}$/;
-        if (!phoneRegex.test(input.replace(/\s/g, ''))) {
-          result.errors.push('N˙mero de telefone inv·lido');
+        if (input.length > 500) {
+          result.errors.push('M√°ximo 500 caracteres');
           result.isValid = false;
         }
         break;
       }
       
       case 'search': {
-        const searchLength = this.validateLength(input, 500, 'Consulta de pesquisa');
-        if (!searchLength.isValid) {
-          result.errors.push(searchLength.error!);
+        if (input.length > 200) {
+          if (!result.warnings) result.warnings = [];
+          result.warnings.push('Pesquisa muito longa');
+        }
+        break;
+      }
+      
+      case 'url': {
+        try {
+          new URL(input);
+        } catch {
+          result.errors.push('URL inv√°lida');
           result.isValid = false;
         }
         break;
       }
       
-      case 'text':
-      default: {
-        const textLength = this.validateLength(input, 2000, 'Texto');
-        if (!textLength.isValid) {
-          result.errors.push(textLength.error!);
+      case 'phone': {
+        const phoneRegex = /^[+]?[(]?[0-9]{1,4}[)]?[-\s.]?[(]?[0-9]{1,4}[)]?[-\s.]?[0-9]{1,9}$/;
+        if (!phoneRegex.test(input)) {
+          result.errors.push('Telefone inv√°lido');
           result.isValid = false;
         }
         break;
       }
     }
-
+    
     return result;
   }
 
-  // ValidaÁ„o de m˙ltiplos campos para UX
+  // Sanitiza√ß√£o b√°sica de input (remover scripts, etc)
+  static sanitizeInput(input: string): string {
+    return input
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+      .replace(/<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>/gi, '')
+      .trim();
+  }
+
+  // Valida√ß√£o de m√∫ltiplos campos para UX
   static validateForm(fields: Record<string, { value: string; type: 'text' | 'email' | 'password' | 'search' | 'url' | 'phone' }>): FormValidationResult {
     const results: Record<string, ValidationResult> = {};
     let isFormValid = true;
 
-    for (const [fieldName, field] of Object.entries(fields)) {
-      const result = this.validateUserInput(field.value, field.type);
-      results[fieldName] = result;
-      
-      if (!result.isValid) {
+    Object.entries(fields).forEach(([fieldName, fieldData]) => {
+      const validation = this.validateUserInput(fieldData.value, fieldData.type);
+      results[fieldName] = validation;
+      if (!validation.isValid) {
         isFormValid = false;
       }
-    }
+    });
 
-    return {
-      isValid: isFormValid,
-      fields: results
-    };
+    return { isValid: isFormValid, fields: results };
   }
 }
 
-// Interfaces simplificadas
-interface ValidationResult {
+export interface ValidationResult {
   isValid: boolean;
   errors: string[];
-  sanitized: string;
+  warnings?: string[];
 }
 
-interface FormValidationResult {
+export interface FormValidationResult {
   isValid: boolean;
   fields: Record<string, ValidationResult>;
 }
-
-// Hook personalizado para React
-export function useInputValidation() {
-  const validateInput = (input: string, type: Parameters<typeof InputValidationService.validateUserInput>[1]) => {
-    return InputValidationService.validateUserInput(input, type);
-  };
-
-  const validateForm = (fields: Parameters<typeof InputValidationService.validateForm>[0]) => {
-    return InputValidationService.validateForm(fields);
-  };
-
-  return { validateInput, validateForm };
-}
-
-export type { ValidationResult, FormValidationResult };

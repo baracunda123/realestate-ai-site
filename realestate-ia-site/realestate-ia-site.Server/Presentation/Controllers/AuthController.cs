@@ -28,6 +28,8 @@ namespace realestate_ia_site.Server.Presentation.Controllers
 
         [Required(ErrorMessage = "Palavra-passe é obrigatória")]
         [StringLength(100, MinimumLength = 8, ErrorMessage = "A palavra-passe deve ter entre 8 e 100 caracteres")]
+        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?"":{}|<>_+=\-\[\]\\;'/])[A-Za-z\d!@#$%^&*(),.?"":{}|<>_+=\-\[\]\\;'/]+$", 
+            ErrorMessage = "Senha deve conter: 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial.")]
         public string Password { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Confirmação de palavra-passe é obrigatória")]
