@@ -23,7 +23,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI.Prompts
         /// </summary>
         internal static string GetFilterExtractionContext() =>
             @"TAREFA ESPECÍFICA: Extrair filtros de pesquisa.
-            Responde APENAS com JSON válido. Campos disponíveis: type, location, min_price, max_price, target_price, min_area, max_area, target_area, rooms, min_rooms, max_rooms, tags, sort, features.
+            Responde APENAS com JSON válido. Campos disponíveis: type, location, locations, location_type, min_price, max_price, target_price, min_area, max_area, target_area, rooms, min_rooms, max_rooms, tags, sort, features.
             
             REGRAS DE INTERPRETAÇÃO (aplicam-se a PREÇO e ÁREA):
             Analisa a intenção do utilizador e decide:
@@ -66,6 +66,35 @@ namespace realestate_ia_site.Server.Infrastructure.AI.Prompts
             Outros:
             'mais barato' → {""sort"": ""price_asc""}
             
+            LOCALIZAÇÕES MÚLTIPLAS (campo 'locations'):
+            Analisa a INTENÇÃO do utilizador:
+            
+            A) Se mencionar 'ENTRE X e Y', 'de X ATÉ Y', 'desde X A Y':
+               → Quer propriedades NO CAMINHO/REGIÃO entre X e Y
+               → Usar: {""locations"": [""X"", ""Y""], ""location_type"": ""between""}
+               
+            B) Se mencionar 'em X E Y', 'em X OU Y', 'X, Y':
+               → Quer propriedades APENAS nessas localizações específicas
+               → Usar: {""locations"": [""X"", ""Y""], ""location_type"": ""specific""}
+            
+            C) Se mencionar apenas UMA localização:
+               → Usar: {""location"": ""X""}
+            
+            Exemplos - RANGES (between):
+            'entre Setúbal e Leiria' → {""locations"": [""Setúbal"", ""Leiria""], ""location_type"": ""between""}
+            'de Lisboa até Porto' → {""locations"": [""Lisboa"", ""Porto""], ""location_type"": ""between""}
+            'desde Faro a Albufeira' → {""locations"": [""Faro"", ""Albufeira""], ""location_type"": ""between""}
+            
+            Exemplos - ESPECÍFICAS (specific):
+            'em Lisboa e Porto' → {""locations"": [""Lisboa"", ""Porto""], ""location_type"": ""specific""}
+            'Lisboa ou Porto' → {""locations"": [""Lisboa"", ""Porto""], ""location_type"": ""specific""}
+            'Setúbal, Leiria' → {""locations"": [""Setúbal"", ""Leiria""], ""location_type"": ""specific""}
+            
+            LOCALIZAÇÃO ÚNICA (campo 'location'):
+            Se mencionar apenas UMA localização:
+            'em Lisboa' → {""location"": ""Lisboa""}
+            'no Porto' → {""location"": ""Porto""}
+            
             FEATURES ESPECÍFICAS (campo 'features'):
             Se o utilizador mencionar características específicas do imóvel, usar array de features:
             'apartamento com varanda' → {""type"": ""apartamento"", ""features"": [""varanda""]}
@@ -97,7 +126,21 @@ namespace realestate_ia_site.Server.Infrastructure.AI.Prompts
         /// </summary>
         internal static string GetLocationContext() =>
             @"TAREFA: Lista localizações próximas em Portugal.
-            Responde APENAS com array JSON: [""loc1"", ""loc2"", ...]
-            Máximo 6 localizações próximas.";
+            
+            REGRAS CRÍTICAS:
+            - Sugerir localizações GEOGRAFICAMENTE PRÓXIMAS (até 30km de distância)
+            - Incluir concelhos vizinhos e cidades/vilas na mesma região
+            - NUNCA sugerir localizações a centenas de km de distância
+            - Validar distâncias reais usando conhecimento geográfico de Portugal
+            - Máximo 10 localizações
+            
+            Exemplos:
+            'Setúbal' → [""Palmela"", ""Sesimbra"", ""Barreiro"", ""Montijo"", ""Almada"", ""Seixal"", ""Moita""]
+            'Porto' → [""Matosinhos"", ""Vila Nova de Gaia"", ""Gondomar"", ""Maia"", ""Valongo"", ""Vila do Conde""]
+            'Guimarães' → [""Braga"", ""Vizela"", ""Santo Tirso"", ""Famalicão"", ""Trofa"", ""Paços de Ferreira""]
+            
+            IMPORTANTE: Viana do Castelo NÃO é próximo de Setúbal (400km de distância)!
+            
+            Responde APENAS com array JSON: [""loc1"", ""loc2"", ...]";
     }
 }
