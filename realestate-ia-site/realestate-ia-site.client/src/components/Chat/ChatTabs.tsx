@@ -107,7 +107,7 @@ export function ChatTabs({
                       <button
                         onClick={(e) => handleDelete(e, session.id)}
                         disabled={isDeleting}
-                        className="flex-shrink-0 p-1 rounded hover:bg-error-soft hover:text-error-strong transition-colors opacity-0 group-hover:opacity-100"
+                        className="flex-shrink-0 p-1 rounded hover:bg-error-soft hover:text-error-strong transition-colors text-warm-taupe md:opacity-0 md:group-hover:opacity-100"
                         title="Eliminar conversa"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
