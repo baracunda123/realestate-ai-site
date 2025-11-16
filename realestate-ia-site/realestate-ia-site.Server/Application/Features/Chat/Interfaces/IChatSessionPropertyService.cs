@@ -10,6 +10,11 @@ namespace realestate_ia_site.Server.Application.Features.Chat.Interfaces
         Task AddPropertiesToSessionAsync(string sessionId, IEnumerable<string> propertyIds, CancellationToken cancellationToken = default);
         
         /// <summary>
+        /// Associa uma lista de propriedades a uma sessão de chat com matched features
+        /// </summary>
+        Task AddPropertiesToSessionAsync(string sessionId, IEnumerable<string> propertyIds, Dictionary<string, List<string>>? matchedFeatures, CancellationToken cancellationToken = default);
+        
+        /// <summary>
         /// Obtém todas as propriedades associadas a uma sessão
         /// </summary>
         Task<List<PropertySearchDto>> GetSessionPropertiesAsync(string sessionId, CancellationToken cancellationToken = default);

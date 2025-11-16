@@ -222,6 +222,42 @@ export default function App() {
     loadFavorites();
   }, [loadFavorites]);
 
+  // Handle session expiration
+  useEffect(() => {
+    const handleSessionExpired = (event: Event) => {
+      const customEvent = event as CustomEvent<{ message: string }>;
+      logger.warn('Sessão expirada detectada', 'APP');
+      
+      // Limpar estado do utilizador
+      setUser(null);
+      setFavorites([]);
+      setSearchResults(null);
+      setConversationHistory([]);
+      setChatSessions([]);
+      setActiveSessionId(null);
+      setShowSearchPanel(false);
+      sessionStorage.removeItem('showSearchPanel');
+      
+      // Mostrar notificação
+      toast.error('Sessão Expirada', {
+        description: customEvent.detail.message,
+        duration: 5000,
+      });
+      
+      // Redirecionar para home e abrir modal de login
+      navigate('/');
+      setCurrentView('home');
+      setAuthDefaultTab('signin');
+      setIsAuthModalOpen(true);
+    };
+
+    window.addEventListener('session-expired', handleSessionExpired);
+
+    return () => {
+      window.removeEventListener('session-expired', handleSessionExpired);
+    };
+  }, [navigate]);
+
 
   // Handle URL navigation - usando react-router
   useEffect(() => {

@@ -62,10 +62,36 @@ namespace realestate_ia_site.Server.Infrastructure.AI.Prompts
             'uns 200m²' → {""target_area"": 200}
             
             QUARTOS (rooms, min_rooms, max_rooms):
-            'T3' ou '3 quartos' → {""rooms"": 3}
-            'pelo menos 2 quartos' → {""min_rooms"": 2}
-            'até 4 quartos' → {""max_rooms"": 4}
-            'entre 2 e 4 quartos' → {""min_rooms"": 2, ""max_rooms"": 4}
+            
+            REGRA CRÍTICA: Analisa a INTENÇÃO do utilizador:
+            
+            1. EXATO (campo 'rooms'):
+               Quando pede um tipo específico SEM indicar flexibilidade
+               'T3' → {""rooms"": 3}
+               '3 quartos' → {""rooms"": 3}
+               'apartamento T2' → {""rooms"": 2}
+               'quero um T2' → {""rooms"": 2}
+            
+            2. MÍNIMO (campo 'min_rooms'):
+               Quando indica que aceita MAIS quartos
+               'pelo menos 2 quartos' → {""min_rooms"": 2}
+               'T2 ou mais' → {""min_rooms"": 2}
+               'a partir de 3 quartos' → {""min_rooms"": 3}
+               'mínimo T2' → {""min_rooms"": 2}
+               '2+ quartos' → {""min_rooms"": 2}
+            
+            3. MÁXIMO (campo 'max_rooms'):
+               Quando indica que aceita MENOS quartos
+               'até 4 quartos' → {""max_rooms"": 4}
+               'no máximo T3' → {""max_rooms"": 3}
+               'máximo 2 quartos' → {""max_rooms"": 2}
+            
+            4. INTERVALO (campos 'min_rooms' E 'max_rooms'):
+               Quando especifica um range
+               'entre 2 e 4 quartos' → {""min_rooms"": 2, ""max_rooms"": 4}
+               'de T2 a T4' → {""min_rooms"": 2, ""max_rooms"": 4}
+            
+            IMPORTANTE: Por defeito, usa 'rooms' (exato) a não ser que o utilizador indique explicitamente flexibilidade
             
             ORDENAÇÃO:
             'mais barato' → {""sort"": ""price_asc""}
@@ -94,27 +120,45 @@ namespace realestate_ia_site.Server.Infrastructure.AI.Prompts
                'Setúbal, Leiria' → {""locations"": [""Setúbal"", ""Leiria""], ""location_type"": ""specific""}
             
             FEATURES ESPECÍFICAS (campo 'features'):
-            REGRA CRÍTICA: Adicionar features APENAS se EXPLICITAMENTE mencionadas na query.
             
-            Exemplos CORRETOS (features mencionadas):
-            'apartamento com varanda e moderno' → {""type"": ""apartamento"", ""features"": [""varanda"", ""moderno""]}
-            'casa com piscina e jardim' → {""type"": ""casa"", ""features"": [""piscina"", ""jardim""]}
-            'imóvel renovado com ar condicionado' → {""features"": [""renovado"", ""ar condicionado""]}
-            'T2 com garagem virado a sul' → {""rooms"": 2, ""features"": [""garagem"", ""virado a sul""]}
+            REGRAS DE ADIÇÃO DE FEATURES:
             
-            FEATURES ABSTRATAS (termos como 'familiar', 'segura', 'tranquila', 'moderna'):
-            - Se és GPT-4o: Expande com sinónimos contextuais relevantes
-            - Se és GPT-4o-mini: Adiciona o termo literal (o backend expande depois)
+            1. FEATURES EXPLÍCITAS (sempre adicionar):
+               - Mencionadas diretamente na query
+               'apartamento com varanda e moderno' → {""type"": ""apartamento"", ""features"": [""varanda"", ""moderno""]}
+               'casa com piscina e jardim' → {""type"": ""casa"", ""features"": [""piscina"", ""jardim""]}
+               'imóvel renovado com ar condicionado' → {""features"": [""renovado"", ""ar condicionado""]}
+               'T2 com garagem virado a sul' → {""rooms"": 2, ""features"": [""garagem"", ""virado a sul""]}
             
-            Exemplos GPT-4o (expansão inteligente):
-            'casa segura' → {""type"": ""casa"", ""features"": [""zona segura"", ""condomínio fechado"", ""segurança""]}
-            'apartamento familiar' → {""type"": ""apartamento"", ""features"": [""espaçoso"", ""zona residencial"", ""familiar""]}
+            2. FEATURES IMPLÍCITAS (se houver CONTEXTO DE INTENÇÃO):
+               - Se receberes um ""CONTEXTO DE INTENÇÃO DO UTILIZADOR"" com preocupações/necessidades
+               - GPT-4o: Adiciona features relevantes e expandidas baseadas no contexto
+               - GPT-4o-mini: Adiciona features literais baseadas no contexto (backend expande depois)
+               
+               Exemplo GPT-4o:
+               Query ""moradia para família"" + Contexto ""Preocupações: escolas, segurança""
+               → {""type"": ""moradia"", ""features"": [""zona familiar"", ""escolas próximas"", ""zona segura"", ""espaçoso""]}
+               
+               Exemplo GPT-4o-mini:
+               Query ""moradia para família"" + Contexto ""Preocupações: escolas, segurança""
+               → {""type"": ""moradia"", ""features"": [""familiar"", ""segura""]}
+               
+               - Se NÃO houver contexto de intenção, NÃO adicionar features implícitas
+               - Exemplo: Query simples ""moradia no Porto"" SEM contexto → {""type"": ""moradia"", ""location"": ""Porto""}
             
-            Exemplos GPT-4o-mini (literal - backend expande):
-            'casa segura' → {""type"": ""casa"", ""features"": [""segura""]}
-            'apartamento familiar' → {""type"": ""apartamento"", ""features"": [""familiar""]}
+            3. FEATURES ABSTRATAS (expansão de termos):
+               - GPT-4o: Expande com sinónimos contextuais relevantes
+               - GPT-4o-mini: Adiciona o termo literal (o backend expande depois)
+               
+               Exemplos GPT-4o (expansão inteligente):
+               'casa segura' → {""type"": ""casa"", ""features"": [""zona segura"", ""condomínio fechado"", ""segurança""]}
+               'apartamento familiar' → {""type"": ""apartamento"", ""features"": [""espaçoso"", ""zona residencial"", ""familiar""]}
+               
+               Exemplos GPT-4o-mini (literal - backend expande):
+               'casa segura' → {""type"": ""casa"", ""features"": [""segura""]}
+               'apartamento familiar' → {""type"": ""apartamento"", ""features"": [""familiar""]}
             
-            Exemplo SEM features:
+            IMPORTANTE: Queries simples SEM contexto de intenção NÃO devem ter features:
             'T3 no Porto' → {""rooms"": 3, ""location"": ""Porto""} (SEM campo features)
             
             Features comuns (usar APENAS se mencionadas): varanda, terraço, jardim, piscina, garagem, arrecadação, 

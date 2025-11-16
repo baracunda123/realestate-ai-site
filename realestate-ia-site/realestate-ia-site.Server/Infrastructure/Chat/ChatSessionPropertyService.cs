@@ -3,6 +3,7 @@ using realestate_ia_site.Server.Application.Common.DTOs;
 using realestate_ia_site.Server.Application.Common.Interfaces;
 using realestate_ia_site.Server.Application.Features.Chat.Interfaces;
 using realestate_ia_site.Server.Domain.Entities;
+using System.Text.Json;
 
 namespace realestate_ia_site.Server.Infrastructure.Chat
 {
@@ -21,6 +22,15 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
 
         public async Task AddPropertiesToSessionAsync(string sessionId, IEnumerable<string> propertyIds, CancellationToken cancellationToken = default)
         {
+            await AddPropertiesToSessionAsync(sessionId, propertyIds, null, cancellationToken);
+        }
+
+        public async Task AddPropertiesToSessionAsync(
+            string sessionId, 
+            IEnumerable<string> propertyIds, 
+            Dictionary<string, List<string>>? matchedFeatures,
+            CancellationToken cancellationToken = default)
+        {
             try
             {
                 // Limpar propriedades anteriores desta sessão
@@ -31,20 +41,30 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
 
                 for (int i = 0; i < propertyIdList.Count; i++)
                 {
-                    sessionProperties.Add(new ChatSessionProperty
+                    var propertyId = propertyIdList[i];
+                    var sessionProperty = new ChatSessionProperty
                     {
                         Id = Guid.NewGuid().ToString(),
                         SessionId = sessionId,
-                        PropertyId = propertyIdList[i],
+                        PropertyId = propertyId,
                         DisplayOrder = i,
                         AddedAt = DateTime.UtcNow
-                    });
+                    };
+
+                    // Guardar matched features se existirem
+                    if (matchedFeatures != null && matchedFeatures.TryGetValue(propertyId, out var features))
+                    {
+                        sessionProperty.MatchedFeaturesJson = JsonSerializer.Serialize(features);
+                    }
+
+                    sessionProperties.Add(sessionProperty);
                 }
 
                 _context.ChatSessionProperties.AddRange(sessionProperties);
                 await _context.SaveChangesAsync(cancellationToken);
 
-                _logger.LogInformation("Adicionadas {Count} propriedades à sessão {SessionId}", propertyIdList.Count, sessionId);
+                _logger.LogInformation("Adicionadas {Count} propriedades à sessão {SessionId} (com features: {HasFeatures})", 
+                    propertyIdList.Count, sessionId, matchedFeatures != null);
             }
             catch (Exception ex)
             {
@@ -57,12 +77,13 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
         {
             try
             {
-                var properties = await _context.ChatSessionProperties
+                var sessionProperties = await _context.ChatSessionProperties
                     .Where(sp => sp.SessionId == sessionId)
                     .Include(sp => sp.Property)
                     .OrderBy(sp => sp.DisplayOrder)
-                    .Select(sp => sp.Property!)
                     .ToListAsync(cancellationToken);
+
+                var properties = sessionProperties.Select(sp => sp.Property!).ToList();
 
                 // Obter histórico de preços para cada propriedade
                 var propertyIds = properties.Select(p => p.Id).ToList();
@@ -76,11 +97,33 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
                     .Where(ph => ph != null)
                     .ToDictionary(ph => ph!.PropertyId, ph => ph);
 
-                var result = properties.Select(p =>
+                var result = new List<PropertySearchDto>();
+                foreach (var sp in sessionProperties)
                 {
-                    priceHistoryDict.TryGetValue(p.Id, out var priceHistory);
-                    return PropertySearchDto.FromDomain(p, priceHistory);
-                }).ToList();
+                    if (sp.Property == null) continue;
+
+                    priceHistoryDict.TryGetValue(sp.Property.Id, out var priceHistory);
+                    var dto = PropertySearchDto.FromDomain(sp.Property, priceHistory);
+
+                    // Restaurar matched features se existirem
+                    if (!string.IsNullOrWhiteSpace(sp.MatchedFeaturesJson))
+                    {
+                        try
+                        {
+                            var features = JsonSerializer.Deserialize<List<string>>(sp.MatchedFeaturesJson);
+                            if (features != null && features.Any())
+                            {
+                                dto.MatchedFeatures = features;
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "Erro ao deserializar matched features para propriedade {PropertyId}", sp.PropertyId);
+                        }
+                    }
+
+                    result.Add(dto);
+                }
 
                 _logger.LogInformation("Recuperadas {Count} propriedades da sessão {SessionId}", result.Count, sessionId);
                 return result;

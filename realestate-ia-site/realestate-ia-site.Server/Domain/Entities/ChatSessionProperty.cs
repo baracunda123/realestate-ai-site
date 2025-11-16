@@ -12,6 +12,12 @@ namespace realestate_ia_site.Server.Domain.Entities
         public int DisplayOrder { get; set; } // Ordem em que foi retornado na pesquisa
         public DateTime AddedAt { get; set; } = DateTime.UtcNow;
         
+        /// <summary>
+        /// Features encontradas nesta propriedade (JSON serializado)
+        /// Exemplo: ["varanda", "jardim", "moderno"]
+        /// </summary>
+        public string? MatchedFeaturesJson { get; set; }
+        
         // Navigation properties
         public virtual ChatSession? Session { get; set; }
         public virtual Property? Property { get; set; }

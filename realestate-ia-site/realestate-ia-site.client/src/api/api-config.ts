@@ -12,7 +12,7 @@ const ENV_VARS = {
 export const API_CONFIG = {
   // Base configuration
   BASE_URL: ENV_VARS.BASE_URL,
-  TIMEOUT: 30000,
+  TIMEOUT: 60000,
   
   // API Endpoints - Minificados para produção
   ENDPOINTS: (() => {

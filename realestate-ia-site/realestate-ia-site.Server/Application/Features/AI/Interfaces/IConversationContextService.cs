@@ -11,5 +11,6 @@ namespace realestate_ia_site.Server.Application.Features.AI.Interfaces
         void ClearContext(string sessionId);
         void ClearExpiredContexts();
         Task<ConversationContext> GetOrCreateContextAsync(string sessionId, CancellationToken cancellationToken = default);
+        ConversationContext? RestoreContextFromDatabase(string sessionId);
     }
 }
