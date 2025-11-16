@@ -60,8 +60,9 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
             
             try
             {
-                // Obter contexto para análise de comportamento
-                var context = _contextService.GetContext(request.SessionId);
+                // Obter ou criar contexto (restaura da BD se necessário)
+                // Isto garante que filtros e histórico sejam mantidos entre sessões
+                var context = _contextService.GetOrCreateContext(request.SessionId);
                 Dictionary<string, object>? previousFilters = null;
                 
                 if (context != null && context.FilterHistory.Any())

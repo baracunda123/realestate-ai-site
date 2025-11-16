@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using realestate_ia_site.Server.Application.Common.DTOs;
 using realestate_ia_site.Server.Application.Features.Chat.DTOs;
 using realestate_ia_site.Server.Application.Features.Chat.Interfaces;
+using realestate_ia_site.Server.Application.Features.AI.Interfaces;
 
 namespace realestate_ia_site.Server.Presentation.Controllers
 {
@@ -13,15 +14,18 @@ namespace realestate_ia_site.Server.Presentation.Controllers
     {
         private readonly IChatSessionService _chatSessionService;
         private readonly IChatSessionPropertyService _chatSessionPropertyService;
+        private readonly IConversationContextService _conversationContextService;
         private readonly ILogger<ChatSessionsController> _logger;
 
         public ChatSessionsController(
             IChatSessionService chatSessionService,
             IChatSessionPropertyService chatSessionPropertyService,
+            IConversationContextService conversationContextService,
             ILogger<ChatSessionsController> logger)
         {
             _chatSessionService = chatSessionService;
             _chatSessionPropertyService = chatSessionPropertyService;
+            _conversationContextService = conversationContextService;
             _logger = logger;
         }
 
@@ -64,6 +68,10 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 {
                     return NotFound(new { error = "Sessão não encontrada" });
                 }
+
+                // Restaurar contexto conversacional da BD para o cache
+                // Isto garante que filtros e histórico sejam recuperados ao voltar para a conversa
+                _conversationContextService.RestoreContextFromDatabase(sessionId);
 
                 return Ok(session);
             }

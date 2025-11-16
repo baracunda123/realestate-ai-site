@@ -104,8 +104,20 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 if (result.Properties != null && result.Properties.Any())
                 {
                     var propertyIds = result.Properties.Select(p => p.Id).ToList();
-                    await _chatSessionPropertyService.AddPropertiesToSessionAsync(chatSessionId, propertyIds, ct);
-                    _logger.LogInformation("Persistidas {Count} propriedades na sessão {SessionId}", propertyIds.Count, chatSessionId);
+                    
+                    // Extrair matched features de cada propriedade (se existirem)
+                    var matchedFeatures = result.Properties
+                        .Where(p => p.MatchedFeatures != null && p.MatchedFeatures.Any())
+                        .ToDictionary(p => p.Id, p => p.MatchedFeatures!);
+                    
+                    await _chatSessionPropertyService.AddPropertiesToSessionAsync(
+                        chatSessionId, 
+                        propertyIds, 
+                        matchedFeatures.Any() ? matchedFeatures : null, 
+                        ct);
+                    
+                    _logger.LogInformation("Persistidas {Count} propriedades na sessão {SessionId} (com features: {FeaturesCount})", 
+                        propertyIds.Count, chatSessionId, matchedFeatures.Count);
                 }
                 else
                 {

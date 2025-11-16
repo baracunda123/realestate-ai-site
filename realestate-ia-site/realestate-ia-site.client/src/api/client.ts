@@ -233,7 +233,7 @@ class ApiClient {
     this.client = axios.create({
       baseURL: baseURL,
       withCredentials: true, // Importante: envia cookies HttpOnly
-      timeout: 30000, // 30 segundos para permitir queries mais complexas
+      timeout: 60000, // 60 segundos para permitir queries mais complexas
       headers: {
         'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest'
@@ -297,8 +297,17 @@ class ApiClient {
         // Se 401, o servidor já tentou renovar via cookie e falhou
         // Significa que a sessão expirou realmente - limpar estado local
         if (error.response?.status === 401) {
+          const wasAuthenticated = SecureTokenManager.isAuthenticated();
           logger.warn('Erro 401 - sessão expirada, limpando tokens');
           SecureTokenManager.clearTokens();
+          
+          // Se estava autenticado, notificar e redirecionar
+          if (wasAuthenticated) {
+            // Disparar evento customizado para o App.tsx tratar
+            window.dispatchEvent(new CustomEvent('session-expired', {
+              detail: { message: 'A sua sessão expirou. Por favor, faça login novamente.' }
+            }));
+          }
         }
         
         return Promise.reject(error);

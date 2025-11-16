@@ -168,6 +168,48 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             }
         }
 
+        /// <summary>
+        /// Restaura o contexto da BD para o cache (útil ao voltar para uma conversa anterior)
+        /// </summary>
+        public ConversationContext? RestoreContextFromDatabase(string sessionId)
+        {
+            ArgumentException.ThrowIfNullOrWhiteSpace(sessionId, nameof(sessionId));
+            var cacheKey = GetCacheKey(sessionId);
+            
+            try
+            {
+                // Buscar na BD
+                var contextData = _context.ConversationContexts
+                    .FirstOrDefault(c => c.SessionId == sessionId);
+                
+                if (contextData == null)
+                {
+                    _logger.LogDebug("Nenhum contexto encontrado na BD para sessão: {SessionId}", sessionId);
+                    return null;
+                }
+                
+                // Deserializar
+                var context = DeserializeContext(contextData);
+                
+                // Guardar no cache
+                var cacheOptions = CreateCacheOptions();
+                _cache.Set(cacheKey, context, cacheOptions);
+                
+                _logger.LogInformation(
+                    "Contexto restaurado da BD para cache - Sessão: {SessionId}, Filtros: {HasFilters}, Histórico: {HistoryCount}",
+                    sessionId,
+                    context.LastFilters.Any(),
+                    context.FilterHistory.Count);
+                
+                return context;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao restaurar contexto da BD para sessão: {SessionId}", sessionId);
+                return null;
+            }
+        }
+
         private ConversationContext CreateNewContext(string sessionId, string cacheKey)
         {
             var context = new ConversationContext { SessionId = sessionId };
