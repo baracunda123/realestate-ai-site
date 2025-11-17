@@ -1,65 +1,35 @@
 import { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../components/ui/card';
 import { Button } from '../components/ui/button';
-import { Badge } from '../components/ui/badge';
-import { Check, Sparkles, Zap, AlertTriangle } from 'lucide-react';
+import { Check, AlertTriangle, Loader2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import apiClient from '../api/client';
 import { createSubscription, getCurrentSubscription, cancelSubscription, type SubscriptionDto } from '../api/subscription.service';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '../components/ui/alert-dialog';
 
+interface Feature {
+  name: string;
+  free: boolean | string;
+  premium: boolean | string;
+}
+
 interface PricingPlan {
   id: string;
   name: string;
   price: number;
   interval: 'month' | 'year';
-  features: string[];
-  chatLimit: number;
-  icon: React.ReactNode;
-  popular?: boolean;
-  color: string;
 }
 
-const plans: PricingPlan[] = [
-  {
-    id: 'free',
-    name: 'Free',
-    price: 0,
-    interval: 'month',
-    chatLimit: -1, // Ilimitado
-    features: [
-      'Pesquisas ilimitadas',
-      'Modelo básico (GPT-4o-mini)',
-      'Histórico completo de pesquisas',
-      'Favoritos ilimitados',
-      'Área pessoal',
-      'Sessões de chat guardadas',
-      'Recomendações personalizadas'
-    ],
-    icon: <Sparkles className="h-6 w-6" />,
-    color: 'from-cocoa-taupe-light to-cocoa-taupe'
-  },
-  {
-    id: 'premium',
-    name: 'Premium',
-    price: 8,
-    interval: 'month',
-    chatLimit: -1, // Ilimitado
-    popular: true,
-    features: [
-      'Pesquisas ilimitadas',
-      'Modelo avançado (GPT-4o)',
-      'Respostas excelentes e detalhadas',
-      'Histórico completo de pesquisas',
-      'Favoritos ilimitados',
-      'Área pessoal',
-      'Sessões de chat guardadas',
-      'Recomendações personalizadas'
-    ],
-    icon: <Zap className="h-6 w-6" />,
-    color: 'from-burnt-peach to-burnt-peach-dark'
-  }
+const features: Feature[] = [
+  { name: 'Pesquisas ilimitadas', free: true, premium: true },
+  { name: 'Modelo de IA', free: 'GPT-4o-mini', premium: 'GPT-4o' },
+  { name: 'Histórico de pesquisas', free: true, premium: true },
+  { name: 'Favoritos ilimitados', free: true, premium: true },
+  { name: 'Área pessoal', free: true, premium: true },
+  { name: 'Sessões de chat guardadas', free: true, premium: true },
+  { name: 'Recomendações personalizadas', free: true, premium: true },
+  { name: 'Respostas mais precisas', free: false, premium: true },
+  { name: 'Análise detalhada de propriedades', free: false, premium: true },
 ];
 
 export function PricingPage() {
@@ -167,105 +137,169 @@ export function PricingPage() {
     }
   };
 
+  const isPremiumActive = activeSubscription && activeSubscription.status === 'active' && !activeSubscription.cancelAtPeriodEnd;
+  const isFreeActive = !activeSubscription || activeSubscription.cancelAtPeriodEnd;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pale-clay-light via-porcelain to-pure-white py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-pure-white py-16 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-deep-mocha mb-4">
-            Encontre a Casa Perfeita com IA
+        <div className="text-center mb-16">
+          <h1 className="text-5xl font-semibold text-deep-mocha mb-4 tracking-tight">
+            Escolhe o teu plano
           </h1>
-          <p className="text-xl text-warm-taupe max-w-2xl mx-auto">
-            Chat ilimitado com IA avançada por apenas €8/mês. Sem contratos, cancele quando quiser.
-          </p>
-          <p className="text-sm text-warm-taupe mt-2">
-            Upgrade para Premium e tenha acesso a respostas mais inteligentes e precisas
+          <p className="text-lg text-warm-taupe max-w-2xl mx-auto">
+            Pesquisas ilimitadas. Cancela quando quiseres.
           </p>
         </div>
 
-        {/* Plans Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-12">
-          {plans.map((plan) => (
-            <Card 
-              key={plan.id}
-              className={`relative flex flex-col ${
-                plan.popular 
-                  ? 'border-2 border-burnt-peach shadow-burnt-peach' 
-                  : 'border border-pale-clay-deep'
-              }`}
-            >
-              {plan.popular && (
-                <Badge className="absolute -top-3 left-1/2 -translate-x-1/2 bg-burnt-peach text-deep-mocha">
+        {/* Plans Comparison */}
+        <div className="bg-porcelain rounded-3xl p-8 mb-16">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Free Plan */}
+            <div className="bg-pure-white rounded-2xl p-8 border border-pale-clay-deep">
+              <div className="mb-6">
+                <h2 className="text-2xl font-semibold text-deep-mocha mb-2">Free</h2>
+                <div className="flex items-baseline gap-2 mb-4">
+                  <span className="text-5xl font-semibold text-deep-mocha">€0</span>
+                  <span className="text-warm-taupe">/mês</span>
+                </div>
+                <p className="text-sm text-warm-taupe">Modelo básico (GPT-4o-mini)</p>
+              </div>
+              
+              <Button
+                onClick={() => handleSubscribe({ id: 'free', name: 'Free', price: 0, interval: 'month' } as any)}
+                disabled={loading === 'free' || isFreeActive}
+                variant="outline"
+                className="w-full mb-6 h-12 border-pale-clay-deep text-deep-mocha hover:bg-pale-clay-light"
+              >
+                {loading === 'free' ? (
+                  <>
+                    <span className="animate-spin mr-2">⏳</span>
+                    A processar...
+                  </>
+                ) : isFreeActive ? (
+                  'Plano Atual'
+                ) : (
+                  'Mudar para Free'
+                )}
+              </Button>
+
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <Check className="h-4 w-4 text-burnt-peach flex-shrink-0" />
+                  <span className="text-warm-taupe">Pesquisas ilimitadas</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Check className="h-4 w-4 text-burnt-peach flex-shrink-0" />
+                  <span className="text-warm-taupe">Histórico e favoritos</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Check className="h-4 w-4 text-burnt-peach flex-shrink-0" />
+                  <span className="text-warm-taupe">Área pessoal</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Premium Plan */}
+            <div className="bg-gradient-to-br from-burnt-peach-lighter/20 to-burnt-peach/10 rounded-2xl p-8 border-2 border-burnt-peach relative">
+              <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                <span className="bg-burnt-peach text-white text-xs font-semibold px-4 py-1.5 rounded-full shadow-lg">
                   Mais Popular
-                </Badge>
-              )}
-
-              <CardHeader className="pb-4">
-                <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${plan.color} flex items-center justify-center text-white mb-4`}>
-                  {plan.icon}
+                </span>
+              </div>
+              
+              <div className="mb-6">
+                <h2 className="text-2xl font-semibold text-deep-mocha mb-2">Premium</h2>
+                <div className="flex items-baseline gap-2 mb-4">
+                  <span className="text-5xl font-semibold text-deep-mocha">€8</span>
+                  <span className="text-warm-taupe">/mês</span>
                 </div>
-                <CardTitle className="text-2xl text-deep-mocha">{plan.name}</CardTitle>
-              </CardHeader>
+                <p className="text-sm text-burnt-peach-dark font-medium">Modelo avançado (GPT-4o)</p>
+              </div>
+              
+              <Button
+                onClick={() => handleSubscribe({ id: 'premium', name: 'Premium', price: 8, interval: 'month' })}
+                disabled={loading === 'premium' || (isPremiumActive ?? false)}
+                className="w-full mb-6 h-12 bg-burnt-peach hover:bg-burnt-peach-light text-white font-semibold shadow-lg"
+              >
+                {loading === 'premium' ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    A processar...
+                  </>
+                ) : isPremiumActive ? (
+                  'Plano Atual'
+                ) : (
+                  'Upgrade para Premium'
+                )}
+              </Button>
 
-              <CardContent className="flex-1 space-y-4">
-                <div className="space-y-1">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-bold text-deep-mocha">
-                      €{plan.price.toFixed(2)}
-                    </span>
-                    {plan.price > 0 && (
-                      <span className="text-warm-taupe">/{plan.interval === 'month' ? 'mês' : 'ano'}</span>
-                    )}
-                  </div>
-                  <p className="text-sm text-warm-taupe">
-                    {plan.chatLimit === -1 
-                      ? 'Chat ilimitado' 
-                      : `${plan.chatLimit} mensagens/mês`}
-                  </p>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <Check className="h-4 w-4 text-burnt-peach-dark flex-shrink-0" />
+                  <span className="text-deep-mocha font-medium">Tudo do Free, mais:</span>
                 </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Check className="h-4 w-4 text-burnt-peach-dark flex-shrink-0" />
+                  <span className="text-warm-taupe">Respostas mais precisas e detalhadas</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Check className="h-4 w-4 text-burnt-peach-dark flex-shrink-0" />
+                  <span className="text-warm-taupe">Análise avançada de propriedades</span>
+                </div>
+                <div className="flex items-center gap-2 text-sm">
+                  <Check className="h-4 w-4 text-burnt-peach-dark flex-shrink-0" />
+                  <span className="text-warm-taupe">Suporte prioritário</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
-                <ul className="space-y-3">
-                  {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-start gap-2">
-                      <Check className="h-5 w-5 text-burnt-peach flex-shrink-0 mt-0.5" />
-                      <span className="text-sm text-warm-taupe">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-
-              <CardFooter>
-                <Button
-                  onClick={() => handleSubscribe(plan)}
-                  disabled={
-                    loading === plan.id || 
-                    (plan.id === 'premium' && activeSubscription && activeSubscription.status === 'active' && !activeSubscription.cancelAtPeriodEnd) ||
-                    (plan.id === 'free' && !activeSubscription)
-                  }
-                  className={`w-full ${
-                    plan.popular
-                      ? 'bg-burnt-peach hover:bg-burnt-peach-light text-deep-mocha hover:text-white'
-                      : 'bg-pale-clay hover:bg-pale-clay-deep text-deep-mocha hover:text-white'
-                  } font-semibold`}
-                >
-                  {loading === plan.id ? (
-                    <>
-                      <span className="animate-spin mr-2">⏳</span>
-                      A processar...
-                    </>
-                  ) : plan.id === 'premium' && activeSubscription && activeSubscription.status === 'active' && !activeSubscription.cancelAtPeriodEnd ? (
-                    'Plano Atual'
-                  ) : plan.id === 'free' && activeSubscription && activeSubscription.status === 'active' && !activeSubscription.cancelAtPeriodEnd ? (
-                    'Mudar para Gratuito'
-                  ) : plan.id === 'free' && (!activeSubscription || activeSubscription.cancelAtPeriodEnd) ? (
-                    'Plano Atual'
-                  ) : (
-                    'Começar Agora'
-                  )}
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
+        {/* Feature Comparison Table */}
+        <div className="mb-16">
+          <h3 className="text-2xl font-semibold text-deep-mocha mb-8 text-center">Comparação detalhada</h3>
+          <div className="bg-porcelain rounded-2xl overflow-hidden">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-pale-clay-deep">
+                  <th className="text-left p-6 text-sm font-semibold text-deep-mocha">Funcionalidade</th>
+                  <th className="text-center p-6 text-sm font-semibold text-deep-mocha">Free</th>
+                  <th className="text-center p-6 text-sm font-semibold text-deep-mocha">Premium</th>
+                </tr>
+              </thead>
+              <tbody>
+                {features.map((feature, index) => (
+                  <tr key={index} className="border-b border-pale-clay-deep last:border-0">
+                    <td className="p-6 text-sm text-warm-taupe">{feature.name}</td>
+                    <td className="p-6 text-center">
+                      {typeof feature.free === 'boolean' ? (
+                        feature.free ? (
+                          <Check className="h-5 w-5 text-burnt-peach mx-auto" />
+                        ) : (
+                          <span className="text-pale-clay-deep">—</span>
+                        )
+                      ) : (
+                        <span className="text-xs text-warm-taupe bg-pale-clay-light px-2 py-1 rounded">{feature.free}</span>
+                      )}
+                    </td>
+                    <td className="p-6 text-center">
+                      {typeof feature.premium === 'boolean' ? (
+                        feature.premium ? (
+                          <Check className="h-5 w-5 text-burnt-peach-dark mx-auto" />
+                        ) : (
+                          <span className="text-pale-clay-deep">—</span>
+                        )
+                      ) : (
+                        <span className="text-xs text-burnt-peach-dark bg-burnt-peach-lighter/30 px-2 py-1 rounded font-medium">{feature.premium}</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Downgrade Dialog */}
@@ -312,38 +346,30 @@ export function PricingPage() {
           </AlertDialogContent>
         </AlertDialog>
 
-        {/* FAQ / Additional Info */}
-        <Card className="border border-pale-clay-deep">
-          <CardHeader>
-            <CardTitle className="text-deep-mocha">Perguntas Frequentes</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div>
-              <h3 className="font-semibold text-deep-mocha mb-2">Porquê pagar €8/mês?</h3>
-              <p className="text-sm text-warm-taupe">
-                Com o Premium tens conversas ilimitadas com a nossa IA especializada em imobiliário, usando tecnologia avançada para respostas mais precisas, detalhadas e contextualizadas. Pergunte o que quiseres, quantas vezes quiseres, sem limites. É como ter um consultor imobiliário expert 24/7 por apenas €8/mês.
+        {/* FAQ */}
+        <div className="max-w-3xl mx-auto">
+          <h3 className="text-2xl font-semibold text-deep-mocha mb-8 text-center">Perguntas Frequentes</h3>
+          <div className="space-y-6">
+            <div className="bg-porcelain rounded-xl p-6">
+              <h4 className="font-semibold text-deep-mocha mb-2">Porquê pagar €8/mês?</h4>
+              <p className="text-sm text-warm-taupe leading-relaxed">
+                Com o Premium tens acesso ao modelo GPT-4o, que oferece respostas mais precisas, detalhadas e contextualizadas. É como ter um consultor imobiliário expert 24/7 por apenas €8/mês.
               </p>
             </div>
-            <div>
-              <h3 className="font-semibold text-deep-mocha mb-2">O que acontece se exceder o limite no plano gratuito?</h3>
-              <p className="text-sm text-warm-taupe">
-                Quando atingir as 50 mensagens, podes fazer upgrade imediatamente para continuar a usar o chat, ou aguardar pela renovação mensal do plano gratuito.
-              </p>
-            </div>
-            <div>
-              <h3 className="font-semibold text-deep-mocha mb-2">Posso cancelar a qualquer momento?</h3>
-              <p className="text-sm text-warm-taupe">
+            <div className="bg-porcelain rounded-xl p-6">
+              <h4 className="font-semibold text-deep-mocha mb-2">Posso cancelar a qualquer momento?</h4>
+              <p className="text-sm text-warm-taupe leading-relaxed">
                 Sim! Sem compromissos nem contratos. Cancela quando quiseres e continuarás a ter acesso Premium até ao fim do período pago.
               </p>
             </div>
-            <div>
-              <h3 className="font-semibold text-deep-mocha mb-2">Como funciona o pagamento?</h3>
-              <p className="text-sm text-warm-taupe">
+            <div className="bg-porcelain rounded-xl p-6">
+              <h4 className="font-semibold text-deep-mocha mb-2">Como funciona o pagamento?</h4>
+              <p className="text-sm text-warm-taupe leading-relaxed">
                 Pagamentos 100% seguros processados através do Stripe. Aceitamos todos os cartões de crédito e débito. Os teus dados nunca são armazenados nos nossos servidores.
               </p>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
