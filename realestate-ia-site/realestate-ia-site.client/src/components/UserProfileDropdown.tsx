@@ -87,7 +87,7 @@ export function UserProfileDropdown({ user, onLogout }: UserProfileDropdownProps
           onClick={() => navigate('/profile')}
           className="mx-2 px-2 py-2 rounded-md hover:bg-gray-100 text-gray-700 cursor-pointer group"
         >
-          <UserCircle className="h-4 w-4 mr-2.5 text-gray-600 group-hover:text-gray-700" />
+          <UserCircle className="h-4 w-4 mr-2.5 text-gray-600 group-hover:text-white" />
           <span className="font-normal text-sm">Meu Perfil</span>
         </DropdownMenuItem>
 
@@ -95,7 +95,7 @@ export function UserProfileDropdown({ user, onLogout }: UserProfileDropdownProps
           onClick={() => navigate('/favorites')}
           className="mx-2 px-2 py-2 rounded-md hover:bg-gray-100 text-gray-700 cursor-pointer group"
         >
-          <Heart className="h-4 w-4 mr-2.5 text-gray-600 group-hover:text-gray-700" />
+          <Heart className="h-4 w-4 mr-2.5 text-gray-600 group-hover:text-white" />
           <span className="font-normal text-sm">Favoritos</span>
         </DropdownMenuItem>
 
@@ -103,7 +103,7 @@ export function UserProfileDropdown({ user, onLogout }: UserProfileDropdownProps
           onClick={() => navigate('/history')}
           className="mx-2 px-2 py-2 rounded-md hover:bg-gray-100 text-gray-700 cursor-pointer group"
         >
-          <Clock className="h-4 w-4 mr-2.5 text-gray-600 group-hover:text-gray-700" />
+          <Clock className="h-4 w-4 mr-2.5 text-gray-600 group-hover:text-white" />
           <span className="font-normal text-sm">Histórico</span>
         </DropdownMenuItem>
 
@@ -111,7 +111,7 @@ export function UserProfileDropdown({ user, onLogout }: UserProfileDropdownProps
           onClick={() => navigate('/settings')}
           className="mx-2 px-2 py-2 rounded-md hover:bg-gray-100 text-gray-700 cursor-pointer group"
         >
-          <Settings className="h-4 w-4 mr-2.5 text-gray-600 group-hover:text-gray-700" />
+          <Settings className="h-4 w-4 mr-2.5 text-gray-600 group-hover:text-white" />
           <span className="font-normal text-sm">Configurações</span>
         </DropdownMenuItem>
         </div>
@@ -123,7 +123,7 @@ export function UserProfileDropdown({ user, onLogout }: UserProfileDropdownProps
           onClick={() => navigate('/pricing')}
           className="mx-2 px-2 py-2 rounded-md hover:bg-gray-100 text-gray-700 cursor-pointer group"
         >
-          <CreditCard className="h-4 w-4 mr-2.5 text-gray-600 group-hover:text-gray-700" />
+          <CreditCard className="h-4 w-4 mr-2.5 text-gray-600 group-hover:text-white" />
           <span className="font-normal text-sm">Ver Planos</span>
         </DropdownMenuItem>
 
@@ -131,7 +131,7 @@ export function UserProfileDropdown({ user, onLogout }: UserProfileDropdownProps
           onClick={() => handleExternalLink('mailto:suporte@homefinder.ai')}
           className="mx-2 px-2 py-2 rounded-md hover:bg-gray-100 text-gray-700 cursor-pointer group"
         >
-          <Mail className="h-4 w-4 mr-2.5 text-gray-600 group-hover:text-gray-700" />
+          <Mail className="h-4 w-4 mr-2.5 text-gray-600 group-hover:text-white" />
           <span className="font-normal text-sm">Contacto</span>
         </DropdownMenuItem>
         </div>
@@ -143,7 +143,7 @@ export function UserProfileDropdown({ user, onLogout }: UserProfileDropdownProps
           onClick={onLogout}
           className="mx-2 px-2 py-2 rounded-md hover:bg-gray-100 text-gray-700 cursor-pointer group"
         >
-          <LogOut className="h-4 w-4 mr-2.5 text-gray-600 group-hover:text-gray-700" />
+          <LogOut className="h-4 w-4 mr-2.5 text-gray-600 group-hover:text-white" />
           <span className="font-normal text-sm">Terminar Sessão</span>
         </DropdownMenuItem>
         </div>
