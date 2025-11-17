@@ -52,16 +52,6 @@ namespace realestate_ia_site.Server.Domain.Entities
         [Column("refresh_token_expires")]
         public DateTime? RefreshTokenExpires { get; set; }
 
-        // Soft Delete
-        [Column("is_deleted")]
-        public bool IsDeleted { get; set; } = false;
-        
-        [Column("deleted_at")]
-        public DateTime? DeletedAt { get; set; }
-        
-        [Column("permanent_deletion_at")]
-        public DateTime? PermanentDeletionAt { get; set; }
-
         // Propriedades adicionais que não estão no schema mas podem ser úteis
         // Estas não serão mapeadas para colunas específicas
         [NotMapped]

@@ -27,6 +27,7 @@ interface SearchAIResponse {
   sessionId?: string;
   sessionTitleUpdated?: boolean;
   updatedSessionTitle?: string;
+  isAnonymous?: boolean;
 }
 
 interface FavoritePropertiesResponse {

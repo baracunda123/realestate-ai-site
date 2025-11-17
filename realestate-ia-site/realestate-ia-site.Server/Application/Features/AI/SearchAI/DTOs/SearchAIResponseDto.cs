@@ -10,4 +10,5 @@ public sealed class SearchAIResponseDto
     public string? SessionId { get; init; }
     public bool SessionTitleUpdated { get; init; }
     public string? UpdatedSessionTitle { get; init; }
+    public bool IsAnonymous { get; init; }
 }

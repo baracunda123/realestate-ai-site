@@ -231,34 +231,6 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
             };
         }
 
-        public async Task<ChatSessionDto> GetOrCreateActiveSessionAsync(string userId, CancellationToken cancellationToken = default)
-        {
-            // Procurar sessão ativa mais recente
-            var activeSession = await _context.ChatSessions
-                .Where(s => s.UserId == userId && s.IsActive)
-                .OrderByDescending(s => s.UpdatedAt)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (activeSession != null)
-            {
-                var messageCount = await _context.ChatMessages
-                    .CountAsync(m => m.SessionId == activeSession.Id, cancellationToken);
-
-                return new ChatSessionDto
-                {
-                    Id = activeSession.Id,
-                    UserId = activeSession.UserId,
-                    Title = activeSession.Title,
-                    CreatedAt = activeSession.CreatedAt,
-                    UpdatedAt = activeSession.UpdatedAt,
-                    IsActive = activeSession.IsActive,
-                    MessageCount = messageCount
-                };
-            }
-
-            // Criar nova sessão se não existir
-            return await CreateSessionAsync(userId, "Nova Conversa", cancellationToken);
-        }
 
         public async Task<string> GenerateSessionTitleAsync(string firstMessage, CancellationToken cancellationToken = default)
         {

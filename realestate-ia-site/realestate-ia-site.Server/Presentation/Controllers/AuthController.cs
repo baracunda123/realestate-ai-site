@@ -968,22 +968,27 @@ namespace realestate_ia_site.Server.Presentation.Controllers
 
                 _logger.LogWarning("[Auth] Account deletion initiated for userId={UserId}, email={Email}", userId, user.Email);
 
-                // Soft Delete - Marcar conta para eliminação em 30 dias
-                user.IsDeleted = true;
-                user.DeletedAt = DateTime.UtcNow;
-                user.PermanentDeletionAt = DateTime.UtcNow.AddDays(30);
-                user.UpdatedAt = DateTime.UtcNow;
-                
-                // Invalidar refresh token para forçar logout
-                user.RefreshToken = null;
-                user.RefreshTokenExpires = null;
-                
-                var result = await _userManager.UpdateAsync(user);
+                // Eliminar avatar se existir
+                if (!string.IsNullOrEmpty(user.AvatarUrl))
+                {
+                    try
+                    {
+                        await _fileStorageService.DeleteFileAsync(user.AvatarUrl);
+                        _logger.LogInformation("[Auth] Avatar deleted for userId={UserId}", userId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "[Auth] Failed to delete avatar for userId={UserId}", userId);
+                    }
+                }
+
+                // Eliminação permanente imediata (cascade delete vai eliminar dados relacionados)
+                var result = await _userManager.DeleteAsync(user);
                 
                 if (!result.Succeeded)
                 {
                     var errors = string.Join(", ", result.Errors.Select(e => e.Description));
-                    _logger.LogError("[Auth] Failed to mark account for deletion userId={UserId}: {Errors}", userId, errors);
+                    _logger.LogError("[Auth] Failed to delete account userId={UserId}: {Errors}", userId, errors);
                     _auditService.LogSuspiciousActivity("Failed account deletion", $"UserId: {userId}, Errors: {errors}");
                     return StatusCode(500, new { success = false, message = "Erro ao eliminar conta. Tente novamente." });
                 }
@@ -992,12 +997,12 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 Response.Cookies.Delete("refresh_token", new CookieOptions { Path = "/" });
 
                 // Log de auditoria
-                _auditService.LogSecurityEvent(SecurityEventType.LogoutSuccess, "Account deleted successfully", 
+                _auditService.LogSecurityEvent(SecurityEventType.LogoutSuccess, "Account deleted permanently", 
                     new { UserId = userId, Email = user.Email });
                 
-                _logger.LogWarning("[Auth] Account deleted successfully for userId={UserId}, email={Email}", userId, user.Email);
+                _logger.LogWarning("[Auth] Account deleted permanently for userId={UserId}, email={Email}", userId, user.Email);
 
-                return Ok(new { success = true, message = "Conta eliminada com sucesso" });
+                return Ok(new { success = true, message = "Conta eliminada permanentemente com sucesso" });
             }
             catch (Exception ex)
             {

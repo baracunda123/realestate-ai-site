@@ -35,10 +35,6 @@ namespace realestate_ia_site.Server.Application.Features.Chat.Interfaces
         /// </summary>
         Task<AddMessageResultDto> AddMessageAsync(string sessionId, string role, string content, CancellationToken cancellationToken = default);
 
-        /// <summary>
-        /// Obter ou criar sessão ativa (para compatibilidade com fluxo atual)
-        /// </summary>
-        Task<ChatSessionDto> GetOrCreateActiveSessionAsync(string userId, CancellationToken cancellationToken = default);
 
         /// <summary>
         /// Gerar título automático baseado na primeira mensagem

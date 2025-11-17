@@ -206,7 +206,7 @@ export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
               {user ? (
                 "Começa aqui a tua procura inteligente pelo imóvel certo. Indica o que tens em mente e a nossa AI fará o resto por ti."
               ) : (
-                "Descobre milhares de imóveis com a nossa tecnologia de pesquisa alimentada por AI. Para começares as tuas pesquisas personalizadas, cria uma conta gratuita."
+                "Descobre milhares de imóveis com a nossa tecnologia de pesquisa alimentada por AI. Começa a pesquisar agora mesmo, sem necessidade de criar conta!"
               )}
             </motion.p>
             
@@ -351,8 +351,8 @@ export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
         </div>
       </motion.div>
 
-      {/* CTA Button - Apenas para utilizadores autenticados */}
-      {user && onStartSearch && (
+      {/* CTA Button - Disponível para todos (anónimos e autenticados) */}
+      {onStartSearch && (
         <motion.div 
           variants={itemVariants}
           className="flex justify-center my-8"

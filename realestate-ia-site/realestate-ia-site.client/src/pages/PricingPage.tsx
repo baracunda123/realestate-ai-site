@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '../components/ui/card';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Badge } from '../components/ui/badge';
 import { Check, Sparkles, Zap, AlertTriangle } from 'lucide-react';
@@ -12,7 +12,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 interface PricingPlan {
   id: string;
   name: string;
-  description: string;
   price: number;
   interval: 'month' | 'year';
   features: string[];
@@ -25,43 +24,41 @@ interface PricingPlan {
 const plans: PricingPlan[] = [
   {
     id: 'free',
-    name: 'Gratuito',
-    description: 'Ideal para começar',
+    name: 'Free',
     price: 0,
     interval: 'month',
-    chatLimit: 50,
+    chatLimit: -1, // Ilimitado
     features: [
-      '50 mensagens de chat IA por mês',
-      'Pesquisa de propriedades',
+      'Pesquisas ilimitadas',
+      'Modelo básico (GPT-4o-mini)',
+      'Histórico completo de pesquisas',
       'Favoritos ilimitados',
-      'Alertas de baixa de preço',
-      'Notificações no site',
-      'Histórico de pesquisas',
+      'Área pessoal',
+      'Sessões de chat guardadas',
       'Recomendações personalizadas'
     ],
     icon: <Sparkles className="h-6 w-6" />,
-    color: 'from-gray-500 to-gray-600'
+    color: 'from-cocoa-taupe-light to-cocoa-taupe'
   },
   {
     id: 'premium',
     name: 'Premium',
-    description: 'IA avançada com respostas superiores',
     price: 8,
     interval: 'month',
-    chatLimit: -1,
+    chatLimit: -1, // Ilimitado
     popular: true,
     features: [
-      'Chat IA ilimitado',
-      'Respostas mais precisas e detalhadas',
-      'Pesquisa de propriedades',
+      'Pesquisas ilimitadas',
+      'Modelo avançado (GPT-4o)',
+      'Respostas excelentes e detalhadas',
+      'Histórico completo de pesquisas',
       'Favoritos ilimitados',
-      'Alertas de baixa de preço',
-      'Notificações no site',
-      'Histórico de pesquisas',
+      'Área pessoal',
+      'Sessões de chat guardadas',
       'Recomendações personalizadas'
     ],
     icon: <Zap className="h-6 w-6" />,
-    color: 'from-purple-500 to-purple-600'
+    color: 'from-burnt-peach to-burnt-peach-dark'
   }
 ];
 
@@ -187,7 +184,7 @@ export function PricingPage() {
         </div>
 
         {/* Plans Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto mb-12">
           {plans.map((plan) => (
             <Card 
               key={plan.id}
@@ -208,7 +205,6 @@ export function PricingPage() {
                   {plan.icon}
                 </div>
                 <CardTitle className="text-2xl text-deep-mocha">{plan.name}</CardTitle>
-                <CardDescription className="text-warm-taupe">{plan.description}</CardDescription>
               </CardHeader>
 
               <CardContent className="flex-1 space-y-4">

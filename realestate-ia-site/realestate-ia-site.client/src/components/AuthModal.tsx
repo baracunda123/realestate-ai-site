@@ -75,30 +75,55 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
 
   // Reset form when modal opens/closes or tab changes
   useEffect(() => {
-    if (isOpen) {
-      logger.info('Modal de autenticação aberto');
-      setActiveTab(defaultTab);
-      resetForm();
+    if (!isOpen) {
+      // Limpar imediatamente quando modal fecha
+      if (googleButtonRef.current) {
+        googleButtonRef.current.innerHTML = '';
+      }
+      return;
+    }
+    
+    logger.info('Modal de autenticação aberto');
+    setActiveTab(defaultTab);
+    resetForm();
+    
+    // Inicializar Google Auth quando o modal abrir
+    let mounted = true;
+    let renderTimeout: NodeJS.Timeout;
+    
+    // Pequeno delay para garantir que o DOM está estável
+    renderTimeout = setTimeout(() => {
+      if (!mounted || !googleButtonRef.current) return;
       
-      // Inicializar Google Auth quando o modal abrir
       googleAuthService.initialize().then(success => {
+        if (!mounted || !googleButtonRef.current) return;
+        
         if (success) {
           logger.info('Google Auth inicializado com sucesso');
           // Renderizar botão do Google
-          if (googleButtonRef.current) {
-            googleAuthService.renderButtonIn(
-              googleButtonRef.current,
-              handleGoogleSuccess,
-              handleGoogleError
-            );
-          }
+          googleAuthService.renderButtonIn(
+            googleButtonRef.current,
+            handleGoogleSuccess,
+            handleGoogleError
+          );
         } else {
           logger.error('Falha na inicialização do Google Auth');
         }
       }).catch(error => {
         logger.error('Erro na inicialização do Google Auth', error);
       });
-    }
+    }, 150); // Aumentado para 150ms
+    
+    // Cleanup ao desmontar
+    return () => {
+      mounted = false;
+      clearTimeout(renderTimeout);
+      
+      // Limpar o container usando innerHTML (mais seguro)
+      if (googleButtonRef.current) {
+        googleButtonRef.current.innerHTML = '';
+      }
+    };
   }, [isOpen, defaultTab]);
 
   const resetForm = () => {
@@ -434,7 +459,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
         `}
       </style>
       
-      <Dialog open={isOpen} onOpenChange={handleClose}>
+      <Dialog key={isOpen ? 'open' : 'closed'} open={isOpen} onOpenChange={handleClose}>
         <DialogContent 
           className="sm:max-w-md w-full border-pale-clay-deep bg-porcelain shadow-clay-strong rounded-2xl p-0 max-h-[90vh] overflow-hidden"
         >

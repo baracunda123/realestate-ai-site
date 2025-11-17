@@ -68,99 +68,97 @@ export function UserProfileDropdown({ user, onLogout }: UserProfileDropdownProps
       </DropdownMenuTrigger>
       <DropdownMenuContent 
         align="end" 
-        className="w-72 bg-pure-white border border-pale-clay-deep shadow-clay-strong rounded-xl overflow-hidden animate-in fade-in-0 zoom-in-95 duration-200"
+        className="w-[calc(100vw-2rem)] max-w-80 sm:w-80 max-h-[calc(100vh-5rem)] overflow-y-auto bg-pure-white border-2 border-pale-clay-deep shadow-clay-strong rounded-2xl animate-in fade-in-0 zoom-in-95 duration-200"
       >
         {/* User Info Header */}
-        <div className="px-4 py-4 bg-gradient-to-br from-burnt-peach-lighter/30 via-pale-clay-light/50 to-porcelain-soft relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500" />
-          <div className="flex items-center space-x-3 relative z-10">
-            <Avatar className="h-14 w-14 border-2 border-burnt-peach shadow-burnt-peach ring-2 ring-burnt-peach/20 transition-all duration-200 hover:scale-105">
+        <div className="px-5 py-5 bg-gradient-to-br from-burnt-peach-lighter/20 via-pale-clay-light/40 to-porcelain relative overflow-hidden border-b-2 border-pale-clay-medium">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-500" />
+          <div className="flex items-center space-x-4 relative z-10">
+            <Avatar className="h-16 w-16 border-2 border-burnt-peach shadow-burnt-peach ring-4 ring-burnt-peach/10 transition-all duration-200 hover:scale-105 hover:ring-burnt-peach/20">
               <AvatarImage src={user.avatar} alt={displayName} />
-              <AvatarFallback className="bg-gradient-to-br from-burnt-peach-lighter to-burnt-peach text-white font-semibold text-base">
+              <AvatarFallback className="bg-gradient-to-br from-burnt-peach to-burnt-peach-dark text-white font-semibold text-lg">
                 {userInitials}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-deep-mocha truncate">{displayName}</p>
-              <p className="text-xs text-warm-taupe-dark truncate">{user.email}</p>
+              <p className="font-semibold text-deep-mocha truncate text-base">{displayName}</p>
+              <p className="text-sm text-warm-taupe truncate mt-0.5">{user.email}</p>
             </div>
           </div>
         </div>
 
-        <DropdownMenuSeparator className="bg-gradient-to-r from-transparent via-pale-clay-medium to-transparent" />
-
         {/* Quick Access - Personal Area */}
-        <DropdownMenuLabel className="px-4 py-2.5 text-xs font-semibold text-warm-taupe-dark uppercase tracking-wider bg-gradient-to-r from-pale-clay-light/30 to-transparent">
+        <DropdownMenuLabel className="px-5 py-3 text-xs font-bold text-warm-taupe-dark uppercase tracking-wider bg-pale-clay-light/40 border-b border-pale-clay-medium">
           Área Pessoal
         </DropdownMenuLabel>
         
         <DropdownMenuItem 
           onClick={() => navigate('/profile')}
-          className="mx-2 my-0.5 px-3 py-2.5 rounded-lg hover:bg-gradient-to-r hover:from-burnt-peach-lighter/20 hover:to-burnt-peach-light/10 text-deep-mocha hover:text-burnt-peach-dark cursor-pointer group transition-all duration-200 hover:shadow-clay-soft"
+          className="mx-3 my-1 px-4 py-3 rounded-xl hover:bg-burnt-peach text-deep-mocha hover:text-white cursor-pointer group transition-all duration-75 hover:shadow-clay-soft border border-transparent hover:border-burnt-peach-dark"
         >
-          <UserCircle className="h-4 w-4 mr-3 text-burnt-peach group-hover:text-burnt-peach-deep transition-all duration-200 group-hover:scale-110" />
-          <span className="font-medium">Meu Perfil</span>
+          <UserCircle className="h-5 w-5 mr-3 text-burnt-peach group-hover:text-white transition-all duration-75 group-hover:scale-110" />
+          <span className="font-medium text-sm">Meu Perfil</span>
         </DropdownMenuItem>
 
         <DropdownMenuItem 
           onClick={() => navigate('/favorites')}
-          className="mx-2 my-0.5 px-3 py-2.5 rounded-lg hover:bg-gradient-to-r hover:from-burnt-peach-lighter/20 hover:to-burnt-peach-light/10 text-deep-mocha hover:text-burnt-peach-dark cursor-pointer group transition-all duration-200 hover:shadow-clay-soft"
+          className="mx-3 my-1 px-4 py-3 rounded-xl hover:bg-burnt-peach text-deep-mocha hover:text-white cursor-pointer group transition-all duration-75 hover:shadow-clay-soft border border-transparent hover:border-burnt-peach-dark"
         >
-          <Heart className="h-4 w-4 mr-3 text-burnt-peach group-hover:text-burnt-peach-deep transition-all duration-200 group-hover:scale-110 group-hover:fill-burnt-peach-deep" />
-          <span className="font-medium">Favoritos</span>
+          <Heart className="h-5 w-5 mr-3 text-burnt-peach group-hover:text-white transition-all duration-75 group-hover:scale-110 group-hover:fill-white" />
+          <span className="font-medium text-sm">Favoritos</span>
         </DropdownMenuItem>
 
         <DropdownMenuItem 
           onClick={() => navigate('/history')}
-          className="mx-2 my-0.5 px-3 py-2.5 rounded-lg hover:bg-gradient-to-r hover:from-burnt-peach-lighter/20 hover:to-burnt-peach-light/10 text-deep-mocha hover:text-burnt-peach-dark cursor-pointer group transition-all duration-200 hover:shadow-clay-soft"
+          className="mx-3 my-1 px-4 py-3 rounded-xl hover:bg-burnt-peach text-deep-mocha hover:text-white cursor-pointer group transition-all duration-75 hover:shadow-clay-soft border border-transparent hover:border-burnt-peach-dark"
         >
-          <Clock className="h-4 w-4 mr-3 text-burnt-peach group-hover:text-burnt-peach-deep transition-all duration-200 group-hover:scale-110" />
-          <span className="font-medium">Histórico</span>
+          <Clock className="h-5 w-5 mr-3 text-burnt-peach group-hover:text-white transition-all duration-75 group-hover:scale-110" />
+          <span className="font-medium text-sm">Histórico</span>
         </DropdownMenuItem>
 
         <DropdownMenuItem 
           onClick={() => navigate('/settings')}
-          className="mx-2 my-0.5 px-3 py-2.5 rounded-lg hover:bg-gradient-to-r hover:from-burnt-peach-lighter/20 hover:to-burnt-peach-light/10 text-deep-mocha hover:text-burnt-peach-dark cursor-pointer group transition-all duration-200 hover:shadow-clay-soft"
+          className="mx-3 my-1 px-4 py-3 rounded-xl hover:bg-burnt-peach text-deep-mocha hover:text-white cursor-pointer group transition-all duration-75 hover:shadow-clay-soft border border-transparent hover:border-burnt-peach-dark"
         >
-          <Settings className="h-4 w-4 mr-3 text-burnt-peach group-hover:text-burnt-peach-deep transition-all duration-200 group-hover:scale-110 group-hover:rotate-90" />
-          <span className="font-medium">Configurações</span>
+          <Settings className="h-5 w-5 mr-3 text-burnt-peach group-hover:text-white transition-all duration-75 group-hover:scale-110 group-hover:rotate-90" />
+          <span className="font-medium text-sm">Configurações</span>
         </DropdownMenuItem>
 
-        <DropdownMenuSeparator className="my-2 bg-gradient-to-r from-transparent via-pale-clay-medium to-transparent" />
+        <DropdownMenuSeparator className="my-2 mx-3 bg-pale-clay-medium" />
 
         {/* Pricing */}
         <DropdownMenuItem 
           onClick={() => navigate('/pricing')}
-          className="mx-2 my-0.5 px-3 py-2.5 rounded-lg hover:bg-gradient-to-r hover:from-cocoa-taupe-lighter/20 hover:to-cocoa-taupe-light/10 text-deep-mocha hover:text-cocoa-taupe-dark cursor-pointer group transition-all duration-200 hover:shadow-clay-soft"
+          className="mx-3 my-1 px-4 py-3 rounded-xl hover:bg-cocoa-taupe text-deep-mocha hover:text-white cursor-pointer group transition-all duration-75 hover:shadow-clay-soft border border-transparent hover:border-cocoa-taupe-dark"
         >
-          <CreditCard className="h-4 w-4 mr-3 text-cocoa-taupe group-hover:text-cocoa-taupe-dark transition-all duration-200 group-hover:scale-110" />
-          <span className="font-medium">Ver Planos</span>
+          <CreditCard className="h-5 w-5 mr-3 text-cocoa-taupe group-hover:text-white transition-all duration-75 group-hover:scale-110" />
+          <span className="font-medium text-sm">Ver Planos</span>
         </DropdownMenuItem>
 
-        <DropdownMenuSeparator className="my-2 bg-gradient-to-r from-transparent via-pale-clay-medium to-transparent" />
+        <DropdownMenuSeparator className="my-2 mx-3 bg-pale-clay-medium" />
 
         {/* Support & Resources */}
-        <DropdownMenuLabel className="px-4 py-2.5 text-xs font-semibold text-warm-taupe-dark uppercase tracking-wider bg-gradient-to-r from-pale-clay-light/30 to-transparent">
+        <DropdownMenuLabel className="px-5 py-3 text-xs font-bold text-warm-taupe-dark uppercase tracking-wider bg-pale-clay-light/40 border-b border-pale-clay-medium">
           Suporte & Recursos
         </DropdownMenuLabel>
 
         <DropdownMenuItem 
           onClick={() => handleExternalLink('mailto:suporte@homefinder.ai')}
-          className="mx-2 my-0.5 px-3 py-2.5 rounded-lg hover:bg-gradient-to-r hover:from-info-soft hover:to-info-gentle/10 text-deep-mocha hover:text-info-strong cursor-pointer group transition-all duration-200 hover:shadow-clay-soft"
+          className="mx-3 my-1 px-4 py-3 rounded-xl hover:bg-cocoa-taupe text-deep-mocha hover:text-white cursor-pointer group transition-all duration-75 hover:shadow-clay-soft border border-transparent hover:border-cocoa-taupe-dark"
         >
-          <Mail className="h-4 w-4 mr-3 text-info-gentle group-hover:text-info-strong transition-all duration-200 group-hover:scale-110" />
-          <span className="font-medium">Contacto por Email</span>
+          <Mail className="h-5 w-5 mr-3 text-cocoa-taupe group-hover:text-white transition-all duration-75 group-hover:scale-110" />
+          <span className="font-medium text-sm">Contacto por Email</span>
         </DropdownMenuItem>
 
-        <DropdownMenuSeparator className="my-2 bg-gradient-to-r from-transparent via-pale-clay-medium to-transparent" />
+        <DropdownMenuSeparator className="my-2 mx-3 bg-pale-clay-medium" />
 
         {/* Logout */}
         <DropdownMenuItem 
           onClick={onLogout}
-          className="mx-2 mb-2 mt-0.5 px-3 py-3 rounded-lg hover:bg-gradient-to-r hover:from-error-soft hover:to-error-gentle/10 text-error-strong hover:text-error-strong cursor-pointer group transition-all duration-200 hover:shadow-clay-soft border border-transparent hover:border-error-gentle/30"
+          className="mx-3 mb-3 mt-1 px-4 py-3 rounded-xl hover:bg-error-gentle text-error-strong hover:text-white cursor-pointer group transition-all duration-75 hover:shadow-clay-medium border-2 border-transparent hover:border-error-strong"
         >
-          <LogOut className="h-4 w-4 mr-3 transition-all duration-200 group-hover:scale-110 group-hover:-translate-x-0.5" />
-          <span className="font-semibold">Terminar Sessão</span>
+          <LogOut className="h-5 w-5 mr-3 text-error-strong group-hover:text-white transition-all duration-75 group-hover:scale-110 group-hover:-translate-x-1" />
+          <span className="font-semibold text-sm">Terminar Sessão</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

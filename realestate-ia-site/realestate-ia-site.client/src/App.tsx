@@ -125,10 +125,6 @@ export default function App() {
     return searchQuery.trim() === '';
   }, [searchQuery]);
 
-  const showWelcomeScreen = useMemo(() => 
-    !isInitializing && !showSearchPanel && (!user || (user && isDefaultState && currentView === 'home' && searchResults === null)), 
-    [user, isDefaultState, currentView, searchResults, isInitializing, showSearchPanel]
-  );
 
   // Load favorites when user logs in
   const loadFavorites = useCallback(async () => {
@@ -392,20 +388,9 @@ export default function App() {
     const controller = new AbortController();
     setAbortController(controller);
     
-    // Se não há sessão ativa, criar uma nova
+    // Se não há sessão ativa, o backend criará uma nova automaticamente
+    // Não criar sessão no frontend para evitar duplicação
     let currentSessionId = sessionId || activeSessionId;
-    if (!currentSessionId) {
-      try {
-        const newSession = await createChatSession();
-        setChatSessions(prev => [newSession, ...prev]);
-        setActiveSessionId(newSession.id);
-        currentSessionId = newSession.id;
-        logger.info('Nova sessão criada automaticamente ao enviar primeira mensagem', 'APP');
-      } catch (error) {
-        logger.error('Erro ao criar sessão automaticamente', 'APP', error as Error);
-        // Continuar mesmo sem sessão - o backend pode lidar com isso
-      }
-    }
     
     // Add user message to history
     const userMessage = {
@@ -429,14 +414,45 @@ export default function App() {
       setSearchResults(result.properties || []);
       setSearchQuery(query);
       
-      // Atualizar título da sessão se foi modificado
-      if (result.sessionTitleUpdated && result.updatedSessionTitle && currentSessionId) {
-        setChatSessions(prev => prev.map(session => 
-          session.id === currentSessionId 
-            ? { ...session, title: result.updatedSessionTitle! }
-            : session
-        ));
-        logger.info(`Título da sessão ${currentSessionId} atualizado para: ${result.updatedSessionTitle}`, 'APP');
+      // Processar sessão retornada pelo backend
+      if (result.sessionId && user) {
+        setChatSessions(prev => {
+          // Verificar se a sessão já existe no array
+          const sessionExists = prev.some(s => s.id === result.sessionId);
+          
+          if (!sessionExists) {
+            // Sessão foi criada pelo backend, adicionar ao estado
+            const now = new Date().toISOString();
+            const newSessionFromBackend: ChatSessionDto = {
+              id: result.sessionId!,
+              userId: user.id,
+              title: result.updatedSessionTitle || "Nova Conversa",
+              createdAt: now,
+              updatedAt: now,
+              isActive: true,
+              messageCount: 1
+            };
+            
+            logger.info(`Nova sessão criada pelo backend: ${result.sessionId}`, 'APP');
+            return [newSessionFromBackend, ...prev];
+          } else if (result.sessionTitleUpdated && result.updatedSessionTitle) {
+            // Sessão já existe, apenas atualizar o título se foi modificado
+            logger.info(`Título da sessão ${result.sessionId} atualizado para: ${result.updatedSessionTitle}`, 'APP');
+            return prev.map(session => 
+              session.id === result.sessionId 
+                ? { ...session, title: result.updatedSessionTitle! }
+                : session
+            );
+          }
+          
+          // Sessão existe mas título não foi atualizado
+          return prev;
+        });
+        
+        // Garantir que a sessão retornada é a ativa
+        if (result.sessionId !== activeSessionId) {
+          setActiveSessionId(result.sessionId);
+        }
       }
       
       // Add AI response to history
@@ -664,6 +680,7 @@ export default function App() {
           phone: currentUser.phoneNumber || '',
           avatar: currentUser.avatarUrl
         };
+        
         setUser(extendedUser);
 
         // Only show welcome toast for fresh logins if we haven't already shown welcome back
@@ -968,23 +985,9 @@ export default function App() {
           <Route 
             path="/" 
             element={
-              showWelcomeScreen ? (
-                <Suspense fallback={< LoadingSpinner />}>
-                  <WelcomeScreen
-                    onExampleSearch={handleExampleSearch}
-                    user={user ? convertToUser(user) : null}
-                    onStartSignup={() => openAuthModal('signup')}
-                    onStartSearch={() => {
-                      // Limpar sessão ativa para começar nova conversa
-                      setActiveSessionId(null);
-                      sessionStorage.setItem('showSearchPanel', 'true');
-                      setShowSearchPanel(true);
-                    }}
-                  />
-                </Suspense>
-              ) : user && showSearchPanel ? (
+              showSearchPanel ? (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 pb-6">
                     {/* Chat Panel - Coluna fixa */}
                     <div className="order-1 lg:order-1">
                       <ChatPanel
@@ -998,6 +1001,7 @@ export default function App() {
                         onSelectSession={handleSelectSession}
                         onCreateSession={handleCreateSession}
                         onDeleteSession={handleDeleteSession}
+                        onOpenAuthModal={openAuthModal}
                       />
                     </div>
                     
@@ -1013,7 +1017,21 @@ export default function App() {
                     </div>
                   </div>
                 </Suspense>
-              ) : null
+              ) : (
+                <Suspense fallback={< LoadingSpinner />}>
+                  <WelcomeScreen
+                    onExampleSearch={handleExampleSearch}
+                    user={user ? convertToUser(user) : null}
+                    onStartSignup={() => openAuthModal('signup')}
+                    onStartSearch={() => {
+                      // Limpar sessão ativa para começar nova conversa
+                      setActiveSessionId(null);
+                      sessionStorage.setItem('showSearchPanel', 'true');
+                      setShowSearchPanel(true);
+                    }}
+                  />
+                </Suspense>
+              )
             } 
           />
         </Routes>
