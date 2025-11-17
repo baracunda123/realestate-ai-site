@@ -244,8 +244,8 @@ export function PricingPage() {
                   }
                   className={`w-full ${
                     plan.popular
-                      ? 'bg-burnt-peach hover:bg-burnt-peach-light text-deep-mocha'
-                      : 'bg-pale-clay hover:bg-pale-clay-deep text-deep-mocha'
+                      ? 'bg-burnt-peach hover:bg-burnt-peach-light text-deep-mocha hover:text-white'
+                      : 'bg-pale-clay hover:bg-pale-clay-deep text-deep-mocha hover:text-white'
                   } font-semibold`}
                 >
                   {loading === plan.id ? (
@@ -297,7 +297,7 @@ export function PricingPage() {
               <AlertDialogAction
                 onClick={handleDowngradeToFree}
                 disabled={isCancelling}
-                className="bg-warning-gentle hover:bg-warning-strong text-deep-mocha"
+                className="bg-warning-gentle hover:bg-warning-strong text-deep-mocha hover:text-white"
               >
                 {isCancelling ? (
                   <>

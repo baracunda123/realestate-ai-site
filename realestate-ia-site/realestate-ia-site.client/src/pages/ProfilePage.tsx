@@ -111,7 +111,7 @@ export function ProfilePage({ user, onUpdateProfile, hasActiveSearch, onNavigate
                 <Button
                   size="sm"
                   variant="outline"
-                  className="border-pale-clay-deep hover:bg-pale-clay-light"
+                  className="border-pale-clay-deep hover:bg-pale-clay-light hover:text-white"
                   onClick={() => setIsEditingProfile(true)}
                 >
                   <Edit className="h-3 w-3 mr-1" />
@@ -121,7 +121,7 @@ export function ProfilePage({ user, onUpdateProfile, hasActiveSearch, onNavigate
                 <div className="flex space-x-2">
                   <Button
                     size="sm"
-                    className="bg-burnt-peach hover:bg-burnt-peach-deep text-pure-white"
+                    className="bg-burnt-peach hover:bg-burnt-peach-deep text-pure-white hover:text-white"
                     onClick={handleSaveProfile}
                   >
                     <Save className="h-3 w-3 mr-1" />
@@ -130,7 +130,7 @@ export function ProfilePage({ user, onUpdateProfile, hasActiveSearch, onNavigate
                   <Button
                     size="sm"
                     variant="outline"
-                    className="border-pale-clay-deep hover:bg-pale-clay-light"
+                    className="border-pale-clay-deep hover:bg-pale-clay-light hover:text-white"
                     onClick={handleCancelEdit}
                   >
                     <X className="h-3 w-3 mr-1" />

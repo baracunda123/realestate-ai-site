@@ -18,7 +18,7 @@ export function LegalPageLayout({ children }: LegalPageLayoutProps) {
           <Button
             variant="ghost"
             onClick={() => navigate(-1)}
-            className="text-muted-foreground hover:text-foreground"
+            className="text-muted-foreground hover:text-white"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
             Voltar

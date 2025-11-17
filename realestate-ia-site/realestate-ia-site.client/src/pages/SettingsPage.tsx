@@ -123,7 +123,7 @@ export function SettingsPage({ onDeleteAccount, hasActiveSearch, onNavigateToHom
                 <AlertDialogTrigger asChild>
                   <Button
                     variant="outline"
-                    className="border-error-gentle text-error-strong hover:bg-error-soft"
+                    className="border-error-gentle text-error-strong hover:bg-error-soft hover:text-white"
                     disabled={isDeleting}
                   >
                     Eliminar Conta
@@ -172,7 +172,7 @@ export function SettingsPage({ onDeleteAccount, hasActiveSearch, onNavigateToHom
                       Cancelar
                     </AlertDialogCancel>
                     <AlertDialogAction
-                      className="bg-error-gentle hover:bg-error-strong"
+                      className="bg-error-gentle hover:bg-error-strong hover:text-white"
                       onClick={handleDeleteAccount}
                       disabled={isDeleting || (hasPassword && !deletePassword.trim()) || isLoadingAuthMethod}
                     >
