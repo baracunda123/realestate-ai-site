@@ -1,20 +1,21 @@
 using System.ComponentModel.DataAnnotations;
+using realestate_ia_site.Server.Domain.Validation;
 
 namespace realestate_ia_site.Server.Domain.Models
 {
     public class RegisterRequest
     {
         [Required(ErrorMessage = "Nome completo é obrigatório.")]
-        [StringLength(100, MinimumLength = 2, ErrorMessage = "Nome deve ter entre 2 e 100 caracteres.")]
+        [ConditionalStringLength(100, MinimumLength = 2, ErrorMessage = "Nome deve ter entre 2 e 100 caracteres.")]
         public string FullName { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Email é obrigatório")]
-        [EmailAddress(ErrorMessage = "Email inválido")]
+        [Required(ErrorMessage = "Email é obrigatório.")]
+        [ConditionalEmail(ErrorMessage = "Email inválido")]
         public string Email { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Senha é obrigatória")]
-        [StringLength(100, MinimumLength = 8, ErrorMessage = "Senha deve ter pelo menos 8 caracteres.")]
-        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?"":{}|<>_+=\-\[\]\\;'/])[A-Za-z\d!@#$%^&*(),.?"":{}|<>_+=\-\[\]\\;'/]+$", 
+        [Required(ErrorMessage = "Senha é obrigatória.")]
+        [ConditionalStringLength(100, MinimumLength = 8, ErrorMessage = "Senha deve ter pelo menos 8 caracteres.")]
+        [ConditionalRegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?"":{}|<>_+=\-\[\]\\;'/])[A-Za-z\d!@#$%^&*(),.?"":{}|<>_+=\-\[\]\\;'/]+$", 
             ErrorMessage = "Senha deve conter: 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial.")]
         public string Password { get; set; } = string.Empty;
 
@@ -28,7 +29,7 @@ namespace realestate_ia_site.Server.Domain.Models
     public class LoginRequest
     {
         [Required(ErrorMessage = "Email é obrigatório.")]
-        [EmailAddress(ErrorMessage = "Email inválido.")]
+        [ConditionalEmail(ErrorMessage = "Email inválido.")]
         public string Email { get; set; } = string.Empty;
 
         [Required(ErrorMessage = "Senha é obrigatória.")]
@@ -44,9 +45,9 @@ namespace realestate_ia_site.Server.Domain.Models
         [Required(ErrorMessage = "Senha atual é obrigatória.")]
         public string CurrentPassword { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Nova senha é obrigatória")]
-        [StringLength(100, MinimumLength = 8, ErrorMessage = "Senha deve ter pelo menos 8 caracteres.")]
-        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?"":{}|<>_+=\-\[\]\\;'/])[A-Za-z\d!@#$%^&*(),.?"":{}|<>_+=\-\[\]\\;'/]+$", 
+        [Required(ErrorMessage = "Nova senha é obrigatória.")]
+        [ConditionalStringLength(100, MinimumLength = 8, ErrorMessage = "Senha deve ter pelo menos 8 caracteres.")]
+        [ConditionalRegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?"":{}|<>_+=\-\[\]\\;'/])[A-Za-z\d!@#$%^&*(),.?"":{}|<>_+=\-\[\]\\;'/]+$", 
             ErrorMessage = "Senha deve conter: 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial.")]
         public string NewPassword { get; set; } = string.Empty;
 
@@ -57,10 +58,10 @@ namespace realestate_ia_site.Server.Domain.Models
 
     public class ExternalLoginRequest
     {
-        [Required(ErrorMessage = "Token de acesso é obrigatório")]
+        [Required(ErrorMessage = "Token de acesso é obrigatório.")]
         public string AccessToken { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "Provider é obrigatório")]
+        [Required(ErrorMessage = "Provider é obrigatório.")]
         public string Provider { get; set; } = string.Empty;
         
         public string? DeviceFingerprint { get; set; }

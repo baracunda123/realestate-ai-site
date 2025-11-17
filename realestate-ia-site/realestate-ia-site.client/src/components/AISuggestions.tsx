@@ -20,7 +20,7 @@ export function AISuggestions({ searchQuery }: AISuggestionsProps) {
       type: 'match',
       icon: Target,
       badgeColor: 'bg-burnt-peach-light text-deep-mocha',
-      buttonColor: 'bg-burnt-peach hover:bg-burnt-peach-light text-deep-mocha font-semibold',
+      buttonColor: 'bg-burnt-peach hover:bg-burnt-peach-light text-deep-mocha hover:text-white font-semibold',
       iconBg: 'bg-burnt-peach-lighter',
       iconColor: 'text-burnt-peach-dark'
     },
@@ -31,7 +31,7 @@ export function AISuggestions({ searchQuery }: AISuggestionsProps) {
       type: 'alert',
       icon: TrendingUp,
       badgeColor: 'bg-cocoa-taupe-light text-deep-mocha',
-      buttonColor: 'bg-cocoa-taupe hover:bg-cocoa-taupe-light text-pure-white font-semibold',
+      buttonColor: 'bg-cocoa-taupe hover:bg-cocoa-taupe-light text-pure-white hover:text-white font-semibold',
       iconBg: 'bg-cocoa-taupe-lighter',
       iconColor: 'text-cocoa-taupe-dark'
     },
@@ -42,7 +42,7 @@ export function AISuggestions({ searchQuery }: AISuggestionsProps) {
       type: 'insight',
       icon: MapPin,
       badgeColor: 'bg-warm-taupe-light text-deep-mocha',
-      buttonColor: 'bg-warm-taupe hover:bg-warm-taupe-dark text-pure-white font-semibold',
+      buttonColor: 'bg-warm-taupe hover:bg-warm-taupe-dark text-pure-white hover:text-white font-semibold',
       iconBg: 'bg-warm-taupe-lighter',
       iconColor: 'text-warm-taupe-dark'
     },
@@ -53,7 +53,7 @@ export function AISuggestions({ searchQuery }: AISuggestionsProps) {
       type: 'optimization',
       icon: DollarSign,
       badgeColor: 'bg-pale-clay-deep text-deep-mocha',
-      buttonColor: 'bg-cocoa-taupe hover:bg-cocoa-taupe-light text-pure-white font-semibold',
+      buttonColor: 'bg-cocoa-taupe hover:bg-cocoa-taupe-light text-pure-white hover:text-white font-semibold',
       iconBg: 'bg-pale-clay-light',
       iconColor: 'text-cocoa-taupe-dark'
     }

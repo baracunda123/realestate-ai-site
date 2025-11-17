@@ -576,7 +576,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
                   <Button 
                     type="button"
                     variant="ghost" 
-                    className="text-sm text-warm-taupe hover:bg-pale-clay-light hover:text-deep-mocha rounded-lg transition-colors"
+                    className="text-sm text-warm-taupe hover:bg-pale-clay-light hover:text-white rounded-lg transition-colors"
                     disabled={isLoading}
                     onClick={() => {
                       onClose(); // Fechar o AuthModal
