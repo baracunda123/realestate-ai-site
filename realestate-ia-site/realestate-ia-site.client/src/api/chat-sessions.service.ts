@@ -116,20 +116,6 @@ export async function deleteChatSession(sessionId: string): Promise<void> {
   }
 }
 
-/**
- * Obter ou criar sessão ativa
- */
-export async function getOrCreateActiveSession(): Promise<ChatSessionDto> {
-  try {
-    logger.info('Obtendo ou criando sessão ativa', 'CHAT_SESSIONS');
-    const session = await apiClient.get<ChatSessionDto>('/api/ChatSessions/active');
-    logger.info(`Sessão ativa: ${session.id}`, 'CHAT_SESSIONS');
-    return session;
-  } catch (error) {
-    logger.error('Erro ao obter/criar sessão ativa', 'CHAT_SESSIONS', error as Error);
-    throw error;
-  }
-}
 
 /**
  * Obter propriedades associadas a uma sessão

@@ -3,9 +3,10 @@ import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
 import { Sparkles, Loader2, Send, Square } from 'lucide-react';
-import { ChatQuotaBanner } from './Chat/ChatQuotaBanner';
+import { AnonymousBanner } from './Chat/AnonymousBanner';
 import { ChatTabs } from './Chat/ChatTabs';
 import type { ChatSessionDto } from '../api/chat-sessions.service';
+import { authUtils } from '../api/auth.service';
 
 interface ConversationMessage {
     id: string;
@@ -27,6 +28,7 @@ interface ChatPanelProps {
     onSelectSession?: (sessionId: string) => void;
     onCreateSession?: () => void;
     onDeleteSession?: (sessionId: string) => void;
+    onOpenAuthModal?: () => void;
 }
 
 export function ChatPanel({
@@ -39,11 +41,11 @@ export function ChatPanel({
     activeSessionId = null,
     onSelectSession,
     onCreateSession,
-    onDeleteSession
+    onDeleteSession,
+    onOpenAuthModal
 }: ChatPanelProps) {
     const [inputValue, setInputValue] = useState('');
     const [localHistory, setLocalHistory] = useState<ConversationMessage[]>([]);
-    const [refreshQuota, setRefreshQuota] = useState(0);
     const conversationEndRef = useRef<HTMLDivElement>(null);
     const conversationContainerRef = useRef<HTMLDivElement>(null);
     const isComposingRef = useRef(false);
@@ -79,8 +81,6 @@ export function ChatPanel({
 
         try {
             await onSubmitQuery(query, activeSessionId || undefined);
-            // Refresh quota banner após mensagem enviada
-            setRefreshQuota(prev => prev + 1);
         } catch (err) {
             // Erros são tratados pelo componente pai e mostrados no histórico
             console.error('Erro ao enviar mensagem:', err);
@@ -138,14 +138,18 @@ export function ChatPanel({
     );
     const hasQuotaError = hasQuotaErrorInHistory || Boolean(error && error.toLowerCase().includes('limite'));
 
-    return (
-        <div className="flex flex-col space-y-3 sticky top-20 lg:top-24" style={{ maxHeight: 'calc(100vh - 80px)' }}>
-            {/* Quota Banner */}
-            <ChatQuotaBanner key={refreshQuota} />
+    const isAuthenticated = authUtils.isAuthenticated();
 
-            <Card className="flex flex-col border border-pale-clay-deep bg-pure-white shadow-clay-deep overflow-hidden" style={{ height: 'calc(100vh - 180px)', minHeight: '350px', maxHeight: 'calc(100vh - 180px)' }}>
-                {/* Tabs */}
-                {onSelectSession && onCreateSession && onDeleteSession && (
+    return (
+        <div className="flex flex-col space-y-3 sticky top-20 lg:top-24 mb-6">
+            {/* Free Plan Banner - mostrar apenas para utilizadores não autenticados */}
+            {!isAuthenticated && onOpenAuthModal && (
+                <AnonymousBanner onSignUp={onOpenAuthModal} />
+            )}
+
+            <Card className="flex flex-col border border-pale-clay-deep bg-pure-white shadow-clay-deep overflow-hidden" style={{ height: 'clamp(400px, calc(100vh - 280px), 800px)', maxHeight: 'calc(100vh - 280px)' }}>
+                {/* Tabs - apenas para utilizadores autenticados */}
+                {isAuthenticated && onSelectSession && onCreateSession && onDeleteSession && (
                     <ChatTabs
                         sessions={sessions}
                         activeSessionId={activeSessionId}

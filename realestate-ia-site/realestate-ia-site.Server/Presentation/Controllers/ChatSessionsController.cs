@@ -171,26 +171,6 @@ namespace realestate_ia_site.Server.Presentation.Controllers
             }
         }
 
-        /// <summary>
-        /// Obter ou criar sessão ativa (para compatibilidade)
-        /// </summary>
-        [HttpGet("active")]
-        [ProducesResponseType(typeof(ChatSessionDto), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        public async Task<ActionResult<ChatSessionDto>> GetOrCreateActiveSession(CancellationToken ct = default)
-        {
-            try
-            {
-                var userId = GetCurrentUserId();
-                var session = await _chatSessionService.GetOrCreateActiveSessionAsync(userId, ct);
-                return Ok(session);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Erro ao obter/criar sessão ativa");
-                return StatusCode(500, new { error = "Erro ao obter sessão ativa" });
-            }
-        }
 
         /// <summary>
         /// Obter propriedades associadas a uma sessão

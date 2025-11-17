@@ -13,8 +13,8 @@ namespace realestate_ia_site.Server.Infrastructure.AI
         // Mapeamento de planos para modelos GPT
         private readonly Dictionary<string, string> _planToModel = new()
         {
-            ["free"] = "gpt-4o-mini",
-            ["premium"] = "gpt-4o"
+            ["free"] = "gpt-4o-mini",       // Plano Free (anónimo ou sem subscrição) usa mini
+            ["premium"] = "gpt-4o"          // Plano Premium (pago) usa GPT-4o
         };
 
         public OpenAIService(IConfiguration config, ILogger<OpenAIService> logger)

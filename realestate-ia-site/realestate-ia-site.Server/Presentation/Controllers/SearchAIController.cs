@@ -1,15 +1,17 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
+using realestate_ia_site.Server.Application.Chat.Interfaces;
 using realestate_ia_site.Server.Application.Features.AI.SearchAI;
 using realestate_ia_site.Server.Application.Features.AI.SearchAI.DTOs;
+using realestate_ia_site.Server.Application.Features.Chat.DTOs;
 using realestate_ia_site.Server.Application.Features.Chat.Interfaces;
-using realestate_ia_site.Server.Application.Chat.Interfaces;
 
 namespace realestate_ia_site.Server.Presentation.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [EnableRateLimiting("SearchPolicy")] // 30 req/min para proteger contra abuso
     public class SearchAIController : BaseController
     {
         private readonly ILogger<SearchAIController> _logger;
@@ -49,103 +51,95 @@ namespace realestate_ia_site.Server.Presentation.Controllers
 
             try
             {
-                var sessionId = GetSessionIdOrThrow();
-                var userId = GetCurrentUserId();
+                var sessionId = GetSessionId(); // Pode ser null para anónimos
+                var userId = GetCurrentUserId(); // Pode ser null para anónimos
+                var isAuthenticated = !string.IsNullOrEmpty(userId);
 
-                // Verificar quota antes de processar
-                var hasQuota = await _chatUsageService.HasAvailableQuotaAsync(userId, ct);
-                if (!hasQuota)
-                {
-                    _logger.LogWarning("Quota esgotada para usuário {UserId}", userId);
-                    
-                    var stats = await _chatUsageService.GetUsageStatsAsync(userId, ct);
-                    
-                    return StatusCode(429, new
-                    {
-                        error = "QUOTA_EXCEEDED",
-                        message = "Atingiu o limite de mensagens disponíveis no seu plano.",
-                        code = "QUOTA_EXCEEDED",
-                        stats = new
-                        {
-                            used = stats.UsedPrompts,
-                            max = stats.MaxPrompts,
-                            planType = stats.PlanType,
-                            periodEnd = stats.PeriodEnd
-                        }
-                    });
-                }
-
-                // Obter ou criar sessão ativa se não foi fornecido sessionId
+                string userPlan;
                 string chatSessionId = request.SessionId;
-                if (string.IsNullOrEmpty(chatSessionId))
+                var userMessageResult = null as AddMessageResultDto;
+
+                if (isAuthenticated)
                 {
-                    var activeSession = await _chatSessionService.GetOrCreateActiveSessionAsync(userId, ct);
-                    chatSessionId = activeSession.Id;
-                    request.SessionId = chatSessionId;
+                    // UTILIZADOR AUTENTICADO - Com histórico e sessões
+                    
+                    // Criar nova sessão se não foi fornecido sessionId
+                    // Isto garante que cada nova conversa começa com uma sessão limpa
+                    if (string.IsNullOrEmpty(chatSessionId))
+                    {
+                        var newSession = await _chatSessionService.CreateSessionAsync(userId!, "Nova Conversa", ct);
+                        chatSessionId = newSession.Id;
+                        request.SessionId = chatSessionId;
+                        _logger.LogInformation("Nova sessão criada automaticamente no backend: {SessionId}", chatSessionId);
+                    }
+                    
+                    // Adicionar UserId ao request para análise de comportamento
+                    request.UserId = userId;
+
+                    // Persistir mensagem do utilizador
+                    userMessageResult = await _chatSessionService.AddMessageAsync(chatSessionId, "user", request.Query!, ct);
+
+                    // Determinar plano: verificar se tem subscrição ativa (Premium) ou não (Free)
+                    var hasActiveSubscription = await _chatUsageService.GetUsageStatsAsync(userId!, ct);
+                    userPlan = hasActiveSubscription.HasActiveSubscription ? "premium" : "free";
+                    
+                    _logger.LogInformation("Pesquisa autenticada - UserId: {UserId}, Plano: {Plan}", userId, userPlan);
                 }
-                
-                // Adicionar UserId ao request para análise de comportamento
-                request.UserId = userId;
-
-                // Persistir mensagem do utilizador
-                var userMessageResult = await _chatSessionService.AddMessageAsync(chatSessionId, "user", request.Query!, ct);
-
-                // Obter plano do usuário
-                var usageStats = await _chatUsageService.GetUsageStatsAsync(userId, ct);
-                var userPlan = usageStats.PlanType ?? "free";
+                else
+                {
+                    // UTILIZADOR ANÓNIMO - Plano Free (sem histórico, sem sessões)
+                    userPlan = "free"; // Anónimos usam plano Free (GPT-4o-mini)
+                    
+                    _logger.LogInformation("Pesquisa anónima - Plano: Free (mini)");
+                }
 
                 // Processar pesquisa
                 var result = await _orchestrator.HandleAsync(request, userPlan, ct);
 
-                // Persistir resposta da IA
-                await _chatSessionService.AddMessageAsync(chatSessionId, "assistant", result.AIResponse, ct);
-
-                // Persistir propriedades retornadas na sessão (ou limpar se não houver resultados)
-                if (result.Properties != null && result.Properties.Any())
+                // Apenas persistir histórico para utilizadores autenticados
+                if (isAuthenticated && !string.IsNullOrEmpty(chatSessionId))
                 {
-                    var propertyIds = result.Properties.Select(p => p.Id).ToList();
-                    
-                    // Extrair matched features de cada propriedade (se existirem)
-                    var matchedFeatures = result.Properties
-                        .Where(p => p.MatchedFeatures != null && p.MatchedFeatures.Any())
-                        .ToDictionary(p => p.Id, p => p.MatchedFeatures!);
-                    
-                    await _chatSessionPropertyService.AddPropertiesToSessionAsync(
-                        chatSessionId, 
-                        propertyIds, 
-                        matchedFeatures.Any() ? matchedFeatures : null, 
-                        ct);
-                    
-                    _logger.LogInformation("Persistidas {Count} propriedades na sessão {SessionId} (com features: {FeaturesCount})", 
-                        propertyIds.Count, chatSessionId, matchedFeatures.Count);
-                }
-                else
-                {
-                    // Limpar propriedades anteriores quando não há resultados
-                    await _chatSessionPropertyService.ClearSessionPropertiesAsync(chatSessionId, ct);
-                    _logger.LogInformation("Nenhuma propriedade encontrada - sessão {SessionId} limpa", chatSessionId);
-                }
+                    // Persistir resposta da IA
+                    await _chatSessionService.AddMessageAsync(chatSessionId, "assistant", result.AIResponse, ct);
 
-                // Consumir quota
-                var consumed = await _chatUsageService.ConsumePromptAsync(userId, ct);
-                if (consumed)
-                {
-                    var stats = await _chatUsageService.GetUsageStatsAsync(userId, ct);
-                    _logger.LogInformation(
-                        "Quota consumida para usuário {UserId} - {Used}/{Max} ({Percentage:F1}%)",
-                        userId, stats.UsedPrompts, stats.MaxPrompts, stats.UsagePercentage);
+                    // Persistir propriedades retornadas na sessão (ou limpar se não houver resultados)
+                    if (result.Properties != null && result.Properties.Any())
+                    {
+                        var propertyIds = result.Properties.Select(p => p.Id).ToList();
+                        
+                        // Extrair matched features de cada propriedade (se existirem)
+                        var matchedFeatures = result.Properties
+                            .Where(p => p.MatchedFeatures != null && p.MatchedFeatures.Any())
+                            .ToDictionary(p => p.Id, p => p.MatchedFeatures!);
+                        
+                        await _chatSessionPropertyService.AddPropertiesToSessionAsync(
+                            chatSessionId, 
+                            propertyIds, 
+                            matchedFeatures.Any() ? matchedFeatures : null, 
+                            ct);
+                        
+                        _logger.LogInformation("Persistidas {Count} propriedades na sessão {SessionId} (com features: {FeaturesCount})", 
+                            propertyIds.Count, chatSessionId, matchedFeatures.Count);
+                    }
+                    else
+                    {
+                        // Limpar propriedades anteriores quando não há resultados
+                        await _chatSessionPropertyService.ClearSessionPropertiesAsync(chatSessionId, ct);
+                        _logger.LogInformation("Nenhuma propriedade encontrada - sessão {SessionId} limpa", chatSessionId);
+                    }
                 }
-
-                // Criar resposta com informação de sessão atualizada
+ 
                 var response = new SearchAIResponseDto
-                {
-                    Properties = result.Properties,
-                    AIResponse = result.AIResponse,
-                    ExtractedFilters = result.ExtractedFilters,
-                    SessionId = chatSessionId,
-                    SessionTitleUpdated = userMessageResult.TitleUpdated,
-                    UpdatedSessionTitle = userMessageResult.UpdatedTitle
-                };
+                    {
+                        Properties = result.Properties,
+                        AIResponse = result.AIResponse,
+                        ExtractedFilters = result.ExtractedFilters,
+                        SessionId = chatSessionId,
+                        SessionTitleUpdated = userMessageResult?.TitleUpdated ?? false,
+                        UpdatedSessionTitle = userMessageResult?.UpdatedTitle,
+                        IsAnonymous = !isAuthenticated
+                    };
+
 
                 return Ok(response);
             }
@@ -192,9 +186,10 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         }
 
         /// <summary>
-        /// Obter estatísticas de uso do chat do usuário
+        /// Obter estatísticas de uso do chat do usuário (requer autenticação)
         /// </summary>
         [HttpGet("usage-stats")]
+        [Authorize]
         [ProducesResponseType(typeof(ChatUsageStats), StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
