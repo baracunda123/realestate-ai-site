@@ -147,7 +147,7 @@ export function ChatPanel({
                 <AnonymousBanner onSignUp={onOpenAuthModal} />
             )}
 
-            <Card className="flex flex-col border border-pale-clay-deep bg-pure-white shadow-clay-deep overflow-hidden" style={{ height: 'clamp(400px, calc(100vh - 280px), 800px)', maxHeight: 'calc(100vh - 280px)' }}>
+            <Card className="flex flex-col border border-pale-clay-deep bg-pure-white shadow-clay-deep overflow-hidden" style={{ height: 'calc(100vh - 200px)', minHeight: '350px' }}>
                 {/* Tabs - apenas para utilizadores autenticados */}
                 {isAuthenticated && onSelectSession && onCreateSession && onDeleteSession && (
                     <ChatTabs

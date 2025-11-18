@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { ProfileLayout } from '../components/Profile/ProfileLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '../components/ui/alert-dialog';
-import { Trash2 } from 'lucide-react';
+import { Trash2, ArrowLeft } from 'lucide-react';
 import type { User } from '../types/PersonalArea';
 import { toast } from 'sonner';
 import { deleteAccount, getAuthMethod } from '../api/auth.service';
@@ -83,15 +82,31 @@ export function SettingsPage({ onDeleteAccount, hasActiveSearch, onNavigateToHom
   };
 
   return (
-    <ProfileLayout hasActiveSearch={hasActiveSearch} onNavigateToHome={onNavigateToHome}>
-      <div className="space-y-6">
-        {/* Page Header */}
-        <div>
-          <h1 className="text-3xl font-bold text-title">Configurações</h1>
-          <p className="text-muted-foreground mt-2">
-            Gere as tuas preferências e configurações de conta
-          </p>
-        </div>
+    <div className="min-h-screen bg-background">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+        {/* Botão Voltar */}
+        {hasActiveSearch && onNavigateToHome && (
+          <div className="mb-6">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onNavigateToHome(false)}
+              className="flex items-center gap-2 text-gray-600 hover:text-white -ml-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>Voltar aos Resultados</span>
+            </Button>
+          </div>
+        )}
+
+        <div className="space-y-6">
+          {/* Page Header */}
+          <div>
+            <h1 className="text-3xl font-bold text-title">Configurações</h1>
+            <p className="text-muted-foreground mt-2">
+              Gere as tuas preferências e configurações de conta
+            </p>
+          </div>
 
         {/* Change Password */}
         <ChangePassword />
@@ -184,7 +199,8 @@ export function SettingsPage({ onDeleteAccount, hasActiveSearch, onNavigateToHom
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
-    </ProfileLayout>
+    </div>
   );
 }
