@@ -91,7 +91,7 @@ export function SettingsPage({ onDeleteAccount, hasActiveSearch, onNavigateToHom
               variant="ghost"
               size="sm"
               onClick={() => onNavigateToHome(false)}
-              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 -ml-2"
+              className="flex items-center gap-2 text-gray-600 hover:text-white -ml-2"
             >
               <ArrowLeft className="h-4 w-4" />
               <span>Voltar aos Resultados</span>
