@@ -6,6 +6,7 @@ import { Heart, MapPin, Bed, Bath, Square, Calendar, TrendingDown, TrendingUp } 
 import { type Property } from '../types/property';
 import { trackPropertyView } from '../api/view-history.service';
 import { logger } from '../utils/logger';
+import { propertyWindowManager } from '../utils/propertyWindow';
 
 interface PropertyCardProps {
   property: Property;
@@ -94,9 +95,9 @@ function PropertyCardComponent({
       logger.warn('Falha ao registrar visualização', 'PROPERTY_CARD');
     }
     
-    // 3. Abrir link
+    // 3. Abrir link (reutiliza o mesmo separador externo)
     if (property.link) {
-      window.open(property.link, '_blank', 'noopener,noreferrer');
+      propertyWindowManager.openProperty(property.link);
     }
   }, [property, onPropertyView]);
 
