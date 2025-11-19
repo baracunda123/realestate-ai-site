@@ -131,19 +131,16 @@ export function AvatarUpload({
       <div
         className={`
           relative ${getSizeClasses()} rounded-full overflow-hidden
-          border-4 border-gray-200 bg-gray-100
-          ${isDragOver ? 'border-blue-400 bg-blue-50' : ''}
+          border-4 border-border bg-muted
+          ${isDragOver ? 'border-accent bg-accent/10' : ''}
           ${showEditButton ? 'cursor-pointer' : ''}
           transition-all duration-300 flex items-center justify-center
-          font-bold text-gray-600
+          font-bold text-muted-foreground
         `}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={showEditButton ? handleCameraClick : undefined}
-        style={{
-          backgroundColor: '#f3f4f6'
-        }}
       >
         {/* Imagem ou Iniciais */}
         {displayImageUrl && !imageError ? (
@@ -151,12 +148,6 @@ export function AvatarUpload({
             src={displayImageUrl}
             alt="Avatar"
             className="w-full h-full object-cover rounded-full"
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              borderRadius: '50%'
-            }}
             onError={handleImageError}
           />
         ) : (
@@ -171,9 +162,6 @@ export function AvatarUpload({
         {isUploading && (
           <div 
             className="absolute inset-0 flex items-center justify-center rounded-full"
-            style={{
-              backgroundColor: 'rgba(0, 0, 0, 0.7)'
-            }}
           >
             <Loader2 className="w-8 h-8 text-white animate-spin" />
           </div>
@@ -183,9 +171,6 @@ export function AvatarUpload({
         {showEditButton && !isUploading && (
           <div 
             className="absolute inset-0 flex items-center justify-center transition-all duration-300 opacity-0 group-hover:opacity-100 rounded-full"
-            style={{
-              backgroundColor: 'rgba(0, 0, 0, 0.5)'
-            }}
           >
             <Camera className="w-8 h-8 text-white" />
           </div>
@@ -195,25 +180,19 @@ export function AvatarUpload({
         {isDragOver && (
           <div 
             className="absolute inset-0 flex items-center justify-center border-2 border-dashed border-blue-400 rounded-full"
-            style={{
-              backgroundColor: 'rgba(59, 130, 246, 0.8)'
-            }}
           >
             <Upload className="w-8 h-8 text-white" />
           </div>
         )}
       </div>
 
-      {/* Bot„o de EdiÁ„o */}
+      {/* Bot√£o de Edi√ß√£o */}
       {showEditButton && size !== 'sm' && (
         <button
           type="button"
-          className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-blue-500 hover:bg-blue-600 text-white shadow-lg flex items-center justify-center transition-all duration-200 disabled:opacity-50"
+          className="absolute -bottom-2 -right-2 w-10 h-10 rounded-full bg-accent hover:bg-accent/90 text-accent-foreground shadow-lg flex items-center justify-center transition-all duration-200 disabled:opacity-50"
           onClick={handleCameraClick}
           disabled={isUploading}
-          style={{
-            backgroundColor: isUploading ? '#9ca3af' : '#3b82f6'
-          }}
         >
           {isUploading ? (
             <Loader2 className="w-5 h-5 animate-spin" />
@@ -223,7 +202,7 @@ export function AvatarUpload({
         </button>
       )}
 
-      {/* Input File (oculto) */}
+      {/* Input File (oculto) */} 
       <input
         ref={fileInputRef}
         type="file"

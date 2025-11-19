@@ -331,7 +331,7 @@ export function PricingPage() {
               <AlertDialogAction
                 onClick={handleDowngradeToFree}
                 disabled={isCancelling}
-                className="bg-warning-gentle hover:bg-warning-strong text-foreground hover:text-white"
+                className="bg-warning hover:bg-warning/90 text-white"
               >
                 {isCancelling ? (
                   <>

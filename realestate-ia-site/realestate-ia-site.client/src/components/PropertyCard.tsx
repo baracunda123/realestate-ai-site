@@ -166,7 +166,7 @@ function PropertyCardComponent({
           <div className="absolute top-3 left-3 z-10">
             <Badge className={`text-xs font-bold shadow-medium backdrop-blur-sm flex items-center gap-1 ${
               property.priceChangePercentage < 0 
-                ? 'bg-success/95 text-white' 
+                ? 'bg-success-light dark:bg-success text-white' 
                 : 'bg-warning text-white'
             }`}>
               {property.priceChangePercentage < 0 ? (
