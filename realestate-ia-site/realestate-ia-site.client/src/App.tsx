@@ -274,10 +274,10 @@ export default function App() {
     if (state?.openAuthModal) {
       setAuthDefaultTab(state.defaultTab || 'signin');
       setIsAuthModalOpen(true);
-      // Limpar o state para evitar reabrir o modal
-      navigate(location.pathname, { replace: true, state: {} });
+      // Limpar o state para evitar reabrir o modal no próximo render
+      window.history.replaceState({}, '', location.pathname);
     }
-  }, [location.pathname, location.state, user, navigate]);
+  }, [location.pathname, location.state, user]);
 
   // Google Analytics - Track page views on route change
   useEffect(() => {

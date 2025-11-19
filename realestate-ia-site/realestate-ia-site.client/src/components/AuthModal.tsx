@@ -255,7 +255,6 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
       if (result.success) {
         resetForm();
         setShowEmailConfirmation(true);
-        setSuccess(result.message || 'Account created successfully!');
         
         // Scroll para o topo do modal para mostrar a mensagem de confirmação
         setTimeout(() => {
@@ -328,9 +327,9 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
 
     if (success) {
       return (
-        <div className="bg-success border border-success/30 rounded-xl p-4 mb-4 shadow-ocean-soft">
+        <div className="bg-success-light dark:bg-success border border-success-light/30 dark:border-success/30 rounded-xl p-4 mb-4 shadow-ocean-soft">
           <div className="flex items-start space-x-3">
-            <CheckCircle className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
+            <CheckCircle className="h-5 w-5 text-success-light dark:text-success mt-0.5 flex-shrink-0" />
             <p className="text-sm text-success-strong text-center flex-1 break-words">{success}</p>
           </div>
         </div>
