@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { PropertyCard } from './PropertyCard';
 import { type Property } from '../types/property';
-import { Sparkles, ArrowLeft } from 'lucide-react';
+import { Sparkles, ArrowLeft, Home } from 'lucide-react';
 import { Button } from './ui/button';
 
 interface PropertyGridProps {
@@ -39,28 +39,30 @@ export function PropertyGrid({
              backgroundSize: '100% 100%'
            }} />
       
-      {/* Results Header - responsive */}
-      <div className="flex flex-col gap-3 relative z-10">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
-          <div className="flex items-center gap-3">
-            {/* Botão voltar - apenas mobile/tablet */}
-            {showBackButton && onBackToChat && (
-              <Button
-                onClick={onBackToChat}
-                size="sm"
-                variant="ghost"
-                className="lg:hidden h-9 px-3 text-accent hover:text-accent/90 hover:bg-accent/10"
-              >
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                Chat
-              </Button>
-            )}
-            <h2 className="text-base sm:text-lg md:text-xl font-medium text-foreground">
-              {properties.length} {properties.length === 1 ? 'Imóvel encontrado' : 'Imóveis encontrados'}
-            </h2>
+      {/* Results Header - responsive - só mostra se houver pesquisa */}
+      {searchQuery && (
+        <div className="flex flex-col gap-3 relative z-10">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 sm:gap-3">
+            <div className="flex items-center gap-3">
+              {/* Botão voltar - apenas mobile/tablet */}
+              {showBackButton && onBackToChat && (
+                <Button
+                  onClick={onBackToChat}
+                  size="sm"
+                  variant="ghost"
+                  className="lg:hidden h-9 px-3 text-accent hover:text-accent/90 hover:bg-accent/10"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-1" />
+                  Chat
+                </Button>
+              )}
+              <h2 className="text-base sm:text-lg md:text-xl font-medium text-foreground">
+                {properties.length} {properties.length === 1 ? 'Imóvel encontrado' : 'Imóveis encontrados'}
+              </h2>
+            </div>
           </div>
         </div>
-      </div>
+      )}
       
       {/* Properties Grid - 3 por linha em desktop para melhor visualização */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6 relative z-10">
@@ -77,16 +79,19 @@ export function PropertyGrid({
       
       {/* Empty state */}
       {properties.length === 0 && (
-        <div className="text-center py-8 sm:py-12 px-4">
-          <div className="w-12 h-12 sm:w-16 sm:h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
-            <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-accent" />
-          </div>
-          <p className="text-foreground mb-2 text-sm sm:text-base">Nenhum imóvel encontrado</p>
-          <p className="text-xs sm:text-sm text-muted-foreground px-4">Tenta ajustar os seus filtros ou termos de pesquisa</p>
-          {searchQuery && (
-            <p className="text-xs sm:text-sm text-accent mt-2 px-4">
-              Experimenta pesquisar por características específicas como localização ou tipo de imóvel
-            </p>
+        <div className="flex items-center justify-center min-h-[70vh]">
+          {searchQuery ? (
+            // Estado quando há pesquisa mas sem resultados
+            <div className="text-center px-4">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
+                <Sparkles className="h-8 w-8 sm:h-10 sm:w-10 text-accent" />
+              </div>
+              <p className="text-foreground mb-2 text-sm sm:text-base">Nenhum imóvel encontrado</p>
+              <p className="text-xs sm:text-sm text-muted-foreground">Tenta ajustar os seus filtros ou termos de pesquisa</p>
+            </div>
+          ) : (
+            // Estado inicial - apenas ícone de casa
+            <Home className="h-32 w-32 sm:h-40 sm:w-40 text-muted-foreground/20" strokeWidth={1} />
           )}
         </div>
       )}
