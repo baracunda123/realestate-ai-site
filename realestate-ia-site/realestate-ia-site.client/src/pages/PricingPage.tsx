@@ -148,7 +148,7 @@ export function PricingPage() {
           <h1 className="text-5xl font-semibold text-foreground mb-4 tracking-tight">
             Escolhe o teu plano
           </h1>
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          <p className="text-lg text-muted-foreground max-w-2xl">
             Pesquisas ilimitadas. Cancela quando quiseres.
           </p>
         </div>
