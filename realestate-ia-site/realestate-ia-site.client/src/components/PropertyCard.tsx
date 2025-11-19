@@ -167,7 +167,7 @@ function PropertyCardComponent({
             <Badge className={`text-xs font-bold shadow-medium backdrop-blur-sm flex items-center gap-1 ${
               property.priceChangePercentage < 0 
                 ? 'bg-success-light dark:bg-success text-white' 
-                : 'bg-warning text-white'
+                : 'bg-warning-light dark:bg-warning text-white'
             }`}>
               {property.priceChangePercentage < 0 ? (
                 <TrendingDown className="h-3 w-3" />
