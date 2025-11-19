@@ -7,13 +7,13 @@ export default function SubscriptionCancelPage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pale-clay-light via-porcelain to-pure-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-background via-card to-muted flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
-            <XCircle className="h-16 w-16 text-warm-taupe" />
+            <XCircle className="h-16 w-16 text-muted-foreground" />
           </div>
-          <CardTitle className="text-2xl text-deep-mocha">
+          <CardTitle className="text-2xl text-foreground">
             Pagamento Cancelado
           </CardTitle>
           <CardDescription>
@@ -21,11 +21,11 @@ export default function SubscriptionCancelPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="bg-pale-clay-light p-4 rounded-lg space-y-2">
-            <p className="text-sm text-warm-taupe">
+          <div className="bg-muted p-4 rounded-lg space-y-2">
+            <p className="text-sm text-muted-foreground">
               Não se preocupe! Nenhum valor foi cobrado.
             </p>
-            <p className="text-sm text-warm-taupe">
+            <p className="text-sm text-muted-foreground">
               Pode tentar novamente quando quiser fazer upgrade para o plano Premium.
             </p>
           </div>
@@ -33,7 +33,7 @@ export default function SubscriptionCancelPage() {
           <div className="flex flex-col gap-2">
             <Button
               onClick={() => navigate('/pricing')}
-              className="w-full bg-gradient-to-r from-burnt-peach to-warm-terracotta hover:opacity-90"
+              className="w-full bg-gradient-to-r from-accent to-primary hover:opacity-90"
             >
               Ver Planos Novamente
             </Button>

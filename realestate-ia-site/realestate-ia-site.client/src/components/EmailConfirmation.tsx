@@ -119,24 +119,24 @@ export function EmailConfirmation() {
       case 'loading':
         return (
           <div className="flex flex-col items-center justify-center py-12 space-y-4">
-            <Loader2 className="h-16 w-16 text-burnt-peach animate-spin" />
-            <p className="text-warm-taupe text-lg">Verificando seu email...</p>
+            <Loader2 className="h-16 w-16 text-accent animate-spin" />
+            <p className="text-muted-foreground text-lg">Verificando seu email...</p>
           </div>
         );
 
       case 'success':
         return (
           <div className="flex flex-col items-center justify-center py-12 space-y-6">
-            <div className="w-20 h-20 rounded-full bg-success-soft flex items-center justify-center">
-              <CheckCircle className="h-12 w-12 text-success-gentle" />
+            <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center">
+              <CheckCircle className="h-12 w-12 text-success" />
             </div>
             <div className="text-center space-y-2">
-              <h3 className="text-2xl font-semibold text-deep-mocha">Email Confirmado!</h3>
-              <p className="text-sm text-warm-taupe-light">Agora podes fazer login na tua conta.</p>
+              <h3 className="text-2xl font-semibold text-foreground">Email Confirmado!</h3>
+              <p className="text-sm text-muted-foreground-light">Agora podes fazer login na tua conta.</p>
             </div>
             <Button 
               onClick={handleGoToLogin}
-              className="gradient-primary hover:shadow-burnt-peach text-white font-medium"
+              className="gradient-primary hover:shadow-blue text-primary-foreground font-medium"
             >
               Fazer Login
             </Button>
@@ -146,33 +146,33 @@ export function EmailConfirmation() {
       case 'expired':
         return (
           <div className="flex flex-col items-center justify-center py-12 space-y-6">
-            <div className="w-20 h-20 rounded-full bg-warning-soft flex items-center justify-center">
-              <AlertCircle className="h-12 w-12 text-warning-gentle" />
+            <div className="w-20 h-20 rounded-full bg-warning/10 flex items-center justify-center">
+              <AlertCircle className="h-12 w-12 text-warning" />
             </div>
             <div className="text-center space-y-2">
-                <h3 className="text-2xl font-semibold text-deep-mocha">Link Inválido ou Expirado</h3>
-              <p className="text-warm-taupe">{message}</p>
-              <p className="text-sm text-warm-taupe-light">
+                <h3 className="text-2xl font-semibold text-foreground">Link Inválido ou Expirado</h3>
+              <p className="text-muted-foreground">{message}</p>
+              <p className="text-sm text-muted-foreground-light">
                 Solicite um novo link de confirmação para continuar.
               </p>
             </div>
             <div className="flex flex-col items-center space-y-3 w-full max-w-sm">
               <div className="w-full space-y-2">
-                <Label htmlFor="resend-email" className="text-warm-taupe">Seu Email</Label>
+                <Label htmlFor="resend-email" className="text-muted-foreground">Seu Email</Label>
                 <Input
                   id="resend-email"
                   type="email"
                   placeholder="seu.email@exemplo.com"
                   value={resendEmail}
                   onChange={(e) => setResendEmail(e.target.value)}
-                  className="border-pale-clay-deep focus:border-burnt-peach"
+                  className="border-border focus:border-accent"
                   disabled={isResending}
                 />
               </div>
               <Button 
                 onClick={handleResendEmail}
                 disabled={isResending || !resendEmail}
-                className="w-full gradient-primary hover:shadow-burnt-peach text-white font-medium"
+                className="w-full gradient-primary hover:shadow-blue text-primary-foreground font-medium"
               >
                 {isResending ? (
                   <>
@@ -187,14 +187,14 @@ export function EmailConfirmation() {
                 )}
               </Button>
               {resendMessage && (
-                <p className={`text-sm ${resendMessage.includes('Erro') ? 'text-error-gentle' : 'text-success-gentle'}`}>
+                <p className={`text-sm ${resendMessage.includes('Erro') ? 'text-errorentle' : 'text-success'}`}>
                   {resendMessage}
                 </p>
               )}
               <Button 
                 variant="ghost"
                 onClick={handleGoHome}
-                className="text-warm-taupe hover:bg-pale-clay-light"
+                className="text-muted-foreground hover:bg-muted"
               >
                 Voltar para Início
               </Button>
@@ -205,30 +205,30 @@ export function EmailConfirmation() {
       case 'error':
         return (
           <div className="flex flex-col items-center justify-center py-12 space-y-6">
-            <div className="w-20 h-20 rounded-full bg-error-soft flex items-center justify-center">
-              <XCircle className="h-12 w-12 text-error-gentle" />
+            <div className="w-20 h-20 rounded-full bg-error/10 flex items-center justify-center">
+              <XCircle className="h-12 w-12 text-errorentle" />
             </div>
             <div className="text-center space-y-2">
-              <h3 className="text-2xl font-semibold text-deep-mocha">Erro na Confirmação</h3>
-              <p className="text-warm-taupe">{message}</p>
+              <h3 className="text-2xl font-semibold text-foreground">Erro na Confirmação</h3>
+              <p className="text-muted-foreground">{message}</p>
             </div>
             <div className="flex flex-col items-center space-y-3 w-full max-w-sm">
               <div className="w-full space-y-2">
-                <Label htmlFor="resend-email-error" className="text-warm-taupe">Seu Email</Label>
+                <Label htmlFor="resend-email-error" className="text-muted-foreground">Seu Email</Label>
                 <Input
                   id="resend-email-error"
                   type="email"
                   placeholder="seu.email@exemplo.com"
                   value={resendEmail}
                   onChange={(e) => setResendEmail(e.target.value)}
-                  className="border-pale-clay-deep focus:border-burnt-peach"
+                  className="border-border focus:border-accent"
                   disabled={isResending}
                 />
               </div>
               <Button 
                 onClick={handleResendEmail}
                 disabled={isResending || !resendEmail}
-                className="w-full gradient-primary hover:shadow-burnt-peach text-white font-medium"
+                className="w-full gradient-primary hover:shadow-blue text-primary-foreground font-medium"
               >
                 {isResending ? (
                   <>
@@ -243,14 +243,14 @@ export function EmailConfirmation() {
                 )}
               </Button>
               {resendMessage && (
-                <p className={`text-sm text-center ${resendMessage.includes('Erro') ? 'text-error-gentle' : 'text-success-gentle'}`}>
+                <p className={`text-sm text-center ${resendMessage.includes('Erro') ? 'text-errorentle' : 'text-success'}`}>
                   {resendMessage}
                 </p>
               )}
               <Button 
                 variant="ghost"
                 onClick={handleGoHome}
-                className="text-warm-taupe hover:bg-pale-clay-light"
+                className="text-muted-foreground hover:bg-muted"
               >
                 Voltar para Início
               </Button>
@@ -261,13 +261,13 @@ export function EmailConfirmation() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-porcelain via-clay-white to-pale-clay-light flex items-center justify-center p-4">
-      <Card className="w-full max-w-2xl shadow-clay-strong border-pale-clay-deep">
+    <div className="min-h-screen bg-gradient-to-br from-background via-card to-muted flex items-center justify-center p-4">
+      <Card className="w-full max-w-2xl shadow-strong border-border">
         <CardHeader className="text-center pb-4">
-          <CardTitle className="text-3xl font-bold text-deep-mocha">
+          <CardTitle className="text-3xl font-bold text-foreground">
             Confirmação de Email
           </CardTitle>
-          <CardDescription className="text-warm-taupe">
+          <CardDescription className="text-muted-foreground">
             Validando sua conta ResideAI
           </CardDescription>
         </CardHeader>

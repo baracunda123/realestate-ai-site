@@ -132,13 +132,13 @@ export function ActiveSessions() {
   };
 
   return (
-    <Card className="border border-pale-clay-deep bg-pure-white shadow-clay-deep">
+    <Card className="border border-border bg-card shadow-strong">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center space-x-2">
-              <Monitor className="h-5 w-5 text-burnt-peach-dark" />
-              <span className="text-deep-mocha">Sessões Ativas</span>
+              <Monitor className="h-5 w-5 text-accent" />
+              <span className="text-foreground">Sessões Ativas</span>
             </CardTitle>
             <CardDescription>
               Gerir os dispositivos com sessão iniciada. Por segurança, podes terminar sessões em dispositivos que já não usas.
@@ -151,7 +151,7 @@ export function ActiveSessions() {
                 <Button
                   variant="outline"
                   size="sm"
-                  className="border-error-gentle text-error-strong hover:bg-error-soft"
+                  className="border-error text-error hover:bg-error/10"
                   disabled={isRevokingAll}
                 >
                   {isRevokingAll ? (
@@ -177,7 +177,7 @@ export function ActiveSessions() {
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="py-4">
-                  <Label htmlFor="password" className="text-sm font-medium">
+                  <Label htmlFor="password" className="text-muted-foreground">
                     Confirma a tua password
                   </Label>
                   <Input
@@ -196,7 +196,7 @@ export function ActiveSessions() {
                 <AlertDialogFooter>
                   <AlertDialogCancel onClick={() => setPassword('')}>Cancelar</AlertDialogCancel>
                   <AlertDialogAction
-                    className="bg-error-gentle hover:bg-error-strong"
+                    className="bg-error hover:bg-error/90"
                     onClick={handleRevokeAllOthers}
                     disabled={isRevokingAll}
                   >
@@ -219,7 +219,7 @@ export function ActiveSessions() {
       <CardContent>
         {isLoading ? (
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-6 w-6 animate-spin text-burnt-peach" />
+            <Loader2 className="h-6 w-6 animate-spin text-accent" />
           </div>
         ) : sessions.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">
@@ -232,12 +232,12 @@ export function ActiveSessions() {
                 key={session.id}
                 className={`flex items-start justify-between p-4 rounded-lg border transition-colors ${
                   index === 0
-                    ? 'border-burnt-peach bg-burnt-peach/5'
-                    : 'border-pale-clay-deep bg-pale-clay-light hover:bg-pale-clay-medium'
+                    ? 'border-accent bg-accent/5'
+                    : 'border-border bg-muted hover:bg-muted/80'
                 }`}
               >
                 <div className="flex items-start space-x-3 flex-1">
-                  <div className="text-burnt-peach-dark mt-1">
+                  <div className="text-accent mt-1">
                     {getDeviceIcon(session.deviceInfo)}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -246,7 +246,7 @@ export function ActiveSessions() {
                         {parseUserAgent(session.deviceInfo).displayName}
                       </h4>
                       {index === 0 && (
-                        <Badge className="bg-burnt-peach text-white text-xs">
+                        <Badge className="bg-accent text-accent-foreground text-xs">
                           Sessão Atual
                         </Badge>
                       )}

@@ -11,6 +11,7 @@ import { personalArea as logger } from '../utils/logger';
 import { ChangePassword } from '../components/Settings/ChangePassword';
 import { ActiveSessions } from '../components/Settings/ActiveSessions';
 import { PrivacyPreferences } from '../components/Settings/PrivacyPreferences';
+import { ThemeSettings } from '../components/Settings/ThemeSettings';
 
 interface SettingsPageProps {
   user: User;
@@ -91,7 +92,7 @@ export function SettingsPage({ onDeleteAccount, hasActiveSearch, onNavigateToHom
               variant="ghost"
               size="sm"
               onClick={() => onNavigateToHome(false)}
-              className="flex items-center gap-2 text-gray-600 hover:text-white -ml-2"
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground -ml-2"
             >
               <ArrowLeft className="h-4 w-4" />
               <span>Voltar aos Resultados</span>
@@ -102,11 +103,14 @@ export function SettingsPage({ onDeleteAccount, hasActiveSearch, onNavigateToHom
         <div className="space-y-6">
           {/* Page Header */}
           <div>
-            <h1 className="text-3xl font-bold text-title">Configurações</h1>
-            <p className="text-muted-foreground mt-2">
+            <h1 className="text-3xl font-bold text-foreground">Configurações</h1>
+            <p className="text-foreground mt-2">
               Gere as tuas preferências e configurações de conta
             </p>
           </div>
+
+        {/* Theme Settings */}
+        <ThemeSettings />
 
         {/* Change Password */}
         <ChangePassword />
@@ -118,18 +122,18 @@ export function SettingsPage({ onDeleteAccount, hasActiveSearch, onNavigateToHom
         <PrivacyPreferences />
 
         {/* Danger Zone */}
-        <Card className="border border-error-gentle bg-error-soft shadow-clay-deep">
+        <Card className="border border-error bg-error/10 shadow-strong">
           <CardHeader>
-            <CardTitle className="text-error-strong flex items-center space-x-2">
+            <CardTitle className="text-error flex items-center space-x-2">
               <Trash2 className="h-5 w-5" />
               <span>Zona de Perigo</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-4 bg-pure-white rounded-lg border border-error-gentle">
+            <div className="flex items-center justify-between p-4 bg-card rounded-lg border border-error">
               <div>
                 <h4 className="font-medium text-foreground">Eliminar Conta</h4>
-                <p className="text-sm text-muted-foreground">
+                <p className="text-sm text-foreground">
                   Elimina permanentemente a tua conta e todos os dados associados
                 </p>
               </div>
@@ -138,7 +142,7 @@ export function SettingsPage({ onDeleteAccount, hasActiveSearch, onNavigateToHom
                 <AlertDialogTrigger asChild>
                   <Button
                     variant="outline"
-                    className="border-error-gentle text-error-strong hover:bg-error-soft hover:text-white"
+                    className="border-error text-error hover:bg-error/10"
                     disabled={isDeleting}
                   >
                     Eliminar Conta
@@ -187,7 +191,7 @@ export function SettingsPage({ onDeleteAccount, hasActiveSearch, onNavigateToHom
                       Cancelar
                     </AlertDialogCancel>
                     <AlertDialogAction
-                      className="bg-error-gentle hover:bg-error-strong hover:text-white"
+                      className="bg-error hover:bg-error/90 text-white"
                       onClick={handleDeleteAccount}
                       disabled={isDeleting || (hasPassword && !deletePassword.trim()) || isLoadingAuthMethod}
                     >

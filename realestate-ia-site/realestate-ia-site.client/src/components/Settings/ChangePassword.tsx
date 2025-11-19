@@ -122,19 +122,19 @@ export function ChangePassword() {
     if (/[0-9]/.test(password)) strength++;
     if (/[!@#$%^&*(),.?":{}|<>_+=\-\[\]\\;'/]/.test(password)) strength++;
 
-    if (strength <= 2) return { strength, label: 'Fraca', color: 'bg-error-gentle' };
-    if (strength <= 4) return { strength, label: 'Média', color: 'bg-warning-gentle' };
-    return { strength, label: 'Forte', color: 'bg-success-strong' };
+    if (strength <= 2) return { strength, label: 'Fraca', color: 'bg-error' };
+    if (strength <= 4) return { strength, label: 'Média', color: 'bg-warning' };
+    return { strength, label: 'Forte', color: 'bg-success' };
   };
 
   const passwordStrength = getPasswordStrength(formData.newPassword);
 
   return (
-    <Card className="border border-pale-clay-deep bg-pure-white shadow-clay-deep">
+    <Card className="border border-border bg-card shadow-strong">
       <CardHeader>
         <CardTitle className="flex items-center space-x-2">
-          <Lock className="h-5 w-5 text-burnt-peach-dark" />
-          <span className="text-deep-mocha">Alterar Password</span>
+          <Lock className="h-5 w-5 text-accent" />
+          <span className="text-foreground">Alterar Password</span>
         </CardTitle>
         <CardDescription>
           Atualiza a tua password para manter a conta segura
@@ -193,14 +193,14 @@ export function ChangePassword() {
                 <div className="flex items-center justify-between text-xs">
                   <span className="text-muted-foreground">Força da password:</span>
                   <span className={`font-medium ${
-                    passwordStrength.label === 'Fraca' ? 'text-error-strong' :
-                    passwordStrength.label === 'Média' ? 'text-warning-strong' :
-                    'text-success-strong'
+                    passwordStrength.label === 'Fraca' ? 'text-error' :
+                    passwordStrength.label === 'Média' ? 'text-warning' :
+                    'text-success'
                   }`}>
                     {passwordStrength.label}
                   </span>
                 </div>
-                <div className="h-2 bg-pale-clay-light rounded-full overflow-hidden">
+                <div className="hover:bg-muted/80 rounded-full overflow-hidden">
                   <div
                     className={`h-full transition-all ${passwordStrength.color}`}
                     style={{ width: `${(passwordStrength.strength / 6) * 100}%` }}
@@ -232,36 +232,36 @@ export function ChangePassword() {
               </button>
             </div>
             {formData.confirmPassword && formData.newPassword !== formData.confirmPassword && (
-              <p className="text-xs text-error-strong">As passwords não coincidem</p>
+              <p className="text-xs text-error">As passwords não coincidem</p>
             )}
           </div>
 
           {/* Password Requirements */}
-          <div className="bg-pale-clay-light rounded-lg p-3">
-            <p className="text-xs font-medium text-foreground mb-2">Requisitos da password:</p>
+          <div className="bg-muted rounded-lg p-3">
+            <p className="text-foreground mb-2">Requisitos da password:</p>
             <ul className="text-xs text-muted-foreground space-y-1">
               <li className="flex items-center">
-                <span className={formData.newPassword.length >= 8 ? 'text-success-strong' : ''}>
+                <span className={formData.newPassword.length >= 8 ? 'text-success' : ''}>
                   {formData.newPassword.length >= 8 ? '✓' : '•'} Mínimo 8 caracteres
                 </span>
               </li>
               <li className="flex items-center">
-                <span className={/[A-Z]/.test(formData.newPassword) ? 'text-success-strong' : ''}>
+                <span className={/[A-Z]/.test(formData.newPassword) ? 'text-success' : ''}>
                   {/[A-Z]/.test(formData.newPassword) ? '✓' : '•'} Uma letra maiúscula
                 </span>
               </li>
               <li className="flex items-center">
-                <span className={/[a-z]/.test(formData.newPassword) ? 'text-success-strong' : ''}>
+                <span className={/[a-z]/.test(formData.newPassword) ? 'text-success' : ''}>
                   {/[a-z]/.test(formData.newPassword) ? '✓' : '•'} Uma letra minúscula
                 </span>
               </li>
               <li className="flex items-center">
-                <span className={/[0-9]/.test(formData.newPassword) ? 'text-success-strong' : ''}>
+                <span className={/[0-9]/.test(formData.newPassword) ? 'text-success' : ''}>
                   {/[0-9]/.test(formData.newPassword) ? '✓' : '•'} Um número
                 </span>
               </li>
               <li className="flex items-center">
-                <span className={/[!@#$%^&*(),.?":{}|<>_+=\-\[\]\\;'/]/.test(formData.newPassword) ? 'text-success-strong' : ''}>
+                <span className={/[!@#$%^&*(),.?":{}|<>_+=\-\[\]\\;'/]/.test(formData.newPassword) ? 'text-success' : ''}>
                   {/[!@#$%^&*(),.?":{}|<>_+=\-\[\]\\;'/]/.test(formData.newPassword) ? '✓' : '•'} Um caractere especial
                 </span>
               </li>
@@ -271,7 +271,7 @@ export function ChangePassword() {
           {/* Submit Button */}
           <Button
             type="submit"
-            className="w-full bg-burnt-peach hover:bg-burnt-peach-deep text-pure-white"
+            className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
             disabled={isSubmitting}
           >
             {isSubmitting ? 'A alterar...' : 'Alterar Password'}

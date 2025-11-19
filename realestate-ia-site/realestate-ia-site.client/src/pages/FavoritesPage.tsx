@@ -2,7 +2,7 @@ import { PersonalAreaFavorites } from '../components/PersonalArea/PersonalAreaFa
 import type { Property } from '../types/property';
 import type { User } from '../types/PersonalArea';
 import { Button } from '../components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Heart, Sparkles } from 'lucide-react';
 
 interface FavoritesPageProps {
   user: User;
@@ -30,7 +30,7 @@ export function FavoritesPage({
               variant="ghost"
               size="sm"
               onClick={() => onNavigateToHome(false)}
-              className="flex items-center gap-2 text-gray-600 hover:text-white -ml-2"
+              className="flex items-center gap-2 text-muted-foreground hover:text-accent hover:bg-accent/10 -ml-2 transition-all duration-300"
             >
               <ArrowLeft className="h-4 w-4" />
               <span>Voltar aos Resultados</span>
@@ -38,13 +38,40 @@ export function FavoritesPage({
           </div>
         )}
 
-        <div className="space-y-6">
-          {/* Page Header */}
-          <div>
-            <h1 className="text-3xl font-bold text-title">Favoritos</h1>
-            <p className="text-muted-foreground mt-2">
-              Propriedades que guardaste para consultar mais tarde
-            </p>
+        <div className="space-y-8">
+          {/* Page Header - Modern Design */}
+          <div className="relative overflow-hidden rounded-2xl bg-card border border-border p-8 shadow-strong">
+            {/* Background Pattern */}
+            <div className="absolute inset-0 opacity-10">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-accent/30 rounded-full blur-3xl"></div>
+              <div className="absolute bottom-0 left-0 w-96 h-96 bg-accent/20 rounded-full blur-3xl"></div>
+            </div>
+            
+            {/* Content */}
+            <div className="relative z-10">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-3 bg-accent/20 backdrop-blur-sm rounded-xl">
+                  <Heart className="h-8 w-8 text-accent fill-accent" />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold text-foreground flex items-center gap-2">
+                    Favoritos
+                    <Sparkles className="h-6 w-6 text-accent/80" />
+                  </h1>
+                </div>
+              </div>
+              <p className="text-foreground/90 text-lg max-w-2xl">
+                Propriedades que guardaste para consultar mais tarde. Acompanha as tuas opções preferidas num só lugar.
+              </p>
+              
+              {/* Stats Badge */}
+              <div className="mt-4 inline-flex items-center gap-2 bg-accent/20 backdrop-blur-sm px-4 py-2 rounded-full">
+                <Heart className="h-4 w-4 text-accent" />
+                <span className="text-foreground font-semibold">
+                  {favorites.length} {favorites.length === 1 ? 'imóvel guardado' : 'imóveis guardados'}
+                </span>
+              </div>
+            </div>
           </div>
 
           {/* Favorites Content */}

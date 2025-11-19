@@ -33,22 +33,22 @@ export function CookieBanner() {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-t from-black/95 to-black/90 backdrop-blur-sm border-t border-pale-clay-deep/20 animate-in slide-in-from-bottom duration-500">
+    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 bg-gradient-to-t from-black/95 to-black/90 backdrop-blur-sm border-t border-border/20 animate-in slide-in-from-bottom duration-500">
       <div className="site-container">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           {/* Conteúdo */}
           <div className="flex items-start space-x-3 flex-1">
-            <Cookie className="h-5 w-5 text-burnt-peach flex-shrink-0 mt-0.5" />
+            <Cookie className="h-5 w-5 text-accent flex-shrink-0 mt-0.5" />
             <div className="space-y-1">
               <p className="text-sm text-white font-medium">
                 Este site utiliza cookies
               </p>
-              <p className="text-xs text-gray-300 leading-relaxed">
+              <p className="text-xs text-white/80 leading-relaxed">
                 Utilizamos cookies essenciais para o funcionamento do site e ferramentas de análise 
                 para melhorar a sua experiência. Ao continuar, aceita a nossa{' '}
                 <Link 
                   to="/privacy" 
-                  className="text-burnt-peach hover:text-burnt-peach-deep underline underline-offset-2"
+                  className="text-accent hover:text-accent/90 underline underline-offset-2"
                   target="_blank"
                   rel="noopener noreferrer"
                 >
@@ -64,7 +64,7 @@ export function CookieBanner() {
               variant="ghost"
               size="sm"
               onClick={handleReject}
-              className="flex-1 sm:flex-none text-white hover:bg-white/10 border border-white/20"
+              className="flex-1 sm:flex-none text-primary-foreground hover:bg-primary-foreground/10 border border-primary-foreground/20"
             >
               <X className="h-4 w-4 mr-2" />
               Apenas Essenciais
@@ -72,7 +72,7 @@ export function CookieBanner() {
             <Button
               size="sm"
               onClick={handleAccept}
-              className="flex-1 sm:flex-none gradient-primary hover:shadow-burnt-peach text-white"
+              className="flex-1 sm:flex-none gradient-primary hover:shadow-blue text-primary-foreground"
             >
               Aceitar Todos
             </Button>

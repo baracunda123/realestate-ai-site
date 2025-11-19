@@ -68,13 +68,13 @@ export default function SubscriptionSuccessPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pale-clay-light via-porcelain to-pure-white flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-background via-card to-muted flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardContent className="pt-6">
             <div className="flex flex-col items-center justify-center space-y-4">
-              <Loader2 className="h-12 w-12 animate-spin text-burnt-peach" />
-              <p className="text-warm-taupe">A verificar o seu pagamento...</p>
-              <p className="text-xs text-warm-taupe/70">Aguarde enquanto confirmamos com o Stripe</p>
+              <Loader2 className="h-12 w-12 animate-spin text-accent" />
+              <p className="text-muted-foreground">A verificar o seu pagamento...</p>
+              <p className="text-xs text-muted-foreground/70">Aguarde enquanto confirmamos com o Stripe</p>
             </div>
           </CardContent>
         </Card>
@@ -84,13 +84,13 @@ export default function SubscriptionSuccessPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pale-clay-light via-porcelain to-pure-white flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-background via-card to-muted flex items-center justify-center p-4">
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
               <AlertCircle className="h-16 w-16 text-red-500" />
             </div>
-            <CardTitle className="text-2xl text-deep-mocha">
+            <CardTitle className="text-2xl text-foreground">
               Erro na Verificação
             </CardTitle>
             <CardDescription>
@@ -106,7 +106,7 @@ export default function SubscriptionSuccessPage() {
             <div className="flex flex-col gap-2">
               <Button
                 onClick={() => navigate('/profile')}
-                className="w-full bg-gradient-to-r from-burnt-peach to-warm-terracotta hover:opacity-90"
+                className="w-full bg-gradient-to-r from-accent to-primary hover:opacity-90"
               >
                 Ir para o Perfil
               </Button>
@@ -125,13 +125,13 @@ export default function SubscriptionSuccessPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pale-clay-light via-porcelain to-pure-white flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-background via-card to-muted flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <CheckCircle2 className="h-16 w-16 text-green-500" />
           </div>
-          <CardTitle className="text-2xl text-deep-mocha">
+          <CardTitle className="text-2xl text-foreground">
             Pagamento Confirmado!
           </CardTitle>
           <CardDescription>
@@ -139,11 +139,11 @@ export default function SubscriptionSuccessPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="bg-pale-clay-light p-4 rounded-lg space-y-2">
-            <p className="text-sm text-warm-taupe">
+          <div className="bg-muted p-4 rounded-lg space-y-2">
+            <p className="text-sm text-muted-foreground">
               <strong>O que tens agora:</strong>
             </p>
-            <ul className="text-sm text-warm-taupe space-y-1 list-disc list-inside">
+            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
               <li>Chat IA ilimitado</li>
               <li>Respostas mais precisas e detalhadas</li>
               <li>Pesquisa de propriedades</li>
@@ -158,12 +158,12 @@ export default function SubscriptionSuccessPage() {
           {sessionData && (
             <div className="space-y-2">
               {sessionData.amountTotal && (
-                <p className="text-sm text-warm-taupe text-center">
+                <p className="text-sm text-muted-foreground text-center">
                   <strong>Valor pago:</strong> {(sessionData.amountTotal / 100).toFixed(2)} {sessionData.currency?.toUpperCase()}
                 </p>
               )}
               {sessionData.customerEmail && (
-                <p className="text-xs text-warm-taupe/70 text-center">
+                <p className="text-xs text-muted-foreground/70 text-center">
                   Recibo enviado para: {sessionData.customerEmail}
                 </p>
               )}
@@ -173,7 +173,7 @@ export default function SubscriptionSuccessPage() {
           <div className="flex flex-col gap-2">
             <Button
               onClick={() => navigate('/profile')}
-              className="w-full bg-gradient-to-r from-burnt-peach to-warm-terracotta hover:opacity-90"
+              className="w-full bg-gradient-to-r from-accent to-primary hover:opacity-90"
             >
               Ir para o Perfil
             </Button>

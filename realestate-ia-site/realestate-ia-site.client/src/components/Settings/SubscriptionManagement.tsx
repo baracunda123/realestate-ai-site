@@ -88,13 +88,13 @@ export function SubscriptionManagement() {
   const getStatusBadge = (status?: string) => {
     switch (status) {
       case 'active':
-        return <Badge className="bg-success-strong text-white">Ativa</Badge>;
+        return <Badge className="bg-success text-primary-foreground">Ativa</Badge>;
       case 'trialing':
-        return <Badge className="bg-blue-500 text-white">Período de Teste</Badge>;
+        return <Badge className="bg-info text-primary-foreground">Período de Teste</Badge>;
       case 'canceled':
-        return <Badge className="bg-error-gentle text-white">Cancelada</Badge>;
+        return <Badge className="bg-error text-primary-foreground">Cancelada</Badge>;
       case 'past_due':
-        return <Badge className="bg-warning-gentle text-white">Pagamento Pendente</Badge>;
+        return <Badge className="bg-warning text-primary-foreground">Pagamento Pendente</Badge>;
       default:
         return <Badge variant="outline">{status || 'Desconhecido'}</Badge>;
     }
@@ -113,9 +113,9 @@ export function SubscriptionManagement() {
 
   if (isLoading) {
     return (
-      <Card className="border border-pale-clay-deep bg-pure-white shadow-clay-deep">
+      <Card className="border border-border bg-card shadow-strong">
         <CardContent className="flex items-center justify-center p-8">
-          <Loader2 className="h-6 w-6 animate-spin text-burnt-peach" />
+          <Loader2 className="h-6 w-6 animate-spin text-accent" />
         </CardContent>
       </Card>
     );
@@ -123,11 +123,11 @@ export function SubscriptionManagement() {
 
   if (!subscription) {
     return (
-      <Card className="border border-pale-clay-deep bg-pure-white shadow-clay-deep">
+      <Card className="border border-border bg-card shadow-strong">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2">
-            <CreditCard className="h-5 w-5 text-burnt-peach-dark" />
-            <span className="text-deep-mocha">Subscrição</span>
+            <CreditCard className="h-5 w-5 text-accent" />
+            <span className="text-foreground">Subscrição</span>
           </CardTitle>
           <CardDescription>
             Não tens uma subscrição ativa
@@ -140,7 +140,7 @@ export function SubscriptionManagement() {
             </p>
             <Button
               onClick={() => window.location.href = '/pricing'}
-              className="bg-burnt-peach hover:bg-burnt-peach-deep text-pure-white"
+              className="bg-accent hover:bg-accent/90 text-accent-foreground"
             >
               <TrendingUp className="h-4 w-4 mr-2" />
               Ver Planos
@@ -152,13 +152,13 @@ export function SubscriptionManagement() {
   }
 
   return (
-    <Card className="border border-pale-clay-deep bg-pure-white shadow-clay-deep">
+    <Card className="border border-border bg-card shadow-strong">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
             <CardTitle className="flex items-center space-x-2">
-              <CreditCard className="h-5 w-5 text-burnt-peach-dark" />
-              <span className="text-deep-mocha">Subscrição Ativa</span>
+              <CreditCard className="h-5 w-5 text-accent" />
+              <span className="text-foreground">Subscrição Ativa</span>
             </CardTitle>
             <CardDescription className="mt-2">
               Gere a tua subscrição e faturação
@@ -192,7 +192,7 @@ export function SubscriptionManagement() {
               <Calendar className="h-4 w-4 mr-1" />
               Início do Período
             </p>
-            <p className="text-sm font-medium text-foreground">
+            <p className="text-muted-foreground text-foreground">
               {formatDate(subscription.currentPeriodStart)}
             </p>
           </div>
@@ -202,7 +202,7 @@ export function SubscriptionManagement() {
               <Calendar className="h-4 w-4 mr-1" />
               Próxima Renovação
             </p>
-            <p className="text-sm font-medium text-foreground">
+            <p className="text-muted-foreground text-foreground">
               {formatDate(subscription.currentPeriodEnd)}
             </p>
           </div>
@@ -210,8 +210,8 @@ export function SubscriptionManagement() {
 
         {/* Cancel at period end warning */}
         {subscription.cancelAtPeriodEnd && (
-          <div className="bg-warning-soft border border-warning-gentle rounded-lg p-4">
-            <p className="text-sm text-warning-strong font-medium">
+          <div className="bg-warning/10 border border-warning rounded-lg p-4">
+            <p className="text-sm text-warning font-medium">
               ⚠️ Subscrição será cancelada em {formatDate(subscription.currentPeriodEnd)}
             </p>
             <p className="text-xs text-muted-foreground mt-1">
@@ -222,12 +222,12 @@ export function SubscriptionManagement() {
 
         {/* Actions */}
         {!subscription.cancelAtPeriodEnd && subscription.status === 'active' && (
-          <div className="pt-4 border-t border-pale-clay-deep">
+          <div className="pt-4 border-t border-accentep">
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
                   variant="outline"
-                  className="w-full border-error-gentle text-error-strong hover:bg-error-soft"
+                  className="w-full border-error text-error hover:bg-error/10"
                 >
                   Cancelar Subscrição
                 </Button>
@@ -240,7 +240,7 @@ export function SubscriptionManagement() {
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <div className="py-4">
-                  <label className="text-sm font-medium text-foreground mb-2 block">
+                  <label className="text-muted-foreground text-foreground mb-2 block">
                     Motivo do cancelamento (opcional)
                   </label>
                   <Textarea
@@ -255,7 +255,7 @@ export function SubscriptionManagement() {
                     Manter Subscrição
                   </AlertDialogCancel>
                   <AlertDialogAction
-                    className="bg-error-gentle hover:bg-error-strong"
+                    className="bg-error hover:bg-error/90"
                     onClick={handleCancelSubscription}
                     disabled={isCancelling}
                   >
@@ -275,10 +275,10 @@ export function SubscriptionManagement() {
         )}
 
         {/* Upgrade option */}
-        <div className="bg-pale-clay-light rounded-lg p-4">
+        <div className="bg-muted rounded-lg p-4">
           <p className="text-sm text-muted-foreground">
             Queres mudar de plano?{' '}
-            <a href="/pricing" className="text-burnt-peach hover:text-burnt-peach-deep font-medium">
+            <a href="/pricing" className="text-accent hover:text-accent/90 font-medium">
               Ver todos os planos
             </a>
           </p>
