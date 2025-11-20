@@ -24,7 +24,7 @@ export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
     { 
       icon: Sparkles, 
       title: "A IA trabalha por ti", 
-      desc: "A nossa inteligência artificial processa o teu pedido e encontra as melhores correspondências",
+      desc: "A IA processa o teu pedido e encontra as melhores correspondências",
       gradient: "from-deep-blue-light to-deep-blue-lighter"
     },
     { 
@@ -160,9 +160,9 @@ export function WelcomeScreen({ user, onStartSearch }: WelcomeScreenProps) {
             transition={{ delay: 0.3, duration: 0.5 }}
           >
             {user ? (
-              "Descreve o que procuras e a nossa IA encontra as melhores opções para ti"
+              "Descreve o que procuras e a IA encontra as melhores opções para ti"
             ) : (
-              "Pesquisa inteligente de imóveis. Sem cadastro necessário para começar."
+              "Pesquisa inteligente de imóveis. Sem registo necessário para começar."
             )}
           </motion.p>
 
