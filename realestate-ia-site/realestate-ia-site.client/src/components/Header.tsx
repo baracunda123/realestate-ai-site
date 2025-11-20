@@ -38,32 +38,6 @@ export function Header({
     onNavigateToPersonal();
   };
 
-
-  const renderViewTitle = () => {
-    switch (currentView) {
-      case 'personal':
-        return (
-          <div className="flex-1 flex items-center justify-center">
-            <h1 className="text-xl font-semibold text-title">Área Pessoal</h1>
-          </div>
-        );
-      case 'alert-results':
-        return (
-          <div className="flex-1 flex items-center justify-center">
-            <h1 className="text-xl font-semibold text-title">Resultados do Alerta</h1>
-          </div>
-        );
-      case 'home':
-        return (
-          <div className="flex-1 flex items-center justify-center">
-            {/* Título removido - botão de pesquisa movido para WelcomeScreen */}
-          </div>
-        );
-      default:
-        return null;
-    }
-  };
-
   const renderUserSection = () => {
     if (user) {
       const userForDropdown = {
@@ -88,7 +62,7 @@ export function Header({
     return (
       <Button 
         onClick={onOpenAuth}
-        className="bg-primary hover:bg-primary/90 text-white shadow-burnt-peach border-0 text-xs sm:text-sm px-3 sm:px-4 h-9 sm:h-10"
+        className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-blue border-0 text-xs sm:text-sm px-3 sm:px-4 h-9 sm:h-10"
       >
         Iniciar Sessão
       </Button>
@@ -96,35 +70,39 @@ export function Header({
   };
 
   return (
-    <header className="bg-card/95 backdrop-blur-lg border-b border-clay-medium sticky top-0 z-50 shadow-clay-soft">
-      <div className="site-container relative">
-        <div className="flex items-center justify-between h-14 sm:h-16 gap-1 sm:gap-2">
-          {/* Logo */}
-          <div className="flex items-center flex-shrink-0">
-            <div
-              className="flex items-center space-x-1.5 sm:space-x-2 md:space-x-3 p-1 sm:p-1.5 md:p-2 cursor-pointer"
-              onClick={handleNavigateToHome}
-            >
-              <div className="w-8 h-8 sm:w-9 sm:h-9 md:w-10 md:h-10 bg-primary rounded-lg md:rounded-xl flex items-center justify-center shadow-burnt-peach">
-                <Home className="h-4 w-4 sm:h-4.5 sm:w-4.5 md:h-5 md:w-5 text-white" />
+    <header className="bg-card border-b border-border sticky top-0 z-50 shadow-strong backdrop-blur-sm">
+      <div className="site-container">
+        <div className="flex items-center justify-between h-16 lg:h-20">
+          {/* Logo Section */}
+          <div
+            className="flex items-center gap-3 cursor-pointer group"
+            onClick={handleNavigateToHome}
+          >
+            <div className="relative">
+              <div className="w-10 h-10 lg:w-12 lg:h-12 bg-gradient-primary rounded-2xl flex items-center justify-center shadow-blue group-hover:shadow-lg transition-all duration-300 group-hover:scale-105">
+                <Home className="h-5 w-5 lg:h-6 lg:w-6 text-primary-foreground" />
               </div>
-              <div className="hidden sm:block">
-                <span className="text-base sm:text-lg md:text-xl font-semibold text-title">
-                  ResideAI
-                </span>
-                <div className="text-xs text-clay-secondary -mt-0.5 hidden md:block">
-                  Encontra o teu lar ideal
-                </div>
-              </div>
+              <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-success rounded-full border-2 border-background"></div>
+            </div>
+            <div>
+              <h1 className="text-lg lg:text-xl font-bold text-foreground tracking-tight">
+                ResideAI
+              </h1>
+              <p className="text-xs text-muted-foreground -mt-0.5">
+                Pesquisa Inteligente
+              </p>
             </div>
           </div>
 
-          {/* Dynamic Content Area */}
-          {renderViewTitle()}
+          {/* Center Title (only for personal area) */}
+          {currentView === 'personal' && (
+            <div className="hidden md:block absolute left-1/2 transform -translate-x-1/2">
+              <h2 className="text-lg font-medium text-foreground">Área Pessoal</h2>
+            </div>
+          )}
 
-          {/* Right Side Controls */}
-          <div className="flex items-center space-x-1 sm:space-x-2 md:space-x-3 flex-shrink-0">
-            {/* User Section */}
+          {/* Right Actions */}
+          <div className="flex items-center gap-3">
             {renderUserSection()}
           </div>
         </div>

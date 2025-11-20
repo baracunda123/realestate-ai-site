@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { Card, CardContent } from './ui/card';
 import { Button } from './ui/button';
 import { Input } from './ui/input';
-import { Sparkles, Loader2, Send, Square } from 'lucide-react';
+import { Loader2, ArrowUp, Square, ArrowRight } from 'lucide-react';
 import { AnonymousBanner } from './Chat/AnonymousBanner';
 import { ChatTabs } from './Chat/ChatTabs';
 import type { ChatSessionDto } from '../api/chat-sessions.service';
@@ -29,6 +28,9 @@ interface ChatPanelProps {
     onCreateSession?: () => void;
     onDeleteSession?: (sessionId: string) => void;
     onOpenAuthModal?: () => void;
+    // Mobile navigation
+    onShowResults?: () => void;
+    showResultsButton?: boolean;
 }
 
 export function ChatPanel({
@@ -42,7 +44,9 @@ export function ChatPanel({
     onSelectSession,
     onCreateSession,
     onDeleteSession,
-    onOpenAuthModal
+    onOpenAuthModal,
+    onShowResults,
+    showResultsButton = false
 }: ChatPanelProps) {
     const [inputValue, setInputValue] = useState('');
     const [localHistory, setLocalHistory] = useState<ConversationMessage[]>([]);
@@ -97,30 +101,45 @@ export function ChatPanel({
     };
 
 
-    const renderMessage = (message: ConversationMessage) => {
+    const renderMessage = (message: ConversationMessage, index: number) => {
         const isUser = message.type === 'user';
         const isError = message.type === 'error';
+        const isLastAiMessage = !isUser && index === localHistory.length - 1;
         
         // Detectar se é mensagem de erro de quota
         const isQuotaErrorMessage = !isUser && (message.isQuotaError || message.content.includes('limite de mensagens'));
 
         return (
-            <div key={message.id} className={`mb-4 ${isUser ? 'ml-4' : 'mr-4'}`}>
+            <div key={message.id} className={`mb-5 ${isUser ? 'ml-8' : 'mr-8'}`}>
                 <div className={`flex gap-3 ${isUser ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[85%] rounded-lg p-4 ${
+                    <div className={`max-w-[80%] rounded-2xl p-4 shadow-sm ${
                         isUser
-                            ? 'bg-burnt-peach text-pure-white'
+                            ? 'bg-primary text-primary-foreground shadow-blue'
                             : isError
-                                ? 'bg-error-soft border border-error-gentle text-error-strong'
+                                ? 'bg-error/10 border-2 border-error text-error'
                                 : isQuotaErrorMessage
-                                    ? 'bg-warning-soft border border-warning-gentle text-warning-strong'
-                                    : 'bg-pale-clay-light border border-pale-clay-deep text-deep-mocha'
+                                    ? 'bg-warning/10 border-2 border-warning text-warning'
+                                    : 'bg-card border-2 border-border text-foreground shadow-medium'
                         }`}>
                         <div className="text-sm leading-relaxed whitespace-pre-wrap break-words">
                             {message.content}
                         </div>
-                        <div className={`text-xs mt-2 opacity-70`}>
-                            {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        <div className={`flex items-center justify-between mt-2 ${isUser ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                            <span className="text-xs">
+                                {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            {/* Seta para ver resultados - apenas na última mensagem da IA */}
+                            {isLastAiMessage && showResultsButton && onShowResults && (
+                                <Button
+                                    onClick={onShowResults}
+                                    size="sm"
+                                    variant="ghost"
+                                    className="lg:hidden h-7 px-2 text-xs text-accent hover:text-accent/90 hover:bg-accent/10"
+                                >
+                                    Ver Resultados
+                                    <ArrowRight className="h-3.5 w-3.5 ml-1" />
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -141,30 +160,34 @@ export function ChatPanel({
     const isAuthenticated = authUtils.isAuthenticated();
 
     return (
-        <div className="flex flex-col space-y-3 sticky top-20 lg:top-24 mb-6">
+        <div className="flex flex-col h-full">
             {/* Free Plan Banner - mostrar apenas para utilizadores não autenticados */}
             {!isAuthenticated && onOpenAuthModal && (
-                <AnonymousBanner onSignUp={onOpenAuthModal} />
+                <div className="p-4 border-b border-border">
+                    <AnonymousBanner onSignUp={onOpenAuthModal} />
+                </div>
             )}
 
-            <Card className="flex flex-col border border-pale-clay-deep bg-pure-white shadow-clay-deep overflow-hidden" style={{ height: 'calc(100vh - 200px)', minHeight: '350px' }}>
+            <div className="flex flex-col flex-1 overflow-hidden">
                 {/* Tabs - apenas para utilizadores autenticados */}
                 {isAuthenticated && onSelectSession && onCreateSession && onDeleteSession && (
-                    <ChatTabs
-                        sessions={sessions}
-                        activeSessionId={activeSessionId}
-                        onSelectSession={onSelectSession}
-                        onCreateSession={onCreateSession}
-                        onDeleteSession={onDeleteSession}
-                        loading={loading}
-                    />
+                    <div className="p-4 border-b border-border bg-card">
+                        <ChatTabs
+                            sessions={sessions}
+                            activeSessionId={activeSessionId}
+                            onSelectSession={onSelectSession}
+                            onCreateSession={onCreateSession}
+                            onDeleteSession={onDeleteSession}
+                            loading={loading}
+                        />
+                    </div>
                 )}
 
                 {/* Messages Area */}
-                <CardContent className="flex-1 overflow-hidden p-0 relative">
+                <div className="flex-1 overflow-hidden p-0 relative bg-background">
                     <div
                         ref={conversationContainerRef}
-                        className="h-full overflow-y-auto p-3 sm:p-4 scrollbar-thin scrollbar-thumb-pale-clay-deep scrollbar-track-transparent hover:scrollbar-thumb-pale-clay-darker"
+                        className="h-full overflow-y-auto p-4 sm:p-6 scrollbar-thin"
                         style={{
                             scrollBehavior: 'smooth',
                             overscrollBehavior: 'contain',
@@ -172,20 +195,10 @@ export function ChatPanel({
                         }}
                     >
                         {!hasMessages && !loading && (
-                            <div className="flex items-center justify-center h-full text-center px-4">
-                                <div className="max-w-md space-y-3 sm:space-y-4">
-                                    <div className="w-12 h-12 sm:w-16 sm:h-16 mx-auto bg-pale-clay-light rounded-full flex items-center justify-center">
-                                        <Sparkles className="h-6 w-6 sm:h-8 sm:w-8 text-burnt-peach" />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-base sm:text-lg font-medium text-deep-mocha mb-2">
-                                            Como posso ajudar?
-                                        </h3>
-                                        <p className="text-xs sm:text-sm text-warm-taupe">
-                                            Descreve o tipo de imóvel que procuras e a AI vai-te ajudar a encontrar as melhores opções.
-                                        </p>
-                                    </div>
-                                </div>
+                            <div className="flex items-center justify-center h-full text-center px-6">
+                                <p className="text-sm text-muted-foreground max-w-xs">
+                                    Descreve o imóvel que procuras e a IA vai encontrar as melhores opções para ti
+                                </p>
                             </div>
                         )}
 
@@ -196,10 +209,10 @@ export function ChatPanel({
                                 {loading && (
                                     <div className="mb-4 mr-4">
                                         <div className="flex gap-3 justify-start">
-                                            <div className="max-w-[85%] rounded-lg p-4 bg-pale-clay-light border border-pale-clay-deep">
-                                                <div className="flex items-center gap-2 text-sm text-warm-taupe">
-                                                    <Loader2 className="h-4 w-4 animate-spin" />
-                                                    A pensar...
+                                            <div className="max-w-[85%] rounded-lg p-3 bg-card border border-border">
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <Loader2 className="h-4 w-4 animate-spin text-accent" />
+                                                    A processar...
                                                 </div>
                                             </div>
                                         </div>
@@ -210,47 +223,50 @@ export function ChatPanel({
                             </div>
                         )}
                     </div>
-                </CardContent>
+                </div>
 
-                {/* Input Area */}
-                <div className="p-3 sm:p-4 border-t border-pale-clay-deep bg-pale-clay-light/30">
-                    <div className="flex gap-2">
-                        <Input
-                            placeholder={hasQuotaError ? "Limite atingido - Faça upgrade para continuar" : "Descreva o que procura..."}
-                            value={inputValue}
-                            onChange={(e) => setInputValue(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            onCompositionStart={() => {
-                                isComposingRef.current = true;
-                            }}
-                            onCompositionEnd={() => {
-                                isComposingRef.current = false;
-                            }}
-                            disabled={loading || hasQuotaError}
-                            className="flex-1 border-pale-clay-deep focus:border-burnt-peach text-sm"
-                        />
-                        {loading && onCancelQuery ? (
-                            <Button
-                                onClick={onCancelQuery}
-                                className="bg-error-gentle hover:bg-error-strong text-pure-white font-semibold border-0 shadow-clay-soft px-3 sm:px-4 transition-colors"
-                                title="Cancelar mensagem"
-                            >
-                                <Square className="h-4 w-4" />
-                            </Button>
-                        ) : (
-                            <Button
-                                onClick={handleSubmit}
-                                disabled={!inputValue.trim() || loading || hasQuotaError}
-                                className="bg-burnt-peach hover:bg-burnt-peach-light text-pure-white font-semibold border-0 shadow-burnt-peach px-3 sm:px-4"
-                            >
-                                <Send className="h-4 w-4" />
-                            </Button>
-                        )}
+                {/* Input Area - Estilo ChatGPT */}
+                <div className="p-4 bg-card border-t border-border">
+                    <div className="relative max-w-4xl mx-auto">
+                        <div className="flex items-end gap-2 bg-input border border-border hover:border-accent rounded-2xl shadow-sm transition-all px-4 py-3">
+                            <Input
+                                placeholder={hasQuotaError ? "Limite atingido" : "Descreve o imóvel que procuras..."}
+                                value={inputValue}
+                                onChange={(e) => setInputValue(e.target.value)}
+                                onKeyDown={handleKeyDown}
+                                onCompositionStart={() => {
+                                    isComposingRef.current = true;
+                                }}
+                                onCompositionEnd={() => {
+                                    isComposingRef.current = false;
+                                }}
+                                disabled={loading || hasQuotaError}
+                                className="flex-1 border-0 focus:ring-0 focus:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm bg-transparent placeholder:text-muted-foreground resize-none"
+                                style={{ boxShadow: 'none' }}
+                            />
+                            {loading && onCancelQuery ? (
+                                <Button
+                                    onClick={onCancelQuery}
+                                    size="icon"
+                                    className="h-8 w-8 rounded-lg bg-muted hover:bg-error/20 text-muted-foreground hover:text-error transition-colors flex-shrink-0"
+                                    title="Cancelar"
+                                >
+                                    <Square className="h-4 w-4" />
+                                </Button>
+                            ) : (
+                                <Button
+                                    onClick={handleSubmit}
+                                    disabled={!inputValue.trim() || loading || hasQuotaError}
+                                    size="icon"
+                                    className="h-8 w-8 rounded-lg bg-primary hover:bg-primary/90 text-primary-foreground transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+                                >
+                                    <ArrowUp className="h-4 w-4" />
+                                </Button>
+                            )}
+                        </div>
                     </div>
                 </div>
-            </Card>
+            </div>
         </div>
     );
 }
-
-

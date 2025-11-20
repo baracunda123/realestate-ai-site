@@ -141,37 +141,37 @@ export function PricingPage() {
   const isFreeActive = !activeSubscription || activeSubscription.cancelAtPeriodEnd;
 
   return (
-    <div className="min-h-screen bg-pure-white py-16 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-card py-16 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-16">
-          <h1 className="text-5xl font-semibold text-deep-mocha mb-4 tracking-tight">
+        <div className="text-primaryter mb-16">
+          <h1 className="text-5xl font-semibold text-foreground mb-4 tracking-tight">
             Escolhe o teu plano
           </h1>
-          <p className="text-lg text-warm-taupe max-w-2xl mx-auto">
+          <p className="text-lg text-muted-foreground max-w-2xl">
             Pesquisas ilimitadas. Cancela quando quiseres.
           </p>
         </div>
 
         {/* Plans Comparison */}
-        <div className="bg-porcelain rounded-3xl p-8 mb-16">
+        <div className="bg-muted/30 rounded-3xl p-8 mb-16">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Free Plan */}
-            <div className="bg-pure-white rounded-2xl p-8 border border-pale-clay-deep">
+            <div className="bg-card rounded-2xl p-8 border border-border-deep">
               <div className="mb-6">
-                <h2 className="text-2xl font-semibold text-deep-mocha mb-2">Free</h2>
+                <h2 className="text-2xl font-semibold text-foreground mb-2">Free</h2>
                 <div className="flex items-baseline gap-2 mb-4">
-                  <span className="text-5xl font-semibold text-deep-mocha">€0</span>
-                  <span className="text-warm-taupe">/mês</span>
+                  <span className="text-5xl font-semibold text-foreground">€0</span>
+                  <span className="text-muted-foreground">/mês</span>
                 </div>
-                <p className="text-sm text-warm-taupe">Modelo básico (GPT-4o-mini)</p>
+                <p className="text-sm text-muted-foreground">Modelo básico (GPT-4o-mini)</p>
               </div>
               
               <Button
                 onClick={() => handleSubscribe({ id: 'free', name: 'Free', price: 0, interval: 'month' } as any)}
                 disabled={loading === 'free' || isFreeActive}
                 variant="outline"
-                className="w-full mb-6 h-12 border-pale-clay-deep text-deep-mocha hover:bg-pale-clay-light"
+                className="w-full mb-6 h-12 border-border-deep text-foreground hover:bg-muted-light"
               >
                 {loading === 'free' ? (
                   <>
@@ -187,41 +187,41 @@ export function PricingPage() {
 
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-sm">
-                  <Check className="h-4 w-4 text-burnt-peach flex-shrink-0" />
-                  <span className="text-warm-taupe">Pesquisas ilimitadas</span>
+                  <Check className="h-4 w-4 text-accent flex-shrink-0" />
+                  <span className="text-muted-foreground">Pesquisas ilimitadas</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <Check className="h-4 w-4 text-burnt-peach flex-shrink-0" />
-                  <span className="text-warm-taupe">Histórico e favoritos</span>
+                  <Check className="h-4 w-4 text-accent flex-shrink-0" />
+                  <span className="text-muted-foreground">Histórico e favoritos</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <Check className="h-4 w-4 text-burnt-peach flex-shrink-0" />
-                  <span className="text-warm-taupe">Área pessoal</span>
+                  <Check className="h-4 w-4 text-accent flex-shrink-0" />
+                  <span className="text-muted-foreground">Área pessoal</span>
                 </div>
               </div>
             </div>
 
             {/* Premium Plan */}
-            <div className="bg-gradient-to-br from-burnt-peach-lighter/20 to-burnt-peach/10 rounded-2xl p-8 border-2 border-burnt-peach relative">
+            <div className="bg-gradient-to-br from-accent/20 to-accent/10 rounded-2xl p-8 border-2 border-accent relative">
               <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                <span className="bg-burnt-peach text-white text-xs font-semibold px-4 py-1.5 rounded-full shadow-lg">
+                <span className="bg-accent text-accent-foreground text-xs font-semibold px-4 py-1.5 rounded-full shadow-lg">
                   Mais Popular
                 </span>
               </div>
               
               <div className="mb-6">
-                <h2 className="text-2xl font-semibold text-deep-mocha mb-2">Premium</h2>
+                <h2 className="text-2xl font-semibold text-foreground mb-2">Premium</h2>
                 <div className="flex items-baseline gap-2 mb-4">
-                  <span className="text-5xl font-semibold text-deep-mocha">€8</span>
-                  <span className="text-warm-taupe">/mês</span>
+                  <span className="text-5xl font-semibold text-foreground">€8</span>
+                  <span className="text-muted-foreground">/mês</span>
                 </div>
-                <p className="text-sm text-burnt-peach-dark font-medium">Modelo avançado (GPT-4o)</p>
+                <p className="text-sm text-accent-dark font-medium">Modelo avançado (GPT-4o)</p>
               </div>
               
               <Button
                 onClick={() => handleSubscribe({ id: 'premium', name: 'Premium', price: 8, interval: 'month' })}
                 disabled={loading === 'premium' || (isPremiumActive ?? false)}
-                className="w-full mb-6 h-12 bg-burnt-peach hover:bg-burnt-peach-light text-white font-semibold shadow-lg"
+                className="w-full mb-6 h-12 bg-accent hover:bg-accent/90 text-accent-foreground font-semibold shadow-lg"
               >
                 {loading === 'premium' ? (
                   <>
@@ -237,20 +237,20 @@ export function PricingPage() {
 
               <div className="space-y-3">
                 <div className="flex items-center gap-2 text-sm">
-                  <Check className="h-4 w-4 text-burnt-peach-dark flex-shrink-0" />
-                  <span className="text-deep-mocha font-medium">Tudo do Free, mais:</span>
+                  <Check className="h-4 w-4 text-accent-dark flex-shrink-0" />
+                  <span className="text-foreground font-medium">Tudo do Free, mais:</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <Check className="h-4 w-4 text-burnt-peach-dark flex-shrink-0" />
-                  <span className="text-warm-taupe">Respostas mais precisas e detalhadas</span>
+                  <Check className="h-4 w-4 text-accent-dark flex-shrink-0" />
+                  <span className="text-muted-foreground">Respostas mais precisas e detalhadas</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <Check className="h-4 w-4 text-burnt-peach-dark flex-shrink-0" />
-                  <span className="text-warm-taupe">Análise avançada de propriedades</span>
+                  <Check className="h-4 w-4 text-accent-dark flex-shrink-0" />
+                  <span className="text-muted-foreground">Análise avançada de propriedades</span>
                 </div>
                 <div className="flex items-center gap-2 text-sm">
-                  <Check className="h-4 w-4 text-burnt-peach-dark flex-shrink-0" />
-                  <span className="text-warm-taupe">Suporte prioritário</span>
+                  <Check className="h-4 w-4 text-accent-dark flex-shrink-0" />
+                  <span className="text-muted-foreground">Suporte prioritário</span>
                 </div>
               </div>
             </div>
@@ -259,40 +259,40 @@ export function PricingPage() {
 
         {/* Feature Comparison Table */}
         <div className="mb-16">
-          <h3 className="text-2xl font-semibold text-deep-mocha mb-8 text-center">Comparação detalhada</h3>
-          <div className="bg-porcelain rounded-2xl overflow-hidden">
+          <h3 className="text-2xl font-semibold text-foreground mb-8 text-primaryter">Comparação detalhada</h3>
+          <div className="bg-muted/30 rounded-2xl overflow-hidden">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-pale-clay-deep">
-                  <th className="text-left p-6 text-sm font-semibold text-deep-mocha">Funcionalidade</th>
-                  <th className="text-center p-6 text-sm font-semibold text-deep-mocha">Free</th>
-                  <th className="text-center p-6 text-sm font-semibold text-deep-mocha">Premium</th>
+                <tr className="border-b border-border-deep">
+                  <th className="text-left p-6 text-sm font-semibold text-foreground">Funcionalidade</th>
+                  <th className="text-primaryter p-6 text-sm font-semibold text-foreground">Free</th>
+                  <th className="text-primaryter p-6 text-sm font-semibold text-foreground">Premium</th>
                 </tr>
               </thead>
               <tbody>
                 {features.map((feature, index) => (
-                  <tr key={index} className="border-b border-pale-clay-deep last:border-0">
-                    <td className="p-6 text-sm text-warm-taupe">{feature.name}</td>
-                    <td className="p-6 text-center">
+                  <tr key={index} className="border-b border-borderbg-primaryst:border-0">
+                    <td className="p-6 text-sm text-muted-foreground">{feature.name}</td>
+                    <td className="p-6 text-primaryter">
                       {typeof feature.free === 'boolean' ? (
                         feature.free ? (
-                          <Check className="h-5 w-5 text-burnt-peach mx-auto" />
+                          <Check className="h-5 w-5 text-accent mx-auto" />
                         ) : (
-                          <span className="text-pale-clay-deep">—</span>
+                          <span className="text-muted-foreground">—</span>
                         )
                       ) : (
-                        <span className="text-xs text-warm-taupe bg-pale-clay-light px-2 py-1 rounded">{feature.free}</span>
+                        <span className="text-xs text-muted-foreground bg-muted-light px-2 py-1 rounded">{feature.free}</span>
                       )}
                     </td>
-                    <td className="p-6 text-center">
+                    <td className="p-6 text-primaryter">
                       {typeof feature.premium === 'boolean' ? (
                         feature.premium ? (
-                          <Check className="h-5 w-5 text-burnt-peach-dark mx-auto" />
+                          <Check className="h-5 w-5 text-accent-dark mx-auto" />
                         ) : (
-                          <span className="text-pale-clay-deep">—</span>
+                          <span className="text-muted-foreground">—</span>
                         )
                       ) : (
-                        <span className="text-xs text-burnt-peach-dark bg-burnt-peach-lighter/30 px-2 py-1 rounded font-medium">{feature.premium}</span>
+                        <span className="text-xs text-accent-dark bg-accent-lighter/30 px-2 py-1 rounded font-medium">{feature.premium}</span>
                       )}
                     </td>
                   </tr>
@@ -331,7 +331,7 @@ export function PricingPage() {
               <AlertDialogAction
                 onClick={handleDowngradeToFree}
                 disabled={isCancelling}
-                className="bg-warning-gentle hover:bg-warning-strong text-deep-mocha hover:text-white"
+                className="bg-warning hover:bg-warning/90 text-white"
               >
                 {isCancelling ? (
                   <>
@@ -348,23 +348,23 @@ export function PricingPage() {
 
         {/* FAQ */}
         <div className="max-w-3xl mx-auto">
-          <h3 className="text-2xl font-semibold text-deep-mocha mb-8 text-center">Perguntas Frequentes</h3>
+          <h3 className="text-2xl font-semibold text-foreground mb-8 text-primaryter">Perguntas Frequentes</h3>
           <div className="space-y-6">
-            <div className="bg-porcelain rounded-xl p-6">
-              <h4 className="font-semibold text-deep-mocha mb-2">Porquê pagar €8/mês?</h4>
-              <p className="text-sm text-warm-taupe leading-relaxed">
+            <div className="bg-muted/30 rounded-xl p-6">
+              <h4 className="font-semibold text-foreground mb-2">Porquê pagar €8/mês?</h4>
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 Com o Premium tens acesso ao modelo GPT-4o, que oferece respostas mais precisas, detalhadas e contextualizadas. É como ter um consultor imobiliário expert 24/7 por apenas €8/mês.
               </p>
             </div>
-            <div className="bg-porcelain rounded-xl p-6">
-              <h4 className="font-semibold text-deep-mocha mb-2">Posso cancelar a qualquer momento?</h4>
-              <p className="text-sm text-warm-taupe leading-relaxed">
+            <div className="bg-muted/30 rounded-xl p-6">
+              <h4 className="font-semibold text-foreground mb-2">Posso cancelar a qualquer momento?</h4>
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 Sim! Sem compromissos nem contratos. Cancela quando quiseres e continuarás a ter acesso Premium até ao fim do período pago.
               </p>
             </div>
-            <div className="bg-porcelain rounded-xl p-6">
-              <h4 className="font-semibold text-deep-mocha mb-2">Como funciona o pagamento?</h4>
-              <p className="text-sm text-warm-taupe leading-relaxed">
+            <div className="bg-muted/30 rounded-xl p-6">
+              <h4 className="font-semibold text-foreground mb-2">Como funciona o pagamento?</h4>
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 Pagamentos 100% seguros processados através do Stripe. Aceitamos todos os cartões de crédito e débito. Os teus dados nunca são armazenados nos nossos servidores.
               </p>
             </div>

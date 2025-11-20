@@ -133,17 +133,17 @@ export function ResetPassword() {
     if (status === 'success') {
       return (
         <div className="flex flex-col items-center justify-center py-12 space-y-6">
-          <div className="w-20 h-20 rounded-full bg-success-soft flex items-center justify-center">
-            <CheckCircle className="h-12 w-12 text-success-gentle" />
+          <div className="w-20 h-20 rounded-full bg-success/10 flex items-center justify-center">
+            <CheckCircle className="h-12 w-12 text-success" />
           </div>
           <div className="text-center space-y-2">
-            <h3 className="text-2xl font-semibold text-deep-mocha">Palavra-passe Redefinida!</h3>
-            <p className="text-sm text-warm-taupe-light">{message}</p>
-            <p className="text-xs text-warm-taupe-light">A redirecionar para o login...</p>
+            <h3 className="text-2xl font-semibold text-foreground">Palavra-passe Redefinida!</h3>
+            <p className="text-sm text-muted-foreground-light">{message}</p>
+            <p className="text-xs text-muted-foreground-light">A redirecionar para o login...</p>
           </div>
           <Button 
             onClick={handleGoToLogin}
-            className="gradient-primary hover:shadow-burnt-peach text-white font-medium"
+            className="gradient-primary hover:shadow-blue text-primary-foreground font-medium"
           >
             Ir para Login
           </Button>
@@ -154,12 +154,12 @@ export function ResetPassword() {
     if (status === 'error') {
       return (
         <div className="flex flex-col items-center justify-center py-12 space-y-6">
-          <div className="w-20 h-20 rounded-full bg-error-soft flex items-center justify-center">
+          <div className="w-20 h-20 rounded-full bg-error/10 flex items-center justify-center">
             <XCircle className="h-12 w-12 text-error-gentle" />
           </div>
           <div className="text-center space-y-2">
-            <h3 className="text-2xl font-semibold text-deep-mocha">Erro ao Redefinir</h3>
-            <p className="text-warm-taupe">{message}</p>
+            <h3 className="text-2xl font-semibold text-foreground">Erro ao Redefinir</h3>
+            <p className="text-muted-foreground">{message}</p>
             {errors.length > 0 && (
               <ul className="text-sm text-error-gentle list-disc list-inside">
                 {errors.map((error, index) => (
@@ -172,7 +172,7 @@ export function ResetPassword() {
             <Button 
               variant="outline"
               onClick={handleGoHome}
-              className="border-pale-clay-deep hover:bg-pale-clay-light"
+              className="border-border hover:bg-muted"
             >
               Voltar para Início
             </Button>
@@ -183,7 +183,7 @@ export function ResetPassword() {
                 setConfirmPassword('');
                 setErrors([]);
               }}
-              className="gradient-primary hover:shadow-burnt-peach text-white font-medium"
+              className="gradient-primary hover:shadow-blue text-primary-foreground font-medium"
             >
               Tentar Novamente
             </Button>
@@ -195,11 +195,11 @@ export function ResetPassword() {
     return (
       <form onSubmit={handleSubmit} className="space-y-6 py-6" noValidate>
         <div className="space-y-2">
-          <Label htmlFor="password" className="text-warm-taupe font-medium">
+          <Label htmlFor="password" className="text-muted-foreground font-medium">
             Nova Palavra-passe
           </Label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-warm-taupe" />
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               id="password"
               type={showPassword ? 'text' : 'password'}
@@ -210,7 +210,7 @@ export function ResetPassword() {
                 setShowValidationError(false);
                 setErrors([]);
               }}
-              className="pl-10 pr-12 border-pale-clay-deep focus:border-burnt-peach focus:ring-burnt-peach/20 rounded-xl bg-clay-white h-12 no-password-reveal"
+              className="pl-10 pr-12 border-border focus:border-accent focus:ring-accent/20 rounded-xl bg-card h-12 no-password-reveal"
               disabled={status === 'loading'}
               autoComplete="new-password"
               autoCorrect="off"
@@ -223,7 +223,7 @@ export function ResetPassword() {
               type="button"
               variant="ghost"
               size="sm"
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-pale-clay-light rounded-lg"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted rounded-lg"
               onClick={() => setShowPassword(!showPassword)}
               disabled={status === 'loading'}
             >
@@ -233,9 +233,9 @@ export function ResetPassword() {
           
           {/* Aviso de validação de palavra-passe */}
           {showValidationError && !passwordValidation.isValid && (
-            <div className="bg-warning-soft border border-warning-gentle/30 rounded-xl p-3 mt-2">
+            <div className="bg-warning/10 border border-warning-gentle/30 rounded-xl p-3 mt-2">
               <div className="flex items-start space-x-2">
-                <AlertCircle className="h-4 w-4 text-warning-gentle mt-0.5 flex-shrink-0" />
+                <AlertCircle className="h-4 w-4 text-warning mt-0.5 flex-shrink-0" />
                 <div className="text-xs text-warning-strong">
                   <p className="font-semibold mb-1">
                     {password.length < 8 
@@ -243,7 +243,7 @@ export function ResetPassword() {
                       : 'A palavra-passe não cumpre os requisitos de segurança.'
                     }
                   </p>
-                  <p className="text-warning-gentle">Deve conter: 1 maiúscula, 1 minúscula, 1 número e 1 caracter especial</p>
+                  <p className="text-warning">Deve conter: 1 maiúscula, 1 minúscula, 1 número e 1 caracter especial</p>
                 </div>
               </div>
             </div>
@@ -251,11 +251,11 @@ export function ResetPassword() {
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="confirm-password" className="text-warm-taupe font-medium">
+          <Label htmlFor="confirm-password" className="text-muted-foreground font-medium">
             Confirmar Palavra-passe
           </Label>
           <div className="relative">
-            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-warm-taupe" />
+            <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               id="confirm-password"
               type={showConfirmPassword ? 'text' : 'password'}
@@ -265,7 +265,7 @@ export function ResetPassword() {
                 setConfirmPassword(e.target.value);
                 setErrors([]);
               }}
-              className="pl-10 pr-12 border-pale-clay-deep focus:border-burnt-peach focus:ring-burnt-peach/20 rounded-xl bg-clay-white h-12 no-password-reveal"
+              className="pl-10 pr-12 border-border focus:border-accent focus:ring-accent/20 rounded-xl bg-card h-12 no-password-reveal"
               disabled={status === 'loading'}
               autoComplete="new-password"
               autoCorrect="off"
@@ -278,7 +278,7 @@ export function ResetPassword() {
               type="button"
               variant="ghost"
               size="sm"
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-pale-clay-light rounded-lg"
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted rounded-lg"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               disabled={status === 'loading'}
             >
@@ -288,8 +288,8 @@ export function ResetPassword() {
         </div>
 
         {errors.length > 0 && (
-          <div className="bg-error-soft border border-error-gentle/30 rounded-xl p-4">
-            <ul className="text-sm text-error-strong list-disc list-inside space-y-1">
+          <div className="bg-error/10 border border-error-gentle/30 rounded-xl p-4">
+            <ul className="text-sm text-error list-disc list-inside space-y-1">
               {errors.map((error, index) => (
                 <li key={index}>{error}</li>
               ))}
@@ -299,7 +299,7 @@ export function ResetPassword() {
 
         <Button 
           type="submit" 
-          className="w-full h-12 gradient-primary hover:shadow-burnt-peach text-white font-medium border-0 rounded-xl transition-all duration-200 hover:scale-[1.02]"
+          className="w-full h-12 gradient-primary hover:shadow-blue text-primary-foreground font-medium border-0 rounded-xl transition-all duration-200 hover:scale-[1.02]"
           disabled={status === 'loading' || !password || !confirmPassword}
         >
           {status === 'loading' ? (
@@ -319,7 +319,7 @@ export function ResetPassword() {
           type="button"
           variant="ghost"
           onClick={handleGoHome}
-          className="w-full text-warm-taupe hover:bg-pale-clay-light"
+          className="w-full text-muted-foreground hover:bg-muted"
           disabled={status === 'loading'}
         >
           Cancelar
@@ -356,28 +356,28 @@ export function ResetPassword() {
           
           /* Ensure password text is always visible */
           .no-password-reveal {
-            color: var(--deep-mocha) !important;
-            -webkit-text-fill-color: var(--deep-mocha) !important;
+            color: var(--foreground) !important;
+            -webkit-text-fill-color: var(--foreground) !important;
           }
           
           .no-password-reveal::placeholder {
-            color: var(--warm-taupe) !important;
-            -webkit-text-fill-color: var(--warm-taupe) !important;
+            color: var(--muted-foreground) !important;
+            -webkit-text-fill-color: var(--muted-foreground) !important;
             opacity: 0.6;
           }
         `}
       </style>
       
-      <div className="min-h-screen bg-gradient-to-br from-porcelain via-clay-white to-pale-clay-light flex items-center justify-center p-4">
-        <Card className="w-full max-w-md shadow-clay-strong border-pale-clay-deep">
+      <div className="min-h-screen bg-gradient-to-br from-background via-card to-muted flex items-center justify-center p-4">
+        <Card className="w-full max-w-md shadow-strong border-border">
         <CardHeader className="text-center pb-4">
-          <div className="mx-auto w-14 h-14 bg-gradient-to-br from-burnt-peach to-burnt-peach-deep rounded-2xl flex items-center justify-center mb-4 shadow-burnt-peach">
-            <KeyRound className="h-7 w-7 text-white" />
+          <div className="mx-auto w-14 h-14 bg-gradient-to-br from-accent to-primary rounded-2xl flex items-center justify-center mb-4 shadow-blue">
+            <KeyRound className="h-7 w-7 text-primary-foreground" />
           </div>
-          <CardTitle className="text-3xl font-bold text-deep-mocha">
+          <CardTitle className="text-3xl font-bold text-foreground">
             Redefinir Palavra-passe
           </CardTitle>
-          <CardDescription className="text-warm-taupe">
+          <CardDescription className="text-muted-foreground">
             Crie uma nova palavra-passe segura para a sua conta
           </CardDescription>
         </CardHeader>

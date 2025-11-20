@@ -1,9 +1,10 @@
-import { Clock, X } from 'lucide-react';
+import { Clock, X, Eye, Calendar } from 'lucide-react';
 import type { Property } from '../../types/property';
 import type { ViewHistoryItem, User } from '../../types/PersonalArea';
 import { PropertyCard } from '../PropertyCard';
 import { EmptyState } from '../EmptyState';
 import { Button } from '../ui/button';
+import { Card } from '../ui/card';
 import { useEffect } from 'react';
 
 interface PersonalAreaHistoryProps {
@@ -58,16 +59,17 @@ export function PersonalAreaHistory({
   if (isLoading) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="font-medium text-foreground">Histórico de Visualizações</h2>
-            <p className="text-sm text-muted-foreground">Carregando...</p>
-          </div>
-        </div>
-        <div className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="animate-pulse">
-              <div className="w-full h-32 bg-pale-clay-light rounded-lg"></div>
+              <div className="w-full h-24 bg-muted rounded-xl"></div>
+            </div>
+          ))}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <div key={i} className="animate-pulse">
+              <div className="w-full h-96 bg-muted rounded-2xl"></div>
             </div>
           ))}
         </div>
@@ -89,37 +91,88 @@ export function PersonalAreaHistory({
     );
   }
 
+  // Calculate statistics
+  const totalViews = viewHistory.length;
+  const viewsToday = viewHistory.filter(item => {
+    const viewed = new Date(item.viewedAt);
+    const today = new Date();
+    return viewed.toDateString() === today.toDateString();
+  }).length;
+  const viewsThisWeek = viewHistory.filter(item => {
+    const viewed = new Date(item.viewedAt);
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    return viewed >= weekAgo;
+  }).length;
+
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-sm text-muted-foreground">
-            {viewHistory.length} imóveis visualizados recentemente
-          </p>
-        </div>
+    <div className="space-y-6 animate-slide-in">
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Total Views */}
+        <Card className="p-4 bg-gradient-to-br from-ocean-teal/10 to-ocean-teal/5 border-accent/20 hover:shadow-medium transition-all duration-300">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-accent/20 rounded-xl">
+              <Eye className="h-5 w-5 text-accent" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground font-medium">Total Visualizações</p>
+              <p className="text-2xl font-bold text-accent-dark">{totalViews}</p>
+            </div>
+          </div>
+        </Card>
+
+        {/* Today's Views */}
+        <Card className="p-4 bg-gradient-to-br from-deep-navy/10 to-deep-navy/5 border-deep-navy/20 hover:shadow-medium transition-all duration-300">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-primary/20 rounded-xl">
+              <Clock className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground font-medium">Hoje</p>
+              <p className="text-2xl font-bold text-foreground">{viewsToday}</p>
+            </div>
+          </div>
+        </Card>
+
+        {/* This Week's Views */}
+        <Card className="p-4 bg-gradient-to-br from-muted/10 to-muted/5 border-border/20 hover:shadow-medium transition-all duration-300">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-muted/20 rounded-xl">
+              <Calendar className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground font-medium">Esta Semana</p>
+              <p className="text-2xl font-bold text-foreground">{viewsThisWeek}</p>
+            </div>
+          </div>
+        </Card>
       </div>
 
-      {/* Properties List - Layout Vertical */}
-      <div className="space-y-6">
-        {viewHistory.map((item, index) => (
-          <div 
-            key={item.id} 
-            className="relative dashboard-section-card bg-pure-white border border-clay-medium p-6 shadow-clay-soft hover:shadow-clay-medium transition-all duration-300 group overflow-visible"
-          >
-            {/* Header Row with badges - no absolute positioning */}
-            <div className="flex items-center justify-between mb-4">
-              {/* History Index Badge - Left */}
-              <div className="bg-cocoa-taupe text-pure-white text-xs px-3 py-1.5 rounded-full font-medium">
-                #{index + 1}
-              </div>
-
-              {/* Right side badges */}
-              <div className="flex items-center space-x-3">
-                {/* Viewed At Badge */}
-                <div className="bg-burnt-peach/10 text-burnt-peach text-xs px-3 py-1.5 rounded-full font-medium border border-burnt-peach/20">
-                  <Clock className="h-3 w-3 inline mr-1" />
-                  {formatViewedAt(item.viewedAt)}
+      {/* Properties Grid - Modern Layout */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-foreground">Histórico Recente</h3>
+          <p className="text-sm text-muted-foreground">
+            {viewHistory.length} {viewHistory.length === 1 ? 'imóvel' : 'imóveis'}
+          </p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {viewHistory.map((item, index) => (
+            <div 
+              key={item.id} 
+              className="relative group animate-slide-in-up pt-8"
+              style={{ animationDelay: `${index * 50}ms` }}
+            >
+              {/* Header Simples - Acima do Card */}
+              <div className="flex items-center justify-between mb-3">
+                {/* Info à Esquerda */}
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <span className="font-semibold">#{index + 1}</span>
+                  <span>•</span>
+                  <Clock className="h-3 w-3" />
+                  <span>{formatViewedAt(item.viewedAt)}</span>
                 </div>
 
                 {/* Remove Button */}
@@ -127,31 +180,34 @@ export function PersonalAreaHistory({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => onRemoveFromHistory(item.id)}
-                    className="h-8 w-8 p-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-error-soft hover:text-error-strong"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRemoveFromHistory(item.id);
+                    }}
+                    className="h-6 w-6 p-0 rounded hover:bg-error/10 hover:text-error transition-colors"
                     title="Remover do histórico"
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-3.5 w-3.5" />
                   </Button>
                 )}
               </div>
-            </div>
 
-            {/* Property Card - no padding adjustments needed */}
-            <PropertyCard
-              property={item.property}
-              onToggleFavorite={onToggleFavorite}
-              onPropertyView={onPropertyView}
-              isFavorite={favorites.some(f => f.id === item.property.id)}
-            />
-          </div>
-        ))}
+              {/* Property Card */}
+              <PropertyCard
+                property={item.property}
+                onToggleFavorite={onToggleFavorite}
+                onPropertyView={onPropertyView}
+                isFavorite={favorites.some(f => f.id === item.property.id)}
+              />
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Footer Information */}
-      <div className="text-center pt-4 border-t border-whisper-clay">
-        <p className="text-xs text-muted-foreground">
-          Mostrando os últimos {viewHistory.length} imóveis visualizados
+      <div className="text-center pt-4 border-t border-whisper-blue">
+        <p className="text-sm text-muted-foreground">
+          Mostrando os últimos <span className="font-semibold text-accent">{viewHistory.length}</span> imóveis visualizados
         </p>
         <p className="text-xs text-muted-foreground mt-1">
           O histórico mantém apenas os 10 imóveis mais recentes

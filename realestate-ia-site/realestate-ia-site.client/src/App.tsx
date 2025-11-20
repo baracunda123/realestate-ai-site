@@ -19,6 +19,7 @@ import {
   deleteChatSession,
   type ChatSessionDto 
 } from './api/chat-sessions.service';
+import { useTheme } from './hooks/useTheme';
 
 // Extend Window interface to include gtag for Google Analytics
 declare global {
@@ -57,7 +58,7 @@ const TermsOfServicePage = lazy(() => import('./pages/TermsOfServicePage').then(
 // Loading components otimizados
 const LoadingSpinner = () => (
   <div className="flex items-center justify-center p-8">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-burnt-peach"></div>
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-accent-blue"></div>
   </div>
 );
 
@@ -95,6 +96,9 @@ export default function App() {
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
   
+  // Theme hook - Apply theme on mount
+  useTheme();
+
   // Authentication state - usando novos tipos
   const [user, setUser] = useState<ExtendedUserProfile | null>(null);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -118,6 +122,7 @@ export default function App() {
   
   // AbortController para cancelar requisições
   const [abortController, setAbortController] = useState<AbortController | null>(null);
+  const [mobileView, setMobileView] = useState<'chat' | 'grid'>('chat'); // Estado para controlar vista em mobile
 
 
   // Memoized values para evitar recálculos
@@ -269,10 +274,10 @@ export default function App() {
     if (state?.openAuthModal) {
       setAuthDefaultTab(state.defaultTab || 'signin');
       setIsAuthModalOpen(true);
-      // Limpar o state para evitar reabrir o modal
-      navigate(location.pathname, { replace: true, state: {} });
+      // Limpar o state para evitar reabrir o modal no próximo render
+      window.history.replaceState({}, '', location.pathname);
     }
-  }, [location.pathname, location.state, user, navigate]);
+  }, [location.pathname, location.state, user]);
 
   // Google Analytics - Track page views on route change
   useEffect(() => {
@@ -829,15 +834,17 @@ export default function App() {
         currentView={currentView}
       />
       
-      <main className="flex-1 site-container py-4 sm:py-6 md:py-8">
+      <main className="flex-1 site-container py-0">
         <Routes>
           {/* Rota de confirmação de email - token como path parameter */}
           <Route 
             path="/confirm-email/:token" 
             element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <EmailConfirmation />
-              </Suspense>
+              <div className="py-6 lg:py-10">
+                <Suspense fallback={<LoadingSpinner />}>
+                  <EmailConfirmation />
+                </Suspense>
+              </div>
             } 
           />
 
@@ -845,9 +852,11 @@ export default function App() {
           <Route 
             path="/reset-password/:token" 
             element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <ResetPassword />
-              </Suspense>
+              <div className="py-6 lg:py-10">
+                <Suspense fallback={<LoadingSpinner />}>
+                  <ResetPassword />
+                </Suspense>
+              </div>
             } 
           />
 
@@ -855,9 +864,11 @@ export default function App() {
           <Route 
             path="/pricing" 
             element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <PricingPage />
-              </Suspense>
+              <div className="py-6 lg:py-10">
+                <Suspense fallback={<LoadingSpinner />}>
+                  <PricingPage />
+                </Suspense>
+              </div>
             } 
           />
 
@@ -865,17 +876,21 @@ export default function App() {
           <Route 
             path="/subscription/success" 
             element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <SubscriptionSuccessPage />
-              </Suspense>
+              <div className="py-6 lg:py-10">
+                <Suspense fallback={<LoadingSpinner />}>
+                  <SubscriptionSuccessPage />
+                </Suspense>
+              </div>
             } 
           />
           <Route 
             path="/subscription/cancel" 
             element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <SubscriptionCancelPage />
-              </Suspense>
+              <div className="py-6 lg:py-10">
+                <Suspense fallback={<LoadingSpinner />}>
+                  <SubscriptionCancelPage />
+                </Suspense>
+              </div>
             } 
           />
 
@@ -883,17 +898,21 @@ export default function App() {
           <Route 
             path="/privacy" 
             element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <PrivacyPolicyPage />
-              </Suspense>
+              <div className="py-6 lg:py-10">
+                <Suspense fallback={<LoadingSpinner />}>
+                  <PrivacyPolicyPage />
+                </Suspense>
+              </div>
             } 
           />
           <Route 
             path="/terms" 
             element={
-              <Suspense fallback={<LoadingSpinner />}>
-                <TermsOfServicePage />
-              </Suspense>
+              <div className="py-6 lg:py-10">
+                <Suspense fallback={<LoadingSpinner />}>
+                  <TermsOfServicePage />
+                </Suspense>
+              </div>
             } 
           />
 
@@ -987,9 +1006,11 @@ export default function App() {
             element={
               showSearchPanel ? (
                 <Suspense fallback={<LoadingSpinner />}>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6 pb-6">
-                    {/* Chat Panel - Coluna fixa */}
-                    <div className="order-1 lg:order-1">
+                  <div className="fixed inset-0 top-16 lg:top-20 flex gap-0">
+                    {/* Chat Panel - Sidebar fixa à esquerda (desktop) ou full screen (mobile) */}
+                    <div className={`w-full lg:w-[380px] xl:w-[420px] 2xl:w-[450px] flex-shrink-0 border-r border-pale-clay-deep bg-porcelain-soft ${
+                      mobileView === 'grid' ? 'hidden lg:block' : ''
+                    }`}>
                       <ChatPanel
                         onSubmitQuery={handleSubmitSearch}
                         onCancelQuery={handleCancelQuery}
@@ -1002,28 +1023,37 @@ export default function App() {
                         onCreateSession={handleCreateSession}
                         onDeleteSession={handleDeleteSession}
                         onOpenAuthModal={openAuthModal}
+                        onShowResults={() => setMobileView('grid')}
+                        showResultsButton={!!(searchResults && searchResults.length > 0)}
                       />
                     </div>
                     
-                    {/* Property Grid - Coluna com scroll */}
-                    <div className="order-2 lg:order-2">
-                      <PropertyGrid
-                        searchQuery={searchQuery}
-                        serverResults={searchResults || undefined}
-                        favorites={favorites}
-                        onToggleFavorite={toggleFavorite}
-                        onPropertyView={handlePropertyView}
-                      />
+                    {/* Property Grid - Área principal à direita (desktop) ou full screen (mobile) */}
+                    <div className={`flex-1 overflow-y-auto bg-porcelain-soft ${
+                      mobileView === 'chat' ? 'hidden lg:block' : ''
+                    }`}>
+                      <div className="p-4 sm:p-6 lg:p-8">
+                        <PropertyGrid
+                          searchQuery={searchQuery}
+                          serverResults={searchResults || undefined}
+                          favorites={favorites}
+                          onToggleFavorite={toggleFavorite}
+                          onPropertyView={handlePropertyView}
+                          onBackToChat={() => setMobileView('chat')}
+                          showBackButton={true}
+                        />
+                      </div>
                     </div>
                   </div>
                 </Suspense>
               ) : (
-                <Suspense fallback={< LoadingSpinner />}>
-                  <WelcomeScreen
-                    onExampleSearch={handleExampleSearch}
-                    user={user ? convertToUser(user) : null}
-                    onStartSignup={() => openAuthModal('signup')}
-                    onStartSearch={() => {
+                <div className="py-6 lg:py-10">
+                  <Suspense fallback={< LoadingSpinner />}>
+                    <WelcomeScreen
+                      onExampleSearch={handleExampleSearch}
+                      user={user ? convertToUser(user) : null}
+                      onStartSignup={() => openAuthModal('signup')}
+                      onStartSearch={() => {
                       // Limpar sessão ativa para começar nova conversa
                       setActiveSessionId(null);
                       sessionStorage.setItem('showSearchPanel', 'true');
@@ -1031,13 +1061,15 @@ export default function App() {
                     }}
                   />
                 </Suspense>
+                </div>
               )
             } 
           />
         </Routes>
       </main>
 
-      <Footer />
+      {/* Footer - esconder quando estiver no chat */}
+      {!showSearchPanel && <Footer />}
 
       <CookieBanner />
 

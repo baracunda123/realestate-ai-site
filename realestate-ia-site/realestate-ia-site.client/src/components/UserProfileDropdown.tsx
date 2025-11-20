@@ -48,35 +48,35 @@ export function UserProfileDropdown({ user, onLogout }: UserProfileDropdownProps
       <DropdownMenuTrigger asChild>
         <Button 
           variant="ghost" 
-          className="group flex items-center space-x-2 p-1 sm:p-1.5 h-auto hover:bg-gray-100 rounded-full focus:outline-none focus-visible:ring-0"
+          className="group flex items-center space-x-2 p-1 sm:p-1.5 h-auto hover:bg-accent rounded-full focus:outline-none focus-visible:ring-0"
         >
-          <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border-2 border-gray-200 group-hover:border-gray-300">
+          <Avatar className="h-8 w-8 sm:h-9 sm:w-9 border-2 border-border group-hover:border-accent">
             <AvatarImage src={user.avatar} alt={displayName} />
-            <AvatarFallback className="bg-gradient-to-br from-pale-clay to-pale-clay-medium text-deep-mocha text-sm font-medium">
+            <AvatarFallback className="bg-gradient-to-br from-muted to-accent/20 text-foreground text-sm font-medium">
               {userInitials}
             </AvatarFallback>
           </Avatar>
           <div className="hidden md:flex items-center pr-2">
-            <span className="text-gray-700 text-sm font-medium">{displayName}</span>
+            <span className="text-foreground group-hover:text-accent-foreground text-sm font-medium transition-colors">{displayName}</span>
           </div>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent 
         align="end" 
-        className="w-[calc(100vw-2rem)] max-w-72 sm:w-72 max-h-[calc(100vh-5rem)] overflow-y-auto bg-white border border-gray-200 shadow-lg rounded-xl animate-in fade-in-0 zoom-in-95 duration-150"
+        className="w-[calc(100vw-2rem)] max-w-72 sm:w-72 max-h-[calc(100vh-5rem)] overflow-y-auto bg-card border border-border shadow-lg rounded-xl animate-in fade-in-0 zoom-in-95 duration-150"
       >
         {/* User Info Header */}
-        <div className="px-4 py-3 border-b border-gray-100">
+        <div className="px-4 py-3 border-b border-border">
           <div className="flex items-center space-x-3">
-            <Avatar className="h-10 w-10 border border-gray-200">
+            <Avatar className="h-10 w-10 border border-border">
               <AvatarImage src={user.avatar} alt={displayName} />
-              <AvatarFallback className="bg-gradient-to-br from-burnt-peach to-burnt-peach-dark text-white font-medium text-sm">
+              <AvatarFallback className="bg-gradient-to-br from-accent to-primary text-primary-foreground font-medium text-sm">
                 {userInitials}
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-gray-900 truncate text-sm">{displayName}</p>
-              <p className="text-xs text-gray-500 truncate">{user.email}</p>
+              <p className="font-medium text-foreground truncate text-sm">{displayName}</p>
+              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
             </div>
           </div>
         </div>
@@ -85,65 +85,65 @@ export function UserProfileDropdown({ user, onLogout }: UserProfileDropdownProps
         <div className="py-1.5">
         <DropdownMenuItem 
           onClick={() => navigate('/profile')}
-          className="mx-2 px-2 py-2 rounded-md hover:bg-gray-100 text-gray-700 cursor-pointer group"
+          className="mx-2 px-2 py-2 rounded-md hover:bg-accent text-foreground cursor-pointer group"
         >
-          <UserCircle className="h-4 w-4 mr-2.5 text-gray-600 group-hover:text-white" />
+          <UserCircle className="h-4 w-4 mr-2.5 text-muted-foreground group-hover:text-accent-foreground" />
           <span className="font-normal text-sm">Meu Perfil</span>
         </DropdownMenuItem>
 
         <DropdownMenuItem 
           onClick={() => navigate('/favorites')}
-          className="mx-2 px-2 py-2 rounded-md hover:bg-gray-100 text-gray-700 cursor-pointer group"
+          className="mx-2 px-2 py-2 rounded-md hover:bg-accent text-foreground cursor-pointer group"
         >
-          <Heart className="h-4 w-4 mr-2.5 text-gray-600 group-hover:text-white" />
+          <Heart className="h-4 w-4 mr-2.5 text-muted-foreground group-hover:text-accent-foreground" />
           <span className="font-normal text-sm">Favoritos</span>
         </DropdownMenuItem>
 
         <DropdownMenuItem 
           onClick={() => navigate('/history')}
-          className="mx-2 px-2 py-2 rounded-md hover:bg-gray-100 text-gray-700 cursor-pointer group"
+          className="mx-2 px-2 py-2 rounded-md hover:bg-accent text-foreground cursor-pointer group"
         >
-          <Clock className="h-4 w-4 mr-2.5 text-gray-600 group-hover:text-white" />
+          <Clock className="h-4 w-4 mr-2.5 text-muted-foreground group-hover:text-accent-foreground" />
           <span className="font-normal text-sm">Histórico</span>
         </DropdownMenuItem>
 
         <DropdownMenuItem 
           onClick={() => navigate('/settings')}
-          className="mx-2 px-2 py-2 rounded-md hover:bg-gray-100 text-gray-700 cursor-pointer group"
+          className="mx-2 px-2 py-2 rounded-md hover:bg-accent text-foreground cursor-pointer group"
         >
-          <Settings className="h-4 w-4 mr-2.5 text-gray-600 group-hover:text-white" />
+          <Settings className="h-4 w-4 mr-2.5 text-muted-foreground group-hover:text-accent-foreground" />
           <span className="font-normal text-sm">Configurações</span>
         </DropdownMenuItem>
         </div>
 
-        <DropdownMenuSeparator className="my-1 bg-gray-100" />
+        <DropdownMenuSeparator className="my-1 bg-border" />
 
         <div className="py-1.5">
         <DropdownMenuItem 
           onClick={() => navigate('/pricing')}
-          className="mx-2 px-2 py-2 rounded-md hover:bg-gray-100 text-gray-700 cursor-pointer group"
+          className="mx-2 px-2 py-2 rounded-md hover:bg-accent text-foreground cursor-pointer group"
         >
-          <CreditCard className="h-4 w-4 mr-2.5 text-gray-600 group-hover:text-white" />
+          <CreditCard className="h-4 w-4 mr-2.5 text-muted-foreground group-hover:text-accent-foreground" />
           <span className="font-normal text-sm">Ver Planos</span>
         </DropdownMenuItem>
 
         <DropdownMenuItem 
           onClick={() => handleExternalLink('mailto:suporte@homefinder.ai')}
-          className="mx-2 px-2 py-2 rounded-md hover:bg-gray-100 text-gray-700 cursor-pointer group"
+          className="mx-2 px-2 py-2 rounded-md hover:bg-accent text-foreground cursor-pointer group"
         >
-          <Mail className="h-4 w-4 mr-2.5 text-gray-600 group-hover:text-white" />
+          <Mail className="h-4 w-4 mr-2.5 text-muted-foreground group-hover:text-accent-foreground" />
           <span className="font-normal text-sm">Contacto</span>
         </DropdownMenuItem>
         </div>
 
-        <DropdownMenuSeparator className="my-1 bg-gray-100" />
+        <DropdownMenuSeparator className="my-1 bg-border" />
 
         <div className="py-1.5">
         <DropdownMenuItem 
           onClick={onLogout}
-          className="mx-2 px-2 py-2 rounded-md hover:bg-gray-100 text-gray-700 cursor-pointer group"
+          className="mx-2 px-2 py-2 rounded-md hover:bg-accent text-foreground cursor-pointer group"
         >
-          <LogOut className="h-4 w-4 mr-2.5 text-gray-600 group-hover:text-white" />
+          <LogOut className="h-4 w-4 mr-2.5 text-muted-foreground group-hover:text-accent-foreground" />
           <span className="font-normal text-sm">Terminar Sessão</span>
         </DropdownMenuItem>
         </div>

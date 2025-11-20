@@ -93,7 +93,7 @@ export function ProfilePage({ user, onUpdateProfile, hasActiveSearch, onNavigate
               variant="ghost"
               size="sm"
               onClick={() => onNavigateToHome(false)}
-              className="flex items-center gap-2 text-gray-600 hover:text-white -ml-2"
+              className="flex items-center gap-2 text-muted-foreground hover:text-foreground -ml-2"
             >
               <ArrowLeft className="h-4 w-4" />
               <span>Voltar aos Resultados</span>
@@ -104,7 +104,7 @@ export function ProfilePage({ user, onUpdateProfile, hasActiveSearch, onNavigate
         <div className="space-y-6">
           {/* Page Header */}
           <div>
-            <h1 className="text-3xl font-bold text-title">Meu Perfil</h1>
+            <h1 className="text-3xl font-bold text-foreground">Meu Perfil</h1>
             <p className="text-muted-foreground mt-2">
               Gere as tuas informações pessoais e subscrição
             </p>
@@ -114,19 +114,19 @@ export function ProfilePage({ user, onUpdateProfile, hasActiveSearch, onNavigate
         <SubscriptionManagement />
 
         {/* Profile Information Card */}
-        <Card className="border border-pale-clay-deep bg-pure-white shadow-clay-deep">
+        <Card className="border border-border bg-card shadow-strong">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center space-x-2">
-                <User className="h-5 w-5 text-burnt-peach-dark" />
-                <span className="text-deep-mocha">Informações do Perfil</span>
+                <User className="h-5 w-5 text-accent" />
+                <span className="text-foreground">Informações do Perfil</span>
               </CardTitle>
               
               {!isEditingProfile ? (
                 <Button
                   size="sm"
                   variant="outline"
-                  className="border-pale-clay-deep hover:bg-pale-clay-light hover:text-white"
+                  className="border-border hover:bg-muted hover:text-foreground"
                   onClick={() => setIsEditingProfile(true)}
                 >
                   <Edit className="h-3 w-3 mr-1" />
@@ -136,7 +136,7 @@ export function ProfilePage({ user, onUpdateProfile, hasActiveSearch, onNavigate
                 <div className="flex space-x-2">
                   <Button
                     size="sm"
-                    className="bg-burnt-peach hover:bg-burnt-peach-deep text-pure-white hover:text-white"
+                    className="bg-accent hover:bg-accent/90 text-accent-foreground"
                     onClick={handleSaveProfile}
                   >
                     <Save className="h-3 w-3 mr-1" />
@@ -145,7 +145,7 @@ export function ProfilePage({ user, onUpdateProfile, hasActiveSearch, onNavigate
                   <Button
                     size="sm"
                     variant="outline"
-                    className="border-pale-clay-deep hover:bg-pale-clay-light hover:text-white"
+                    className="border-border hover:bg-muted hover:text-foreground"
                     onClick={handleCancelEdit}
                   >
                     <X className="h-3 w-3 mr-1" />
@@ -178,7 +178,7 @@ export function ProfilePage({ user, onUpdateProfile, hasActiveSearch, onNavigate
               {/* Informações do Usuário */}
               <div className="flex-1 min-w-0 w-full">
                 <div className="flex items-center space-x-2 mb-2">
-                  <h2 className="text-xl font-medium text-foreground truncate">
+                  <h2 className="text-foreground truncate">
                     {user.name || user.fullName || user.email}
                   </h2>
                 </div>
@@ -186,7 +186,7 @@ export function ProfilePage({ user, onUpdateProfile, hasActiveSearch, onNavigate
                   Membro desde {formatDate(user.createdAt)}
                 </p>
                 {user.isEmailVerified && (
-                  <p className="text-sm text-success-strong mt-1">
+                  <p className="text-sm text-success mt-1">
                     ✓ Email verificado
                   </p>
                 )}
@@ -201,21 +201,21 @@ export function ProfilePage({ user, onUpdateProfile, hasActiveSearch, onNavigate
                     id="name"
                     value={profileData.name}
                     onChange={(e) => setProfileData({ ...profileData, name: e.target.value })}
-                    className="border-pale-clay-deep focus:border-burnt-peach"
+                    className="border-border focus:border-accent"
                   />
                 ) : (
-                  <div className="flex items-center space-x-2 p-2 bg-pale-clay-light rounded-lg border border-pale-clay-deep">
-                    <User className="h-4 w-4 text-cocoa-taupe" />
-                    <span className="text-deep-mocha">{user.name || user.fullName || user.email}</span>
+                  <div className="flex items-center space-x-2 p-2 bg-muted rounded-lg border border-border">
+                    <User className="h-4 w-4 text-primary" />
+                    <span className="text-foreground">{user.name || user.fullName || user.email}</span>
                   </div>
                 )}
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <div className="flex items-center space-x-2 p-2 bg-pale-clay-light rounded-lg border border-pale-clay-deep">
-                  <Mail className="h-4 w-4 text-cocoa-taupe" />
-                  <span className="text-deep-mocha">{user.email}</span>
+                <div className="flex items-center space-x-2 p-2 bg-muted rounded-lg border border-border">
+                  <Mail className="h-4 w-4 text-primary" />
+                  <span className="text-foreground">{user.email}</span>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   O email não pode ser alterado

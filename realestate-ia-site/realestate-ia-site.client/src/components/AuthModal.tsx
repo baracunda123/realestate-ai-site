@@ -255,7 +255,6 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
       if (result.success) {
         resetForm();
         setShowEmailConfirmation(true);
-        setSuccess(result.message || 'Account created successfully!');
         
         // Scroll para o topo do modal para mostrar a mensagem de confirmação
         setTimeout(() => {
@@ -311,10 +310,10 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
   const renderMessage = () => {
     if (error) {
       return (
-        <div className="bg-error-soft border border-error-gentle/30 rounded-xl p-4 mb-4 shadow-clay-soft">
+        <div className="bg-error/10 border border-error/30 rounded-xl p-4 mb-4 shadow-ocean-soft">
           <div className="flex items-start space-x-3">
             <AlertCircle className="h-5 w-5 text-error-gentle mt-0.5 flex-shrink-0" />
-            <div className="text-sm text-error-strong flex-1 break-words">
+            <div className="text-sm text-error flex-1 break-words">
               {error.split('. ').map((errorMsg, index) => (
                 <div key={`error-${index}-${errorMsg.slice(0, 10)}`} className={index > 0 ? 'mt-1' : ''}>
                   {errorMsg}
@@ -328,9 +327,9 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
 
     if (success) {
       return (
-        <div className="bg-success-soft border border-success-gentle/30 rounded-xl p-4 mb-4 shadow-clay-soft">
+        <div className="bg-success-light dark:bg-success border border-success-light/30 dark:border-success/30 rounded-xl p-4 mb-4 shadow-ocean-soft">
           <div className="flex items-start space-x-3">
-            <CheckCircle className="h-5 w-5 text-success-gentle mt-0.5 flex-shrink-0" />
+            <CheckCircle className="h-5 w-5 text-success-light dark:text-success mt-0.5 flex-shrink-0" />
             <p className="text-sm text-success-strong text-center flex-1 break-words">{success}</p>
           </div>
         </div>
@@ -339,7 +338,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
 
     if (showEmailConfirmation) {
       return (
-        <div className="bg-info-soft border border-info-gentle/30 rounded-xl p-4 mb-4 shadow-clay-soft">
+        <div className="bg-info-soft border border-info-gentle/30 rounded-xl p-4 mb-4 shadow-ocean-soft">
           <div className="flex flex-col items-center text-center space-y-3">
             <MailCheck className="h-6 w-6 text-info-gentle flex-shrink-0" />
             <div className="text-sm text-info-strong break-words">
@@ -389,13 +388,13 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
           
           /* Ensure password text is always visible */
           .no-password-reveal {
-            color: var(--deep-mocha) !important;
-            -webkit-text-fill-color: var(--deep-mocha) !important;
+            color: var(--foreground) !important;
+            -webkit-text-fill-color: var(--foreground) !important;
           }
           
           .no-password-reveal::placeholder {
-            color: var(--warm-taupe) !important;
-            -webkit-text-fill-color: var(--warm-taupe) !important;
+            color: var(--muted-foreground) !important;
+            -webkit-text-fill-color: var(--muted-foreground) !important;
             opacity: 0.6;
           }
           
@@ -447,34 +446,34 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
           }
           
           [data-slot="dialog-content"] > div::-webkit-scrollbar-thumb {
-            background-color: var(--pale-clay-deep);
+            background-color: var(--border);
             border-radius: 4px;
             border: 2px solid transparent;
             background-clip: padding-box;
           }
           
           [data-slot="dialog-content"] > div::-webkit-scrollbar-thumb:hover {
-            background-color: var(--pale-clay-darker);
+            background-color: var(--accent);
           }
         `}
       </style>
       
       <Dialog key={isOpen ? 'open' : 'closed'} open={isOpen} onOpenChange={handleClose}>
         <DialogContent 
-          className="sm:max-w-md w-full border-pale-clay-deep bg-porcelain shadow-clay-strong rounded-2xl p-0 max-h-[90vh] overflow-hidden"
+          className="sm:max-w-md w-full border-border bg-card shadow-strong rounded-2xl p-0 max-h-[90vh] overflow-hidden"
         >
           <div 
             ref={dialogContentRef}
-            className="max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-pale-clay-deep scrollbar-track-transparent hover:scrollbar-thumb-pale-clay-darker p-6"
+            className="max-h-[90vh] overflow-y-auto scrollbar-thin scrollbar-thumb-accent scrollbar-track-transparent hover:scrollbar-thumb-accent/90 p-6"
           >
             <DialogHeader className="text-center pb-4">
-              <div className="mx-auto w-14 h-14 gradient-primary rounded-2xl flex items-center justify-center mb-4 shadow-burnt-peach flex-shrink-0">
-                <Sparkles className="h-7 w-7 text-white" />
+              <div className="mx-auto w-14 h-14 gradient-primary rounded-2xl flex items-center justify-center mb-4 shadow-blue flex-shrink-0">
+                <Sparkles className="h-7 w-7 text-primary-foreground" />
               </div>
-              <DialogTitle className="text-2xl font-semibold text-deep-mocha mb-2 text-center break-words">
+              <DialogTitle className="text-2xl font-semibold text-foreground mb-2 text-center break-words">
                 Bem-vindo ao ResideAI
               </DialogTitle>
-              <DialogDescription className="text-warm-taupe leading-relaxed text-center break-words px-2">
+              <DialogDescription className="text-muted-foreground leading-relaxed text-center break-words px-2">
                 Encontra a tua casa ideal com tecnologia de ponta. Inicia sessão ou cria uma conta para começar.
               </DialogDescription>
             </DialogHeader>
@@ -482,17 +481,17 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
             {renderMessage()}
 
             <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-              <TabsList className="w-full grid grid-cols-2 gap-1 bg-pale-clay-light rounded-xl p-1 border border-pale-clay-medium h-auto min-h-[40px]">
+              <TabsList className="w-full grid grid-cols-2 gap-1 bg-muted rounded-xl p-1 border border-border h-auto min-h-[40px]">
                 <TabsTrigger 
                   value="signin" 
-                  className="rounded-lg font-medium data-[state=active]:bg-clay-white data-[state=active]:text-deep-mocha transition-all duration-200 text-center text-xs sm:text-sm md:text-base focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-burnt-peach whitespace-normal sm:whitespace-nowrap py-2 px-2 h-auto min-h-[36px]"
+                  className="rounded-lg font-medium data-[state=active]:bg-card data-[state=active]:text-foreground transition-all duration-200 text-center text-xs sm:text-sm md:text-base focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-accent whitespace-normal sm:whitespace-nowrap py-2 px-2 h-auto min-h-[36px]"
                   disabled={isLoading}
                 >
                   Iniciar Sessão
                 </TabsTrigger>
                 <TabsTrigger 
                   value="signup"
-                  className="rounded-lg font-medium data-[state=active]:bg-clay-white data-[state=active]:text-deep-mocha transition-all duration-200 text-center text-xs sm:text-sm md:text-base focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-burnt-peach whitespace-normal sm:whitespace-nowrap py-2 px-2 h-auto min-h-[36px]"
+                  className="rounded-lg font-medium data-[state=active]:bg-card data-[state=active]:text-foreground transition-all duration-200 text-center text-xs sm:text-sm md:text-base focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-accent whitespace-normal sm:whitespace-nowrap py-2 px-2 h-auto min-h-[36px]"
                   disabled={isLoading}
                 >
                   Criar Conta
@@ -502,16 +501,16 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
               <TabsContent value="signin" className="space-y-5 mt-6">
                 <form onSubmit={handleSignIn} className="space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="signin-email" className="text-warm-taupe font-medium">Email</Label>
+                    <Label htmlFor="signin-email" className="text-muted-foreground font-medium">Email</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-warm-taupe flex-shrink-0" />
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground flex-shrink-0" />
                       <Input
                         id="signin-email"
                         type="email"
                         placeholder="email@exemplo.com"
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
-                        className="pl-10 pr-4 border-pale-clay-deep focus:border-burnt-peach focus:ring-burnt-peach/20 rounded-xl bg-clay-white h-12 transition-all duration-200 text-left"
+                        className="pl-10 pr-4 border-border focus:border-accent focus:ring-accent/20 rounded-xl bg-card h-12 transition-all duration-200 text-left"
                         disabled={isLoading}
                         autoComplete="username"
                         autoCorrect="off"
@@ -521,16 +520,16 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="signin-password" className="text-warm-taupe font-medium">Palavra-passe</Label>
+                    <Label htmlFor="signin-password" className="text-muted-foreground font-medium">Palavra-passe</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-warm-taupe flex-shrink-0" />
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground flex-shrink-0" />
                       <Input
                         id="signin-password"
                         type={showSignInPassword ? 'text' : 'password'}
                         placeholder="A tua palavra-passe"
                         value={formData.password}
                         onChange={(e) => handleInputChange('password', e.target.value)}
-                        className="pl-10 pr-12 border-pale-clay-deep focus:border-burnt-peach focus:ring-burnt-peach/20 rounded-xl bg-clay-white h-12 no-password-reveal transition-all duration-200 text-left"
+                        className="pl-10 pr-12 border-border focus:border-accent focus:ring-accent/20 rounded-xl bg-card h-12 no-password-reveal transition-all duration-200 text-left"
                         disabled={isLoading}
                         autoComplete="current-password"
                         autoCorrect="off"
@@ -543,7 +542,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-pale-clay-light rounded-lg transition-colors flex-shrink-0"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted rounded-lg transition-colors flex-shrink-0"
                         onClick={() => setShowSignInPassword(!showSignInPassword)}
                         disabled={isLoading}
                         aria-label={showSignInPassword ? 'Ocultar palavra-passe' : 'Mostrar palavra-passe'}
@@ -555,7 +554,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
 
                   <Button 
                     type="submit" 
-                    className="w-full h-12 gradient-primary hover:shadow-burnt-peach text-white font-medium border-0 rounded-xl transition-all duration-200 hover:scale-[1.02] text-center"
+                    className="w-full h-12 gradient-primary hover:shadow-blue text-primary-foreground font-medium border-0 rounded-xl transition-all duration-200 hover:scale-[1.02] text-center"
                     disabled={isLoading}
                   >
                     {isLoading ? (
@@ -576,7 +575,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
                   <Button 
                     type="button"
                     variant="ghost" 
-                    className="text-sm text-warm-taupe hover:bg-pale-clay-light hover:text-white rounded-lg transition-colors"
+                    className="text-sm text-muted-foreground hover:bg-muted hover:text-foreground rounded-lg transition-colors"
                     disabled={isLoading}
                     onClick={() => {
                       onClose(); // Fechar o AuthModal
@@ -591,16 +590,16 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
               <TabsContent value="signup" className="space-y-5 mt-6">
                 <form onSubmit={handleSignUp} className="space-y-5">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name" className="text-warm-taupe font-medium">Nome Completo</Label>
+                    <Label htmlFor="signup-name" className="text-muted-foreground font-medium">Nome Completo</Label>
                     <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-warm-taupe flex-shrink-0" />
+                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground flex-shrink-0" />
                       <Input
                         id="signup-name"
                         type="text"
                         placeholder="Joao Silva"
                         value={formData.name}
                         onChange={(e) => handleInputChange('name', e.target.value)}
-                        className="pl-10 pr-4 border-pale-clay-deep focus:border-burnt-peach focus:ring-burnt-peach/20 rounded-xl bg-clay-white h-12 transition-all duration-200 text-left"
+                        className="pl-10 pr-4 border-border focus:border-accent focus:ring-accent/20 rounded-xl bg-card h-12 transition-all duration-200 text-left"
                         disabled={isLoading}
                         autoComplete="name"
                         autoCorrect="off"
@@ -610,16 +609,16 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email" className="text-warm-taupe font-medium">Email</Label>
+                    <Label htmlFor="signup-email" className="text-muted-foreground font-medium">Email</Label>
                     <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-warm-taupe flex-shrink-0" />
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground flex-shrink-0" />
                       <Input
                         id="signup-email"
                         type="email"
                         placeholder="teu.email@exemplo.com"
                         value={formData.email}
                         onChange={(e) => handleInputChange('email', e.target.value)}
-                        className="pl-10 pr-4 border-pale-clay-deep focus:border-burnt-peach focus:ring-burnt-peach/20 rounded-xl bg-clay-white h-12 transition-all duration-200 text-left"
+                        className="pl-10 pr-4 border-border focus:border-accent focus:ring-accent/20 rounded-xl bg-card h-12 transition-all duration-200 text-left"
                         disabled={isLoading}
                         autoComplete="email"
                         autoCorrect="off"
@@ -629,16 +628,16 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password" className="text-warm-taupe font-medium">Palavra-passe</Label>
+                    <Label htmlFor="signup-password" className="text-muted-foreground font-medium">Palavra-passe</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-warm-taupe flex-shrink-0" />
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground flex-shrink-0" />
                       <Input
                         id="signup-password"
                         type={showSignUpPassword ? 'text' : 'password'}
                         placeholder="Mínimo 8 caracteres"
                         value={formData.password}
                         onChange={(e) => handleInputChange('password', e.target.value)}
-                        className="pl-10 pr-12 border-pale-clay-deep focus:border-burnt-peach focus:ring-burnt-peach/20 rounded-xl bg-clay-white h-12 no-password-reveal transition-all duration-200 text-left"
+                        className="pl-10 pr-12 border-border focus:border-accent focus:ring-accent/20 rounded-xl bg-card h-12 no-password-reveal transition-all duration-200 text-left"
                         disabled={isLoading}
                         autoComplete="new-password"
                         autoCorrect="off"
@@ -651,7 +650,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-pale-clay-light rounded-lg transition-colors flex-shrink-0"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted rounded-lg transition-colors flex-shrink-0"
                         onClick={() => setShowSignUpPassword(!showSignUpPassword)}
                         disabled={isLoading}
                         aria-label={showSignUpPassword ? 'Ocultar palavra-passe' : 'Mostrar palavra-passe'}
@@ -659,22 +658,22 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
                         {showSignUpPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </Button>
                     </div>
-                    <p className="text-xs text-warm-taupe-light leading-relaxed text-center break-words px-2">
+                    <p className="text-xs text-muted-foreground-light leading-relaxed text-center break-words px-2">
                       Deve conter: 1 maiúscula, 1 minúscula, 1 número e 1 caracter especial
                     </p>
                   </div>
    
                   <div className="space-y-2">
-                    <Label htmlFor="signup-confirm-password" className="text-warm-taupe font-medium">Confirmar Palavra-passe</Label>
+                    <Label htmlFor="signup-confirm-password" className="text-muted-foreground font-medium">Confirmar Palavra-passe</Label>
                     <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-warm-taupe flex-shrink-0" />
+                      <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground flex-shrink-0" />
                       <Input
                         id="signup-confirm-password"
                         type={showConfirmPassword ? 'text' : 'password'}
                         placeholder="Confirme a sua palavra-passe"
                         value={formData.confirmPassword}
                         onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                        className="pl-10 pr-12 border-pale-clay-deep focus:border-burnt-peach focus:ring-burnt-peach/20 rounded-xl bg-clay-white h-12 no-password-reveal transition-all duration-200 text-left"
+                        className="pl-10 pr-12 border-border focus:border-accent focus:ring-accent/20 rounded-xl bg-card h-12 no-password-reveal transition-all duration-200 text-left"
                         disabled={isLoading}
                         autoComplete="new-password"
                         autoCorrect="off"
@@ -687,7 +686,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-pale-clay-light rounded-lg transition-colors flex-shrink-0"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 h-8 w-8 p-0 hover:bg-muted rounded-lg transition-colors flex-shrink-0"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                         disabled={isLoading}
                         aria-label={showConfirmPassword ? 'Ocultar palavra-passe' : 'Mostrar palavra-passe'}
@@ -703,16 +702,16 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
                       id="accept-terms"
                       checked={acceptTerms}
                       onChange={(e) => setAcceptTerms(e.target.checked)}
-                      className="mt-1 h-4 w-4 text-burnt-peach border-pale-clay-deep rounded focus:ring-burnt-peach/20 flex-shrink-0"
+                      className="mt-1 h-4 w-4 text-accent border-border rounded focus:ring-accent/20 flex-shrink-0"
                       disabled={isLoading}
                     />
-                    <Label htmlFor="accept-terms" className="text-xs text-warm-taupe leading-relaxed text-center break-words">
+                    <Label htmlFor="accept-terms" className="text-xs text-muted-foreground leading-relaxed text-center break-words">
                       Aceito os{' '}
                       <a 
                         href="/terms"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-burnt-peach hover:text-burnt-peach-deep underline underline-offset-2" 
+                        className="text-xs text-accent hover:text-accent/90 underline underline-offset-2" 
                       >
                         Termos de Uso
                       </a>{' '}
@@ -721,7 +720,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
                         href="/privacy"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs text-burnt-peach hover:text-burnt-peach-deep underline underline-offset-2" 
+                        className="text-xs text-accent hover:text-accent/90 underline underline-offset-2" 
                       >
                         Política de Privacidade
                       </a>
@@ -730,7 +729,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
 
                   <Button 
                     type="submit" 
-                    className="w-full h-12 gradient-primary hover:shadow-burnt-peach text-white font-medium border-0 rounded-xl transition-all duration-200 hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 text-center"
+                    className="w-full h-12 gradient-primary hover:shadow-blue text-primary-foreground font-medium border-0 rounded-xl transition-all duration-200 hover:scale-[1.02] disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 text-center"
                     disabled={isLoading || !acceptTerms}
                   >
                     {isLoading ? (
@@ -751,10 +750,10 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
 
             <div className="relative my-6">
               <div className="absolute inset-0 flex items-center">
-                <Separator className="w-full bg-pale-clay-medium" />
+                <Separator className="w-full bg-border" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-porcelain px-3 text-warm-taupe font-medium">ou continuar com</span>
+                <span className="bg-card px-3 text-muted-foreground font-medium">ou continuar com</span>
               </div>
             </div>
 
@@ -766,9 +765,9 @@ export function AuthModal({ isOpen, onClose, onSuccess, defaultTab = 'signin', o
               >
                 {/* O botão do Google será renderizado aqui */}
                 {!googleButtonRef.current && (
-                  <div className="w-full h-12 border border-pale-clay-deep rounded-xl flex items-center justify-center text-warm-taupe bg-clay-white">
+                  <div className="w-full h-12 border border-border rounded-xl flex items-center justify-center text-muted-foreground bg-card">
                     <div className="flex items-center space-x-2">
-                      <div className="w-4 h-4 border-2 border-warm-taupe border-t-transparent rounded-full animate-spin"></div>
+                      <div className="w-4 h-4 border-2 border-muted-foreground border-t-transparent rounded-full animate-spin"></div>
                       <span className="text-sm">Carregando Google...</span>
                     </div>
                   </div>

@@ -46,21 +46,21 @@ export function ChatTabs({
   };
 
   return (
-    <div className="flex items-center gap-2 border-b border-pale-clay-deep bg-pale-clay-light/30 px-3 py-2">
+    <div className="flex items-center gap-2">
       {/* Dropdown de Sessões */}
       <div className="relative flex-1">
         <button
           onClick={() => setIsOpen(!isOpen)}
           disabled={loading || sessions.length === 0}
-          className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-pure-white border border-pale-clay-deep hover:border-burnt-peach transition-colors text-left"
+          className="w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg bg-input hover:bg-accent/10 border border-border hover:border-accent text-left transition-colors"
         >
           <div className="flex items-center gap-2 flex-1 min-w-0">
-            <MessageSquare className="h-4 w-4 text-burnt-peach flex-shrink-0" />
-            <span className="text-sm font-medium text-deep-mocha truncate">
+            <MessageSquare className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <span className="text-sm text-foreground truncate">
               {sessions.length === 0 ? 'Nova Conversa' : (activeSession?.title || 'Nova Conversa')}
             </span>
           </div>
-          <ChevronDown className={`h-4 w-4 text-warm-taupe transition-transform flex-shrink-0 ${
+          <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform flex-shrink-0 ${
             isOpen ? 'rotate-180' : ''
           }`} />
         </button>
@@ -74,7 +74,7 @@ export function ChatTabs({
               onClick={() => setIsOpen(false)}
             />
             
-            <div className="absolute top-full left-0 right-0 mt-1 bg-pure-white border border-pale-clay-deep rounded-lg shadow-lg z-20 max-h-[300px] overflow-y-auto">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-strong z-20 max-h-[300px] overflow-y-auto scrollbar-thin">
               {sessions.map((session) => {
                 const isActive = session.id === activeSessionId;
                 const isDeleting = deletingId === session.id;
@@ -83,8 +83,8 @@ export function ChatTabs({
                   <div
                     key={session.id}
                     className={`
-                      group flex items-center gap-2 px-3 py-2 hover:bg-pale-clay-light transition-colors
-                      ${isActive ? 'bg-pale-clay-light/50' : ''}
+                      group flex items-center gap-2 px-3 py-2 hover:bg-accent/10 transition-colors border-b border-border last:border-0
+                      ${isActive ? 'bg-accent/10' : ''}
                       ${isDeleting ? 'opacity-50' : ''}
                     `}
                   >
@@ -93,11 +93,9 @@ export function ChatTabs({
                       disabled={isDeleting || loading}
                       className="flex items-center gap-2 flex-1 min-w-0 text-left"
                     >
-                      <MessageSquare className={`h-3.5 w-3.5 flex-shrink-0 ${
-                        isActive ? 'text-burnt-peach' : 'text-warm-taupe'
-                      }`} />
+                      <MessageSquare className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                       <span className={`text-sm truncate ${
-                        isActive ? 'font-semibold text-deep-mocha' : 'text-warm-taupe'
+                        isActive ? 'font-medium text-foreground' : 'text-muted-foreground'
                       }`}>
                         {session.title}
                       </span>
@@ -107,8 +105,8 @@ export function ChatTabs({
                       <button
                         onClick={(e) => handleDelete(e, session.id)}
                         disabled={isDeleting}
-                        className="flex-shrink-0 p-1 rounded hover:bg-error-soft hover:text-error-strong transition-colors text-warm-taupe md:opacity-0 md:group-hover:opacity-100"
-                        title="Eliminar conversa"
+                        className="flex-shrink-0 p-1 rounded hover:bg-error/20 hover:text-error transition-colors text-muted-foreground md:hidden md:group-hover:block"
+                        title="Eliminar"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
@@ -125,11 +123,11 @@ export function ChatTabs({
       <Button
         onClick={onCreateSession}
         disabled={loading}
-        size="sm"
-        className="flex-shrink-0 bg-cocoa-taupe hover:bg-cocoa-taupe-deep text-white h-9 px-3 gap-2"
+        size="icon"
+        className="flex-shrink-0 h-9 w-9 bg-input hover:bg-accent/10 border border-border text-muted-foreground hover:text-accent rounded-lg transition-colors"
+        title="Nova conversa"
       >
         <Plus className="h-4 w-4" />
-        <span className="hidden sm:inline text-sm">Nova Conversa</span>
       </Button>
     </div>
   );

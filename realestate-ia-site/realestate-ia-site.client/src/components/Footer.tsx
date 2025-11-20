@@ -3,68 +3,44 @@ import { Link } from 'react-router-dom';
 
 export function Footer() {
   return (
-    <footer className="w-full bg-pale-clay border-t border-cocoa-taupe/20">
+    <footer className="w-full bg-card border-t border-border mt-auto shadow-strong">
       <div className="site-container py-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 items-start">
+        {/* Single Row Layout */}
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           
-          {/* Logo e Descrição */}
-          <div className="space-y-3 text-center md:text-left">
-            <div className="flex items-center space-x-2 justify-center md:justify-start">
-              <div className="w-8 h-8 bg-burnt-peach rounded-lg flex items-center justify-center">
-                <Home className="h-4 w-4 text-white" />
-              </div>
-              <h3 className="text-lg font-semibold text-deep-mocha">
-                ResideAI
-              </h3>
+          {/* Logo e Copyright */}
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 bg-gradient-primary rounded-lg flex items-center justify-center shadow-blue">
+              <Home className="h-4 w-4 text-primary-foreground" />
             </div>
-            <p className="text-sm text-cocoa-taupe max-w-xs mx-auto md:mx-0">
-              Encontra o teu lar ideal com tecnologia de inteligência artificial
-            </p>
-          </div>
-
-          {/* Links Úteis */}
-          <div className="space-y-3 text-center md:text-left">
-            <h4 className="text-sm font-medium text-deep-mocha">
-              Links Úteis
-            </h4>
-            <div className="flex flex-col space-y-2">
-              <Link 
-                to="/privacy"
-                className="text-sm text-cocoa-taupe hover:text-burnt-peach transition-colors duration-200 text-center md:text-left"
-              >
-                Política de Privacidade
-              </Link>
-              <Link 
-                to="/terms"
-                className="text-sm text-cocoa-taupe hover:text-burnt-peach transition-colors duration-200 text-center md:text-left"
-              >
-                Termos e Condições
-              </Link>
+            <div>
+              <h3 className="text-base font-bold text-foreground">ResideAI</h3>
+              <p className="text-xs text-muted-foreground"> 2025 Todos os direitos reservados</p>
             </div>
           </div>
 
-          {/* Suporte */}
-          <div className="space-y-3 text-center md:text-left">
-            <h4 className="text-sm font-medium text-deep-mocha">
-              Suporte
-            </h4>
-            <div className="flex items-center space-x-2 justify-center md:justify-start">
-              <Mail className="h-4 w-4 text-cocoa-taupe" />
-              <a 
-                href="mailto:suporte@resideai.pt"
-                className="text-sm text-cocoa-taupe hover:text-burnt-peach transition-colors duration-200"
-              >
-                suporte@resideai.pt
-              </a>
-            </div>
+          {/* Links e Suporte - Inline */}
+          <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 text-sm">
+            <Link 
+              to="/privacy"
+              className="text-muted-foreground hover:text-accent transition-colors duration-200"
+            >
+              Privacidade
+            </Link>
+            <Link 
+              to="/terms"
+              className="text-muted-foreground hover:text-accent transition-colors duration-200"
+            >
+              Termos
+            </Link>
+            <a 
+              href="mailto:suporte@resideai.pt"
+              className="inline-flex items-center gap-1.5 text-muted-foreground hover:text-accent transition-colors duration-200 group"
+            >
+              <Mail className="h-3.5 w-3.5 group-hover:scale-110 transition-transform" />
+              <span>Suporte</span>
+            </a>
           </div>
-        </div>
-
-        {/* Copyright */}
-        <div className="mt-6 pt-4 border-t border-cocoa-taupe/10">
-          <p className="text-center text-sm text-warm-taupe">
-            © 2025 ResideAI. Todos os direitos reservados.
-          </p>
         </div>
       </div>
     </footer>

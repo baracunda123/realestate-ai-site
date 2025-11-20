@@ -17,16 +17,16 @@ export function LegalPageLayout({ children }: LegalPageLayoutProps) {
         <div className="mb-6">
           <Button
             variant="ghost"
-            onClick={() => navigate(-1)}
-            className="text-muted-foreground hover:text-white"
+            onClick={() => navigate('/')}
+            className="text-foreground"
           >
             <ArrowLeft className="h-4 w-4 mr-2" />
-            Voltar
+            Voltar ao Início
           </Button>
         </div>
 
         {/* Conteúdo */}
-        <div className="bg-pure-white rounded-xl shadow-clay-deep border border-pale-clay-deep p-6 md:p-8">
+        <div className="bg-card rounded-xl shadow-strong border border-border p-6 md:p-8">
           {children}
         </div>
       </div>

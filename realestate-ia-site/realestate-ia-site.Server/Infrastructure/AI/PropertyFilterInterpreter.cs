@@ -499,15 +499,5 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
-
-        /// <summary>
-        /// [OBSOLETO] Método antigo que adicionava features automaticamente baseado em intenção.
-        /// Substituído por EnrichAbstractFeatures que só expande features já mencionadas.
-        /// </summary>
-        [Obsolete("Substituído por EnrichAbstractFeatures - não adiciona features novas")]
-        private void EnrichFiltersWithIntent(Dictionary<string, object> filters, UserIntentAnalysis userIntent)
-        {
-            // Método obsoleto - usar EnrichAbstractFeatures
-        }
     }
 }

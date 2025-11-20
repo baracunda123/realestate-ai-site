@@ -23,32 +23,32 @@ const emptyStateConfig = {
     title: 'Nenhuma propriedade favorita',
     description: 'Explore propriedades e marque suas favoritas para acompanhar facilmente.',
     actionLabel: 'Explorar Propriedades',
-    iconColor: 'text-burnt-peach',
-    iconBg: 'bg-burnt-peach-lighter',
+    iconColor: 'text-accent',
+    iconBg: 'bg-accent/20',
   },
   searches: {
     icon: Search,
     title: 'Nenhuma pesquisa salva',
     description: 'Salve suas pesquisas favoritas para receber notificações sobre novas propriedades que correspondam aos seus critérios.',
     actionLabel: 'Fazer Primeira Pesquisa',
-    iconColor: 'text-cocoa-taupe',
-    iconBg: 'bg-cocoa-taupe-lighter',
+    iconColor: 'text-primary',
+    iconBg: 'bg-primary/20',
   },
   alerts: {
     icon: Bell,
     title: 'Nenhum alerta configurado',
     description: 'Configure alertas personalizados para ser notificado sobre propriedades que atendam exatamente aos seus critérios.',
     actionLabel: 'Criar Primeiro Alerta',
-    iconColor: 'text-burnt-peach',
-    iconBg: 'bg-burnt-peach-lighter',
+    iconColor: 'text-accent',
+    iconBg: 'bg-accent/20',
   },
   history: {
     icon: Clock,
     title: 'Histórico vazio',
     description: 'Suas propriedades visualizadas aparecerão aqui, facilitando o acompanhamento dos seus interesses.',
     actionLabel: 'Explorar Propriedades',
-    iconColor: 'text-warm-taupe',
-    iconBg: 'bg-pale-clay-light',
+    iconColor: 'text-muted-foreground',
+    iconBg: 'bg-muted',
   }
 };
 
@@ -61,15 +61,15 @@ export function EmptyState({ icon: IconComponent, title, description, actionLabe
       transition={{ duration: 0.4 }}
       className="flex items-center justify-center min-h-[400px] p-8"
     >
-      <Card className="border border-pale-clay-deep bg-pure-white shadow-clay-soft max-w-md w-full">
+      <Card className="border border-border bg-card shadow-medium max-w-md w-full">
         <CardContent className="p-8 text-center">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.1, duration: 0.3 }}
-            className="flex items-center justify-center w-16 h-16 mx-auto mb-6 bg-pale-clay-light rounded-full"
+            className="flex items-center justify-center w-16 h-16 mx-auto mb-6 bg-muted rounded-full"
           >
-            <IconComponent className="h-8 w-8 text-warm-taupe" />
+            <IconComponent className="h-8 w-8 text-muted-foreground" />
           </motion.div>
 
           <motion.div
@@ -78,10 +78,10 @@ export function EmptyState({ icon: IconComponent, title, description, actionLabe
             transition={{ delay: 0.2, duration: 0.4 }}
             className="space-y-3 mb-6"
           >
-            <h3 className="text-xl font-medium text-deep-mocha">
+            <h3 className="text-xl font-medium text-foreground">
               {title}
             </h3>
-            <p className="text-warm-taupe leading-relaxed">
+            <p className="text-muted-foreground leading-relaxed">
               {description}
             </p>
           </motion.div>
@@ -94,7 +94,7 @@ export function EmptyState({ icon: IconComponent, title, description, actionLabe
             >
               <Button 
                 onClick={onAction}
-                className="bg-burnt-peach hover:bg-burnt-peach-deep text-pure-white"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 {actionLabel}
               </Button>
@@ -118,7 +118,7 @@ export function LegacyEmptyState({ type, onAction }: OldEmptyStateProps) {
       transition={{ duration: 0.4 }}
       className="flex items-center justify-center min-h-[400px] p-8"
     >
-      <Card className="border border-pale-clay-deep bg-pure-white shadow-clay-soft max-w-md w-full">
+      <Card className="border border-border bg-card shadow-medium max-w-md w-full">
         <CardContent className="p-8 text-center">
           <motion.div
             initial={{ scale: 0.8, opacity: 0 }}
@@ -135,10 +135,10 @@ export function LegacyEmptyState({ type, onAction }: OldEmptyStateProps) {
             transition={{ delay: 0.2, duration: 0.4 }}
             className="space-y-3 mb-6"
           >
-            <h3 className="text-xl font-medium text-deep-mocha">
+            <h3 className="text-xl font-medium text-foreground">
               {config.title}
             </h3>
-            <p className="text-warm-taupe leading-relaxed">
+            <p className="text-muted-foreground leading-relaxed">
               {config.description}
             </p>
           </motion.div>
@@ -152,7 +152,7 @@ export function LegacyEmptyState({ type, onAction }: OldEmptyStateProps) {
             >
               <Button 
                 onClick={onAction}
-                className="bg-burnt-peach hover:bg-burnt-peach-deep text-pure-white"
+                className="bg-primary hover:bg-primary/90 text-primary-foreground"
               >
                 {config.actionLabel}
               </Button>
@@ -161,10 +161,10 @@ export function LegacyEmptyState({ type, onAction }: OldEmptyStateProps) {
 
           {/* Special message for search history */}
           {type === 'history' && (
-            <div className="pt-4 border-t border-pale-clay-medium mt-6">
+            <div className="pt-4 border-t border-border mt-6">
               <div className="flex items-center justify-center space-x-2 text-sm">
-                <AlertCircle className="h-4 w-4 text-warm-taupe" />
-                <span className="text-warm-taupe">
+                <AlertCircle className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">
                   O histórico é salvo automaticamente quando você visualiza propriedades
                 </span>
               </div>
