@@ -395,7 +395,7 @@ export default function App() {
     
     // Se não há sessão ativa, o backend criará uma nova automaticamente
     // Não criar sessão no frontend para evitar duplicação
-    let currentSessionId = sessionId || activeSessionId;
+    const currentSessionId = sessionId || activeSessionId;
     
     // Add user message to history
     const userMessage = {
@@ -623,7 +623,7 @@ export default function App() {
           setSearchResults(null);
         }
       } catch (propError) {
-        logger.warn('Erro ao carregar propriedades da sessão, continuando sem elas', 'APP');
+          logger.error('Erro ao carregar propriedades da sessão', 'APP', propError as Error);
         setSearchResults(null);
       }
     } catch (error) {

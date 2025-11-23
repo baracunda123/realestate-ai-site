@@ -62,7 +62,8 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
             {
                 // Obter ou criar contexto (restaura da BD se necessário)
                 // Isto garante que filtros e histórico sejam mantidos entre sessões
-                var context = _contextService.GetOrCreateContext(request.SessionId);
+                var  context = await _contextService.GetOrCreateContextAsync(request.SessionId);
+                
                 Dictionary<string, object>? previousFilters = null;
                 
                 if (context != null && context.FilterHistory.Any())
@@ -72,7 +73,7 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                 
                 // [NOVO] 1. Interpretar query complexa (se disponível)
                 ComplexQueryInterpretation? complexInterpretation = null;
-                if (_advancedInterpreter != null && IsComplexQuery(request.Query))
+                if (_advancedInterpreter != null && IsComplexQuery(request.Query) && userPlan == "premium")
                 {
                     try
                     {
@@ -82,7 +83,7 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                         
                         complexInterpretation = await _advancedInterpreter.InterpretComplexQueryAsync(
                             request.Query, 
-                            conversationContext, 
+                            conversationContext,
                             ct);
                         
                         _logger.LogInformation("[Advanced] Query complexa interpretada com {Confidence}/10 de confiança", 

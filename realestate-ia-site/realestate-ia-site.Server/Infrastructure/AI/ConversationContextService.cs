@@ -77,12 +77,13 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             ArgumentException.ThrowIfNullOrWhiteSpace(sessionId, nameof(sessionId));
             ArgumentNullException.ThrowIfNull(context, nameof(context));
             
-            // 1. Atualizar cache (rápido)
+            // 1. Atualizar cache (rápido) - SEMPRE
             var cacheKey = GetCacheKey(sessionId);
             var cacheOptions = CreateCacheOptions();
             _cache.Set(cacheKey, context, cacheOptions);
             
-            // 2. Persistir na BD (durável)
+            // 2. Tentar persistir na BD (durável) - Apenas para sessões autenticadas
+            // Para sessões anónimas (sessionId do middleware), isto falhará silenciosamente
             try
             {
                 var contextData = _context.ConversationContexts
@@ -90,21 +91,41 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                 
                 if (contextData == null)
                 {
-                    contextData = new ConversationContextData
+                    // Verificar se esta sessão já existe na tabela ChatSessions (utilizador autenticado)
+                    var chatSessionExists = _context.ChatSessions.Any(s => s.Id == sessionId);
+                    
+                    if (chatSessionExists)
                     {
-                        SessionId = sessionId
-                    };
-                    _context.ConversationContexts.Add(contextData);
+                        // Sessão autenticada - criar entrada na BD
+                        contextData = new ConversationContextData
+                        {
+                            SessionId = sessionId
+                        };
+                        _context.ConversationContexts.Add(contextData);
+                        
+                        SerializeContext(context, contextData);
+                        _context.SaveChangesAsync().Wait();
+                        
+                        _logger.LogDebug("Contexto criado e persistido na BD para sessão autenticada: {SessionId}", sessionId);
+                    }
+                    else
+                    {
+                        // Sessão anónima - NÃO persistir (apenas cache)
+                        _logger.LogDebug("Contexto atualizado APENAS em cache (sessão anónima): {SessionId}", sessionId);
+                    }
                 }
-                
-                SerializeContext(context, contextData);
-                _context.SaveChangesAsync().Wait();
-                
-                _logger.LogDebug("Contexto atualizado (cache + BD) para sessão: {SessionId}", sessionId);
+                else
+                {
+                    // Contexto já existe - atualizar
+                    SerializeContext(context, contextData);
+                    _context.SaveChangesAsync().Wait();
+                    
+                    _logger.LogDebug("Contexto atualizado (cache + BD) para sessão autenticada: {SessionId}", sessionId);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao persistir contexto na BD para sessão: {SessionId}", sessionId);
+                _logger.LogWarning(ex, "Não foi possível persistir contexto na BD para sessão: {SessionId} (provavelmente anónima)", sessionId);
                 // Continua mesmo se falhar - pelo menos está no cache
             }
         }
