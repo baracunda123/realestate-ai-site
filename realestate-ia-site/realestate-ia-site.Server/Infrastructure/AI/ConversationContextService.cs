@@ -34,7 +34,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             // 1. Tentar cache primeiro (rápido)
             if (_cache.TryGetValue(cacheKey, out ConversationContext? context) && context != null)
             {
-                _logger.LogDebug("Contexto recuperado do cache para sessão: {SessionId}", sessionId);
+                _logger.LogInformation("Contexto recuperado do cache para sessão: {SessionId}", sessionId);
                 return context;
             }
             
@@ -236,7 +236,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             var context = new ConversationContext { SessionId = sessionId };
             var cacheOptions = CreateCacheOptions();
             _cache.Set(cacheKey, context, cacheOptions);
-            _logger.LogDebug("Novo contexto criado para sessão: {SessionId}", sessionId);
+            _logger.LogInformation("Novo contexto criado para sessão: {SessionId}", sessionId);
             return context;
         }
 
@@ -287,6 +287,29 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                         context.FilterHistory.Add(filters);
                     }
                 }
+                
+                var chatMessages = _context.ChatMessages
+                    .Where(m => m.SessionId == data.SessionId)
+                    .OrderByDescending(m => m.Timestamp)
+                    .Take(6) // Últimas 6 mensagens (3 pares user+assistant)
+                    .ToList();
+                
+                // Reverter para ordem cronológica (mais antiga primeiro)
+                chatMessages.Reverse();
+                
+                foreach (var msg in chatMessages)
+                {
+                    if (msg.Role == "user")
+                    {
+                        context.AddUserMessage(msg.Content);
+                    }
+                    else if (msg.Role == "assistant")
+                    {
+                        context.AddAssistantMessage(msg.Content);
+                    }
+                }
+                
+                _logger.LogInformation("Contexto restaurado com {MessageCount} mensagens da BD", chatMessages.Count);
             }
             catch (Exception ex)
             {

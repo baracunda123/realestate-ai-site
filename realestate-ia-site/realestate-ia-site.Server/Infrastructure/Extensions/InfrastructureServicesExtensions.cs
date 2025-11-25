@@ -8,7 +8,6 @@ using realestate_ia_site.Server.Infrastructure.Configurations;
 using realestate_ia_site.Server.Infrastructure.ExternalServices;
 using realestate_ia_site.Server.Infrastructure.Notifications;
 using realestate_ia_site.Server.Infrastructure.Payments;
-using realestate_ia_site.Server.Infrastructure.Scraper;
 using realestate_ia_site.Server.Infrastructure.Storage;
 using realestate_ia_site.Server.Infrastructure.BackgroundServices;
 using realestate_ia_site.Server.Application.Features.AI.Interfaces;
@@ -137,7 +136,6 @@ public static class InfrastructureServicesExtensions
 
         // External Services
         services.AddScoped<GoogleMapsService>();
-        services.AddScoped<ScraperStateProvider>();
 
         // Property Filters
         AddPropertyFilters(services);

@@ -9,65 +9,36 @@ namespace realestate_ia_site.Server.Infrastructure.AI
     public sealed class PropertyResponseGenerator : IPropertyResponseGenerator
     {
         private readonly IOpenAIService _openAIService;
-        private readonly IConversationContextService _contextService;
         private readonly ILogger<PropertyResponseGenerator> _logger;
 
         public PropertyResponseGenerator(
             IOpenAIService openAIService,
-            IConversationContextService contextService,
             ILogger<PropertyResponseGenerator> logger)
         {
             _openAIService = openAIService;
-            _contextService = contextService;
             _logger = logger;
         }
 
+        /// <summary>
+        /// Gera resposta conversacional usando contexto de conversa
+        /// </summary>
         public async Task<string> GenerateResponseAsync(
             string originalQuery,
             List<PropertySearchDto> properties,
-            CancellationToken cancellationToken = default)
-            => await GenerateResponseAsync(originalQuery, properties, string.Empty, cancellationToken);
-
-        public async Task<string> GenerateResponseAsync(
-            string originalQuery,
-            List<PropertySearchDto> properties,
-            string sessionId,
-            CancellationToken cancellationToken = default)
-            => await GenerateResponseAsync(originalQuery, properties, sessionId, "free", cancellationToken);
-
-        public async Task<string> GenerateResponseAsync(
-            string originalQuery,
-            List<PropertySearchDto> properties,
-            string sessionId,
+            ConversationContext? context,
             string userPlan,
             CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(originalQuery, nameof(originalQuery));
             ArgumentNullException.ThrowIfNull(properties, nameof(properties));
 
-            _logger.LogInformation("Gerando resposta para: {Question}. Propriedades: {PropertyCount}, Sessão: {SessionId}, Plano: {Plan}",
-                originalQuery, properties.Count, sessionId, userPlan);
+            _logger.LogInformation("Gerando resposta para: {Question}. Propriedades: {PropertyCount}, Plano: {Plan}",
+                originalQuery, properties.Count, userPlan);
 
             try
             {
-                var hasValidSession = !string.IsNullOrWhiteSpace(sessionId);
-                ConversationContext? context = null;
-
-                if (hasValidSession)
-                {
-                    context = await _contextService.GetOrCreateContextAsync(sessionId, cancellationToken);
-                    context.AddUserMessage(originalQuery);
-                    _contextService.UpdateContext(sessionId, context);
-                }
-
                 var messages = BuildMessages(originalQuery, properties, context);
                 var response = await GenerateAIResponseAsync(messages, userPlan, cancellationToken);
-
-                if (hasValidSession && context != null)
-                {
-                    context.AddAssistantMessage(response);
-                    _contextService.UpdateContext(sessionId, context);
-                }
 
                 _logger.LogInformation("Resposta gerada com sucesso. Tamanho: {ResponseLength} caracteres", response.Length);
                 return response;

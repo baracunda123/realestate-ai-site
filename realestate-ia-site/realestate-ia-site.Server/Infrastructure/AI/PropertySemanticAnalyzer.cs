@@ -180,19 +180,15 @@ Qual recomendas e porquê?")
         /// </summary>
         public async Task<UserIntentAnalysis> AnalyzeUserIntentAsync(
             string userQuery,
-            List<string> conversationHistory,
+            IEnumerable<ChatMessage> conversationHistory,
             string userPlan = "free",
             CancellationToken cancellationToken = default)
         {
-            var historyText = conversationHistory.Any()
-                ? string.Join("\n", conversationHistory.TakeLast(3))
-                : "Primeira interação";
-
             var messages = new List<ChatMessage>
             {
                 new SystemChatMessage(@"És um especialista em compreender necessidades imobiliárias.
 
-TAREFA: Analisa a pergunta do utilizador e identifica a INTENÇÃO PROFUNDA.
+TAREFA: Analisa o histórico da conversa e a pergunta atual do utilizador para identificar a INTENÇÃO PROFUNDA.
 
 Identifica:
 1. MOTIVAÇÃO: Porque está a procurar? (mudança de vida, investimento, primeira casa, upgrade, etc.)
@@ -214,14 +210,14 @@ Responde APENAS com JSON:
   ""concerns"": [""escolas"", ""transportes""],
   ""decisionPhase"": ""comparacao_ativa"",
   ""hiddenNeeds"": [""espaço exterior"", ""estacionamento""]
-}"),
-                
-                new UserChatMessage($@"Histórico recente:
-{historyText}
-
-Pergunta atual:
-{userQuery}")
+}")
             };
+            
+            // Adicionar histórico de conversa como mensagens separadas (melhor contexto para a IA)
+            messages.AddRange(conversationHistory);
+            
+            // Adicionar a query atual
+            messages.Add(new UserChatMessage($"[QUERY ATUAL A ANALISAR]: {userQuery}"));
 
             var options = new ChatCompletionOptions
             {

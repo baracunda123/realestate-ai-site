@@ -2,8 +2,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Application.Common.DTOs;
-using realestate_ia_site.Server.Infrastructure.Scraper;
-using realestate_ia_site.Server.Infrastructure.Persistence;
 using realestate_ia_site.Server.Application.Features.Properties.Import;
 
 namespace realestate_ia_site.Server.Presentation.Controllers
@@ -14,16 +12,13 @@ namespace realestate_ia_site.Server.Presentation.Controllers
     {
         private readonly ILogger<ScraperController> _logger;
         private readonly PropertyImportService _propertyImportService;
-        private readonly ScraperStateProvider _scraperStateService;
 
         public ScraperController(
             ILogger<ScraperController> logger, 
-            PropertyImportService propertyImportService, 
-            ScraperStateProvider scraperStateService)
+            PropertyImportService propertyImportService)
         {
             _logger = logger;
             _propertyImportService = propertyImportService;
-            _scraperStateService = scraperStateService;
         }
 
         [HttpPost("import-properties")]
@@ -47,46 +42,6 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 return StatusCode(500, new { message = "Internal error during import", details = ex.Message });
             }
         }
-
-
-        [HttpPut("state/update-current-page")]
-        public async Task<IActionResult> UpdateCurrentPage([FromBody] ScraperStateDto request)
-        {
-            try
-            {
-                _logger.LogInformation("Received request to update current page - Site: {Site}, Location: {Location}, Page: {Page}",
-                    request.Site, request.Location, request.CurrentPage);
-
-                await _scraperStateService.UpdateCurrentPageAsync(request.Site, request.Location, request.CurrentPage);
-
-                _logger.LogInformation("Current page updated successfully");
-                return Ok(new { message = "Current page updated successfully" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating current page");
-                return StatusCode(500, new { message = "Internal error updating current page", details = ex.Message });
-            }
-        }
-
-        [HttpGet("state/current-page")]
-        public async Task<IActionResult> GetCurrentPage([FromQuery] string? site = null, [FromQuery] string? location = null)
-        {
-            try
-            {
-                _logger.LogInformation("Received request to get current page - Site: {Site}, Location: {Location}", site, location);
-
-                var currentPage = await _scraperStateService.GetCurrentPageAsync(site, location);
-
-                return Ok(new { CurrentPage = currentPage });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting current page");
-                return StatusCode(500, new { message = "Internal error getting current page", details = ex.Message });
-            }
-        }
-
     }
 }
 
