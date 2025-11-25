@@ -51,7 +51,6 @@ namespace realestate_ia_site.Server.Presentation.Controllers
 
             try
             {
-                var sessionId = GetSessionId(); // Pode ser null para anónimos
                 var userId = GetCurrentUserId(); // Pode ser null para anónimos
                 var isAuthenticated = !string.IsNullOrEmpty(userId);
 
@@ -61,7 +60,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
 
                 if (isAuthenticated)
                 {
-                    // UTILIZADOR AUTENTICADO - Com histórico e sessões
+                    // UTILIZADOR AUTENTICADO - Com histórico persistente e sessões na BD
                     
                     // Criar nova sessão se não foi fornecido sessionId
                     // Isto garante que cada nova conversa começa com uma sessão limpa
@@ -83,20 +82,31 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                     var hasActiveSubscription = await _chatUsageService.GetUsageStatsAsync(userId!, ct);
                     userPlan = hasActiveSubscription.HasActiveSubscription ? "premium" : "free";
                     
-                    _logger.LogInformation("Pesquisa autenticada - UserId: {UserId}, Plano: {Plan}", userId, userPlan);
+                    _logger.LogInformation("Pesquisa autenticada - UserId: {UserId}, Plano: {Plan}, SessionId: {SessionId}", 
+                        userId, userPlan, chatSessionId);
                 }
                 else
                 {
-                    // UTILIZADOR ANÓNIMO - Plano Free (sem histórico, sem sessões)
+                    // UTILIZADOR ANÓNIMO - Histórico temporário em memória (não persistido na BD)
+                    
+                    // Usar sessionId do middleware para manter contexto conversacional em memória
+                    var sessionId = GetSessionId();
+                    if (string.IsNullOrEmpty(chatSessionId) && !string.IsNullOrEmpty(sessionId))
+                    {
+                        chatSessionId = sessionId;
+                        request.SessionId = chatSessionId;
+                    }
+                    
                     userPlan = "free"; // Anónimos usam plano Free (GPT-4o-mini)
                     
-                    _logger.LogInformation("Pesquisa anónima - Plano: Free (mini)");
+                    _logger.LogInformation("Pesquisa anónima - Plano: Free (mini), SessionId: {SessionId}", 
+                        chatSessionId ?? "none");
                 }
 
-                // Processar pesquisa
+                // Processar pesquisa (contexto conversacional é mantido para TODOS via ConversationContextService)
                 var result = await _orchestrator.HandleAsync(request, userPlan, ct);
 
-                // Apenas persistir histórico para utilizadores autenticados
+                // Apenas persistir histórico na BD para utilizadores autenticados
                 if (isAuthenticated && !string.IsNullOrEmpty(chatSessionId))
                 {
                     // Persistir resposta da IA
@@ -145,16 +155,17 @@ namespace realestate_ia_site.Server.Presentation.Controllers
             }
             catch (OperationCanceledException)
             {
-                var sessionId = GetSessionId();
                 var userId = GetCurrentUserId();
-                _logger.LogInformation("Requisição cancelada pelo cliente. SessionId: {SessionId}, UserId: {UserId}", sessionId, userId);
+                var sessionId = GetSessionId();
+                _logger.LogInformation("Requisição cancelada pelo cliente - UserId: {UserId}, SessionId: {SessionId}", 
+                    userId ?? "anonymous", sessionId ?? "none");
                 
-                // A mensagem do utilizador já foi persistida (linha 91)
+                // A mensagem do utilizador já foi persistida para autenticados
                 // Adicionar mensagem de cancelamento para manter consistência do histórico
                 try
                 {
                     var chatSessionId = request.SessionId;
-                    if (!string.IsNullOrEmpty(chatSessionId))
+                    if (!string.IsNullOrEmpty(chatSessionId) && !string.IsNullOrEmpty(userId))
                     {
                         await _chatSessionService.AddMessageAsync(
                             chatSessionId, 
@@ -179,8 +190,10 @@ namespace realestate_ia_site.Server.Presentation.Controllers
             }
             catch (Exception ex)
             {
+                var userId = GetCurrentUserId();
                 var sessionId = GetSessionId();
-                _logger.LogError(ex, "Erro durante pesquisa AI. SessionId: {SessionId}", sessionId);
+                _logger.LogError(ex, "Erro durante pesquisa AI - UserId: {UserId}, SessionId: {SessionId}", 
+                    userId ?? "anonymous", sessionId ?? "none");
                 return StatusCode(500, "Erro interno do servidor");
             }
         }

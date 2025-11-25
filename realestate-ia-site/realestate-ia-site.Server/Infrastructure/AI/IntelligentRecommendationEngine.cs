@@ -160,15 +160,20 @@ Porque recomendar esta propriedade?")
         /// </summary>
         public async Task<List<string>> GenerateSmartQuestionsAsync(
             UserIntentAnalysis userIntent,
-            List<string> conversationHistory,
+            IEnumerable<ChatMessage> conversationHistory,
             string userPlan = "free",
             CancellationToken cancellationToken = default)
         {
             var messages = new List<ChatMessage>
             {
-                new SystemChatMessage(@"És um consultor imobiliário experiente.
+                new SystemChatMessage($@"És um consultor imobiliário experiente.
 
-TAREFA: Gera 2-3 perguntas estratégicas para entender melhor o utilizador.
+TAREFA: Com base no histórico da conversa e no perfil do utilizador, gera 2-3 perguntas estratégicas para entender melhor as suas necessidades.
+
+Perfil atual:
+- Motivação: {userIntent.Motivation}
+- Fase de decisão: {userIntent.DecisionPhase}
+- Prioridades: {string.Join(", ", userIntent.Priorities)}
 
 As perguntas devem:
 - Descobrir necessidades ocultas
@@ -176,18 +181,14 @@ As perguntas devem:
 - Ajudar a refinar a pesquisa
 - Ser naturais e não invasivas
 
-Responde APENAS com array JSON: [""pergunta1"", ""pergunta2"", ""pergunta3""]"),
-                
-                new UserChatMessage($@"Perfil atual:
-Motivação: {userIntent.Motivation}
-Fase de decisão: {userIntent.DecisionPhase}
-Prioridades: {string.Join(", ", userIntent.Priorities)}
-
-Histórico recente:
-{string.Join("\n", conversationHistory.TakeLast(3))}
-
-Que perguntas fazer para ajudar melhor?")
+Responde APENAS com array JSON: [""pergunta1"", ""pergunta2"", ""pergunta3""]")
             };
+            
+            // Adicionar histórico de conversa como mensagens separadas
+            messages.AddRange(conversationHistory);
+            
+            // Pedir as perguntas
+            messages.Add(new UserChatMessage("Com base no histórico acima, que perguntas devo fazer para ajudar melhor?"));
 
             var options = new ChatCompletionOptions
             {

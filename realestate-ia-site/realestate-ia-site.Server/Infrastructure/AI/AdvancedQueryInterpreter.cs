@@ -25,14 +25,14 @@ namespace realestate_ia_site.Server.Infrastructure.AI
         /// </summary>
         public async Task<ComplexQueryInterpretation> InterpretComplexQueryAsync(
             string userQuery,
-            string conversationContext,
+            IEnumerable<ChatMessage> conversationHistory,
             CancellationToken cancellationToken = default)
         {
             var messages = new List<ChatMessage>
             {
                 new SystemChatMessage(@"És um especialista em compreender pedidos imobiliários complexos.
 
-TAREFA: Interpreta a query do utilizador identificando TODAS as nuances e condições.
+TAREFA: Analisa o histórico da conversa e interpreta a query atual do utilizador identificando TODAS as nuances e condições.
 
 Identifica:
 1. REQUISITOS_OBRIGATÓRIOS: O que é absolutamente necessário
@@ -59,14 +59,14 @@ Responde APENAS com JSON:
   ""ambiguities"": [""ambiguidade1""],
   ""emotions"": [""emoção1""],
   ""interpretationConfidence"": 8
-}"),
-                
-                new UserChatMessage($@"Contexto da conversa:
-{conversationContext}
-
-Query atual:
-{userQuery}")
+}")
             };
+            
+            // Adicionar histórico de conversa como mensagens separadas (melhor contexto para a IA)
+            messages.AddRange(conversationHistory);
+            
+            // Adicionar a query atual
+            messages.Add(new UserChatMessage($"[QUERY ATUAL A INTERPRETAR]: {userQuery}"));
 
             var options = new ChatCompletionOptions
             {
@@ -107,6 +107,7 @@ Query atual:
         public async Task<IntentChangeDetection> DetectIntentChangeAsync(
             string previousQuery,
             string currentQuery,
+            string userPlan = "free",
             CancellationToken cancellationToken = default)
         {
             var messages = new List<ChatMessage>
@@ -149,10 +150,11 @@ Houve mudança de intenção?")
 
             try
             {
+                var model = userPlan == "premium" ? "gpt-4o" : "gpt-4o-mini";
                 var response = await _openAIService.CompleteChatAsync(
                     messages,
                     options,
-                    "gpt-4o-mini",
+                    model,
                     cancellationToken);
 
                 var jsonContent = ExtractJsonFromMarkdown(response);

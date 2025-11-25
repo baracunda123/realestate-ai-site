@@ -1,4 +1,5 @@
 using Microsoft.OpenApi.Services;
+using OpenAI.Chat;
 using realestate_ia_site.Server.Application.Features.AI.SearchAI.DTOs;
 using realestate_ia_site.Server.Application.Features.AI.Interfaces;
 using realestate_ia_site.Server.Application.Features.Properties.Search;
@@ -56,33 +57,99 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
             ArgumentNullException.ThrowIfNull(request, nameof(request));
             ArgumentException.ThrowIfNullOrWhiteSpace(request.Query, nameof(request.Query));
 
-            _logger.LogInformation("Processing search request: {Query}, Plano: {Plan}", request.Query, userPlan);
+            _logger.LogInformation("Processing search request: {Query}, Plano: {Plan}, SessionId: {SessionId}", request.Query, userPlan, request.SessionId);
             
             try
             {
-                // Obter ou criar contexto (restaura da BD se necessário)
-                // Isto garante que filtros e histórico sejam mantidos entre sessões
-                var context = _contextService.GetOrCreateContext(request.SessionId);
-                Dictionary<string, object>? previousFilters = null;
+                // ========== 1. OBTER CONTEXTO (única vez) ==========
+                // Restaura da BD se necessário - filtros e histórico mantidos entre sessões
+                var context = await _contextService.GetOrCreateContextAsync(request.SessionId);
                 
-                if (context != null && context.FilterHistory.Any())
+                // Guardar filtros anteriores para aprendizagem
+                Dictionary<string, object>? previousFilters = null;
+                if (context != null && context.LastFilters.Any())
                 {
-                    previousFilters = context.FilterHistory.Last();
+                    previousFilters = new Dictionary<string, object>(context.LastFilters);
                 }
                 
-                // [NOVO] 1. Interpretar query complexa (se disponível)
-                ComplexQueryInterpretation? complexInterpretation = null;
-                if (_advancedInterpreter != null && IsComplexQuery(request.Query))
+                // ========== 2. DETETAR MUDANÇA DE INTENÇÃO ==========
+                // Se o utilizador mudou completamente de contexto, limpar filtros anteriores
+                if (_advancedInterpreter != null && context != null && context.Messages.Any())
                 {
                     try
                     {
-                        var conversationContext = context != null 
-                            ? string.Join("\n", context.Messages.TakeLast(3).Select(m => m.Content))
-                            : string.Empty;
+                        // Obter última query do utilizador (antes da atual)
+                        var lastUserMessage = context.Messages
+                            .Where(m => m is UserChatMessage)
+                            .LastOrDefault();
                         
+                        if (lastUserMessage != null)
+                        {
+                            var previousQuery = lastUserMessage.Content.FirstOrDefault()?.Text ?? string.Empty;
+                            
+                            if (!string.IsNullOrEmpty(previousQuery))
+                            {
+                                var intentChange = await _advancedInterpreter.DetectIntentChangeAsync(
+                                    previousQuery,
+                                    request.Query,
+                                    userPlan,
+                                    ct);
+                                
+                                // Se mudança completa ou contradição, limpar filtros anteriores
+                                if (intentChange.ChangeType == "mudança_completa" || 
+                                    intentChange.ChangeType == "contradição")
+                                {
+                                    _logger.LogInformation(
+                                        "[IntentChange] Mudança de contexto detetada ({Type}) - Limpando filtros anteriores. Razão: {Reason}",
+                                        intentChange.ChangeType,
+                                        intentChange.LikelyReason);
+                                    
+                                    previousFilters = null;
+                                    context.LastFilters.Clear();
+                                    context.FilterHistory.Clear();
+                                }
+                                else if (intentChange.ChangeType == "mudança_parcial")
+                                {
+                                    _logger.LogInformation(
+                                        "[IntentChange] Mudança parcial detetada - Mantendo alguns filtros. Mudou: {Changed}",
+                                        string.Join(", ", intentChange.WhatChanged ?? new List<string>()));
+                                }
+                                else
+                                {
+                                    _logger.LogDebug(
+                                        "[IntentChange] Refinamento detetado - Mantendo contexto completo");
+                                }
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "[IntentChange] Falha ao detetar mudança de intenção - continuando com contexto atual");
+                    }
+                }
+                
+                // ========== 3. ADICIONAR MENSAGEM DO UTILIZADOR AO CONTEXTO ==========
+                // Fazer isto ANTES de qualquer análise para que a IA tenha contexto completo
+                if (context != null)
+                {
+                    context.AddUserMessage(request.Query);
+                }
+                
+                // ========== 4. INTERPRETAR QUERY COMPLEXA (Premium) ==========
+                ComplexQueryInterpretation? complexInterpretation = null;
+                if (_advancedInterpreter != null && IsComplexQuery(request.Query) && userPlan == "premium")
+                {
+                    try
+                    {
+                        // Usar últimas 6 mensagens (inclui a atual que acabámos de adicionar)
+                        var conversationHistory = context?.Messages.TakeLast(6) ?? Enumerable.Empty<ChatMessage>();
+
+                        _logger.LogInformation("[Advanced] Interpretando query complexa com {Count} mensagens de contexto", 
+                            conversationHistory.Count());
+
                         complexInterpretation = await _advancedInterpreter.InterpretComplexQueryAsync(
                             request.Query, 
-                            conversationContext, 
+                            conversationHistory,
                             ct);
                         
                         _logger.LogInformation("[Advanced] Query complexa interpretada com {Confidence}/10 de confiança", 
@@ -94,7 +161,7 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                     }
                 }
                 
-                // [NOVO] 2. Obter padrões de comportamento do utilizador (se disponível)
+                // ========== 5. OBTER PADRÕES DE COMPORTAMENTO (se disponível) ==========
                 PropertyPreferencePattern? userPreferences = null;
                 if (_feedbackService != null && !string.IsNullOrEmpty(request.UserId))
                 {
@@ -118,16 +185,14 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                     }
                 }
                 
-                // [CRÍTICO] 3. Analisar intenção do utilizador ANTES de extrair filtros
+                // ========== 6. ANALISAR INTENÇÃO DO UTILIZADOR ==========
                 UserIntentAnalysis? userIntent = null;
                 if (_semanticAnalyzer != null)
                 {
                     try
                     {
-                        var conversationHistory = context?.Messages
-                            .Select(m => m.Content.FirstOrDefault()?.Text ?? string.Empty)
-                            .Where(text => !string.IsNullOrEmpty(text))
-                            .ToList() ?? new List<string>();
+                        // Usar últimas 6 mensagens (inclui a atual)
+                        var conversationHistory = context?.Messages.TakeLast(6) ?? Enumerable.Empty<ChatMessage>();
                         
                         userIntent = await _semanticAnalyzer.AnalyzeUserIntentAsync(
                             request.Query,
@@ -148,39 +213,38 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                     }
                 }
                 
-                // 4. Extrair e processar filtros COM INTENÇÃO (sistema híbrido)
+                // ========== 7. EXTRAIR FILTROS (usando contexto já carregado) ==========
                 // A intenção enriquece os filtros com features contextuais (segurança, família, etc.)
-                var filters = await _filterInterpreter.ExtractFiltersAsync(request.Query, request.SessionId, userPlan, userIntent, ct);
+                var filters = await _filterInterpreter.ExtractFiltersAsync(request.Query, context, userPlan, userIntent, ct);
                 var properties = await _propertySearchService.SearchPropertiesWithFiltersAsync(filters, ct);
                 
-                // [NOVO] 5. Gerar explicações para as top 3 propriedades (se disponível)
-                // Nota: As explicações serão incluídas na resposta do PropertyResponseGenerator
-                if (_recommendationEngine != null && userIntent != null && properties.Any())
+                // ========== 8. ATUALIZAR CONTEXTO COM FILTROS ==========
+                if (context != null && filters != null && filters.Any())
                 {
-                    try
+                    // Guardar filtros anteriores no histórico
+                    if (previousFilters != null && previousFilters.Any())
                     {
-                        // As explicações podem ser usadas pelo PropertyResponseGenerator
-                        // para enriquecer a resposta conversacional
-                        _logger.LogInformation("[Advanced] Explicações disponíveis para top 3 propriedades");
+                        context.FilterHistory.Add(previousFilters);
+                        
+                        // Limitar histórico a últimas 10 pesquisas
+                        if (context.FilterHistory.Count > 10)
+                        {
+                            context.FilterHistory.RemoveAt(0);
+                        }
                     }
-                    catch (Exception ex)
-                    {
-                        _logger.LogWarning(ex, "[Advanced] Falha ao preparar explicações");
-                    }
+                    
+                    context.LastFilters = filters;
                 }
                 
-                // 6. Gerar resposta (SISTEMA ANTIGO - MANTÉM)
-                var aiResponse = await _responseGenerator.GenerateResponseAsync(request.Query, properties, request.SessionId, userPlan, ct);
+                // ========== 9. GERAR RESPOSTA (usando contexto já carregado) ==========
+                var aiResponse = await _responseGenerator.GenerateResponseAsync(request.Query, properties, context, userPlan, ct);
                 
-                // [NOVO] 7. Se não há resultados, gerar perguntas inteligentes (se disponível)
+                // ========== 10. PERGUNTAS INTELIGENTES (se sem resultados) ==========
                 if (!properties.Any() && _recommendationEngine != null && userIntent != null)
                 {
                     try
                     {
-                        var conversationHistory = context?.Messages
-                            .Select(m => m.Content.FirstOrDefault()?.Text ?? string.Empty)
-                            .Where(text => !string.IsNullOrEmpty(text))
-                            .ToList() ?? new List<string>();
+                        var conversationHistory = context?.Messages.TakeLast(6) ?? Enumerable.Empty<ChatMessage>();
                         
                         var smartQuestions = await _recommendationEngine.GenerateSmartQuestionsAsync(
                             userIntent,
@@ -200,7 +264,7 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                     }
                 }
                 
-                // [NOVO] 8. Se há poucos resultados, sugerir refinamentos (se disponível)
+                // ========== 11. SUGERIR REFINAMENTOS (se poucos resultados) ==========
                 if (properties.Count > 0 && properties.Count < 5 && _advancedInterpreter != null)
                 {
                     try
@@ -227,7 +291,7 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                     }
                 }
 
-                // 9. Aprender com o comportamento do utilizador (SISTEMA ANTIGO - MANTÉM)
+                // ========== 12. APRENDER COM COMPORTAMENTO ==========
                 if (previousFilters != null && filters != null && request.UserId != null)
                 {
                     await _scoringService.LearnFromRefinementAsync(
@@ -236,6 +300,13 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                         previousFilters,
                         filters,
                         ct);
+                }
+                
+                // ========== 13. ADICIONAR RESPOSTA AO CONTEXTO E PERSISTIR ==========
+                if (context != null)
+                {
+                    context.AddAssistantMessage(aiResponse);
+                    _contextService.UpdateContext(request.SessionId, context);
                 }
 
                 _logger.LogInformation("Search completed. Found {SearchCount} properties with filters: {Filters}", 

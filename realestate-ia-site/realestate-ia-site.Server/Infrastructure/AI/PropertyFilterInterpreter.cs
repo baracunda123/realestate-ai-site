@@ -23,26 +23,16 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             _contextService = contextService;
         }
 
-        public async Task<Dictionary<string, object>> ExtractFiltersAsync(string userQuery, CancellationToken cancellationToken = default)
-            => await ExtractFiltersAsync(userQuery, string.Empty, cancellationToken);
-
-        public async Task<Dictionary<string, object>> ExtractFiltersAsync(string userQuery, string sessionId, CancellationToken cancellationToken = default)
-            => await ExtractFiltersAsync(userQuery, sessionId, "free", cancellationToken);
-
-        public async Task<Dictionary<string, object>> ExtractFiltersAsync(string userQuery, string sessionId, string userPlan, CancellationToken cancellationToken = default)
-            => await ExtractFiltersAsync(userQuery, sessionId, userPlan, null, cancellationToken);
-
+        /// <summary>
+        /// Extrai filtros da query do utilizador usando contexto de conversa
+        /// </summary>
         public async Task<Dictionary<string, object>> ExtractFiltersAsync(
             string userQuery, 
-            string sessionId, 
+            ConversationContext? context, 
             string userPlan, 
             UserIntentAnalysis? userIntent, 
             CancellationToken cancellationToken = default)
         {
-            var context = !string.IsNullOrWhiteSpace(sessionId)
-                ? await _contextService.GetOrCreateContextAsync(sessionId, cancellationToken)
-                : null;
-
             var messages = PromptBuilder.BuildForFilterExtraction(userQuery, context?.LastFilters, userIntent);
 
             var options = new ChatCompletionOptions
@@ -115,30 +105,16 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                 _logger.LogInformation("[Features] Usando expansão nativa do GPT-4o (sem override)");
             }
 
-            if (context != null && filters.Any())
+            // Fazer merge com filtros anteriores se existirem
+            if (context != null && context.LastFilters.Any())
             {
-                var previousFilters = new Dictionary<string, object>(context.LastFilters);
-                
-                // Guardar filtros anteriores no histórico antes de fundir
-                if (previousFilters.Any())
-                {
-                    context.FilterHistory.Add(new Dictionary<string, object>(previousFilters));
-                    
-                    // Limitar histórico a últimas 10 pesquisas
-                    if (context.FilterHistory.Count > 10)
-                    {
-                        context.FilterHistory.RemoveAt(0);
-                    }
-                }
-                
-                context.LastFilters = MergeFilters(context.LastFilters, filters, _logger);
-                _contextService.UpdateContext(sessionId, context);
-                
+                var mergedFilters = MergeFilters(context.LastFilters, filters, _logger);
                 _logger.LogInformation("Filtros fundidos - Anterior: {@PreviousFilters}, Novos: {@NewFilters}, Resultado: {@MergedFilters}", 
-                    previousFilters, filters, context.LastFilters);
+                    context.LastFilters, filters, mergedFilters);
+                return mergedFilters;
             }
 
-            return context?.LastFilters ?? filters;
+            return filters;
         }
 
         private static Dictionary<string, object> ParseFiltersFromResponse(string response)

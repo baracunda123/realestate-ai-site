@@ -1,3 +1,4 @@
+using OpenAI.Chat;
 using realestate_ia_site.Server.Infrastructure.AI;
 
 namespace realestate_ia_site.Server.Application.Features.AI.Interfaces
@@ -6,12 +7,13 @@ namespace realestate_ia_site.Server.Application.Features.AI.Interfaces
     {
         Task<ComplexQueryInterpretation> InterpretComplexQueryAsync(
             string userQuery,
-            string conversationContext,
+            IEnumerable<ChatMessage> conversationHistory,
             CancellationToken cancellationToken = default);
 
         Task<IntentChangeDetection> DetectIntentChangeAsync(
             string previousQuery,
             string currentQuery,
+            string userPlan = "free",
             CancellationToken cancellationToken = default);
 
         Task<List<string>> ExpandVagueQueryAsync(
