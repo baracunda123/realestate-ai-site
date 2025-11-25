@@ -1,4 +1,4 @@
-import { useState, useEffect, lazy, Suspense, useCallback, useMemo } from 'react';
+import { useState, useEffect, lazy, Suspense, useCallback, useMemo, useRef } from 'react';
 import { Routes, Route, useLocation, useNavigate } from 'react-router-dom';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
@@ -385,6 +385,14 @@ export default function App() {
     });
   }, [user, navigate]);
 
+  // Ref para manter o sessionId atualizado entre renders (evita stale closure)
+  const activeSessionIdRef = useRef<string | null>(null);
+  
+  // Manter ref sincronizada com o estado
+  useEffect(() => {
+    activeSessionIdRef.current = activeSessionId;
+  }, [activeSessionId]);
+
   const handleSubmitSearch = useCallback(async (query: string, sessionId?: string) => {
     setAiLoading(true);
     setAiError(null);
@@ -393,9 +401,9 @@ export default function App() {
     const controller = new AbortController();
     setAbortController(controller);
     
-    // Se não há sessão ativa, o backend criará uma nova automaticamente
-    // Não criar sessão no frontend para evitar duplicação
-    const currentSessionId = sessionId || activeSessionId;
+    // Usar sessionId passado como parâmetro, ou o ref (sempre atualizado), ou null
+    // O ref evita o problema de stale closure com activeSessionId
+    const currentSessionId = sessionId || activeSessionIdRef.current;
     
     // Add user message to history
     const userMessage = {
@@ -454,8 +462,8 @@ export default function App() {
           return prev;
         });
         
-        // Garantir que a sessão retornada é a ativa
-        if (result.sessionId !== activeSessionId) {
+        // Garantir que a sessão retornada é a ativa (usar ref para comparação atual)
+        if (result.sessionId !== activeSessionIdRef.current) {
           setActiveSessionId(result.sessionId);
         }
       }
@@ -538,7 +546,7 @@ export default function App() {
       setAiLoading(false);
       setAbortController(null);
     }
-  }, [currentView, navigate, activeSessionId]);
+  }, [currentView, navigate, user]);
   
   // Handler para cancelar query em processamento
   const handleCancelQuery = useCallback(() => {
@@ -656,8 +664,8 @@ export default function App() {
       const remainingSessions = chatSessions.filter(s => s.id !== sessionId);
       setChatSessions(remainingSessions);
       
-      // Se eliminou a sessão ativa, mudar para outra
-      if (activeSessionId === sessionId) {
+      // Se eliminou a sessão ativa, mudar para outra (usar ref para valor atual)
+      if (activeSessionIdRef.current === sessionId) {
         if (remainingSessions.length > 0) {
           setActiveSessionId(remainingSessions[0].id);
           await handleSelectSession(remainingSessions[0].id);
@@ -672,7 +680,7 @@ export default function App() {
       logger.error('Erro ao eliminar sessão', 'APP', error as Error);
       toast.error('Erro ao eliminar conversa');
     }
-  }, [chatSessions, activeSessionId, handleSelectSession, handleCreateSession]);
+  }, [chatSessions, handleSelectSession, handleCreateSession]);
 
   // Authentication handlers - otimizados
   const handleAuthSuccess = useCallback(async () => {
