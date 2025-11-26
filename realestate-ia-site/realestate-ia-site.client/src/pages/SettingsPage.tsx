@@ -112,8 +112,8 @@ export function SettingsPage({ onDeleteAccount, hasActiveSearch, onNavigateToHom
         {/* Theme Settings */}
         <ThemeSettings />
 
-        {/* Change Password */}
-        <ChangePassword />
+        {/* Change Password - só aparece se utilizador tiver password (não OAuth) */}
+        <ChangePassword hasPassword={hasPassword} />
 
         {/* Active Sessions */}
         <ActiveSessions />
