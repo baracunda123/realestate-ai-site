@@ -36,36 +36,40 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             {
                 new SystemChatMessage(@"És um especialista em compreender necessidades imobiliárias.
 
-TAREFA: Analisa o histórico da conversa e a pergunta atual do utilizador para identificar a INTENÇÃO PROFUNDA.
+TAREFA: Analisa APENAS a query atual do utilizador para identificar a INTENÇÃO.
+
+REGRA CRÍTICA: Só identifica o que está EXPLÍCITO ou CLARAMENTE IMPLÍCITO na query.
+NÃO INVENTES necessidades que não foram mencionadas.
+Se a query é simples (ex: ""até 240k""), retorna campos vazios ou ""desconhecida"".
 
 Identifica:
-1. MOTIVAÇÃO: Porque está a procurar? (mudança de vida, investimento, primeira casa, upgrade, etc.)
-2. URGÊNCIA_TEMPORAL: Quando precisa? (urgente, alguns meses, só a explorar)
-3. PRIORIDADES: O que é mais importante? (preço, localização, espaço, estado, etc.) - ordenadas
-4. FLEXIBILIDADE: Quão flexível é? (muito rígido, alguma flexibilidade, muito flexível)
-5. ESTILO_VIDA: Que estilo de vida procura? (urbano, familiar, tranquilo, dinâmico, etc.)
-6. PREOCUPAÇÕES: O que o preocupa? (segurança, transportes, escolas, barulho, etc.)
-7. FASE_DECISAO: Em que fase está? (pesquisa inicial, comparação ativa, pronto para decidir)
-8. NECESSIDADES_OCULTAS: O que não disse mas pode ser importante?
+1. MOTIVAÇÃO: Porque está a procurar? (mudança de vida, investimento, primeira casa, upgrade, desconhecida)
+2. URGÊNCIA_TEMPORAL: Quando precisa? (urgente, alguns meses, só a explorar, desconhecida)
+3. PRIORIDADES: O que é mais importante? - SÓ se mencionado explicitamente
+4. FLEXIBILIDADE: Quão flexível é? (muito rígido, alguma flexibilidade, muito flexível, desconhecida)
+5. ESTILO_VIDA: Que estilo de vida procura? - SÓ se mencionado explicitamente
+6. PREOCUPAÇÕES: O que o preocupa? - SÓ se mencionado explicitamente
+7. FASE_DECISAO: Em que fase está? (pesquisa inicial, comparação ativa, pronto para decidir, desconhecida)
+8. NECESSIDADES_OCULTAS: DEIXAR VAZIO a menos que seja MUITO ÓBVIO
 
 Responde APENAS com JSON:
 {
-  ""motivation"": ""primeira_casa"",
-  ""timeUrgency"": ""alguns_meses"",
-  ""priorities"": [""localização"", ""preço"", ""espaço""],
-  ""flexibility"": ""alguma_flexibilidade"",
-  ""lifestylePreference"": ""familiar"",
-  ""concerns"": [""escolas"", ""transportes""],
-  ""decisionPhase"": ""comparacao_ativa"",
-  ""hiddenNeeds"": [""espaço exterior"", ""estacionamento""]
+  ""motivation"": ""desconhecida"",
+  ""timeUrgency"": ""desconhecida"",
+  ""priorities"": [],
+  ""flexibility"": ""desconhecida"",
+  ""lifestylePreference"": ""não identificado"",
+  ""concerns"": [],
+  ""decisionPhase"": ""desconhecida"",
+  ""hiddenNeeds"": []
 }")
             };
             
-            // Adicionar histórico de conversa como mensagens separadas (melhor contexto para a IA)
-            messages.AddRange(conversationHistory);
+            // NÃO adicionar histórico - analisar apenas a query atual
+            // O histórico contamina a análise com contexto de mensagens anteriores
             
-            // Adicionar a query atual
-            messages.Add(new UserChatMessage($"[QUERY ATUAL A ANALISAR]: {userQuery}"));
+            // Adicionar apenas a query atual
+            messages.Add(new UserChatMessage(userQuery));
 
             var options = new ChatCompletionOptions
             {
