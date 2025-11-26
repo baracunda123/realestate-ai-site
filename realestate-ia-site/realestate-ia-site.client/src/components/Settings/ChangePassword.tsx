@@ -14,7 +14,15 @@ interface ChangePasswordRequest {
   confirmPassword: string;
 }
 
-export function ChangePassword() {
+interface ChangePasswordProps {
+  hasPassword?: boolean;
+}
+
+export function ChangePassword({ hasPassword = true }: ChangePasswordProps) {
+  // Não mostrar componente se utilizador não tem password (ex: login via Google)
+  if (!hasPassword) {
+    return null;
+  }
   const [formData, setFormData] = useState<ChangePasswordRequest>({
     currentPassword: '',
     newPassword: '',

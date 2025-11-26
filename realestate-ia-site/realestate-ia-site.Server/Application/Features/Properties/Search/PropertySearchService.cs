@@ -72,22 +72,9 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search
 
             try
             {
-                // Buscar mais resultados para permitir scoring inteligente
-                // A IA vai ordenar e retornar os 10 mais relevantes
+                // Buscar todas as propriedades que correspondem aos filtros
                 // AsNoTracking para melhor performance (não precisa rastrear mudanças)
-
-                // Limite dinâmico baseado no tipo de pesquisa:
-                // - Range geográfico ("between"): 50 propriedades (cobre múltiplas localizações)
-                // - Localizações específicas: 30 propriedades (suficiente para 1-2 localizações)
-                var limit = 30; // default
-                if (filtros.TryGetValue("location_type", out var locationType) && 
-                    locationType?.ToString()?.ToLower() == "between")
-                {
-                    limit = 50;
-                    _logger.LogDebug("[Search] Range geográfico detectado, usando limite de {Limit} propriedades", limit);
-                }
-
-                var properties = await query.AsNoTracking().Take(limit).ToListAsync(cancellationToken);
+                var properties = await query.AsNoTracking().ToListAsync(cancellationToken);
 
                 // Get latest price changes for all properties (last 30 days)
                 var propertyIds = properties.Select(p => p.Id).ToList();
@@ -142,9 +129,6 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search
 
                     _logger.LogInformation("[Search] Propriedades ordenadas por scoring inteligente");
                 }
-
-                // Retornar top 10 após scoring
-                result = result.Take(10).ToList();
 
                 _logger.LogInformation("[Search] Concluida a pesquisa com {Count} propriedades", result.Count);
                 return result;
