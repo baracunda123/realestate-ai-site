@@ -156,14 +156,8 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Import
                         existingProperty.Id,existingProperty.Price);
                     PropertyMapper.UpdatePropertyFromScrapper(existingProperty, scrapperDto);
                     
-                    // Atualizar LastSeenAt e reativar se estava arquivado
+                    // LastSeenAt e reativação são tratados pelo PropertyTrackingService
                     existingProperty.LastSeenAt = DateTime.UtcNow;
-                    if (existingProperty.Status != PropertyStatus.Active)
-                    {
-                        existingProperty.Status = PropertyStatus.Active;
-                        existingProperty.ArchivedAt = null;
-                        _logger.LogInformation("[Import] Propriedade {Id} reativada", existingProperty.Id);
-                    }
                     
                     result.Updated++;
                     return existingProperty.Id;
