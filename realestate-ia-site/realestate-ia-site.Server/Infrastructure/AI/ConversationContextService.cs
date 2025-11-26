@@ -57,22 +57,11 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             // 3. Criar novo
             return CreateNewContext(sessionId, cacheKey);
         }
-        
-        public ConversationContext? GetContext(string sessionId)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(sessionId, nameof(sessionId));
-            var cacheKey = GetCacheKey(sessionId);
-            if (_cache.TryGetValue(cacheKey, out ConversationContext? context) && context != null)
-            {
-                return context;
-            }
-            return null;
-        }
 
         public async Task<ConversationContext> GetOrCreateContextAsync(string sessionId, CancellationToken cancellationToken = default)
             => await Task.FromResult(GetOrCreateContext(sessionId));
 
-        public void UpdateContext(string sessionId, ConversationContext context)
+        public async Task UpdateContextAsync(string sessionId, ConversationContext context, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(sessionId, nameof(sessionId));
             ArgumentNullException.ThrowIfNull(context, nameof(context));
@@ -86,13 +75,13 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             // Para sessões anónimas (sessionId do middleware), isto falhará silenciosamente
             try
             {
-                var contextData = _context.ConversationContexts
-                    .FirstOrDefault(c => c.SessionId == sessionId);
+                var contextData = await _context.ConversationContexts
+                    .FirstOrDefaultAsync(c => c.SessionId == sessionId, cancellationToken);
                 
                 if (contextData == null)
                 {
                     // Verificar se esta sessão já existe na tabela ChatSessions (utilizador autenticado)
-                    var chatSessionExists = _context.ChatSessions.Any(s => s.Id == sessionId);
+                    var chatSessionExists = await _context.ChatSessions.AnyAsync(s => s.Id == sessionId, cancellationToken);
                     
                     if (chatSessionExists)
                     {
@@ -104,7 +93,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                         _context.ConversationContexts.Add(contextData);
                         
                         SerializeContext(context, contextData);
-                        _context.SaveChangesAsync().Wait();
+                        await _context.SaveChangesAsync(cancellationToken);
                         
                         _logger.LogDebug("Contexto criado e persistido na BD para sessão autenticada: {SessionId}", sessionId);
                     }
@@ -118,7 +107,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                 {
                     // Contexto já existe - atualizar
                     SerializeContext(context, contextData);
-                    _context.SaveChangesAsync().Wait();
+                    await _context.SaveChangesAsync(cancellationToken);
                     
                     _logger.LogDebug("Contexto atualizado (cache + BD) para sessão autenticada: {SessionId}", sessionId);
                 }
@@ -130,7 +119,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             }
         }
         
-        public void ClearContext(string sessionId)
+        public async Task ClearContextAsync(string sessionId, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(sessionId, nameof(sessionId));
             
@@ -141,13 +130,13 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             // 2. Remover da BD
             try
             {
-                var contextData = _context.ConversationContexts
-                    .FirstOrDefault(c => c.SessionId == sessionId);
+                var contextData = await _context.ConversationContexts
+                    .FirstOrDefaultAsync(c => c.SessionId == sessionId, cancellationToken);
                 
                 if (contextData != null)
                 {
                     _context.ConversationContexts.Remove(contextData);
-                    _context.SaveChangesAsync().Wait();
+                    await _context.SaveChangesAsync(cancellationToken);
                 }
                 
                 _logger.LogInformation("Contexto removido (cache + BD) para sessão: {SessionId}", sessionId);
@@ -158,20 +147,20 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             }
         }
 
-        public void ClearExpiredContexts()
+        public async Task ClearExpiredContextsAsync(CancellationToken cancellationToken = default)
         {
             try
             {
                 var cutoffDate = DateTime.UtcNow - _dbExpiry;
                 
-                var expiredContexts = _context.ConversationContexts
+                var expiredContexts = await _context.ConversationContexts
                     .Where(c => c.LastActivity < cutoffDate)
-                    .ToList();
+                    .ToListAsync(cancellationToken);
                 
                 if (expiredContexts.Any())
                 {
                     _context.ConversationContexts.RemoveRange(expiredContexts);
-                    _context.SaveChangesAsync().Wait();
+                    await _context.SaveChangesAsync(cancellationToken);
                     
                     _logger.LogInformation(
                         "Limpeza automática: {Count} contextos expirados removidos (inativos há mais de {Days} dias)",

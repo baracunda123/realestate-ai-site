@@ -1,5 +1,7 @@
+using realestate_ia_site.Server.Application.Common.Context;
 using realestate_ia_site.Server.Application.Common.DTOs;
 using realestate_ia_site.Server.Application.Features.Properties.Scoring;
+using realestate_ia_site.Server.Application.Features.Properties.Feedback;
 using realestate_ia_site.Server.Application.Features.AI.Conversation;
 using realestate_ia_site.Server.Application.Features.AI.Interfaces;
 using OpenAI.Chat;
@@ -10,31 +12,32 @@ namespace realestate_ia_site.Server.Infrastructure.AI
     /// <summary>
     /// Serviço que usa IA para pontuar propriedades baseado em contexto conversacional.
     /// Implementa ordenação inteligente que considera:
-    /// - Intenção do usuário na query
+    /// - Intenção do usuário na query (via UserRequestContext.CurrentQuery)
     /// - Histórico de refinamentos
-    /// - Padrões de preferência
-    /// - Contexto da conversa
+    /// - Padrões de preferência (via UserRequestContext.UserPreferences)
+    /// - Contexto da conversa (via UserRequestContext.SessionId)
     /// </summary>
     public class PropertyScoringService : IPropertyScoringService
     {
         private readonly IOpenAIService _openAIService;
         private readonly IConversationContextService _contextService;
+        private readonly UserRequestContext _userContext;
         private readonly ILogger<PropertyScoringService> _logger;
 
         public PropertyScoringService(
             IOpenAIService openAIService,
             IConversationContextService contextService,
+            UserRequestContext userContext,
             ILogger<PropertyScoringService> logger)
         {
             _openAIService = openAIService;
             _contextService = contextService;
+            _userContext = userContext;
             _logger = logger;
         }
 
         public async Task<List<PropertySearchDto>> ScoreAndRankPropertiesAsync(
             List<PropertySearchDto> properties,
-            string userQuery,
-            string sessionId,
             Dictionary<string, object> filters,
             CancellationToken cancellationToken = default)
         {
@@ -42,6 +45,11 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                 return properties;
 
             _logger.LogInformation("[Scoring] Iniciando scoring inteligente para {Count} propriedades", properties.Count);
+
+            // Obter dados do contexto do request
+            var sessionId = _userContext.SessionId;
+            var userQuery = _userContext.CurrentQuery ?? string.Empty;
+            var userPreferences = _userContext.UserPreferences;
 
             // Obter contexto conversacional
             var context = !string.IsNullOrWhiteSpace(sessionId)
@@ -52,7 +60,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             var scoredProperties = properties.Select(p => new
             {
                 Property = p,
-                BaseScore = CalculateBaseScore(p, filters, context)
+                BaseScore = CalculateBaseScore(p, filters, context, userPreferences)
             }).ToList();
 
             // Se temos contexto suficiente, usar IA para refinar scores
@@ -104,7 +112,8 @@ namespace realestate_ia_site.Server.Infrastructure.AI
         private double CalculateBaseScore(
             PropertySearchDto property, 
             Dictionary<string, object> filters,
-            ConversationContext? context)
+            ConversationContext? context,
+            PropertyPreferencePattern? userPreferences)
         {
             double score = 0.5; // Score neutro base
 
@@ -151,8 +160,60 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             // 6. Completude dos dados (sem considerar imagem)
             var completeness = CalculateDataCompleteness(property);
             score += completeness * 0.1;
+            
+            // 7. Boost baseado em preferências históricas do utilizador (favoritos)
+            if (userPreferences != null)
+            {
+                score += CalculatePreferenceBoost(property, userPreferences);
+            }
 
             return Math.Clamp(score, 0.0, 1.0);
+        }
+        
+        /// <summary>
+        /// Calcula boost baseado nas preferências históricas do utilizador.
+        /// </summary>
+        private double CalculatePreferenceBoost(PropertySearchDto property, PropertyPreferencePattern preferences)
+        {
+            double boost = 0.0;
+            
+            // Boost se tipo corresponde às preferências (+10%)
+            if (preferences.PreferredTypes.Any() && 
+                !string.IsNullOrWhiteSpace(property.Type) &&
+                preferences.PreferredTypes.Any(t => 
+                    property.Type.Contains(t, StringComparison.OrdinalIgnoreCase)))
+            {
+                boost += 0.1;
+            }
+            
+            // Boost se localização corresponde às preferências (+10%)
+            if (preferences.PreferredLocations.Any() && 
+                !string.IsNullOrWhiteSpace(property.Location))
+            {
+                if (preferences.PreferredLocations.Any(loc => 
+                    property.Location.Contains(loc, StringComparison.OrdinalIgnoreCase)))
+                {
+                    boost += 0.1;
+                }
+            }
+            
+            // Boost se quartos correspondem à preferência (+5%)
+            if (preferences.PreferredRooms.HasValue && 
+                property.Bedrooms == preferences.PreferredRooms.Value)
+            {
+                boost += 0.05;
+            }
+            
+            // Boost se preço está na faixa preferida (+5%)
+            if (preferences.AveragePriceRange.Min > 0 && 
+                preferences.AveragePriceRange.Max > 0 &&
+                property.Price >= preferences.AveragePriceRange.Min &&
+                property.Price <= preferences.AveragePriceRange.Max)
+            {
+                boost += 0.05;
+            }
+            
+            return boost;
         }
 
         /// <summary>
@@ -200,10 +261,11 @@ Retorna scores de relevância contextual:")
 
             try
             {
+                var model = _userContext.IsPremium ? "gpt-4o" : "gpt-4o-mini";
                 var response = await _openAIService.CompleteChatAsync(
                     messages, 
                     options, 
-                    "gpt-4o-mini", // Modelo rápido para scoring
+                    model,
                     cancellationToken);
 
                 // Extrair JSON se estiver envolto em markdown code blocks
@@ -239,12 +301,14 @@ Retorna scores de relevância contextual:")
         }
 
         public async Task LearnFromRefinementAsync(
-            string sessionId,
-            string userId,
             Dictionary<string, object> previousFilters,
             Dictionary<string, object> newFilters,
             CancellationToken cancellationToken = default)
         {
+            // Obter dados do contexto do request
+            var sessionId = _userContext.SessionId ?? "unknown";
+            var userId = _userContext.UserId ?? "anonymous";
+            
             // Identificar o que mudou
             var changes = new List<string>();
             var addedFilters = new List<string>();
@@ -301,6 +365,8 @@ Retorna scores de relevância contextual:")
                 // - Personalizar ordenação baseada em preferências do usuário
                 // - Detectar quando utilizador está indeciso vs focado
             }
+            
+            await Task.CompletedTask; // Placeholder para futura persistência async
         }
         
         /// <summary>

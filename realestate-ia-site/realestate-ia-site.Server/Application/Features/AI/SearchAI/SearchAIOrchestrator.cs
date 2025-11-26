@@ -1,4 +1,3 @@
-using Microsoft.OpenApi.Services;
 using OpenAI.Chat;
 using realestate_ia_site.Server.Application.Common.Context;
 using realestate_ia_site.Server.Application.Features.AI.SearchAI.DTOs;
@@ -135,15 +134,18 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                     context.AddUserMessage(request.Query);
                 }
                 
+                // Guardar query atual no contexto do request (para todos os utilizadores)
+                _userContext.CurrentQuery = request.Query;
+                
+                // Obter histórico de conversa (reutilizável em vários passos)
+                var conversationHistory = context?.Messages.TakeLast(6) ?? Enumerable.Empty<ChatMessage>();
+                
                 // ========== 4. INTERPRETAR QUERY COMPLEXA (Premium) ==========
                 ComplexQueryInterpretation? complexInterpretation = null;
                 if (_advancedInterpreter != null && IsComplexQuery(request.Query) && _userContext.IsPremium)
                 {
                     try
                     {
-                        // Usar últimas 6 mensagens (inclui a atual que acabámos de adicionar)
-                        var conversationHistory = context?.Messages.TakeLast(6) ?? Enumerable.Empty<ChatMessage>();
-
                         _logger.LogInformation("[Advanced] Interpretando query complexa com {Count} mensagens de contexto", 
                             conversationHistory.Count());
 
@@ -161,27 +163,30 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                     }
                 }
                 
-                // ========== 5. OBTER PADRÕES DE COMPORTAMENTO (se disponível) ==========
-                PropertyPreferencePattern? userPreferences = null;
+                // ========== 5. OBTER PADRÕES DE PREFERÊNCIA DO UTILIZADOR ==========
                 if (_feedbackService != null && !string.IsNullOrEmpty(request.UserId))
                 {
                     try
                     {
-                        userPreferences = await _feedbackService.ExtractPreferencePatternsAsync(
+                        var userPreferences = await _feedbackService.ExtractPreferencePatternsAsync(
                             request.UserId,
                             ct);
+                        
+                        // Guardar preferências no contexto do request para uso no scoring
+                        _userContext.UserPreferences = userPreferences;
                         
                         if (userPreferences.PreferredTypes.Any() || userPreferences.PreferredLocations.Any())
                         {
                             _logger.LogInformation(
-                                "[Advanced] Padrões de comportamento identificados - Tipos: {Types}, Locais: {Locations}",
+                                "[Advanced] Padrões de preferência identificados - Tipos: {Types}, Locais: {Locations}, Quartos: {Rooms}",
                                 string.Join(", ", userPreferences.PreferredTypes),
-                                string.Join(", ", userPreferences.PreferredLocations));
+                                string.Join(", ", userPreferences.PreferredLocations),
+                                userPreferences.PreferredRooms?.ToString() ?? "N/A");
                         }
                     }
                     catch (Exception ex)
                     {
-                        _logger.LogWarning(ex, "[Advanced] Falha ao extrair padrões de comportamento");
+                        _logger.LogWarning(ex, "[Advanced] Falha ao extrair padrões de preferência");
                     }
                 }
                 
@@ -191,9 +196,6 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                 {
                     try
                     {
-                        // Usar últimas 6 mensagens (inclui a atual)
-                        var conversationHistory = context?.Messages.TakeLast(6) ?? Enumerable.Empty<ChatMessage>();
-                        
                         userIntent = await _semanticAnalyzer.AnalyzeUserIntentAsync(
                             request.Query,
                             conversationHistory,
@@ -213,8 +215,9 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                 }
                 
                 // ========== 7. EXTRAIR FILTROS (usando contexto já carregado) ==========
-                // A intenção enriquece os filtros com features contextuais (segurança, família, etc.)
-                var filters = await _filterInterpreter.ExtractFiltersAsync(request.Query, context, userIntent, ct);
+                // A intenção e interpretação complexa enriquecem os filtros
+                var filters = await _filterInterpreter.ExtractFiltersAsync(request.Query, context, userIntent, complexInterpretation, ct);
+                
                 var properties = await _propertySearchService.SearchPropertiesWithFiltersAsync(filters, ct);
                 
                 // ========== 8. ATUALIZAR CONTEXTO COM FILTROS ==========
@@ -243,8 +246,6 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                 {
                     try
                     {
-                        var conversationHistory = context?.Messages.TakeLast(6) ?? Enumerable.Empty<ChatMessage>();
-                        
                         var smartQuestions = await _recommendationEngine.GenerateSmartQuestionsAsync(
                             userIntent,
                             conversationHistory,
@@ -289,11 +290,9 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                 }
 
                 // ========== 12. APRENDER COM COMPORTAMENTO ==========
-                if (previousFilters != null && filters != null && request.UserId != null)
+                if (previousFilters != null && filters != null && !string.IsNullOrEmpty(_userContext.UserId))
                 {
                     await _scoringService.LearnFromRefinementAsync(
-                        request.SessionId,
-                        request.UserId,
                         previousFilters,
                         filters,
                         ct);
@@ -303,7 +302,7 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                 if (context != null)
                 {
                     context.AddAssistantMessage(aiResponse);
-                    _contextService.UpdateContext(request.SessionId, context);
+                    await _contextService.UpdateContextAsync(request.SessionId, context, ct);
                 }
 
                 _logger.LogInformation("Search completed. Found {SearchCount} properties with filters: {Filters}", 
@@ -325,12 +324,35 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
         }
         
         /// <summary>
-        /// Detecta se a query é complexa (múltiplas condições, "se-então", trade-offs)
+        /// Detecta se a query é complexa (condições lógicas, trade-offs, exceções).
+        /// Queries simples como "T2 ou T3" não são consideradas complexas.
         /// </summary>
         private bool IsComplexQuery(string query)
         {
-            var complexIndicators = new[] { " se ", " mas ", " ou ", " até ", " desde que ", " a não ser ", " exceto " };
-            return complexIndicators.Any(indicator => query.ToLower().Contains(indicator));
+            var queryLower = query.ToLower();
+            
+            // Indicadores de complexidade real (condições, exceções, trade-offs)
+            var complexIndicators = new[] { " mas ", " desde que ", " a não ser ", " exceto ", " embora ", " caso ", " porém ", " contudo " };
+            
+            // Verificar indicadores simples
+            if (complexIndicators.Any(indicator => queryLower.Contains(indicator)))
+                return true;
+            
+            // "se" só é complexo se tiver consequência (se X, então Y / se X tem que Y)
+            if (queryLower.Contains(" se "))
+            {
+                var hasConsequence = queryLower.Contains(" então ") || 
+                                     queryLower.Contains(" tem que ") || 
+                                     queryLower.Contains(" precisa ") ||
+                                     queryLower.Contains(" quero ");
+                if (hasConsequence)
+                    return true;
+            }
+            
+            // "ou" simples entre opções não é complexo (T2 ou T3, Lisboa ou Porto)
+            // Só é complexo se tiver contexto condicional
+            
+            return false;
         }
     }
 }

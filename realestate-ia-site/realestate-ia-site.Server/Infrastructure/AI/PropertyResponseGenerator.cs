@@ -153,7 +153,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
         {
             var analysis = new FilterChangeAnalysis();
             var coreFilterKeys = new[] { "location", "city", "type", "property_type" };
-            var ignoreKeys = new[] { "session_id", "user_query", "_matched_features" };
+            var ignoreKeys = new[] { "_matched_features" }; // Metadados internos, não são filtros reais
             
             // Filtros adicionados
             foreach (var key in current.Keys.Except(ignoreKeys))

@@ -1,12 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using realestate_ia_site.Server.Application.Chat.Interfaces;
 using realestate_ia_site.Server.Application.Common.Context;
 using realestate_ia_site.Server.Application.Features.AI.SearchAI;
 using realestate_ia_site.Server.Application.Features.AI.SearchAI.DTOs;
 using realestate_ia_site.Server.Application.Features.Chat.DTOs;
 using realestate_ia_site.Server.Application.Features.Chat.Interfaces;
+using realestate_ia_site.Server.Application.Features.Payments.Interfaces;
 
 namespace realestate_ia_site.Server.Presentation.Controllers
 {
@@ -17,24 +17,24 @@ namespace realestate_ia_site.Server.Presentation.Controllers
     {
         private readonly ILogger<SearchAIController> _logger;
         private readonly SearchAIOrchestrator _orchestrator;
-        private readonly IChatUsageService _chatUsageService;
         private readonly IChatSessionService _chatSessionService;
         private readonly IChatSessionPropertyService _chatSessionPropertyService;
+        private readonly ISubscriptionService _subscriptionService;
         private readonly UserRequestContext _userContext;
 
         public SearchAIController(
             ILogger<SearchAIController> logger, 
             SearchAIOrchestrator orchestrator,
-            IChatUsageService chatUsageService,
             IChatSessionService chatSessionService,
             IChatSessionPropertyService chatSessionPropertyService,
+            ISubscriptionService subscriptionService,
             UserRequestContext userContext)
         {
             _logger = logger;
             _orchestrator = orchestrator;
-            _chatUsageService = chatUsageService;
             _chatSessionService = chatSessionService;
             _chatSessionPropertyService = chatSessionPropertyService;
+            _subscriptionService = subscriptionService;
             _userContext = userContext;
         }
 
@@ -83,8 +83,8 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                     userMessageResult = await _chatSessionService.AddMessageAsync(chatSessionId, "user", request.Query!, ct);
 
                     // Determinar plano: verificar se tem subscrição ativa (Premium) ou não (Free)
-                    var hasActiveSubscription = await _chatUsageService.GetUsageStatsAsync(userId!, ct);
-                    userPlan = hasActiveSubscription.HasActiveSubscription ? "premium" : "free";
+                    var hasActiveSubscription = await _subscriptionService.HasActiveSubscriptionAsync(userId!);
+                    userPlan = hasActiveSubscription ? "premium" : "free";
                     
                     // Definir contexto do request (disponível para todos os serviços scoped)
                     _userContext.UserPlan = userPlan;
@@ -194,8 +194,6 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                     _logger.LogWarning(ex, "Falha ao adicionar mensagem de cancelamento ao histórico");
                 }
                 
-                // Quota NÃO é consumida quando cancelado - o utilizador não recebeu resposta completa
-                
                 return StatusCode(499, new { 
                     error = "REQUEST_CANCELLED",
                     message = "Requisição cancelada pelo cliente" 
@@ -208,29 +206,6 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 _logger.LogError(ex, "Erro durante pesquisa AI - UserId: {UserId}, SessionId: {SessionId}", 
                     userId ?? "anonymous", sessionId ?? "none");
                 return StatusCode(500, "Erro interno do servidor");
-            }
-        }
-
-        /// <summary>
-        /// Obter estatísticas de uso do chat do usuário (requer autenticação)
-        /// </summary>
-        [HttpGet("usage-stats")]
-        [Authorize]
-        [ProducesResponseType(typeof(ChatUsageStats), StatusCodes.Status200OK)]
-        [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<ChatUsageStats>> GetUsageStats(CancellationToken ct = default)
-        {
-            try
-            {
-                var userId = GetCurrentUserId();
-                var stats = await _chatUsageService.GetUsageStatsAsync(userId, ct);
-                return Ok(stats);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Erro ao obter estatísticas de uso");
-                return StatusCode(500, "Erro ao obter estatísticas");
             }
         }
 
