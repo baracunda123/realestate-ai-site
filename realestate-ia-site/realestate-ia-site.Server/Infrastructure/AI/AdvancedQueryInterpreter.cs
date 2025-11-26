@@ -1,5 +1,6 @@
 using OpenAI.Chat;
 using realestate_ia_site.Server.Application.Features.AI.Interfaces;
+using realestate_ia_site.Server.Application.Common.Context;
 using System.Text.Json;
 
 namespace realestate_ia_site.Server.Infrastructure.AI
@@ -10,13 +11,16 @@ namespace realestate_ia_site.Server.Infrastructure.AI
     public class AdvancedQueryInterpreter : IAdvancedQueryInterpreter
     {
         private readonly IOpenAIService _openAIService;
+        private readonly UserRequestContext _userContext;
         private readonly ILogger<AdvancedQueryInterpreter> _logger;
 
         public AdvancedQueryInterpreter(
             IOpenAIService openAIService,
+            UserRequestContext userContext,
             ILogger<AdvancedQueryInterpreter> logger)
         {
             _openAIService = openAIService;
+            _userContext = userContext;
             _logger = logger;
         }
 
@@ -107,7 +111,6 @@ Responde APENAS com JSON:
         public async Task<IntentChangeDetection> DetectIntentChangeAsync(
             string previousQuery,
             string currentQuery,
-            string userPlan = "free",
             CancellationToken cancellationToken = default)
         {
             var messages = new List<ChatMessage>
@@ -150,7 +153,7 @@ Houve mudança de intenção?")
 
             try
             {
-                var model = userPlan == "premium" ? "gpt-4o" : "gpt-4o-mini";
+                var model = _userContext.IsPremium ? "gpt-4o" : "gpt-4o-mini";
                 var response = await _openAIService.CompleteChatAsync(
                     messages,
                     options,
@@ -162,10 +165,9 @@ Houve mudança de intenção?")
                     jsonContent,
                     new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                _logger.LogInformation(
-                    "[AdvancedInterpreter] Mudança detectada - Tipo: {Type}, Confiança: {Confidence}/10",
-                    detection?.ChangeType ?? "desconhecido",
-                    detection?.Confidence ?? 0);
+                _logger.LogDebug(
+                    "[AdvancedInterpreter] Mudança: {Type}",
+                    detection?.ChangeType ?? "desconhecido");
 
                 return detection ?? new IntentChangeDetection();
             }
@@ -181,7 +183,6 @@ Houve mudança de intenção?")
         /// </summary>
         public async Task<List<string>> ExpandVagueQueryAsync(
             string vagueQuery,
-            string userPlan = "free",
             CancellationToken cancellationToken = default)
         {
             var messages = new List<ChatMessage>
@@ -207,7 +208,7 @@ Responde APENAS com array JSON de critérios específicos."),
 
             try
             {
-                var model = userPlan == "premium" ? "gpt-4o" : "gpt-4o-mini";
+                var model = _userContext.IsPremium ? "gpt-4o" : "gpt-4o-mini";
                 var response = await _openAIService.CompleteChatAsync(
                     messages,
                     options,
@@ -217,10 +218,9 @@ Responde APENAS com array JSON de critérios específicos."),
                 var jsonContent = ExtractJsonFromMarkdown(response);
                 var criteria = JsonSerializer.Deserialize<List<string>>(jsonContent);
 
-                _logger.LogInformation(
-                    "[AdvancedInterpreter] Query vaga expandida em {Count} critérios (modelo: {Model})",
-                    criteria?.Count ?? 0,
-                    model);
+                _logger.LogDebug(
+                    "[AdvancedInterpreter] Query expandida: {Count} critérios",
+                    criteria?.Count ?? 0);
 
                 return criteria ?? new List<string>();
             }
@@ -238,7 +238,6 @@ Responde APENAS com array JSON de critérios específicos."),
             string originalQuery,
             int resultsCount,
             List<string> resultsSummary,
-            string userPlan = "free",
             CancellationToken cancellationToken = default)
         {
             var messages = new List<ChatMessage>
@@ -271,7 +270,7 @@ Que refinamentos sugerir?")
 
             try
             {
-                var model = userPlan == "premium" ? "gpt-4o" : "gpt-4o-mini";
+                var model = _userContext.IsPremium ? "gpt-4o" : "gpt-4o-mini";
                 var response = await _openAIService.CompleteChatAsync(
                     messages,
                     options,
@@ -281,10 +280,9 @@ Que refinamentos sugerir?")
                 var jsonContent = ExtractJsonFromMarkdown(response);
                 var suggestions = JsonSerializer.Deserialize<List<string>>(jsonContent);
 
-                _logger.LogInformation(
-                    "[AdvancedInterpreter] {Count} refinamentos sugeridos (modelo: {Model})",
-                    suggestions?.Count ?? 0,
-                    model);
+                _logger.LogDebug(
+                    "[AdvancedInterpreter] {Count} refinamentos sugeridos",
+                    suggestions?.Count ?? 0);
 
                 return suggestions ?? new List<string>();
             }

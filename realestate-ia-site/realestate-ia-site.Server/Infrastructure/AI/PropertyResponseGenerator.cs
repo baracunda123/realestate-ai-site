@@ -1,5 +1,6 @@
 using OpenAI.Chat;
 using realestate_ia_site.Server.Application.Common.DTOs;
+using realestate_ia_site.Server.Application.Common.Context;
 using realestate_ia_site.Server.Application.Features.AI.Interfaces;
 using realestate_ia_site.Server.Infrastructure.AI.Core;
 using realestate_ia_site.Server.Application.Features.AI.Conversation;
@@ -9,13 +10,16 @@ namespace realestate_ia_site.Server.Infrastructure.AI
     public sealed class PropertyResponseGenerator : IPropertyResponseGenerator
     {
         private readonly IOpenAIService _openAIService;
+        private readonly UserRequestContext _userContext;
         private readonly ILogger<PropertyResponseGenerator> _logger;
 
         public PropertyResponseGenerator(
             IOpenAIService openAIService,
+            UserRequestContext userContext,
             ILogger<PropertyResponseGenerator> logger)
         {
             _openAIService = openAIService;
+            _userContext = userContext;
             _logger = logger;
         }
 
@@ -26,19 +30,18 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             string originalQuery,
             List<PropertySearchDto> properties,
             ConversationContext? context,
-            string userPlan,
             CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(originalQuery, nameof(originalQuery));
             ArgumentNullException.ThrowIfNull(properties, nameof(properties));
 
-            _logger.LogInformation("Gerando resposta para: {Question}. Propriedades: {PropertyCount}, Plano: {Plan}",
-                originalQuery, properties.Count, userPlan);
+            _logger.LogDebug("Gerando resposta para: {Question}. Propriedades: {PropertyCount}",
+                originalQuery, properties.Count);
 
             try
             {
                 var messages = BuildMessages(originalQuery, properties, context);
-                var response = await GenerateAIResponseAsync(messages, userPlan, cancellationToken);
+                var response = await GenerateAIResponseAsync(messages, cancellationToken);
 
                 _logger.LogInformation("Resposta gerada com sucesso. Tamanho: {ResponseLength} caracteres", response.Length);
                 return response;
@@ -212,7 +215,6 @@ namespace realestate_ia_site.Server.Infrastructure.AI
 
         private async Task<string> GenerateAIResponseAsync(
             List<ChatMessage> messages,
-            string userPlan,
             CancellationToken cancellationToken)
         {
             var options = new ChatCompletionOptions
@@ -224,10 +226,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                 PresencePenalty = 0.2f
             };
 
-            // Obter modelo baseado no plano do usuário
-            var model = _openAIService.GetModelForPlan(userPlan);
-            _logger.LogInformation("Usando modelo {Model} para plano {Plan}", model, userPlan);
-
+            var model = _userContext.IsPremium ? "gpt-4o" : "gpt-4o-mini";
             return await _openAIService.CompleteChatAsync(messages, options, model, cancellationToken);
         }
     }

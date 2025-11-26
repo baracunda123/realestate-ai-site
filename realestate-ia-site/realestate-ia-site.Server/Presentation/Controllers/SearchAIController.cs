@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using realestate_ia_site.Server.Application.Chat.Interfaces;
+using realestate_ia_site.Server.Application.Common.Context;
 using realestate_ia_site.Server.Application.Features.AI.SearchAI;
 using realestate_ia_site.Server.Application.Features.AI.SearchAI.DTOs;
 using realestate_ia_site.Server.Application.Features.Chat.DTOs;
@@ -19,19 +20,22 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         private readonly IChatUsageService _chatUsageService;
         private readonly IChatSessionService _chatSessionService;
         private readonly IChatSessionPropertyService _chatSessionPropertyService;
+        private readonly UserRequestContext _userContext;
 
         public SearchAIController(
             ILogger<SearchAIController> logger, 
             SearchAIOrchestrator orchestrator,
             IChatUsageService chatUsageService,
             IChatSessionService chatSessionService,
-            IChatSessionPropertyService chatSessionPropertyService)
+            IChatSessionPropertyService chatSessionPropertyService,
+            UserRequestContext userContext)
         {
             _logger = logger;
             _orchestrator = orchestrator;
             _chatUsageService = chatUsageService;
             _chatSessionService = chatSessionService;
             _chatSessionPropertyService = chatSessionPropertyService;
+            _userContext = userContext;
         }
 
         [HttpPost]
@@ -82,6 +86,11 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                     var hasActiveSubscription = await _chatUsageService.GetUsageStatsAsync(userId!, ct);
                     userPlan = hasActiveSubscription.HasActiveSubscription ? "premium" : "free";
                     
+                    // Definir contexto do request (disponível para todos os serviços scoped)
+                    _userContext.UserPlan = userPlan;
+                    _userContext.UserId = userId;
+                    _userContext.SessionId = chatSessionId;
+                    
                     _logger.LogInformation("Pesquisa autenticada - UserId: {UserId}, Plano: {Plan}, SessionId: {SessionId}", 
                         userId, userPlan, chatSessionId);
                 }
@@ -99,12 +108,16 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                     
                     userPlan = "free"; // Anónimos usam plano Free (GPT-4o-mini)
                     
+                    // Definir contexto do request para anónimos
+                    _userContext.UserPlan = userPlan;
+                    _userContext.SessionId = chatSessionId;
+                    
                     _logger.LogInformation("Pesquisa anónima - Plano: Free (mini), SessionId: {SessionId}", 
                         chatSessionId ?? "none");
                 }
 
                 // Processar pesquisa (contexto conversacional é mantido para TODOS via ConversationContextService)
-                var result = await _orchestrator.HandleAsync(request, userPlan, ct);
+                var result = await _orchestrator.HandleAsync(request, ct);
 
                 // Apenas persistir histórico na BD para utilizadores autenticados
                 if (isAuthenticated && !string.IsNullOrEmpty(chatSessionId))

@@ -3,6 +3,9 @@ using realestate_ia_site.Server.Infrastructure.AI;
 
 namespace realestate_ia_site.Server.Application.Features.AI.Interfaces
 {
+    /// <summary>
+    /// Interpretador avançado de queries. Usa UserRequestContext para modelo.
+    /// </summary>
     public interface IAdvancedQueryInterpreter
     {
         Task<ComplexQueryInterpretation> InterpretComplexQueryAsync(
@@ -13,19 +16,16 @@ namespace realestate_ia_site.Server.Application.Features.AI.Interfaces
         Task<IntentChangeDetection> DetectIntentChangeAsync(
             string previousQuery,
             string currentQuery,
-            string userPlan = "free",
             CancellationToken cancellationToken = default);
 
         Task<List<string>> ExpandVagueQueryAsync(
             string vagueQuery,
-            string userPlan = "free",
             CancellationToken cancellationToken = default);
 
         Task<List<string>> SuggestRefinementsAsync(
             string originalQuery,
             int resultsCount,
             List<string> resultsSummary,
-            string userPlan = "free",
             CancellationToken cancellationToken = default);
     }
 }

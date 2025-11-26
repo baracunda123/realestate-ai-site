@@ -1,5 +1,6 @@
 using OpenAI.Chat;
 using realestate_ia_site.Server.Application.Features.AI.Interfaces;
+using realestate_ia_site.Server.Application.Common.Context;
 using realestate_ia_site.Server.Infrastructure.AI.Core;
 using System.Text.Json;
 
@@ -8,20 +9,22 @@ namespace realestate_ia_site.Server.Infrastructure.AI
     public class LocationAIService
     {
         private readonly IOpenAIService _openAIService;
+        private readonly UserRequestContext _userContext;
         private readonly ILogger<LocationAIService> _logger;
 
-        public LocationAIService(IOpenAIService openAIService, ILogger<LocationAIService> logger)
+        public LocationAIService(
+            IOpenAIService openAIService, 
+            UserRequestContext userContext,
+            ILogger<LocationAIService> logger)
         {
             _openAIService = openAIService;
+            _userContext = userContext;
             _logger = logger;
         }
 
         public async Task<List<string>> GetNearbyLocationsAsync(string location, CancellationToken cancellationToken = default)
-            => await GetNearbyLocationsAsync(location, "free", cancellationToken);
-
-        public async Task<List<string>> GetNearbyLocationsAsync(string location, string userPlan, CancellationToken cancellationToken = default)
         {
-            _logger.LogInformation("Obtendo localizações próximas para: {Location}, Plano: {Plan}", location, userPlan);
+            _logger.LogDebug("Obtendo localizações próximas para: {Location}", location);
             var messages = PromptBuilder.BuildForLocationExpansion(location);
 
             var options = new ChatCompletionOptions
@@ -32,7 +35,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
 
             try
             {
-                var model = _openAIService.GetModelForPlan(userPlan);
+                var model = _userContext.IsPremium ? "gpt-4o" : "gpt-4o-mini";
                 var jsonResponse = await _openAIService.CompleteChatAsync(messages, options, model, cancellationToken);
                 var locations = JsonSerializer.Deserialize<List<string>>(jsonResponse);
 
@@ -54,11 +57,8 @@ namespace realestate_ia_site.Server.Infrastructure.AI
         }
 
         public async Task<List<string>> GetLocationsBetweenAsync(string location1, string location2, CancellationToken cancellationToken = default)
-            => await GetLocationsBetweenAsync(location1, location2, "free", cancellationToken);
-
-        public async Task<List<string>> GetLocationsBetweenAsync(string location1, string location2, string userPlan, CancellationToken cancellationToken = default)
         {
-            _logger.LogInformation("Obtendo localizações ENTRE: {Location1} e {Location2}, Plano: {Plan}", location1, location2, userPlan);
+            _logger.LogDebug("Obtendo localizações ENTRE: {Location1} e {Location2}", location1, location2);
             
             var messages = new List<ChatMessage>
             {
@@ -89,7 +89,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
 
             try
             {
-                var model = _openAIService.GetModelForPlan(userPlan);
+                var model = _userContext.IsPremium ? "gpt-4o" : "gpt-4o-mini";
                 var jsonResponse = await _openAIService.CompleteChatAsync(messages, options, model, cancellationToken);
                 var locations = JsonSerializer.Deserialize<List<string>>(jsonResponse);
 

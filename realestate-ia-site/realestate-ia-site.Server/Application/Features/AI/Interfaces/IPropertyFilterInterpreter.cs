@@ -6,12 +6,12 @@ namespace realestate_ia_site.Server.Application.Features.AI.Interfaces
     public interface IPropertyFilterInterpreter
     {
         /// <summary>
-        /// Extrai filtros da query do utilizador usando contexto de conversa
+        /// Extrai filtros da query do utilizador usando contexto de conversa.
+        /// Usa UserRequestContext para determinar o modelo.
         /// </summary>
         Task<Dictionary<string, object>> ExtractFiltersAsync(
             string userQuery, 
             ConversationContext? context, 
-            string userPlan, 
             UserIntentAnalysis? userIntent, 
             CancellationToken cancellationToken = default);
     }

@@ -1,5 +1,6 @@
 using OpenAI.Chat;
 using realestate_ia_site.Server.Application.Common.DTOs;
+using realestate_ia_site.Server.Application.Common.Context;
 using realestate_ia_site.Server.Application.Features.AI.Interfaces;
 using System.Text.Json;
 
@@ -12,13 +13,16 @@ namespace realestate_ia_site.Server.Infrastructure.AI
     public class IntelligentRecommendationEngine : IIntelligentRecommendationEngine
     {
         private readonly IOpenAIService _openAIService;
+        private readonly UserRequestContext _userContext;
         private readonly ILogger<IntelligentRecommendationEngine> _logger;
 
         public IntelligentRecommendationEngine(
             IOpenAIService openAIService,
+            UserRequestContext userContext,
             ILogger<IntelligentRecommendationEngine> logger)
         {
             _openAIService = openAIService;
+            _userContext = userContext;
             _logger = logger;
         }
 
@@ -98,7 +102,6 @@ Responde APENAS com JSON:
         public async Task<string> ExplainRecommendationAsync(
             PropertySearchDto property,
             UserIntentAnalysis userIntent,
-            string userPlan = "free",
             CancellationToken cancellationToken = default)
         {
             var messages = new List<ChatMessage>
@@ -138,14 +141,14 @@ Porque recomendar esta propriedade?")
 
             try
             {
-                var model = userPlan == "premium" ? "gpt-4o" : "gpt-4o-mini";
+                var model = _userContext.IsPremium ? "gpt-4o" : "gpt-4o-mini";
                 var response = await _openAIService.CompleteChatAsync(
                     messages,
                     options,
                     model,
                     cancellationToken);
 
-                _logger.LogInformation("[RecommendationEngine] Explicação gerada (modelo: {Model})", model);
+                _logger.LogDebug("[RecommendationEngine] Explicação gerada");
                 return response;
             }
             catch (Exception ex)
@@ -161,7 +164,6 @@ Porque recomendar esta propriedade?")
         public async Task<List<string>> GenerateSmartQuestionsAsync(
             UserIntentAnalysis userIntent,
             IEnumerable<ChatMessage> conversationHistory,
-            string userPlan = "free",
             CancellationToken cancellationToken = default)
         {
             var messages = new List<ChatMessage>
@@ -198,7 +200,7 @@ Responde APENAS com array JSON: [""pergunta1"", ""pergunta2"", ""pergunta3""]")
 
             try
             {
-                var model = userPlan == "premium" ? "gpt-4o" : "gpt-4o-mini";
+                var model = _userContext.IsPremium ? "gpt-4o" : "gpt-4o-mini";
                 var response = await _openAIService.CompleteChatAsync(
                     messages,
                     options,
@@ -208,10 +210,9 @@ Responde APENAS com array JSON: [""pergunta1"", ""pergunta2"", ""pergunta3""]")
                 var jsonContent = ExtractJsonFromMarkdown(response);
                 var questions = JsonSerializer.Deserialize<List<string>>(jsonContent);
 
-                _logger.LogInformation(
-                    "[RecommendationEngine] {Count} perguntas geradas (modelo: {Model})",
-                    questions?.Count ?? 0,
-                    model);
+                _logger.LogDebug(
+                    "[RecommendationEngine] {Count} perguntas geradas",
+                    questions?.Count ?? 0);
 
                 return questions ?? new List<string>();
             }

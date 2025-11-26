@@ -1,5 +1,6 @@
 using Microsoft.OpenApi.Services;
 using OpenAI.Chat;
+using realestate_ia_site.Server.Application.Common.Context;
 using realestate_ia_site.Server.Application.Features.AI.SearchAI.DTOs;
 using realestate_ia_site.Server.Application.Features.AI.Interfaces;
 using realestate_ia_site.Server.Application.Features.Properties.Search;
@@ -16,6 +17,7 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
         private readonly IPropertySearchService _propertySearchService;
         private readonly IPropertyScoringService _scoringService;
         private readonly IConversationContextService _contextService;
+        private readonly UserRequestContext _userContext;
         
         // Novos serviços avançados (opcionais - com fallback)
         private readonly IAdvancedQueryInterpreter? _advancedInterpreter;
@@ -31,6 +33,7 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
             IPropertySearchService propertySearchService,
             IPropertyScoringService scoringService,
             IConversationContextService contextService,
+            UserRequestContext userContext,
             ILogger<SearchAIOrchestrator> logger,
             IAdvancedQueryInterpreter? advancedInterpreter = null,
             IPropertySemanticAnalyzer? semanticAnalyzer = null,
@@ -42,6 +45,7 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
             _propertySearchService = propertySearchService;
             _scoringService = scoringService;
             _contextService = contextService;
+            _userContext = userContext;
             _advancedInterpreter = advancedInterpreter;
             _semanticAnalyzer = semanticAnalyzer;
             _recommendationEngine = recommendationEngine;
@@ -50,14 +54,11 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
         }
 
         public async Task<SearchAIResponseDto> HandleAsync(SearchAIRequestDto request, CancellationToken ct = default)
-            => await HandleAsync(request, "free", ct);
-
-        public async Task<SearchAIResponseDto> HandleAsync(SearchAIRequestDto request, string userPlan, CancellationToken ct = default)
         {
             ArgumentNullException.ThrowIfNull(request, nameof(request));
             ArgumentException.ThrowIfNullOrWhiteSpace(request.Query, nameof(request.Query));
 
-            _logger.LogInformation("Processing search request: {Query}, Plano: {Plan}, SessionId: {SessionId}", request.Query, userPlan, request.SessionId);
+            _logger.LogInformation("Processing search request: {Query}, SessionId: {SessionId}", request.Query, request.SessionId);
             
             try
             {
@@ -92,7 +93,6 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                                 var intentChange = await _advancedInterpreter.DetectIntentChangeAsync(
                                     previousQuery,
                                     request.Query,
-                                    userPlan,
                                     ct);
                                 
                                 // Se mudança completa ou contradição, limpar filtros anteriores
@@ -137,7 +137,7 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                 
                 // ========== 4. INTERPRETAR QUERY COMPLEXA (Premium) ==========
                 ComplexQueryInterpretation? complexInterpretation = null;
-                if (_advancedInterpreter != null && IsComplexQuery(request.Query) && userPlan == "premium")
+                if (_advancedInterpreter != null && IsComplexQuery(request.Query) && _userContext.IsPremium)
                 {
                     try
                     {
@@ -197,7 +197,6 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                         userIntent = await _semanticAnalyzer.AnalyzeUserIntentAsync(
                             request.Query,
                             conversationHistory,
-                            userPlan,
                             ct);
                         
                         _logger.LogInformation(
@@ -215,7 +214,7 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                 
                 // ========== 7. EXTRAIR FILTROS (usando contexto já carregado) ==========
                 // A intenção enriquece os filtros com features contextuais (segurança, família, etc.)
-                var filters = await _filterInterpreter.ExtractFiltersAsync(request.Query, context, userPlan, userIntent, ct);
+                var filters = await _filterInterpreter.ExtractFiltersAsync(request.Query, context, userIntent, ct);
                 var properties = await _propertySearchService.SearchPropertiesWithFiltersAsync(filters, ct);
                 
                 // ========== 8. ATUALIZAR CONTEXTO COM FILTROS ==========
@@ -237,7 +236,7 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                 }
                 
                 // ========== 9. GERAR RESPOSTA (usando contexto já carregado) ==========
-                var aiResponse = await _responseGenerator.GenerateResponseAsync(request.Query, properties, context, userPlan, ct);
+                var aiResponse = await _responseGenerator.GenerateResponseAsync(request.Query, properties, context, ct);
                 
                 // ========== 10. PERGUNTAS INTELIGENTES (se sem resultados) ==========
                 if (!properties.Any() && _recommendationEngine != null && userIntent != null)
@@ -249,7 +248,6 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                         var smartQuestions = await _recommendationEngine.GenerateSmartQuestionsAsync(
                             userIntent,
                             conversationHistory,
-                            userPlan,
                             ct);
                         
                         if (smartQuestions.Any())
@@ -276,7 +274,6 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                             request.Query,
                             properties.Count,
                             resultsSummary,
-                            userPlan,
                             ct);
                         
                         if (refinements.Any())

@@ -108,6 +108,9 @@ public static class InfrastructureServicesExtensions
         // Geocoding
         AddGeocodingServices(services, configuration);
 
+        // Request Context (scoped - one per request)
+        services.AddScoped<Application.Common.Context.UserRequestContext>();
+        
         // AI Services
         services.AddSingleton<IOpenAIService, OpenAIService>();
         services.AddScoped<IPropertyFilterInterpreter, PropertyFilterInterpreter>();
