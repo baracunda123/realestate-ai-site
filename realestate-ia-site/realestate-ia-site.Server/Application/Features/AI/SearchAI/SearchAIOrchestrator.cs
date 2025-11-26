@@ -191,18 +191,21 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                 }
                 
                 // ========== 6. ANALISAR INTENÇÃO DO UTILIZADOR ==========
+                // IMPORTANTE: Analisar apenas a query atual, sem histórico de conversa
+                // O histórico contamina a intenção com preocupações de mensagens anteriores
                 UserIntentAnalysis? userIntent = null;
                 if (_semanticAnalyzer != null)
                 {
                     try
                     {
+                        // Passar apenas a query atual - sem conversationHistory
                         userIntent = await _semanticAnalyzer.AnalyzeUserIntentAsync(
                             request.Query,
-                            conversationHistory,
+                            Enumerable.Empty<ChatMessage>(), // Sem histórico - apenas query atual
                             ct);
                         
                         _logger.LogInformation(
-                            "[Advanced] Intenção identificada ANTES da filtragem - Motivação: {Motivation}, Estilo: {Lifestyle}, Fase: {Phase}, Preocupações: {Concerns}", 
+                            "[Advanced] Intenção identificada - Motivação: {Motivation}, Estilo: {Lifestyle}, Fase: {Phase}, Preocupações: {Concerns}", 
                             userIntent.Motivation, 
                             userIntent.LifestylePreference,
                             userIntent.DecisionPhase,

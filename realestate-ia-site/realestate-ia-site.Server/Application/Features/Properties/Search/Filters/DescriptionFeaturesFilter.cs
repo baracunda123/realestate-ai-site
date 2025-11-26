@@ -109,8 +109,8 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
 
             if (!matchedPropertyIds.Any())
             {
-                _logger.LogInformation("[DescriptionFeaturesFilter] Nenhuma propriedade com features");
-                return query.Where(p => false);
+                _logger.LogInformation("[DescriptionFeaturesFilter] Nenhuma propriedade com features - retornando todas (features são preferência, não requisito)");
+                return query; // Retornar query original - features são preferência, não filtro obrigatório
             }
 
             _logger.LogInformation(
