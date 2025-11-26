@@ -49,12 +49,13 @@ namespace realestate_ia_site.Server.Application.Services
                     // Reativar se estava arquivado
                     if (property.Status != PropertyStatus.Active)
                     {
+                        var previousStatus = property.Status;
                         property.Status = PropertyStatus.Active;
                         property.ArchivedAt = null;
                         _logger.LogInformation(
                             "Property {PropertyId} reactivated from {OldStatus}", 
                             property.Id, 
-                            property.Status);
+                            previousStatus);
                     }
                 }
 
@@ -130,19 +131,13 @@ namespace realestate_ia_site.Server.Application.Services
         }
 
         /// <summary>
-        /// Retorna a data de corte baseada no source
-        /// CasaSapo: 180 dias, Idealista: 30 dias
+        /// Retorna a data de corte - 7 dias para todos os sources
+        /// Propriedades não vistas há mais de 1 semana são arquivadas
         /// </summary>
         private DateTime GetCutoffDateForSource(string sourceSite)
         {
-            var now = DateTime.UtcNow;
-
-            return sourceSite?.ToLower() switch
-            {
-                "casasapo" => now.AddDays(-180),
-                "idealista" => now.AddDays(-30),
-                _ => now.AddDays(-90) // Default: 90 dias
-            };
+            // Cutoff uniforme de 7 dias para todos os sources
+            return DateTime.UtcNow.AddDays(-7);
         }
     }
 }
