@@ -4,6 +4,7 @@ using realestate_ia_site.Server.Application.Common.Context;
 using realestate_ia_site.Server.Application.Features.AI.Interfaces;
 using realestate_ia_site.Server.Infrastructure.AI.Core;
 using realestate_ia_site.Server.Application.Features.AI.Conversation;
+using System.Text;
 
 namespace realestate_ia_site.Server.Infrastructure.AI
 {
@@ -12,6 +13,10 @@ namespace realestate_ia_site.Server.Infrastructure.AI
         private readonly IOpenAIService _openAIService;
         private readonly UserRequestContext _userContext;
         private readonly ILogger<PropertyResponseGenerator> _logger;
+
+        // Limites de propriedades para AI
+        private const int MAX_PROPERTIES_FOR_AI = 100;
+        private const int HIGH_VOLUME_THRESHOLD = 500;
 
         public PropertyResponseGenerator(
             IOpenAIService openAIService,
@@ -35,12 +40,24 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             ArgumentException.ThrowIfNullOrWhiteSpace(originalQuery, nameof(originalQuery));
             ArgumentNullException.ThrowIfNull(properties, nameof(properties));
 
-            _logger.LogDebug("Gerando resposta para: {Question}. Propriedades: {PropertyCount}",
-                originalQuery, properties.Count);
+            _logger.LogInformation("Gerando resposta para {Count} propriedades", properties.Count);
 
             try
             {
-                var messages = BuildMessages(originalQuery, properties, context);
+                // Se houver muitas propriedades, retornar resposta simples sem AI
+                if (properties.Count >= HIGH_VOLUME_THRESHOLD)
+                {
+                    var simpleResponse = GenerateLargeResultSetResponse(originalQuery, properties.Count);
+                    _logger.LogInformation("Resposta simples gerada para {Count} propriedades (acima do limite)", properties.Count);
+                    return simpleResponse;
+                }
+
+                // Limitar propriedades para AI se necessário
+                var propertiesForAI = properties.Count > MAX_PROPERTIES_FOR_AI 
+                    ? properties.Take(MAX_PROPERTIES_FOR_AI).ToList()
+                    : properties;
+
+                var messages = BuildMessages(originalQuery, propertiesForAI, context);
                 var response = await GenerateAIResponseAsync(messages, cancellationToken);
 
                 _logger.LogInformation("Resposta gerada com sucesso. Tamanho: {ResponseLength} caracteres", response.Length);
@@ -48,9 +65,8 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao gerar resposta. Pergunta: {Question}, Propriedades: {PropertyCount}",
-                    originalQuery, properties.Count);
-                return "Desculpa, ocorreu um erro ao processar o teu pedido. Tenta novamente.";
+                _logger.LogError(ex, "Erro ao gerar resposta. Pergunta: {Pergunta}, Propriedades: {Count}", originalQuery, properties.Count);
+                throw;
             }
         }
 
@@ -228,6 +244,53 @@ namespace realestate_ia_site.Server.Infrastructure.AI
 
             var model = _userContext.IsPremium ? "gpt-4o" : "gpt-4o-mini";
             return await _openAIService.CompleteChatAsync(messages, options, model, cancellationToken);
+        }
+
+        /// <summary>
+        /// Gera resposta simples para grandes volumes de resultados sem usar AI
+        /// </summary>
+        private string GenerateLargeResultSetResponse(string query, int propertyCount)
+        {
+            var response = new StringBuilder();
+            response.AppendLine($"🔍 Encontrei **{propertyCount} propriedades** que correspondem à sua pesquisa.");
+            response.AppendLine();
+            
+            // Sugestões baseadas no volume
+            if (propertyCount > 2000)
+            {
+                response.AppendLine("ℹ️ **Muitas opções encontradas!** Para facilitar sua busca:");
+                response.AppendLine("- Seja mais específico sobre a localização (bairro, rua)");
+                response.AppendLine("- Defina um intervalo de preço");
+                response.AppendLine("- Especifique o número de quartos");
+                response.AppendLine("- Adicione características importantes (garagem, varanda, etc.)");
+            }
+            else if (propertyCount > 1000)
+            {
+                response.AppendLine("💡 **Dica:** Com tantas opções, tente refinar adicionando:");
+                response.AppendLine("- Preço máximo");
+                response.AppendLine("- Características específicas");
+                response.AppendLine("- Área mínima");
+            }
+            else
+            {
+                response.AppendLine("📊 **Encontrei várias opções!** Para encontrar o imóvel ideal:");
+                response.AppendLine("- Use filtros de preço e quartos");
+                response.AppendLine("- Especifique características desejadas");
+            }
+            
+            response.AppendLine();
+            response.AppendLine("🔄 **Pode pedir para:**");
+            response.AppendLine("- Ordenar por preço (menor/maior)");
+            response.AppendLine("- Ordenar por área (menor/maior)");
+            response.AppendLine("- Mostrar apenas com fotos");
+            response.AppendLine("- Filtrar por tipo específico");
+
+            _logger.LogInformation(
+                "Resposta simples gerada para {Count} propriedades (acima do limite de {Threshold})",
+                propertyCount,
+                HIGH_VOLUME_THRESHOLD);
+
+            return response.ToString();
         }
     }
 }

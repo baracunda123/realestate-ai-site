@@ -78,10 +78,15 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                 {
                     try
                     {
-                        // Obter última query do utilizador (antes da atual)
-                        var lastUserMessage = context.Messages
+                        // Obter penúltima query do utilizador (antes da atual)
+                        // Usar SkipLast(1) para ignorar a query que vai ser adicionada a seguir
+                        var userMessages = context.Messages
                             .Where(m => m is UserChatMessage)
-                            .LastOrDefault();
+                            .ToList();
+                        
+                        var lastUserMessage = userMessages.Count > 1 
+                            ? userMessages[^2] // Penúltima mensagem
+                            : null;
                         
                         if (lastUserMessage != null)
                         {

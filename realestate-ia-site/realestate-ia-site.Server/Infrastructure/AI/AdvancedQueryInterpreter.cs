@@ -115,15 +115,55 @@ Responde APENAS com JSON:
         {
             var messages = new List<ChatMessage>
             {
-                new SystemChatMessage(@"És um especialista em análise de conversação.
+                new SystemChatMessage(@"És um especialista em análise de conversação imobiliária.
 
 TAREFA: Detecta se o utilizador mudou de intenção ou está a refinar a mesma pesquisa.
+
+TIPOS DE MUDANÇA COM EXEMPLOS:
+
+1. REFINAMENTO (mantém contexto, adiciona critérios):
+   'T3 no Porto' → 'mostra só os mais baratos'
+   'apartamento em Lisboa' → 'com garagem'
+   'casas até 300k' → 'ordena por mais recentes'
+   'T2 em Gaia' → 'da me as melhores destas todas'
+   → changeType: 'refinamento', whatChanged: ['ordenação', 'qualidade'], whatRemained: ['localização', 'tipo']
+
+2. MUDANÇA_PARCIAL (mantém alguns critérios, muda outros):
+   'T3 no Porto' → 'T2 no Porto'
+   'até 300k' → 'até 250k'
+   'apartamento' → 'moradia'
+   → changeType: 'mudança_parcial', whatChanged: ['quartos'], whatRemained: ['localização']
+
+3. MUDANÇA_COMPLETA (muda tudo):
+   'T3 no Porto' → 'escritório em Lisboa'
+   'casa em Braga' → 'terreno no Algarve'
+   'apartamento até 200k' → 'lojas comerciais'
+   → changeType: 'mudança_completa', whatChanged: ['tipo', 'localização', 'preço']
+
+4. CONTRADIÇÃO (inverte completamente):
+   'quero perto do centro' → 'longe do centro'
+   'só T3' → 'não quero T3'
+   'até 200k' → 'acima de 500k'
+   → changeType: 'contradição', whatChanged: ['preferência de localização']
+
+REGRAS CRÍTICAS:
+- 'melhores', 'top', 'primeiros', 'só os bons' = REFINAMENTO (ordenação/qualidade)
+- 'destas todas', 'destes', 'desta lista' = REFINAMENTO (mesmo contexto)
+- 'muda para', 'agora quero', 'esquece isso' = MUDANÇA_COMPLETA
+- 'mas não', 'menos', 'sem' = MUDANÇA_PARCIAL (remoção de critérios)
+
+CASOS ESPECIAIS:
+- Query curta (T2, T3, Lisboa, Porto) após contexto específico = MUDANÇA_PARCIAL (refinamento)
+  Ex: 'T2 em Gaia com garagem' → 'T2' = mantém T2, remove resto
+- Query curta sem contexto = MUDANÇA_COMPLETA (nova pesquisa)
+- Palavra única que já existia no contexto = REFINAMENTO (foco nesse aspeto)
+- Palavra única diferente do contexto = MUDANÇA_PARCIAL se for relacionado, COMPLETA se for novo tipo
 
 Identifica:
 1. TIPO_MUDANÇA: refinamento, mudança_parcial, mudança_completa, contradição
 2. O_QUE_MUDOU: Que aspectos mudaram especificamente
 3. O_QUE_MANTEVE: O que continua igual
-4. RAZÃO_PROVÁVEL: Porque mudou (insatisfação, nova prioridade, exploração, etc.)
+4. RAZÃO_PROVÁVEL: Porque mudou
 5. AÇÃO_RECOMENDADA: Como o sistema deve reagir
 
 Responde APENAS com JSON:

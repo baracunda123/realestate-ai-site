@@ -165,9 +165,32 @@ namespace realestate_ia_site.Server.Infrastructure.AI.Prompts
             renovado, ar condicionado, aquecimento central, cozinha equipada, elevador, vista mar, vista serra, 
             virado a sul, virado a nascente
             
+            REGRAS ESPECIAIS - NEGAÇÕES E EXCLUSÕES:
+            
+            1. PREÇO ZERO OU INDICADO COMO 0:
+               'não me mostre propriedades com valor 0' → {""min_price"": 1}
+               'sem valor 0' → {""min_price"": 1}
+               'excluir preço 0' → {""min_price"": 1}
+               'propriedades com preço diferente de 0' → {""min_price"": 1}
+               
+            2. EXCLUSÕES GERAIS:
+               Quando o utilizador diz 'não', 'sem', 'excluir', 'nenhum', 'nada de':
+               - Se for sobre preço: usar min_price para excluir valores mais baixos
+               - Se for sobre características: NÃO adicionar essas features
+               
+               Exemplos:
+               'sem garagem' → {""features"": []} (NÃO incluir 'garagem')
+               'não quero apartamento' → {""type"": ""casa""} (inverter a lógica)
+               'excluir T1' → {""min_rooms"": 2} (apenas T2+)
+            
+            3. VALORES ESPECÍFICOS A EXCLUIR:
+               'diferente de 0', 'que não seja 0', 'exceto 0' → {""min_price"": 1}
+               'acima de 0', 'mais que 0' → {""min_price"": 1}
+            
             IMPORTANTE: 
             - target_price e target_area são flexíveis - o sistema encontra automaticamente os mais próximos
             - features são analisadas na descrição do imóvel pela IA
+            - Para negações de preço 0, usa sempre min_price: 1 para garantir exclusão
             
             Usa o teu entendimento de linguagem natural para interpretar a verdadeira intenção do utilizador.";
 
