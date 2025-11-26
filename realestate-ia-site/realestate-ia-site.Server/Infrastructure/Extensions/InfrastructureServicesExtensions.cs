@@ -14,7 +14,6 @@ using realestate_ia_site.Server.Application.Features.AI.Interfaces;
 using realestate_ia_site.Server.Application.Features.Payments.Interfaces;
 using realestate_ia_site.Server.Application.Features.Payments;
 using realestate_ia_site.Server.Application.Notifications.Interfaces;
-using realestate_ia_site.Server.Application.Chat.Interfaces;
 using realestate_ia_site.Server.Application.ExternalServices.Interfaces;
 using realestate_ia_site.Server.Application.Security;
 using realestate_ia_site.Server.Application.Features.Properties.Search.Filters;
@@ -123,8 +122,7 @@ public static class InfrastructureServicesExtensions
         // Feedback and Learning
         services.AddScoped<Application.Features.Properties.Feedback.PropertyFeedbackService>();
 
-        // Chat & Quota
-        services.AddScoped<IChatUsageService, ChatUsageService>();
+        // Chat
         services.AddScoped<Application.Features.Chat.Interfaces.IChatSessionService, ChatSessionService>();
         services.AddScoped<Application.Features.Chat.Interfaces.IChatSessionPropertyService, ChatSessionPropertyService>();
 

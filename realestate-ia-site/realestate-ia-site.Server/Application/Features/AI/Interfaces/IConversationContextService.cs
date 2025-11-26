@@ -6,7 +6,7 @@ namespace realestate_ia_site.Server.Application.Features.AI.Interfaces
     {
         ConversationContext GetOrCreateContext(string sessionId);
         ConversationContext? GetContext(string sessionId);
-        void UpdateContext(string sessionId, ConversationContext context);
+        Task UpdateContextAsync(string sessionId, ConversationContext context, CancellationToken cancellationToken = default);
         void ClearContext(string sessionId);
         void ClearExpiredContexts();
         Task<ConversationContext> GetOrCreateContextAsync(string sessionId, CancellationToken cancellationToken = default);

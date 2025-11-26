@@ -303,7 +303,7 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
                 if (context != null)
                 {
                     context.AddAssistantMessage(aiResponse);
-                    _contextService.UpdateContext(request.SessionId, context);
+                    await _contextService.UpdateContextAsync(request.SessionId, context, ct);
                 }
 
                 _logger.LogInformation("Search completed. Found {SearchCount} properties with filters: {Filters}", 
@@ -325,12 +325,35 @@ namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
         }
         
         /// <summary>
-        /// Detecta se a query é complexa (múltiplas condições, "se-então", trade-offs)
+        /// Detecta se a query é complexa (condições lógicas, trade-offs, exceções).
+        /// Queries simples como "T2 ou T3" não são consideradas complexas.
         /// </summary>
         private bool IsComplexQuery(string query)
         {
-            var complexIndicators = new[] { " se ", " mas ", " ou ", " até ", " desde que ", " a não ser ", " exceto " };
-            return complexIndicators.Any(indicator => query.ToLower().Contains(indicator));
+            var queryLower = query.ToLower();
+            
+            // Indicadores de complexidade real (condições, exceções, trade-offs)
+            var complexIndicators = new[] { " mas ", " desde que ", " a não ser ", " exceto ", " embora ", " caso ", " porém ", " contudo " };
+            
+            // Verificar indicadores simples
+            if (complexIndicators.Any(indicator => queryLower.Contains(indicator)))
+                return true;
+            
+            // "se" só é complexo se tiver consequência (se X, então Y / se X tem que Y)
+            if (queryLower.Contains(" se "))
+            {
+                var hasConsequence = queryLower.Contains(" então ") || 
+                                     queryLower.Contains(" tem que ") || 
+                                     queryLower.Contains(" precisa ") ||
+                                     queryLower.Contains(" quero ");
+                if (hasConsequence)
+                    return true;
+            }
+            
+            // "ou" simples entre opções não é complexo (T2 ou T3, Lisboa ou Porto)
+            // Só é complexo se tiver contexto condicional
+            
+            return false;
         }
     }
 }

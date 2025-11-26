@@ -140,8 +140,6 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             {
                 return new Dictionary<string, object>();
             }
-
-            return new Dictionary<string, object>();
         }
 
         private static string? ExtractFirstJsonObject(string input)

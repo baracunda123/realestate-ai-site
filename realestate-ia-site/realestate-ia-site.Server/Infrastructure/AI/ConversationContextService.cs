@@ -72,7 +72,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
         public async Task<ConversationContext> GetOrCreateContextAsync(string sessionId, CancellationToken cancellationToken = default)
             => await Task.FromResult(GetOrCreateContext(sessionId));
 
-        public void UpdateContext(string sessionId, ConversationContext context)
+        public async Task UpdateContextAsync(string sessionId, ConversationContext context, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(sessionId, nameof(sessionId));
             ArgumentNullException.ThrowIfNull(context, nameof(context));
@@ -86,13 +86,13 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             // Para sessões anónimas (sessionId do middleware), isto falhará silenciosamente
             try
             {
-                var contextData = _context.ConversationContexts
-                    .FirstOrDefault(c => c.SessionId == sessionId);
+                var contextData = await _context.ConversationContexts
+                    .FirstOrDefaultAsync(c => c.SessionId == sessionId, cancellationToken);
                 
                 if (contextData == null)
                 {
                     // Verificar se esta sessão já existe na tabela ChatSessions (utilizador autenticado)
-                    var chatSessionExists = _context.ChatSessions.Any(s => s.Id == sessionId);
+                    var chatSessionExists = await _context.ChatSessions.AnyAsync(s => s.Id == sessionId, cancellationToken);
                     
                     if (chatSessionExists)
                     {
@@ -104,7 +104,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                         _context.ConversationContexts.Add(contextData);
                         
                         SerializeContext(context, contextData);
-                        _context.SaveChangesAsync().Wait();
+                        await _context.SaveChangesAsync(cancellationToken);
                         
                         _logger.LogDebug("Contexto criado e persistido na BD para sessão autenticada: {SessionId}", sessionId);
                     }
@@ -118,7 +118,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
                 {
                     // Contexto já existe - atualizar
                     SerializeContext(context, contextData);
-                    _context.SaveChangesAsync().Wait();
+                    await _context.SaveChangesAsync(cancellationToken);
                     
                     _logger.LogDebug("Contexto atualizado (cache + BD) para sessão autenticada: {SessionId}", sessionId);
                 }
