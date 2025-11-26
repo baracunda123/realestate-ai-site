@@ -57,17 +57,6 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             // 3. Criar novo
             return CreateNewContext(sessionId, cacheKey);
         }
-        
-        public ConversationContext? GetContext(string sessionId)
-        {
-            ArgumentException.ThrowIfNullOrWhiteSpace(sessionId, nameof(sessionId));
-            var cacheKey = GetCacheKey(sessionId);
-            if (_cache.TryGetValue(cacheKey, out ConversationContext? context) && context != null)
-            {
-                return context;
-            }
-            return null;
-        }
 
         public async Task<ConversationContext> GetOrCreateContextAsync(string sessionId, CancellationToken cancellationToken = default)
             => await Task.FromResult(GetOrCreateContext(sessionId));
@@ -130,7 +119,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             }
         }
         
-        public void ClearContext(string sessionId)
+        public async Task ClearContextAsync(string sessionId, CancellationToken cancellationToken = default)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(sessionId, nameof(sessionId));
             
@@ -141,13 +130,13 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             // 2. Remover da BD
             try
             {
-                var contextData = _context.ConversationContexts
-                    .FirstOrDefault(c => c.SessionId == sessionId);
+                var contextData = await _context.ConversationContexts
+                    .FirstOrDefaultAsync(c => c.SessionId == sessionId, cancellationToken);
                 
                 if (contextData != null)
                 {
                     _context.ConversationContexts.Remove(contextData);
-                    _context.SaveChangesAsync().Wait();
+                    await _context.SaveChangesAsync(cancellationToken);
                 }
                 
                 _logger.LogInformation("Contexto removido (cache + BD) para sessão: {SessionId}", sessionId);
@@ -158,20 +147,20 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             }
         }
 
-        public void ClearExpiredContexts()
+        public async Task ClearExpiredContextsAsync(CancellationToken cancellationToken = default)
         {
             try
             {
                 var cutoffDate = DateTime.UtcNow - _dbExpiry;
                 
-                var expiredContexts = _context.ConversationContexts
+                var expiredContexts = await _context.ConversationContexts
                     .Where(c => c.LastActivity < cutoffDate)
-                    .ToList();
+                    .ToListAsync(cancellationToken);
                 
                 if (expiredContexts.Any())
                 {
                     _context.ConversationContexts.RemoveRange(expiredContexts);
-                    _context.SaveChangesAsync().Wait();
+                    await _context.SaveChangesAsync(cancellationToken);
                     
                     _logger.LogInformation(
                         "Limpeza automática: {Count} contextos expirados removidos (inativos há mais de {Days} dias)",

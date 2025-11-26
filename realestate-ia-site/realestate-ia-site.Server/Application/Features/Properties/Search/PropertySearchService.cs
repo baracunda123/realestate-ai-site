@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Infrastructure.Persistence;
+using realestate_ia_site.Server.Application.Common.Context;
 using realestate_ia_site.Server.Application.Common.DTOs;
 using realestate_ia_site.Server.Application.Features.Properties.Search.Filters;
 using realestate_ia_site.Server.Application.Features.Properties.Scoring;
@@ -13,17 +14,20 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search
         private readonly ILogger<PropertySearchService> _logger;
         private readonly IEnumerable<IPropertyFilter> _filters;
         private readonly IPropertyScoringService _scoringService;
+        private readonly UserRequestContext _userContext;
 
         public PropertySearchService(
             ApplicationDbContext context,
             ILogger<PropertySearchService> logger,
             IEnumerable<IPropertyFilter> filters,
-            IPropertyScoringService scoringService)
+            IPropertyScoringService scoringService,
+            UserRequestContext userContext)
         {
             _context = context;
             _logger = logger;
             _filters = filters;
             _scoringService = scoringService;
+            _userContext = userContext;
         }
 
         public async Task<List<PropertySearchDto>> SearchPropertiesWithFiltersAsync(
@@ -112,18 +116,11 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search
                         result.Count(p => p.MatchedFeatures != null));
                 }
 
-                // Aplicar scoring inteligente se temos contexto
-                if (filtros.TryGetValue("session_id", out var sessionIdObj) && sessionIdObj != null)
+                // Aplicar scoring inteligente se temos contexto (via UserRequestContext)
+                if (!string.IsNullOrEmpty(_userContext.SessionId))
                 {
-                    var sessionId = sessionIdObj.ToString();
-                    var userQuery = filtros.TryGetValue("user_query", out var queryObj) 
-                        ? queryObj?.ToString() ?? "" 
-                        : "";
-
                     result = await _scoringService.ScoreAndRankPropertiesAsync(
                         result,
-                        userQuery,
-                        sessionId!,
                         filtros,
                         cancellationToken);
 

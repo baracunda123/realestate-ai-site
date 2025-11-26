@@ -34,7 +34,7 @@ namespace realestate_ia_site.Server.Infrastructure.BackgroundServices
                         var contextService = scope.ServiceProvider.GetRequiredService<IConversationContextService>();
                         
                         _logger.LogInformation("Executando limpeza de contextos expirados...");
-                        contextService.ClearExpiredContexts();
+                        await contextService.ClearExpiredContextsAsync(stoppingToken);
                     }
                 }
                 catch (OperationCanceledException)

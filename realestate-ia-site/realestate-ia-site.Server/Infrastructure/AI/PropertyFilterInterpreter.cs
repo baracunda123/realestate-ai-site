@@ -13,18 +13,15 @@ namespace realestate_ia_site.Server.Infrastructure.AI
         private readonly IOpenAIService _openAIService;
         private readonly UserRequestContext _userContext;
         private readonly ILogger<PropertyFilterInterpreter> _logger;
-        private readonly IConversationContextService _contextService;
 
         public PropertyFilterInterpreter(
             IOpenAIService openAIService,
             UserRequestContext userContext,
-            ILogger<PropertyFilterInterpreter> logger,
-            IConversationContextService contextService)
+            ILogger<PropertyFilterInterpreter> logger)
         {
             _openAIService = openAIService;
             _userContext = userContext;
             _logger = logger;
-            _contextService = contextService;
         }
 
         /// <summary>
@@ -33,10 +30,11 @@ namespace realestate_ia_site.Server.Infrastructure.AI
         public async Task<Dictionary<string, object>> ExtractFiltersAsync(
             string userQuery, 
             ConversationContext? context, 
-            UserIntentAnalysis? userIntent, 
+            UserIntentAnalysis? userIntent,
+            ComplexQueryInterpretation? complexInterpretation = null,
             CancellationToken cancellationToken = default)
         {
-            var messages = PromptBuilder.BuildForFilterExtraction(userQuery, context?.LastFilters, userIntent);
+            var messages = PromptBuilder.BuildForFilterExtraction(userQuery, context?.LastFilters, userIntent, complexInterpretation);
 
             var options = new ChatCompletionOptions
             {

@@ -12,7 +12,8 @@ namespace realestate_ia_site.Server.Application.Features.AI.Interfaces
         Task<Dictionary<string, object>> ExtractFiltersAsync(
             string userQuery, 
             ConversationContext? context, 
-            UserIntentAnalysis? userIntent, 
+            UserIntentAnalysis? userIntent,
+            ComplexQueryInterpretation? complexInterpretation = null,
             CancellationToken cancellationToken = default);
     }
 }

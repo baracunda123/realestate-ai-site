@@ -1,12 +1,17 @@
 ﻿using OpenAI.Chat;
 using realestate_ia_site.Server.Application.Common.DTOs;
+using realestate_ia_site.Server.Infrastructure.AI;
 using realestate_ia_site.Server.Infrastructure.AI.Prompts;
 
 namespace realestate_ia_site.Server.Infrastructure.AI.Core
 {
     public static class PromptBuilder
     {
-        public static List<ChatMessage> BuildForFilterExtraction(string userQuery, Dictionary<string, object>? lastFilters = null, UserIntentAnalysis? userIntent = null)
+        public static List<ChatMessage> BuildForFilterExtraction(
+            string userQuery, 
+            Dictionary<string, object>? lastFilters = null, 
+            UserIntentAnalysis? userIntent = null,
+            ComplexQueryInterpretation? complexInterpretation = null)
         {
             ArgumentException.ThrowIfNullOrWhiteSpace(userQuery, nameof(userQuery));
 
@@ -29,6 +34,16 @@ namespace realestate_ia_site.Server.Infrastructure.AI.Core
                 if (!string.IsNullOrWhiteSpace(intentContext))
                 {
                     messages.Add(new SystemChatMessage(intentContext));
+                }
+            }
+            
+            // Adicionar interpretação complexa se disponível (Premium)
+            if (complexInterpretation != null)
+            {
+                var complexContext = BuildComplexInterpretationContext(complexInterpretation);
+                if (!string.IsNullOrWhiteSpace(complexContext))
+                {
+                    messages.Add(new SystemChatMessage(complexContext));
                 }
             }
 
@@ -65,6 +80,45 @@ namespace realestate_ia_site.Server.Infrastructure.AI.Core
                 contextParts.Add($"- Necessidades implícitas: {string.Join(", ", intent.HiddenNeeds)}");
             }
 
+            return contextParts.Count > 1 ? string.Join("\n", contextParts) : string.Empty;
+        }
+        
+        private static string BuildComplexInterpretationContext(ComplexQueryInterpretation interpretation)
+        {
+            var contextParts = new List<string> { "INTERPRETAÇÃO COMPLEXA DA QUERY (Premium):" };
+            
+            if (interpretation.MandatoryRequirements?.Any() == true)
+            {
+                contextParts.Add($"- OBRIGATÓRIO: {string.Join(", ", interpretation.MandatoryRequirements)}");
+            }
+            
+            if (interpretation.Preferences?.Any() == true)
+            {
+                contextParts.Add($"- Preferências: {string.Join(", ", interpretation.Preferences)}");
+            }
+            
+            if (interpretation.Dealbreakers?.Any() == true)
+            {
+                contextParts.Add($"- EVITAR: {string.Join(", ", interpretation.Dealbreakers)}");
+            }
+            
+            if (interpretation.PriorityOrder?.Any() == true)
+            {
+                contextParts.Add($"- Prioridades (ordem): {string.Join(" > ", interpretation.PriorityOrder)}");
+            }
+            
+            if (interpretation.AcceptableTradeoffs?.Any() == true)
+            {
+                var tradeoffs = interpretation.AcceptableTradeoffs.Select(t => $"aceita {t.Sacrifice} por {t.For}");
+                contextParts.Add($"- Trade-offs aceites: {string.Join("; ", tradeoffs)}");
+            }
+            
+            if (interpretation.ContextualConditions?.Any() == true)
+            {
+                var conditions = interpretation.ContextualConditions.Select(c => $"se {c.Condition} então {c.Then}");
+                contextParts.Add($"- Condições: {string.Join("; ", conditions)}");
+            }
+            
             return contextParts.Count > 1 ? string.Join("\n", contextParts) : string.Empty;
         }
 

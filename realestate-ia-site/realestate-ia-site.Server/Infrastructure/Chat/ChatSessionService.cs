@@ -169,7 +169,7 @@ namespace realestate_ia_site.Server.Infrastructure.Chat
             await _context.SaveChangesAsync(cancellationToken);
 
             // Limpar contexto da memória também
-            _conversationContextService.ClearContext(sessionId);
+            await _conversationContextService.ClearContextAsync(sessionId, cancellationToken);
 
             _logger.LogInformation("Sessão {SessionId} eliminada (BD + contexto memória)", sessionId);
             return true;
