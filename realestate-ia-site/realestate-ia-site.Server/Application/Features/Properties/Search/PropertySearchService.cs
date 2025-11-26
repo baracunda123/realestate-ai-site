@@ -43,8 +43,11 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search
                 .Where(p => p.Status == PropertyStatus.Active)
                 .AsQueryable();
 
-            // Criar lista de chaves antes de iterar para evitar "Collection was modified"
+            // Agrupar keys por filtro para evitar chamadas duplicadas
+            // Ex: max_price e min_price são ambos tratados pelo PriceFilter
             var filtroKeys = filtros.Keys.ToList();
+            var processedFilters = new HashSet<string>();
+
             foreach (var filtroKey in filtroKeys)
             {
                 var applicable = _filters.FirstOrDefault(f => f.CanHandle(filtroKey));
@@ -53,8 +56,18 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search
                     _logger.LogWarning("[Search] Filtro desconhecido key={Key}", filtroKey);
                     continue;
                 }
+                
+                // Evitar chamar o mesmo filtro múltiplas vezes
+                var filterName = applicable.GetFilterName();
+                if (processedFilters.Contains(filterName))
+                {
+                    _logger.LogDebug("[Search] Filtro {Filter} já processado, ignorando key={Key}", filterName, filtroKey);
+                    continue;
+                }
+                
                 query = await applicable.ApplyAsync(query, filtros, cancellationToken);
-                _logger.LogDebug("[Search] Filtro aplicado filter={Filter} key={Key}", applicable.GetFilterName(), filtroKey);
+                processedFilters.Add(filterName);
+                _logger.LogDebug("[Search] Filtro aplicado filter={Filter} key={Key}", filterName, filtroKey);
             }
 
             try

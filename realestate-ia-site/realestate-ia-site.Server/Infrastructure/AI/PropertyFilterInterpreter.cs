@@ -1,5 +1,6 @@
 using OpenAI.Chat;
 using realestate_ia_site.Server.Application.Features.AI.Interfaces;
+using realestate_ia_site.Server.Application.Common.Context;
 using realestate_ia_site.Server.Infrastructure.AI.Prompts;
 using realestate_ia_site.Server.Infrastructure.AI.Core;
 using System.Text.Json;
@@ -10,15 +11,18 @@ namespace realestate_ia_site.Server.Infrastructure.AI
     public class PropertyFilterInterpreter : IPropertyFilterInterpreter
     {
         private readonly IOpenAIService _openAIService;
+        private readonly UserRequestContext _userContext;
         private readonly ILogger<PropertyFilterInterpreter> _logger;
         private readonly IConversationContextService _contextService;
 
         public PropertyFilterInterpreter(
             IOpenAIService openAIService,
+            UserRequestContext userContext,
             ILogger<PropertyFilterInterpreter> logger,
             IConversationContextService contextService)
         {
             _openAIService = openAIService;
+            _userContext = userContext;
             _logger = logger;
             _contextService = contextService;
         }
@@ -29,7 +33,6 @@ namespace realestate_ia_site.Server.Infrastructure.AI
         public async Task<Dictionary<string, object>> ExtractFiltersAsync(
             string userQuery, 
             ConversationContext? context, 
-            string userPlan, 
             UserIntentAnalysis? userIntent, 
             CancellationToken cancellationToken = default)
         {
@@ -38,15 +41,14 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             var options = new ChatCompletionOptions
             {
                 MaxOutputTokenCount = 500,
-                Temperature = 0.0f,           // MUDADO: 0 para máxima consistência
-                TopP = 1.0f,                  // MUDADO: 1.0 para determinismo total
+                Temperature = 0.0f,
+                TopP = 1.0f,
                 FrequencyPenalty = 0.0f,
                 PresencePenalty = 0.0f
             };
 
-            // Obter modelo baseado no plano do usuário
-            var model = _openAIService.GetModelForPlan(userPlan);
-            var isProModel = model.Contains("gpt-4o") && !model.Contains("mini");
+            var model = _userContext.IsPremium ? "gpt-4o" : "gpt-4o-mini";
+            var isProModel = _userContext.IsPremium;
 
             const int maxRetries = 2;
             Dictionary<string, object>? filters = null;

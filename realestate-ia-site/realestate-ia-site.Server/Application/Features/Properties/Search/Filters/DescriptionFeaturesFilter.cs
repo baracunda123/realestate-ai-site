@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Application.Features.Properties.Analysis;
+using realestate_ia_site.Server.Application.Common.Context;
 
 namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filters
 {
@@ -11,13 +12,16 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
     public class DescriptionFeaturesFilter : IPropertyFilter
     {
         private readonly IPropertyDescriptionAnalyzer _analyzer;
+        private readonly UserRequestContext _userContext;
         private readonly ILogger<DescriptionFeaturesFilter> _logger;
 
         public DescriptionFeaturesFilter(
             IPropertyDescriptionAnalyzer analyzer,
+            UserRequestContext userContext,
             ILogger<DescriptionFeaturesFilter> logger)
         {
             _analyzer = analyzer;
+            _userContext = userContext;
             _logger = logger;
         }
 
@@ -37,33 +41,28 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
             if (featuresObj == null)
                 return query;
 
-            // Parse features solicitadas
             var requestedFeatures = ParseFeatures(featuresObj);
             if (!requestedFeatures.Any())
                 return query;
 
             _logger.LogInformation(
-                "[DescriptionFeaturesFilter] Procurando por features: {Features}",
+                "[DescriptionFeaturesFilter] Procurando features: {Features}",
                 string.Join(", ", requestedFeatures));
 
-            // OTIMIZAÇÃO: Limitar a 20 propriedades para análise (evitar timeout)
-            // Buscar apenas as primeiras 20 propriedades com descrição
+            // Limitar propriedades baseado no plano
+            var maxProperties = _userContext.IsPremium ? 30 : 15;
             var properties = await query
                 .Where(p => p.Description != null && p.Description != "")
-                .Take(20) // Limitar para evitar timeout
+                .Take(maxProperties)
                 .ToListAsync(cancellationToken);
 
             if (!properties.Any())
-                return query.Where(p => false); // Retorna query vazia
+                return query.Where(p => false);
 
-            _logger.LogInformation(
-                "[DescriptionFeaturesFilter] Analisando {Count} propriedades (máx 20)",
-                properties.Count);
-
-            // Analisar descrições em paralelo (batch de 5 por vez para não sobrecarregar a API)
+            // Analisar em batches
             var matchedPropertyIds = new List<string>();
-            var propertyFeatures = new Dictionary<string, List<string>>(); // Mapear PropertyId -> Features encontradas
-            var batchSize = 5; // Reduzido de 10 para 5 para melhor controle
+            var propertyFeatures = new Dictionary<string, List<string>>();
+            var batchSize = _userContext.IsPremium ? 8 : 5;
 
             for (int i = 0; i < properties.Count; i += batchSize)
             {
@@ -78,25 +77,15 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
                             requestedFeatures,
                             cancellationToken);
 
-                        // Considerar match se pelo menos 50% das features foram encontradas
                         if (matchScore >= 0.5)
-                        {
-                            _logger.LogDebug(
-                                "[DescriptionFeaturesFilter] Match encontrado: {PropertyId}, Score: {Score:P0}, Features: {Features}",
-                                p.Id,
-                                matchScore,
-                                string.Join(", ", foundFeatures));
-
                             return (p.Id, matchScore, foundFeatures);
-                        }
 
                         return (null, 0.0, new List<string>());
                     }
                     catch (Exception ex)
                     {
                         _logger.LogWarning(ex, 
-                            "[DescriptionFeaturesFilter] Erro ao analisar propriedade {PropertyId}",
-                            p.Id);
+                            "[DescriptionFeaturesFilter] Erro propriedade {PropertyId}", p.Id);
                         return (null, 0.0, new List<string>());
                     }
                 });
@@ -108,31 +97,25 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
                     propertyFeatures[result.Item1!] = result.Item3;
                 }
 
-                // Delay entre batches para não sobrecarregar a API e evitar timeouts
+                // Delay entre batches (menor para premium)
                 if (i + batchSize < properties.Count)
                 {
-                    await Task.Delay(500, cancellationToken); // Aumentado de 100ms para 500ms
+                    await Task.Delay(_userContext.IsPremium ? 200 : 400, cancellationToken);
                 }
             }
             
-            // Guardar features encontradas no filtro para uso posterior
             if (propertyFeatures.Any())
-            {
                 filters["_matched_features"] = propertyFeatures;
-            }
 
             if (!matchedPropertyIds.Any())
             {
-                _logger.LogInformation(
-                    "[DescriptionFeaturesFilter] Nenhuma propriedade encontrada com as features solicitadas");
-                return query.Where(p => false); // Retorna query vazia
+                _logger.LogInformation("[DescriptionFeaturesFilter] Nenhuma propriedade com features");
+                return query.Where(p => false);
             }
 
             _logger.LogInformation(
-                "[DescriptionFeaturesFilter] {Count} propriedades encontradas com as features",
-                matchedPropertyIds.Count);
+                "[DescriptionFeaturesFilter] {Count} propriedades com features", matchedPropertyIds.Count);
 
-            // Retornar apenas propriedades que deram match
             return query.Where(p => matchedPropertyIds.Contains(p.Id));
         }
 

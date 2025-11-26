@@ -4,6 +4,9 @@ using realestate_ia_site.Server.Infrastructure.AI;
 
 namespace realestate_ia_site.Server.Application.Features.AI.Interfaces
 {
+    /// <summary>
+    /// Motor de recomendações inteligentes. Usa UserRequestContext para modelo.
+    /// </summary>
     public interface IIntelligentRecommendationEngine
     {
         Task<RecommendationInsights> AnalyzeUserBehaviorAsync(
@@ -13,13 +16,11 @@ namespace realestate_ia_site.Server.Application.Features.AI.Interfaces
         Task<string> ExplainRecommendationAsync(
             PropertySearchDto property,
             UserIntentAnalysis userIntent,
-            string userPlan = "free",
             CancellationToken cancellationToken = default);
 
         Task<List<string>> GenerateSmartQuestionsAsync(
             UserIntentAnalysis userIntent,
             IEnumerable<ChatMessage> conversationHistory,
-            string userPlan = "free",
             CancellationToken cancellationToken = default);
     }
 }
