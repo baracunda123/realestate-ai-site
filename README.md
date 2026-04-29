@@ -61,9 +61,11 @@ npm install
 
 ```bash
 # Run the backend
+cd realestate-ai-site/realestate-ia-site.Server
 dotnet run
 
 # Run the frontend (in a separate terminal)
+cd realestate-ai-site/realestate-ia-site.Client
 npm run dev
 ```
 
