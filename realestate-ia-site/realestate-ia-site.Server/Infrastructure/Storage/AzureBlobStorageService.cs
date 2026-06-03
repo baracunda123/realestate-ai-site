@@ -1,5 +1,6 @@
 using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
+using realestate_ia_site.Server.Application.Common.Interfaces;
 
 namespace realestate_ia_site.Server.Infrastructure.Storage;
 

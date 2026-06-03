@@ -4,7 +4,7 @@ using realestate_ia_site.Server.Application.ExternalServices.Interfaces;
 using System.Globalization;
 using System.Text.RegularExpressions;
 
-namespace realestate_ia_site.Server.Application.Common.Mappings
+namespace realestate_ia_site.Server.Application.Features.Properties.Import
 {
     public static class PropertyMapper
     {

@@ -1,7 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Infrastructure.Persistence;
-using realestate_ia_site.Server.Domain.Interfaces;
-using realestate_ia_site.Server.Infrastructure.Persistence.Repositories;
 using realestate_ia_site.Server.Application.Common.Interfaces;
 
 namespace realestate_ia_site.Server.Infrastructure.Extensions;
@@ -37,11 +35,6 @@ public static class DatabaseExtensions
         // Register IApplicationDbContext
         services.AddScoped<IApplicationDbContext>(sp =>
             sp.GetRequiredService<ApplicationDbContext>());
-
-        // Register Repositories & Unit of Work
-        services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-        services.AddScoped<IPropertyRepository, PropertyRepository>();
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
 
         // Add Memory Cache
         services.AddMemoryCache();

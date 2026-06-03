@@ -3,51 +3,16 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.DataAnnotations;
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Domain.Models;
 using realestate_ia_site.Server.Infrastructure.Auth;
 using realestate_ia_site.Server.Application.Security;
-using realestate_ia_site.Server.Infrastructure.Storage;
+using realestate_ia_site.Server.Application.Common.Interfaces;
 using realestate_ia_site.Server.Application.Notifications.Interfaces;
 using realestate_ia_site.Server.Infrastructure.Notifications;
 
 namespace realestate_ia_site.Server.Presentation.Controllers
 {
-    public class ForgotPasswordRequest
-    {
-        [Required(ErrorMessage = "Email é obrigatório")]
-        [EmailAddress(ErrorMessage = "Email inválido")]
-        public string Email { get; set; } = string.Empty;
-    }
-
-    public class ResetPasswordRequest
-    {
-        [Required(ErrorMessage = "Token é obrigatório")]
-        public string Token { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Palavra-passe é obrigatória")]
-        [StringLength(100, MinimumLength = 8, ErrorMessage = "A palavra-passe deve ter entre 8 e 100 caracteres")]
-        [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?"":{}|<>_+=\-\[\]\\;'/])[A-Za-z\d!@#$%^&*(),.?"":{}|<>_+=\-\[\]\\;'/]+$", 
-            ErrorMessage = "Senha deve conter: 1 maiúscula, 1 minúscula, 1 número e 1 caractere especial.")]
-        public string Password { get; set; } = string.Empty;
-
-        [Required(ErrorMessage = "Confirmação de palavra-passe é obrigatória")]
-        [Compare("Password", ErrorMessage = "As palavras-passe não coincidem")]
-        public string ConfirmPassword { get; set; } = string.Empty;
-    }
-
-    public class UpdateProfileRequest
-    {
-        public string? FullName { get; set; }
-        public string? AvatarUrl { get; set; }
-    }
-
-    public class DeleteAccountRequest
-    {
-        public string? Password { get; set; }
-    }
-
     [ApiController]
     [Route("api/[controller]")]
     [EnableRateLimiting("AuthPolicy")]
@@ -314,11 +279,6 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 _auditService.LogInvalidTokenAccess("refresh", $"Exception: {ex.Message}");
                 return StatusCode(500, new { message = "Erro interno do servidor" });
             }
-        }
-
-        public class RefreshTokenRequest
-        {
-            public string? RefreshToken { get; set; }
         }
 
         [HttpPost("logout")]

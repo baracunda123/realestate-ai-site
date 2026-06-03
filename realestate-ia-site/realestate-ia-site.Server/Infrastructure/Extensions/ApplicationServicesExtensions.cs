@@ -4,7 +4,7 @@ using realestate_ia_site.Server.Application.Features.Properties.Import;
 using realestate_ia_site.Server.Application.Features.Payments;
 using realestate_ia_site.Server.Infrastructure.Auth;
 using realestate_ia_site.Server.Application.Features.AI.Interfaces;
-using realestate_ia_site.Server.Application.Services;
+using realestate_ia_site.Server.Application.Features.Properties.Tracking;
 
 namespace realestate_ia_site.Server.Infrastructure.Extensions;
 

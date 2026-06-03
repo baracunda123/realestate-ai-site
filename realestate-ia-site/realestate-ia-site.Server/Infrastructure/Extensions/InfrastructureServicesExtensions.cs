@@ -15,6 +15,7 @@ using realestate_ia_site.Server.Application.Features.Payments.Interfaces;
 using realestate_ia_site.Server.Application.Features.Payments;
 using realestate_ia_site.Server.Application.Notifications.Interfaces;
 using realestate_ia_site.Server.Application.ExternalServices.Interfaces;
+using realestate_ia_site.Server.Application.Common.Interfaces;
 using realestate_ia_site.Server.Application.Security;
 using realestate_ia_site.Server.Application.Features.Properties.Search.Filters;
 

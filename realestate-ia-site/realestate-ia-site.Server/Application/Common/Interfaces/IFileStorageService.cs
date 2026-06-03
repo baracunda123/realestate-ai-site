@@ -1,4 +1,4 @@
-namespace realestate_ia_site.Server.Infrastructure.Storage;
+namespace realestate_ia_site.Server.Application.Common.Interfaces;
 
 public interface IFileStorageService
 {

@@ -1,4 +1,4 @@
-using realestate_ia_site.Server.Application.Services;
+using realestate_ia_site.Server.Application.Features.Properties.Tracking;
 
 namespace realestate_ia_site.Server.Infrastructure.BackgroundServices
 {

@@ -2,15 +2,8 @@ using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Application.Common.Interfaces;
 using realestate_ia_site.Server.Domain.Enums;
 
-namespace realestate_ia_site.Server.Application.Services
+namespace realestate_ia_site.Server.Application.Features.Properties.Tracking
 {
-    public interface IPropertyTrackingService
-    {
-        Task<(int updated, int archived)> UpdatePropertyTrackingAsync(List<string> propertyIds, string sourceSite);
-        Task<int> ArchiveStalePropertiesAsync(string sourceSite, DateTime cutoffDate);
-        Task<int> DeleteExpiredPropertiesAsync(int daysAfterArchive = 90);
-    }
-
     public class PropertyTrackingService : IPropertyTrackingService
     {
         private readonly IApplicationDbContext _context;
@@ -25,17 +18,17 @@ namespace realestate_ia_site.Server.Application.Services
         }
 
         /// <summary>
-        /// Atualiza o LastSeenAt dos anúncios vistos no scraping atual
+        /// Atualiza o LastSeenAt dos anuncios vistos no scraping atual
         /// </summary>
         public async Task<(int updated, int archived)> UpdatePropertyTrackingAsync(
-            List<string> propertyIds, 
+            List<string> propertyIds,
             string sourceSite)
         {
             var now = DateTime.UtcNow;
             var updated = 0;
             var archived = 0;
 
-            // Atualizar anúncios que foram vistos
+            // Atualizar anuncios que foram vistos
             if (propertyIds.Any())
             {
                 var properties = await _context.Properties
@@ -45,7 +38,7 @@ namespace realestate_ia_site.Server.Application.Services
                 foreach (var property in properties)
                 {
                     property.LastSeenAt = now;
-                    
+
                     // Reativar se estava arquivado
                     if (property.Status != PropertyStatus.Active)
                     {
@@ -53,8 +46,8 @@ namespace realestate_ia_site.Server.Application.Services
                         property.Status = PropertyStatus.Active;
                         property.ArchivedAt = null;
                         _logger.LogInformation(
-                            "Property {PropertyId} reactivated from {OldStatus}", 
-                            property.Id, 
+                            "Property {PropertyId} reactivated from {OldStatus}",
+                            property.Id,
                             previousStatus);
                     }
                 }
@@ -63,7 +56,7 @@ namespace realestate_ia_site.Server.Application.Services
                 await _context.SaveChangesAsync();
             }
 
-            // Arquivar anúncios não vistos baseado no período de scraping
+            // Arquivar anuncios nao vistos baseado no periodo de scraping
             var cutoffDate = GetCutoffDateForSource(sourceSite);
             archived = await ArchiveStalePropertiesAsync(sourceSite, cutoffDate);
 
@@ -75,7 +68,7 @@ namespace realestate_ia_site.Server.Application.Services
         }
 
         /// <summary>
-        /// Arquiva anúncios que não foram vistos e estão fora do período de scraping
+        /// Arquiva anuncios que nao foram vistos e estao fora do periodo de scraping
         /// </summary>
         public async Task<int> ArchiveStalePropertiesAsync(string sourceSite, DateTime cutoffDate)
         {
@@ -105,7 +98,7 @@ namespace realestate_ia_site.Server.Application.Services
         }
 
         /// <summary>
-        /// Elimina anúncios arquivados há muito tempo
+        /// Elimina anuncios arquivados ha muito tempo
         /// </summary>
         public async Task<int> DeleteExpiredPropertiesAsync(int daysAfterArchive = 90)
         {
@@ -132,7 +125,7 @@ namespace realestate_ia_site.Server.Application.Services
 
         /// <summary>
         /// Retorna a data de corte - 7 dias para todos os sources
-        /// Propriedades não vistas há mais de 1 semana são arquivadas
+        /// Propriedades nao vistas ha mais de 1 semana sao arquivadas
         /// </summary>
         private DateTime GetCutoffDateForSource(string sourceSite)
         {
