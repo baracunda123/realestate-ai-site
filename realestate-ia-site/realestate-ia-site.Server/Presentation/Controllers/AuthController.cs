@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Domain.Entities;
-using realestate_ia_site.Server.Domain.Models;
+using realestate_ia_site.Server.Application.Features.Auth.DTOs;
 using realestate_ia_site.Server.Infrastructure.Auth;
 using realestate_ia_site.Server.Application.Security;
 using realestate_ia_site.Server.Application.Common.Interfaces;

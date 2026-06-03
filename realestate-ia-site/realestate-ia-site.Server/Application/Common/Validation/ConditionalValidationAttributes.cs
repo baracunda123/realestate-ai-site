@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace realestate_ia_site.Server.Domain.Validation
+namespace realestate_ia_site.Server.Application.Common.Validation
 {
     /// <summary>
     /// Valida email apenas se o campo estiver preenchido
