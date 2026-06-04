@@ -1,5 +1,6 @@
-using OpenAI.Chat;
+﻿using OpenAI.Chat;
 using realestate_ia_site.Server.Application.Features.AI.Interfaces;
+using realestate_ia_site.Server.Application.Features.AI.Models;
 using realestate_ia_site.Server.Application.Common.Context;
 using realestate_ia_site.Server.Infrastructure.AI.Prompts;
 using realestate_ia_site.Server.Infrastructure.AI.Core;

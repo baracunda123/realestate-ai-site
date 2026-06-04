@@ -1,14 +1,14 @@
-using System.Threading.RateLimiting;
+﻿using System.Threading.RateLimiting;
 using Hangfire;
 using Hangfire.PostgreSql;
 using realestate_ia_site.Server.Infrastructure.AI;
-using realestate_ia_site.Server.Infrastructure.Auth;
 using realestate_ia_site.Server.Infrastructure.Chat;
 using realestate_ia_site.Server.Infrastructure.Configurations;
 using realestate_ia_site.Server.Infrastructure.ExternalServices;
 using realestate_ia_site.Server.Infrastructure.Notifications;
 using realestate_ia_site.Server.Infrastructure.Payments;
 using realestate_ia_site.Server.Infrastructure.Storage;
+using realestate_ia_site.Server.Infrastructure.Security;
 using realestate_ia_site.Server.Infrastructure.BackgroundServices;
 using realestate_ia_site.Server.Application.Features.AI.Interfaces;
 using realestate_ia_site.Server.Application.Features.Payments.Interfaces;
@@ -33,7 +33,7 @@ public static class InfrastructureServicesExtensions
     {
         // Security
         services.AddHttpContextAccessor();
-        services.AddSingleton<SecurityAuditService>();
+        services.AddSingleton<ISecurityAuditService, SecurityAuditService>();
 
         // Enhanced Rate Limiter
         services.AddRateLimiter(options =>
@@ -116,7 +116,7 @@ public static class InfrastructureServicesExtensions
         services.AddScoped<IPropertyFilterInterpreter, PropertyFilterInterpreter>();
         services.AddScoped<IPropertyResponseGenerator, PropertyResponseGenerator>();
         services.AddScoped<IConversationContextService, ConversationContextService>();
-        services.AddScoped<LocationAIService>();
+        services.AddScoped<ILocationAIService, LocationAIService>();
         services.AddScoped<Application.Features.Properties.Scoring.IPropertyScoringService, PropertyScoringService>();
         services.AddScoped<Application.Features.Properties.Analysis.IPropertyDescriptionAnalyzer, PropertyDescriptionAnalyzer>();
         
@@ -149,17 +149,6 @@ public static class InfrastructureServicesExtensions
         services.Configure<EmailConfiguration>(configuration.GetSection("Email"));
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<BackgroundEmailService>(); // Background email wrapper
-        services.AddScoped<IRealtimeNotificationService, RealtimeNotificationService>();
-
-        // SignalR
-        services.AddSignalR(options =>
-        {
-            options.EnableDetailedErrors = environment.IsDevelopment();
-            options.ClientTimeoutInterval = TimeSpan.FromSeconds(30);
-            options.KeepAliveInterval = TimeSpan.FromSeconds(15);
-            options.HandshakeTimeout = TimeSpan.FromSeconds(15);
-            options.MaximumReceiveMessageSize = 32 * 1024;
-        });
 
         // Background Services
         services.AddHostedService<PropertyCleanupBackgroundService>();

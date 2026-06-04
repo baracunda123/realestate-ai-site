@@ -1,5 +1,5 @@
-using realestate_ia_site.Server.Application.Features.AI.Conversation;
-using realestate_ia_site.Server.Infrastructure.AI;
+﻿using realestate_ia_site.Server.Application.Features.AI.Conversation;
+using realestate_ia_site.Server.Application.Features.AI.Models;
 
 namespace realestate_ia_site.Server.Application.Features.AI.Interfaces
 {

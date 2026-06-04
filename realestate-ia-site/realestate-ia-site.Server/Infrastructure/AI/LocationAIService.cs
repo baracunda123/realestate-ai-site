@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace realestate_ia_site.Server.Infrastructure.AI
 {
-    public class LocationAIService
+    public class LocationAIService : ILocationAIService
     {
         private readonly IOpenAIService _openAIService;
         private readonly UserRequestContext _userContext;

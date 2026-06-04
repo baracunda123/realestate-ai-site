@@ -1,11 +1,11 @@
-using OpenAI.Chat;
+﻿using OpenAI.Chat;
 using realestate_ia_site.Server.Application.Common.Context;
 using realestate_ia_site.Server.Application.Features.AI.SearchAI.DTOs;
 using realestate_ia_site.Server.Application.Features.AI.Interfaces;
 using realestate_ia_site.Server.Application.Features.Properties.Search;
 using realestate_ia_site.Server.Application.Features.Properties.Scoring;
 using realestate_ia_site.Server.Application.Features.Properties.Feedback;
-using realestate_ia_site.Server.Infrastructure.AI;
+using realestate_ia_site.Server.Application.Features.AI.Models;
 
 namespace realestate_ia_site.Server.Application.Features.AI.SearchAI
 {

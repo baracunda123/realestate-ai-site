@@ -1,5 +1,6 @@
-using Microsoft.AspNetCore.Mvc;
-using realestate_ia_site.Server.Application.Features.Payments;
+﻿using Microsoft.AspNetCore.Mvc;
+using realestate_ia_site.Server.Application.Features.Payments.DTOs;
+using realestate_ia_site.Server.Infrastructure.Payments;
 
 namespace realestate_ia_site.Server.Presentation.Controllers
 {
@@ -25,7 +26,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 var signature = Request.Headers["Stripe-Signature"].ToString();
                 if (string.IsNullOrWhiteSpace(signature))
                 {
-                    return BadRequest(WebhookProcessResult.Failure("Assinatura Stripe obrigat�ria"));
+                    return BadRequest(WebhookProcessResult.Failure("Assinatura Stripe obrigatória"));
                 }
 
                 var result = await _handler.HandleAsync(json, signature, cancellationToken);

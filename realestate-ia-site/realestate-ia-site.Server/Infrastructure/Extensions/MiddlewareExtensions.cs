@@ -1,7 +1,6 @@
-using Hangfire;
+﻿using Hangfire;
 using Hangfire.Dashboard;
 using realestate_ia_site.Server.Infrastructure.Middleware;
-using realestate_ia_site.Server.Infrastructure.Notifications;
 
 namespace realestate_ia_site.Server.Infrastructure.Extensions;
 
@@ -78,9 +77,6 @@ public static class MiddlewareExtensions
             environment = app.Environment.EnvironmentName,
             version = typeof(Program).Assembly.GetName().Version?.ToString() ?? "Unknown"
         })).AllowAnonymous();
-
-        // SignalR Hubs (DEPOIS da autenticação e autorização)
-        app.MapHub<NotificationHub>("/hubs/notifications");
 
         // Fallback to index.html (Production only)
         if (!app.Environment.IsDevelopment())

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -21,7 +21,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         private readonly UserManager<User> _userManager;
         private readonly AuthService _authService;
         private readonly GoogleAuthService _googleAuthService;
-        private readonly SecurityAuditService _auditService;
+        private readonly ISecurityAuditService _auditService;
         private readonly IConfiguration _configuration;
         private readonly ILogger<AuthController> _logger;
         private readonly IWebHostEnvironment _environment;
@@ -31,7 +31,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
             UserManager<User> userManager,
             AuthService authService,
             GoogleAuthService googleAuthService,
-            SecurityAuditService auditService,
+            ISecurityAuditService auditService,
             IConfiguration configuration,
             ILogger<AuthController> logger,
             IWebHostEnvironment environment,

@@ -1,6 +1,6 @@
 ﻿using OpenAI.Chat;
 using realestate_ia_site.Server.Application.Features.Properties.DTOs;
-using realestate_ia_site.Server.Infrastructure.AI;
+using realestate_ia_site.Server.Application.Features.AI.Models;
 using realestate_ia_site.Server.Infrastructure.AI.Prompts;
 
 namespace realestate_ia_site.Server.Infrastructure.AI.Core

@@ -1,5 +1,6 @@
-using OpenAI.Chat;
+﻿using OpenAI.Chat;
 using realestate_ia_site.Server.Application.Features.AI.Interfaces;
+using realestate_ia_site.Server.Application.Features.AI.Models;
 using realestate_ia_site.Server.Application.Common.Context;
 using System.Text.Json;
 
@@ -189,43 +190,5 @@ Qual recomendas e porquê?")
 
             return response;
         }
-    }
-
-    /// <summary>
-    /// Resultado da análise de intenção do utilizador.
-    /// </summary>
-    public class UserIntentAnalysis
-    {
-        public string Motivation { get; set; } = "desconhecida";
-        public string TimeUrgency { get; set; } = "explorar";
-        public List<string> Priorities { get; set; } = new();
-        public string Flexibility { get; set; } = "alguma_flexibilidade";
-        public string LifestylePreference { get; set; } = "não identificado";
-        public List<string> Concerns { get; set; } = new();
-        public string DecisionPhase { get; set; } = "pesquisa_inicial";
-        public List<string> HiddenNeeds { get; set; } = new();
-    }
-
-    /// <summary>
-    /// Request para comparação de propriedades.
-    /// </summary>
-    public class PropertyComparisonRequest
-    {
-        public string UserNeeds { get; set; } = string.Empty;
-        public PropertyComparisonData PropertyA { get; set; } = new();
-        public PropertyComparisonData PropertyB { get; set; } = new();
-    }
-
-    /// <summary>
-    /// Dados de uma propriedade para comparação.
-    /// </summary>
-    public class PropertyComparisonData
-    {
-        public string Type { get; set; } = string.Empty;
-        public string Location { get; set; } = string.Empty;
-        public decimal Price { get; set; }
-        public decimal Area { get; set; }
-        public int Bedrooms { get; set; }
-        public string Description { get; set; } = string.Empty;
     }
 }

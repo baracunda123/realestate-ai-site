@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using realestate_ia_site.Server.Infrastructure.Persistence;
+using realestate_ia_site.Server.Application.Common.Interfaces;
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Application.Features.Properties.Import.DTOs;
 using realestate_ia_site.Server.Application.ExternalServices.Interfaces;
@@ -10,13 +10,13 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Import
 {
     public class PropertyImportService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IApplicationDbContext _context;
         private readonly ILogger<PropertyImportService> _logger;
         private readonly IGeocodingService _geocodingService;
         private readonly IPropertyTrackingService _trackingService;
 
         public PropertyImportService(
-            ApplicationDbContext context, 
+            IApplicationDbContext context, 
             ILogger<PropertyImportService> logger, 
             IGeocodingService geocodingService,
             IPropertyTrackingService trackingService)
@@ -57,11 +57,12 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Import
             {
                 // Coletar IDs das propriedades processadas e source site
                 var processedPropertyIds = new List<string>();
+                var pendingProperties = new List<Property>();
                 string? sourceSite = null;
 
                 foreach (var scrapperProperty in uniqueProperties)
                 {
-                    var propertyId = await ProcessSinglePropertyAsync(scrapperProperty, result);
+                    var propertyId = await ProcessSinglePropertyAsync(scrapperProperty, result, pendingProperties);
                     if (!string.IsNullOrEmpty(propertyId))
                     {
                         processedPropertyIds.Add(propertyId);
@@ -103,7 +104,10 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Import
             }
         }
 
-        private async Task<string?> ProcessSinglePropertyAsync(ScraperPropertyDto scrapperDto, ImportResult result)
+        private async Task<string?> ProcessSinglePropertyAsync(
+            ScraperPropertyDto scrapperDto,
+            ImportResult result,
+            List<Property> pendingProperties)
         {
             try
             {
@@ -133,18 +137,14 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Import
                         existingProperty.Id, existingProperty.Link);
                 }
 
-                // 2. Se não encontrou na BD, verificar no ChangeTracker (mesmo batch)
+                // 2. Se não encontrou na BD, verificar entidades criadas no mesmo batch
                 if (existingProperty == null)
                 {
-                    existingProperty = _context.ChangeTracker
-                        .Entries<Property>()
-                        .Where(e => e.State == EntityState.Added)
-                        .Select(e => e.Entity)
-                        .FirstOrDefault(p => p.Link == urlToSearch);
+                    existingProperty = pendingProperties.FirstOrDefault(p => p.Link == urlToSearch);
                     
                     if (existingProperty != null)
                     {
-                        _logger.LogInformation("[Import] Encontrada no ChangeTracker: id={Id}, link={Link}", 
+                        _logger.LogInformation("[Import] Encontrada no batch atual: id={Id}, link={Link}", 
                             existingProperty.Id, existingProperty.Link);
                     }
                 }
@@ -172,6 +172,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Import
                     newProperty.Status = PropertyStatus.Active;
                     
                     _context.Properties.Add(newProperty);
+                    pendingProperties.Add(newProperty);
                     result.Created++;
                     return newProperty.Id;
                 }

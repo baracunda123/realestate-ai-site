@@ -1,5 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using realestate_ia_site.Server.Infrastructure.Persistence;
+using realestate_ia_site.Server.Application.Common.Interfaces;
 using realestate_ia_site.Server.Application.Common.Context;
 using realestate_ia_site.Server.Application.Features.Properties.DTOs;
 using realestate_ia_site.Server.Application.Features.Properties.Search.Filters;
@@ -10,14 +10,14 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search
 {
     public sealed class PropertySearchService : IPropertySearchService
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IApplicationDbContext _context;
         private readonly ILogger<PropertySearchService> _logger;
         private readonly IEnumerable<IPropertyFilter> _filters;
         private readonly IPropertyScoringService _scoringService;
         private readonly UserRequestContext _userContext;
 
         public PropertySearchService(
-            ApplicationDbContext context,
+            IApplicationDbContext context,
             ILogger<PropertySearchService> logger,
             IEnumerable<IPropertyFilter> filters,
             IPropertyScoringService scoringService,

@@ -1,10 +1,8 @@
-// SecurityAuditService.cs - Auditoria de segurança
-using Microsoft.AspNetCore.Http;
-using System.Security.Claims;
+using realestate_ia_site.Server.Application.Security;
 
-namespace realestate_ia_site.Server.Application.Security
+namespace realestate_ia_site.Server.Infrastructure.Security
 {
-    public class SecurityAuditService
+    public class SecurityAuditService : ISecurityAuditService
     {
         private readonly ILogger<SecurityAuditService> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
@@ -23,25 +21,13 @@ namespace realestate_ia_site.Server.Application.Security
             var ipAddress = context?.Connection?.RemoteIpAddress?.ToString() ?? "unknown";
             var userAgent = context?.Request?.Headers["User-Agent"].ToString() ?? "unknown";
 
-            var logEntry = new
-            {
-                EventType = eventType.ToString(),
-                Message = message,
-                UserIdentifier = userIdentifier,
-                SessionId = sessionId,
-                IpAddress = ipAddress,
-                UserAgent = userAgent,
-                Timestamp = DateTime.UtcNow,
-                AdditionalData = additionalData
-            };
-
-            // Log based on severity
             switch (eventType)
             {
                 case SecurityEventType.LoginSuccess:
                 case SecurityEventType.LogoutSuccess:
                 case SecurityEventType.TokenRefresh:
-                    _logger.LogInformation("[SECURITY] {EventType}: {Message} | User: {User} | IP: {IP}", 
+                case SecurityEventType.ScraperAuthenticated:
+                    _logger.LogInformation("[SECURITY] {EventType}: {Message} | User: {User} | IP: {IP}",
                         eventType, message, userIdentifier, ipAddress);
                     break;
 
@@ -49,7 +35,7 @@ namespace realestate_ia_site.Server.Application.Security
                 case SecurityEventType.InvalidToken:
                 case SecurityEventType.SuspiciousActivity:
                 case SecurityEventType.RateLimitExceeded:
-                    _logger.LogWarning("[SECURITY] {EventType}: {Message} | User: {User} | IP: {IP} | Session: {Session}", 
+                    _logger.LogWarning("[SECURITY] {EventType}: {Message} | User: {User} | IP: {IP} | Session: {Session}",
                         eventType, message, userIdentifier, ipAddress, sessionId);
                     break;
 
@@ -57,12 +43,10 @@ namespace realestate_ia_site.Server.Application.Security
                 case SecurityEventType.SqlInjectionAttempt:
                 case SecurityEventType.XssAttempt:
                 case SecurityEventType.UnauthorizedAccess:
-                    _logger.LogError("[SECURITY] {EventType}: {Message} | User: {User} | IP: {IP} | Session: {Session} | UserAgent: {UserAgent}", 
+                    _logger.LogError("[SECURITY] {EventType}: {Message} | User: {User} | IP: {IP} | Session: {Session} | UserAgent: {UserAgent}",
                         eventType, message, userIdentifier, ipAddress, sessionId, userAgent);
                     break;
             }
-
-            // TODO: Enviar para sistema de monitoramento externo (Sentry, Azure Monitor, etc.)
         }
 
         public void LogFailedLogin(string email, string reason)
@@ -99,21 +83,5 @@ namespace realestate_ia_site.Server.Application.Security
         {
             LogSecurityEvent(SecurityEventType.XssAttempt, $"Potential XSS attempt in field: {field}", new { Input = input });
         }
-    }
-
-    public enum SecurityEventType
-    {
-        LoginSuccess,
-        LoginFailure,
-        LogoutSuccess,
-        TokenRefresh,
-        InvalidToken,
-        SuspiciousActivity,
-        RateLimitExceeded,
-        BruteForceDetected,
-        SqlInjectionAttempt,
-        XssAttempt,
-        UnauthorizedAccess,
-        ScraperAuthenticated
     }
 }

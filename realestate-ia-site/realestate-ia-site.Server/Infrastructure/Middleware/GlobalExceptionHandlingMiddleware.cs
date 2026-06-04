@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+ï»¿using Microsoft.AspNetCore.Mvc;
 using System.Net;
 using System.Text.Json;
 using System.Diagnostics;
@@ -9,19 +9,19 @@ using AppUnauthorizedException = realestate_ia_site.Server.Application.Common.Ex
 namespace realestate_ia_site.Server.Infrastructure.Middleware
 {
     /// <summary>
-    /// Middleware para tratamento global de exceções
+    /// Middleware para tratamento global de exceÃ§Ãµes
     /// </summary>
     public class GlobalExceptionHandlingMiddleware
     {
         private readonly RequestDelegate _next;
         private readonly ILogger<GlobalExceptionHandlingMiddleware> _logger;
-        private readonly SecurityAuditService _auditService;
+        private readonly ISecurityAuditService _auditService;
         private readonly IHostEnvironment _environment;
 
         public GlobalExceptionHandlingMiddleware(
             RequestDelegate next,
             ILogger<GlobalExceptionHandlingMiddleware> logger,
-            SecurityAuditService auditService,
+            ISecurityAuditService auditService,
             IHostEnvironment environment)
         {
             _next = next;
@@ -133,28 +133,28 @@ namespace realestate_ia_site.Server.Infrastructure.Middleware
                 TaskCanceledException ex when ex.InnerException is TimeoutException => CreateErrorResponse(
                     HttpStatusCode.RequestTimeout, 
                     "REQUEST_TIMEOUT", 
-                    "A solicitação demorou muito tempo para ser processada"),
+                    "A solicitaÃ§Ã£o demorou muito tempo para ser processada"),
 
                 OperationCanceledException => CreateErrorResponse(
                     HttpStatusCode.RequestTimeout, 
                     "REQUEST_CANCELLED", 
-                    "A solicitação foi cancelada"),
+                    "A solicitaÃ§Ã£o foi cancelada"),
 
                 ArgumentException ex => CreateErrorResponse(
                     HttpStatusCode.BadRequest, 
                     "INVALID_ARGUMENT", 
-                    "Parâmetro inválido fornecido",
+                    "ParÃ¢metro invÃ¡lido fornecido",
                     _environment.IsDevelopment() ? new { Parameter = ex.ParamName, Message = ex.Message } : null),
 
                 KeyNotFoundException ex => CreateErrorResponse(
                     HttpStatusCode.NotFound, 
                     "RESOURCE_NOT_FOUND", 
-                    "Recurso não encontrado"),
+                    "Recurso nÃ£o encontrado"),
 
                 System.UnauthorizedAccessException => CreateErrorResponse(
                     HttpStatusCode.Unauthorized, 
                     "UNAUTHORIZED", 
-                    "Acesso não autorizado"),
+                    "Acesso nÃ£o autorizado"),
 
                 _ => CreateErrorResponse(
                     HttpStatusCode.InternalServerError, 
@@ -270,7 +270,7 @@ namespace realestate_ia_site.Server.Infrastructure.Middleware
     }
 
     /// <summary>
-    /// Extensão para registrar o middleware
+    /// ExtensÃ£o para registrar o middleware
     /// </summary>
     public static class GlobalExceptionHandlingMiddlewareExtensions
     {

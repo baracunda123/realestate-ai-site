@@ -6,7 +6,7 @@ using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Infrastructure.Persistence;
 using realestate_ia_site.Server.Application.Common.Exceptions;
 using realestate_ia_site.Server.Application.Features.Properties.DTOs;
-using System.ComponentModel.DataAnnotations;
+using realestate_ia_site.Server.Application.Features.Properties.Favorites.DTOs;
 using AppUnauthorizedException = realestate_ia_site.Server.Application.Common.Exceptions.UnauthorizedAccessException;
 
 namespace realestate_ia_site.Server.Presentation.Controllers
@@ -290,35 +290,4 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 .AnyAsync(f => f.UserId == userId && f.PropertyId == propertyId);
         }
     }
-
-    // DTOs para responses
-    public class FavoritePropertiesResponse
-    {
-        public List<PropertySearchDto> Favorites { get; set; } = new();
-        public int TotalCount { get; set; }
-        public int Page { get; set; }
-        public int PageSize { get; set; }
-        public bool HasNextPage { get; set; }
-        public bool HasPreviousPage { get; set; }
-    }
-
-    public class AddFavoriteRequest
-    {
-        [Required]
-        public string PropertyId { get; set; } = string.Empty;
-    }
-
-    public class FavoriteStatusResponse
-    {
-        public string PropertyId { get; set; } = string.Empty;
-        public bool IsFavorite { get; set; }
-    }
-
-    public class SuccessResponse
-    {
-        public bool Success { get; set; }
-        public string Message { get; set; } = string.Empty;
-    }
 }
-
-

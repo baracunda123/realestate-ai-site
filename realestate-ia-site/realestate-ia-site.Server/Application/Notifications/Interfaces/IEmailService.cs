@@ -1,4 +1,4 @@
-using realestate_ia_site.Server.Infrastructure.Notifications.Models;
+using realestate_ia_site.Server.Application.Notifications.Models;
 
 namespace realestate_ia_site.Server.Application.Notifications.Interfaces;
 

@@ -1,7 +1,7 @@
 using System.Net;
 using System.Net.Mail;
 using Microsoft.Extensions.Options;
-using realestate_ia_site.Server.Infrastructure.Notifications.Models;
+using realestate_ia_site.Server.Application.Notifications.Models;
 using AppEmailService = realestate_ia_site.Server.Application.Notifications.Interfaces.IEmailService;
 using realestate_ia_site.Server.Infrastructure.Configurations;
 

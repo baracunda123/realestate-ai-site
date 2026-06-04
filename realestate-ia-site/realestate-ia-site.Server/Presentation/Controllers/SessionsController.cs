@@ -1,10 +1,11 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Application.Security;
 using realestate_ia_site.Server.Application.Common.Interfaces;
+using realestate_ia_site.Server.Application.Features.Auth.DTOs;
 
 namespace realestate_ia_site.Server.Presentation.Controllers
 {
@@ -14,13 +15,13 @@ namespace realestate_ia_site.Server.Presentation.Controllers
     public class SessionsController : BaseController
     {
         private readonly UserManager<User> _userManager;
-        private readonly SecurityAuditService _auditService;
+        private readonly ISecurityAuditService _auditService;
         private readonly ILogger<SessionsController> _logger;
         private readonly IApplicationDbContext _context;
 
         public SessionsController(
             UserManager<User> userManager,
-            SecurityAuditService auditService,
+            ISecurityAuditService auditService,
             ILogger<SessionsController> logger,
             IApplicationDbContext context)
         {
@@ -134,10 +135,5 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                 return StatusCode(500, new { success = false, message = "Erro ao terminar sessões" });
             }
         }
-    }
-    
-    public class RevokeSessionsRequest
-    {
-        public string Password { get; set; } = string.Empty;
     }
 }

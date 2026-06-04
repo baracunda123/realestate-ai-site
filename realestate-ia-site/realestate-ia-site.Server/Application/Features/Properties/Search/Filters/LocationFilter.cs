@@ -1,15 +1,15 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Domain.Entities;
-using realestate_ia_site.Server.Infrastructure.AI;
+using realestate_ia_site.Server.Application.Features.AI.Interfaces;
 using realestate_ia_site.Server.Application.Features.Properties.Search.Filters;
 
 namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filters
 {
     public class LocationFilter : IPropertyFilter
     {
-        private readonly LocationAIService _locationAI;
+        private readonly ILocationAIService _locationAI;
         private readonly ILogger<LocationFilter> _logger;
-        public LocationFilter(LocationAIService locationAI, ILogger<LocationFilter> logger)
+        public LocationFilter(ILocationAIService locationAI, ILogger<LocationFilter> logger)
         { _locationAI = locationAI; _logger = logger; }
         public bool CanHandle(string filterKey) => filterKey == "location" || filterKey == "locations";
         public string GetFilterName() => nameof(LocationFilter);

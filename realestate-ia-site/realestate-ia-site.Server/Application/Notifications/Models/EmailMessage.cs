@@ -1,4 +1,4 @@
-namespace realestate_ia_site.Server.Infrastructure.Notifications.Models
+namespace realestate_ia_site.Server.Application.Notifications.Models
 {
     public record EmailMessage
     {

@@ -1,5 +1,5 @@
-using OpenAI.Chat;
-using realestate_ia_site.Server.Infrastructure.AI;
+﻿using OpenAI.Chat;
+using realestate_ia_site.Server.Application.Features.AI.Models;
 
 namespace realestate_ia_site.Server.Application.Features.AI.Interfaces
 {

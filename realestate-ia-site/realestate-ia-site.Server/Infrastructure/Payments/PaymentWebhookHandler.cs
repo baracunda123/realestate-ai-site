@@ -1,9 +1,10 @@
 using Stripe;
 using System.Text.Json;
+using realestate_ia_site.Server.Application.Features.Payments.DTOs;
 using realestate_ia_site.Server.Application.Features.Payments.Interfaces;
 using realestate_ia_site.Server.Infrastructure.Configurations;
 
-namespace realestate_ia_site.Server.Application.Features.Payments
+namespace realestate_ia_site.Server.Infrastructure.Payments
 {
     public class PaymentWebhookHandler
     {
@@ -33,26 +34,25 @@ namespace realestate_ia_site.Server.Application.Features.Payments
             }
             catch (StripeException ex)
             {
-                _logger.LogWarning(ex, "[Webhook] Assinatura inválida");
-                return WebhookProcessResult.Failure("Assinatura inválida");
+                _logger.LogWarning(ex, "[Webhook] Assinatura invalida");
+                return WebhookProcessResult.Failure("Assinatura invalida");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[Webhook] Erro a construir evento Stripe");
-                return WebhookProcessResult.Failure("Evento inválido");
+                return WebhookProcessResult.Failure("Evento invalido");
             }
 
             if (await _webhookService.IsEventProcessedAsync(stripeEvent.Id))
             {
-                _logger.LogInformation("[Webhook] Evento j� processado id={EventId} type={Type}", stripeEvent.Id, stripeEvent.Type);
-                return WebhookProcessResult.SuccessResult("Evento j� processado");
+                _logger.LogInformation("[Webhook] Evento ja processado id={EventId} type={Type}", stripeEvent.Id, stripeEvent.Type);
+                return WebhookProcessResult.SuccessResult("Evento ja processado");
             }
 
             try
             {
                 switch (stripeEvent.Type)
                 {
-                    // ===== CHECKOUT EVENTS =====
                     case "checkout.session.completed":
                         if (stripeEvent.Data.Object is Stripe.Checkout.Session session)
                         {
@@ -68,7 +68,6 @@ namespace realestate_ia_site.Server.Application.Features.Payments
                         }
                         break;
 
-                    // ===== SUBSCRIPTION EVENTS =====
                     case "customer.subscription.created":
                     case "customer.subscription.updated":
                         if (stripeEvent.Data.Object is Stripe.Subscription subCreatedUpdated)
@@ -82,11 +81,11 @@ namespace realestate_ia_site.Server.Application.Features.Payments
                             if (subscription != null)
                             {
                                 await _subscriptionService.UpdateSubscriptionFromStripeAsync(subscription);
-                                _logger.LogInformation("[Webhook] Assinatura (deserializada) sincronizada stripeId={StripeSubId}", subscription.Id);
+                                _logger.LogInformation("[Webhook] Assinatura deserializada sincronizada stripeId={StripeSubId}", subscription.Id);
                             }
                         }
                         break;
-                        
+
                     case "customer.subscription.deleted":
                         if (stripeEvent.Data.Object is Stripe.Subscription subDeleted)
                         {
@@ -95,7 +94,6 @@ namespace realestate_ia_site.Server.Application.Features.Payments
                         }
                         break;
 
-                    // ===== INVOICE EVENTS =====
                     case "invoice.payment_succeeded":
                         if (stripeEvent.Data.Object is Stripe.Invoice invoiceSucceeded)
                         {
@@ -110,7 +108,7 @@ namespace realestate_ia_site.Server.Application.Features.Payments
                             }
                         }
                         break;
-                        
+
                     case "invoice.payment_failed":
                         if (stripeEvent.Data.Object is Stripe.Invoice invoiceFailed)
                         {
@@ -125,7 +123,7 @@ namespace realestate_ia_site.Server.Application.Features.Payments
                             }
                         }
                         break;
-                        
+
                     case "invoice.payment_action_required":
                         if (stripeEvent.Data.Object is Stripe.Invoice invoiceActionRequired)
                         {
@@ -156,12 +154,4 @@ namespace realestate_ia_site.Server.Application.Features.Payments
             return WebhookProcessResult.SuccessResult("Webhook processado");
         }
     }
-    
-    public record WebhookProcessResult(bool Success, string Message)
-    {
-        public static WebhookProcessResult SuccessResult(string message) => new(true, message);
-        public static WebhookProcessResult Failure(string message) => new(false, message);
-    }
 }
-
-

@@ -1,4 +1,4 @@
-// SecurityMiddleware.cs - Middleware adicional de segurança
+ï»¿// SecurityMiddleware.cs - Middleware adicional de seguranÃ§a
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Text.Json;
@@ -11,11 +11,11 @@ namespace realestate_ia_site.Server.Infrastructure.Middleware
     public class SecurityMiddleware
     {
         private readonly RequestDelegate _next;
-        private readonly SecurityAuditService _auditService;
+        private readonly ISecurityAuditService _auditService;
         private readonly ILogger<SecurityMiddleware> _logger;
         private readonly ScraperOptions _scraperOptions;
 
-        // Enhanced patterns para detectar ataques (mais específicos para reduzir falsos positivos)
+        // Enhanced patterns para detectar ataques (mais especÃ­ficos para reduzir falsos positivos)
         private static readonly Regex SqlInjectionPattern = new(@"(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|UNION|TRUNCATE|GRANT|REVOKE)\s+|\s+(OR|AND)\s+[\'\""]\d+[\'\""]\s*=\s*[\'\""]\d+[\'\""]\s*|;\s*-{2}|\/\*.*?\*\/|\x00|\x1a)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex XssPattern = new(@"(<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>|<iframe\b[^<]*(?:(?!<\/iframe>)<[^<]*)*<\/iframe>|javascript\s*:|on(load|click|error|focus|blur|change|submit|mouseover|mouseout)\s*=|<object\b|<embed\b|<applet\b)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex PathTraversalPattern = new(@"(\.\.\/|\.\.\\|%2e%2e%2f|%2e%2e%5c)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
@@ -35,7 +35,7 @@ namespace realestate_ia_site.Server.Infrastructure.Middleware
         // Maximum request size (5MB)
         private const long MaxRequestSize = 5 * 1024 * 1024;
 
-        public SecurityMiddleware(RequestDelegate next, SecurityAuditService auditService, ILogger<SecurityMiddleware> logger, IOptions<ScraperOptions> scraperOptions)
+        public SecurityMiddleware(RequestDelegate next, ISecurityAuditService auditService, ILogger<SecurityMiddleware> logger, IOptions<ScraperOptions> scraperOptions)
         {
             _next = next;
             _auditService = auditService;
@@ -51,8 +51,6 @@ namespace realestate_ia_site.Server.Infrastructure.Middleware
                 if (IsValidScraperRequest(context))
                 {
                     _logger.LogInformation("Valid scraper request detected for {Path}", context.Request.Path);
-                    // Add security headers and continue without security validation
-                    AddSecurityHeaders(context);
                     await _next(context);
                     return;
                 }
@@ -141,11 +139,11 @@ namespace realestate_ia_site.Server.Infrastructure.Middleware
                 return;
             }
 
-            // Verificar parâmetros e corpo da requisição (mais leniente para certos endpoints)
+            // Verificar parÃ¢metros e corpo da requisiÃ§Ã£o (mais leniente para certos endpoints)
             var validationResult = await ValidateRequestSecurity(context);
             if (!validationResult.IsValid)
             {
-                // Para endpoints de auth, só bloquear se for realmente malicioso
+                // Para endpoints de auth, sÃ³ bloquear se for realmente malicioso
                 bool isLenientPath = LenientValidationPaths.Any(path => context.Request.Path.StartsWithSegments(path));
                 
                 if (!isLenientPath || validationResult.Errors.Any(e => e.Contains("SQL injection") || e.Contains("Command injection")))
@@ -170,9 +168,6 @@ namespace realestate_ia_site.Server.Infrastructure.Middleware
                         context.Request.Path.Value, string.Join(", ", validationResult.Errors));
                 }
             }
-
-            // Adicionar headers de segurança se ainda não existirem
-            AddSecurityHeaders(context);
 
             await _next(context);
         }
@@ -250,7 +245,7 @@ namespace realestate_ia_site.Server.Infrastructure.Middleware
                 }
             }
 
-            // Verificar JSON body se aplicável
+            // Verificar JSON body se aplicÃ¡vel
             if (context.Request.ContentType?.Contains("application/json") == true)
             {
                 var bodyValidation = await ValidateJsonBody(context);
@@ -426,30 +421,6 @@ namespace realestate_ia_site.Server.Infrastructure.Middleware
             }
         }
 
-        private static void AddSecurityHeaders(HttpContext context)
-        {
-            var headers = context.Response.Headers;
-
-            // Only add if not already present
-            if (!headers.ContainsKey("X-Content-Type-Options"))
-                headers["X-Content-Type-Options"] = "nosniff";
-
-            if (!headers.ContainsKey("X-Frame-Options"))
-                headers["X-Frame-Options"] = "DENY";
-
-            if (!headers.ContainsKey("X-XSS-Protection"))
-                headers["X-XSS-Protection"] = "1; mode=block";
-
-            if (!headers.ContainsKey("Referrer-Policy"))
-                headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
-
-            if (!headers.ContainsKey("Permissions-Policy"))
-                headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=(), payment=()";
-
-            // Remove server information
-            headers.Remove("Server");
-            headers.Remove("X-Powered-By");
-        }
     }
 
     public class SecurityValidationResult
