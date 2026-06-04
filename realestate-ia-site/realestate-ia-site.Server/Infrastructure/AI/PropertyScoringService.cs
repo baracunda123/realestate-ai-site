@@ -1,5 +1,5 @@
-using realestate_ia_site.Server.Application.Common.Context;
-using realestate_ia_site.Server.Application.Common.DTOs;
+﻿using realestate_ia_site.Server.Application.Common.Context;
+using realestate_ia_site.Server.Application.Features.Properties.DTOs;
 using realestate_ia_site.Server.Application.Features.Properties.Scoring;
 using realestate_ia_site.Server.Application.Features.Properties.Feedback;
 using realestate_ia_site.Server.Application.Features.AI.Conversation;

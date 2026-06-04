@@ -1,4 +1,4 @@
-using realestate_ia_site.Server.Application.Common.DTOs;
+﻿using realestate_ia_site.Server.Application.Features.Properties.DTOs;
 
 namespace realestate_ia_site.Server.Application.Features.Chat.Interfaces
 {

@@ -1,12 +1,11 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Infrastructure.Persistence;
 using realestate_ia_site.Server.Application.Features.Properties.ViewHistory;
-using realestate_ia_site.Server.Application.Common.DTOs;
-using realestate_ia_site.Server.Application.Common.Exceptions;
+using realestate_ia_site.Server.Application.Features.Properties.DTOs;
 
 namespace realestate_ia_site.Server.Presentation.Controllers
 {

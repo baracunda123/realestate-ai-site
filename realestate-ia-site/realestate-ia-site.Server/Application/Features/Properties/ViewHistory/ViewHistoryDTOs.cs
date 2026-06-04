@@ -1,16 +1,16 @@
-using System.ComponentModel.DataAnnotations;
-using realestate_ia_site.Server.Application.Common.DTOs;
+ï»¿using System.ComponentModel.DataAnnotations;
+using realestate_ia_site.Server.Application.Features.Properties.DTOs;
 
 namespace realestate_ia_site.Server.Application.Features.Properties.ViewHistory
 {
-    // Request para registrar visualização
+    // Request para registrar visualizaÃ§Ã£o
     public class TrackViewRequest
     {
         [Required]
         public string PropertyId { get; set; } = string.Empty;
     }
 
-    // Response para registrar visualização
+    // Response para registrar visualizaÃ§Ã£o
     public class TrackViewResponse
     {
         public bool Success { get; set; }
@@ -18,14 +18,14 @@ namespace realestate_ia_site.Server.Application.Features.Properties.ViewHistory
         public int ViewCount { get; set; }
     }
 
-    // Response para remover/ocultar do histórico
+    // Response para remover/ocultar do histÃ³rico
     public class RemoveFromHistoryResponse
     {
         public bool Success { get; set; }
         public string Message { get; set; } = string.Empty;
     }
 
-    // Item do histórico de visualizações - SIMPLIFICADO
+    // Item do histÃ³rico de visualizaÃ§Ãµes - SIMPLIFICADO
     public class ViewHistoryItemDto
     {
         public string Id { get; set; } = string.Empty;
@@ -33,7 +33,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.ViewHistory
         public PropertySearchDto Property { get; set; } = new();
     }
 
-    // Response para listar histórico
+    // Response para listar histÃ³rico
     public class ViewHistoryResponse
     {
         public List<ViewHistoryItemDto> ViewHistory { get; set; } = new();

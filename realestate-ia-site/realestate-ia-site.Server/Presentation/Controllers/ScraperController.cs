@@ -1,7 +1,7 @@
-using Microsoft.AspNetCore.Http;
+﻿using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using realestate_ia_site.Server.Application.Common.DTOs;
+using realestate_ia_site.Server.Application.Features.Properties.Import.DTOs;
 using realestate_ia_site.Server.Application.Features.Properties.Import;
 
 namespace realestate_ia_site.Server.Presentation.Controllers

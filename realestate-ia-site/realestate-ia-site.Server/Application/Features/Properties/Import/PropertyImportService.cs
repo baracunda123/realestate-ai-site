@@ -1,7 +1,7 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Infrastructure.Persistence;
 using realestate_ia_site.Server.Domain.Entities;
-using realestate_ia_site.Server.Application.Common.DTOs;
+using realestate_ia_site.Server.Application.Features.Properties.Import.DTOs;
 using realestate_ia_site.Server.Application.ExternalServices.Interfaces;
 using realestate_ia_site.Server.Application.Features.Properties.Tracking;
 using realestate_ia_site.Server.Domain.Enums;

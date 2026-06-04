@@ -1,5 +1,5 @@
-using Microsoft.EntityFrameworkCore;
-using realestate_ia_site.Server.Application.Common.DTOs;
+﻿using Microsoft.EntityFrameworkCore;
+using realestate_ia_site.Server.Application.Features.Properties.DTOs;
 using realestate_ia_site.Server.Application.Common.Interfaces;
 using realestate_ia_site.Server.Application.Features.Chat.Interfaces;
 using realestate_ia_site.Server.Domain.Entities;

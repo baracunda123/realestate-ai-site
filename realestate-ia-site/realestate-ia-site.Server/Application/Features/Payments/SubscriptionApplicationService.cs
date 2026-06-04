@@ -1,6 +1,6 @@
 using realestate_ia_site.Server.Application.Features.Payments.Interfaces;
+using realestate_ia_site.Server.Application.Features.Payments.DTOs;
 using realestate_ia_site.Server.Domain.Entities;
-using realestate_ia_site.Server.Domain.Models; 
 
 namespace realestate_ia_site.Server.Application.Features.Payments
 {

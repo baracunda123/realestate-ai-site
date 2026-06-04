@@ -1,4 +1,4 @@
-namespace realestate_ia_site.Server.Application.Common.DTOs;
+namespace realestate_ia_site.Server.Application.Features.Properties.Import.DTOs;
 
 public class ScraperPropertyDto
 {
