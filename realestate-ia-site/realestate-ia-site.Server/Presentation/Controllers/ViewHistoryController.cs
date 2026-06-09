@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using realestate_ia_site.Server.Presentation.Extensions;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Domain.Entities;
@@ -13,7 +14,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
     [Route("api/view-history")]
     [EnableRateLimiting("ApiPolicy")]
     [Authorize]
-    public class ViewHistoryController : BaseController
+    public class ViewHistoryController : ControllerBase
     {
         private const int MAX_HISTORY_ITEMS = 10;
         private readonly ApplicationDbContext _context;
@@ -37,7 +38,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<TrackViewResponse>> TrackView([FromBody] TrackViewRequest request)
         {
-            var userId = GetCurrentUserId();
+            var userId = User.GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized(new { message = "Utilizador não autenticado" });
 
@@ -135,7 +136,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<RemoveFromHistoryResponse>> HideFromHistory([FromRoute] string historyId)
         {
-            var userId = GetCurrentUserId();
+            var userId = User.GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized(new { message = "Utilizador não autenticado" });
 
@@ -190,7 +191,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<ViewHistoryResponse>> GetViewHistory([FromQuery] int? limit)
         {
-            var userId = GetCurrentUserId();
+            var userId = User.GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized(new { message = "Utilizador não autenticado" });
 
@@ -269,7 +270,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<TrackViewResponse>> ReactivateViewHistory([FromRoute] string historyId)
         {
-            var userId = GetCurrentUserId();
+            var userId = User.GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized(new { message = "Utilizador não autenticado" });
 

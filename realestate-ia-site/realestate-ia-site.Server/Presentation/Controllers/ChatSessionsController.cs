@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using realestate_ia_site.Server.Presentation.Extensions;
 using realestate_ia_site.Server.Application.Features.Properties.DTOs;
 using realestate_ia_site.Server.Application.Features.Chat.DTOs;
 using realestate_ia_site.Server.Application.Features.Chat.Interfaces;
@@ -10,7 +11,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [Authorize]
-    public class ChatSessionsController : BaseController
+    public class ChatSessionsController : ControllerBase
     {
         private readonly IChatSessionService _chatSessionService;
         private readonly IChatSessionPropertyService _chatSessionPropertyService;
@@ -39,7 +40,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         {
             try
             {
-                var userId = GetCurrentUserId();
+                var userId = User.GetCurrentUserId();
                 var sessions = await _chatSessionService.GetUserSessionsAsync(userId, ct);
                 return Ok(sessions);
             }
@@ -61,7 +62,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         {
             try
             {
-                var userId = GetCurrentUserId();
+                var userId = User.GetCurrentUserId();
                 var session = await _chatSessionService.GetSessionByIdAsync(sessionId, userId, ct);
 
                 if (session == null)
@@ -94,7 +95,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         {
             try
             {
-                var userId = GetCurrentUserId();
+                var userId = User.GetCurrentUserId();
                 var session = await _chatSessionService.CreateSessionAsync(
                     userId,
                     createDto?.Title,
@@ -126,7 +127,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         {
             try
             {
-                var userId = GetCurrentUserId();
+                var userId = User.GetCurrentUserId();
                 var session = await _chatSessionService.UpdateSessionAsync(sessionId, userId, updateDto, ct);
 
                 if (session == null)
@@ -154,7 +155,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         {
             try
             {
-                var userId = GetCurrentUserId();
+                var userId = User.GetCurrentUserId();
                 var success = await _chatSessionService.DeleteSessionAsync(sessionId, userId, ct);
 
                 if (!success)

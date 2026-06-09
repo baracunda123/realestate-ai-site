@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using realestate_ia_site.Server.Presentation.Extensions;
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Application.Security;
@@ -12,7 +13,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [Authorize]
-    public class SessionsController : BaseController
+    public class SessionsController : ControllerBase
     {
         private readonly UserManager<User> _userManager;
         private readonly ISecurityAuditService _auditService;
@@ -41,7 +42,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         {
             try
             {
-                var userId = GetCurrentUserId();
+                var userId = User.GetCurrentUserId();
 
                 var sessions = await _userManager.Users
                     .Where(u => u.Id == userId)
@@ -63,7 +64,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[Sessions] Error retrieving sessions for userId={UserId}", GetCurrentUserId());
+                _logger.LogError(ex, "[Sessions] Error retrieving sessions for userId={UserId}", User.GetCurrentUserId());
                 return StatusCode(500, new { message = "Erro ao carregar sessões" });
             }
         }
@@ -80,7 +81,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         {
             try
             {
-                var userId = GetCurrentUserId();
+                var userId = User.GetCurrentUserId();
                 var user = await _userManager.FindByIdAsync(userId);
 
                 if (user == null)
@@ -131,7 +132,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[Sessions] Error terminating sessions userId={UserId}", GetCurrentUserId());
+                _logger.LogError(ex, "[Sessions] Error terminating sessions userId={UserId}", User.GetCurrentUserId());
                 return StatusCode(500, new { success = false, message = "Erro ao terminar sessões" });
             }
         }

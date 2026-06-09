@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using realestate_ia_site.Server.Presentation.Extensions;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Domain.Entities;
@@ -8,7 +9,6 @@ using realestate_ia_site.Server.Application.Features.Auth.DTOs;
 using realestate_ia_site.Server.Infrastructure.Auth;
 using realestate_ia_site.Server.Application.Security;
 using realestate_ia_site.Server.Application.Common.Interfaces;
-using realestate_ia_site.Server.Application.Notifications.Interfaces;
 using realestate_ia_site.Server.Infrastructure.Notifications;
 
 namespace realestate_ia_site.Server.Presentation.Controllers
@@ -16,7 +16,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
     [ApiController]
     [Route("api/[controller]")]
     [EnableRateLimiting("AuthPolicy")]
-    public class AuthController : BaseController
+    public class AuthController : ControllerBase
     {
         private readonly UserManager<User> _userManager;
         private readonly AuthService _authService;
@@ -259,7 +259,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
 
                 SetRefreshCookie(tokens);
                 
-                var userId = GetCurrentUserId();
+                var userId = User.GetCurrentUserId();
                 if (!string.IsNullOrEmpty(userId))
                 {
                     _auditService.LogSecurityEvent(SecurityEventType.TokenRefresh, "Token refreshed successfully", new { UserId = userId });
@@ -287,7 +287,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         {
             try
             {
-                var userId = GetCurrentUserId();
+                var userId = User.GetCurrentUserId();
                 
                 if (!string.IsNullOrEmpty(userId))
                 {
@@ -311,7 +311,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         {
             try
             {
-                var userId = GetCurrentUserId();
+                var userId = User.GetCurrentUserId();
                 
                 if (string.IsNullOrEmpty(userId))
                 {
@@ -355,7 +355,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         {
             try
             {
-                var userId = GetCurrentUserId();
+                var userId = User.GetCurrentUserId();
                 
                 if (string.IsNullOrEmpty(userId))
                 {
@@ -423,7 +423,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro no upload do avatar para o utilizador {UserId}", GetCurrentUserId());
+                _logger.LogError(ex, "Erro no upload do avatar para o utilizador {UserId}", User.GetCurrentUserId());
                 return StatusCode(500, new { success = false, error = "Erro interno no servidor ao fazer upload da imagem" });
             }
         }
@@ -434,7 +434,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         {
             try
             {
-                var userId = GetCurrentUserId();
+                var userId = User.GetCurrentUserId();
                 
                 if (string.IsNullOrEmpty(userId))
                 {
@@ -503,7 +503,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var userId = GetCurrentUserId();
+                var userId = User.GetCurrentUserId();
                 
                 if (string.IsNullOrEmpty(userId))
                 {
@@ -840,7 +840,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         {
             try
             {
-                var userId = GetCurrentUserId();
+                var userId = User.GetCurrentUserId();
                 
                 if (string.IsNullOrEmpty(userId))
                 {
@@ -883,7 +883,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                     return BadRequest(ModelState);
                 }
 
-                var userId = GetCurrentUserId();
+                var userId = User.GetCurrentUserId();
                 
                 if (string.IsNullOrEmpty(userId))
                 {
@@ -966,7 +966,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[Auth] Exception during account deletion for userId={UserId}", GetCurrentUserId());
+                _logger.LogError(ex, "[Auth] Exception during account deletion for userId={UserId}", User.GetCurrentUserId());
                 return StatusCode(500, new { success = false, message = "Erro interno do servidor" });
             }
         }

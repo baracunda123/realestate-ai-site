@@ -1,5 +1,6 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using realestate_ia_site.Server.Presentation.Extensions;
 using Microsoft.AspNetCore.RateLimiting;
 using realestate_ia_site.Server.Application.Common.Context;
 using realestate_ia_site.Server.Application.Features.AI.SearchAI;
@@ -13,7 +14,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
     [Route("api/[controller]")]
     [ApiController]
     [EnableRateLimiting("SearchPolicy")] // 30 req/min para proteger contra abuso
-    public class SearchAIController : BaseController
+    public class SearchAIController : ControllerBase
     {
         private readonly ILogger<SearchAIController> _logger;
         private readonly SearchAIOrchestrator _orchestrator;
@@ -48,14 +49,9 @@ namespace realestate_ia_site.Server.Presentation.Controllers
             [FromBody] SearchAIRequestDto request,
             CancellationToken ct = default)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
             try
             {
-                var userId = GetCurrentUserId(); // Pode ser null para anónimos
+                var userId = User.GetCurrentUserId(); // Pode ser null para anónimos
                 var isAuthenticated = !string.IsNullOrEmpty(userId);
 
                 string userPlan;
@@ -99,7 +95,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
                     // UTILIZADOR ANÓNIMO - Histórico temporário em memória (não persistido na BD)
                     
                     // Usar sessionId do middleware para manter contexto conversacional em memória
-                    var sessionId = GetSessionId();
+                    var sessionId = HttpContext.GetSessionId();
                     if (string.IsNullOrEmpty(chatSessionId) && !string.IsNullOrEmpty(sessionId))
                     {
                         chatSessionId = sessionId;
@@ -168,8 +164,8 @@ namespace realestate_ia_site.Server.Presentation.Controllers
             }
             catch (OperationCanceledException)
             {
-                var userId = GetCurrentUserId();
-                var sessionId = GetSessionId();
+                var userId = User.GetCurrentUserId();
+                var sessionId = HttpContext.GetSessionId();
                 _logger.LogInformation("Requisição cancelada pelo cliente - UserId: {UserId}, SessionId: {SessionId}", 
                     userId ?? "anonymous", sessionId ?? "none");
                 
@@ -201,8 +197,8 @@ namespace realestate_ia_site.Server.Presentation.Controllers
             }
             catch (Exception ex)
             {
-                var userId = GetCurrentUserId();
-                var sessionId = GetSessionId();
+                var userId = User.GetCurrentUserId();
+                var sessionId = HttpContext.GetSessionId();
                 _logger.LogError(ex, "Erro durante pesquisa AI - UserId: {UserId}, SessionId: {SessionId}", 
                     userId ?? "anonymous", sessionId ?? "none");
                 return StatusCode(500, "Erro interno do servidor");

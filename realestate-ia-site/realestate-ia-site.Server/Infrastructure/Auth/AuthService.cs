@@ -7,7 +7,6 @@ using System.Text;
 using System.Security.Cryptography;
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Application.Features.Auth.DTOs;
-using realestate_ia_site.Server.Application.Notifications.Interfaces;
 using realestate_ia_site.Server.Application.Common.Interfaces;
 using realestate_ia_site.Server.Infrastructure.Notifications;
 

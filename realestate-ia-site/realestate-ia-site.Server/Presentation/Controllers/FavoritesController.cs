@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using realestate_ia_site.Server.Presentation.Extensions;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Domain.Entities;
@@ -15,7 +16,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
     [Route("api/[controller]")]
     [EnableRateLimiting("ApiPolicy")]
     [Authorize]
-    public class FavoritesController : BaseController
+    public class FavoritesController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
         private readonly ILogger<FavoritesController> _logger;
@@ -39,7 +40,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20)
         {
-            var userId = GetCurrentUserId();
+            var userId = User.GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
                 throw new AppUnauthorizedException("get favorites");
 
@@ -109,7 +110,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<ActionResult<SuccessResponse>> AddToFavorites([FromBody] AddFavoriteRequest request)
         {
-            var userId = GetCurrentUserId();
+            var userId = User.GetCurrentUserId();
             if (string.IsNullOrEmpty(userId))
                 throw new AppUnauthorizedException("add to favorites");
 
@@ -175,7 +176,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         {
             try
             {
-                var userId = GetCurrentUserId();
+                var userId = User.GetCurrentUserId();
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized();
 
@@ -222,7 +223,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         {
             try
             {
-                var userId = GetCurrentUserId();
+                var userId = User.GetCurrentUserId();
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized();
 
@@ -255,7 +256,7 @@ namespace realestate_ia_site.Server.Presentation.Controllers
         {
             try
             {
-                var userId = GetCurrentUserId();
+                var userId = User.GetCurrentUserId();
                 if (string.IsNullOrEmpty(userId))
                     return Unauthorized();
 
