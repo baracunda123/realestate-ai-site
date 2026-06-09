@@ -1,5 +1,4 @@
 using realestate_ia_site.Server.Domain.Entities;
-using realestate_ia_site.Server.Application.Features.Properties.Search.Filters;
 
 namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filters
 {
@@ -17,7 +16,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
         
         public string GetFilterName() => nameof(AreaFilter);
         
-        public Task<IQueryable<Property>> ApplyAsync(
+        public Task<PropertyFilterResult> ApplyAsync(
             IQueryable<Property> query, 
             Dictionary<string, object> filters, 
             CancellationToken cancellationToken = default)
@@ -34,7 +33,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
                 _logger.LogDebug("[SearchFilter] min_area>={Min}m²", min);
             }
             
-            return Task.FromResult(query);
+            return Task.FromResult(new PropertyFilterResult(query));
         }
     }
 }

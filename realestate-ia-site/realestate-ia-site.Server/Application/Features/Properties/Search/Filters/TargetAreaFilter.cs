@@ -1,5 +1,4 @@
 using realestate_ia_site.Server.Domain.Entities;
-using realestate_ia_site.Server.Application.Features.Properties.Search.Filters;
 
 namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filters
 {
@@ -20,16 +19,16 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
         
         public string GetFilterName() => nameof(TargetAreaFilter);
         
-        public Task<IQueryable<Property>> ApplyAsync(
+        public Task<PropertyFilterResult> ApplyAsync(
             IQueryable<Property> query, 
             Dictionary<string, object> filters, 
             CancellationToken cancellationToken = default)
         {
             if (!filters.TryGetValue("target_area", out var targetObj) || targetObj == null)
-                return Task.FromResult(query);
+                return Task.FromResult(new PropertyFilterResult(query));
 
             if (!double.TryParse(targetObj.ToString(), out var targetArea))
-                return Task.FromResult(query);
+                return Task.FromResult(new PropertyFilterResult(query));
 
             _logger.LogInformation("[TargetAreaFilter] Ordenando por proximidade à área-alvo: {TargetArea}m²", targetArea);
 
@@ -43,7 +42,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
 
             _logger.LogDebug("[TargetAreaFilter] Query ordenada por proximidade à área {Target}m²", targetArea);
             
-            return Task.FromResult(query);
+            return Task.FromResult(new PropertyFilterResult(query));
         }
     }
 }

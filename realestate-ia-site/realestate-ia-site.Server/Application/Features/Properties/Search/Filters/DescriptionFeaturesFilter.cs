@@ -29,21 +29,21 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
 
         public string GetFilterName() => nameof(DescriptionFeaturesFilter);
 
-        public async Task<IQueryable<Property>> ApplyAsync(
+        public async Task<PropertyFilterResult> ApplyAsync(
             IQueryable<Property> query,
             Dictionary<string, object> filters,
             CancellationToken cancellationToken = default)
         {
             if (!filters.TryGetValue("features", out var featuresObj) && 
                 !filters.TryGetValue("description_features", out featuresObj))
-                return query;
+                return new PropertyFilterResult(query);
 
             if (featuresObj == null)
-                return query;
+                return new PropertyFilterResult(query);
 
             var requestedFeatures = ParseFeatures(featuresObj);
             if (!requestedFeatures.Any())
-                return query;
+                return new PropertyFilterResult(query);
 
             _logger.LogInformation(
                 "[DescriptionFeaturesFilter] Procurando features: {Features}",
@@ -57,7 +57,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
                 .ToListAsync(cancellationToken);
 
             if (!properties.Any())
-                return query.Where(p => false);
+                return new PropertyFilterResult(query.Where(p => false));
 
             // Analisar em batches
             var matchedPropertyIds = new List<string>();
@@ -104,19 +104,18 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
                 }
             }
             
-            if (propertyFeatures.Any())
-                filters["_matched_features"] = propertyFeatures;
-
             if (!matchedPropertyIds.Any())
             {
                 _logger.LogInformation("[DescriptionFeaturesFilter] Nenhuma propriedade com features - retornando todas (features são preferência, não requisito)");
-                return query; // Retornar query original - features são preferência, não filtro obrigatório
+                return new PropertyFilterResult(query); // Retornar query original - features são preferência, não filtro obrigatório
             }
 
             _logger.LogInformation(
                 "[DescriptionFeaturesFilter] {Count} propriedades com features", matchedPropertyIds.Count);
 
-            return query.Where(p => matchedPropertyIds.Contains(p.Id));
+            return new PropertyFilterResult(
+                query.Where(p => matchedPropertyIds.Contains(p.Id)),
+                propertyFeatures);
         }
 
         private List<string> ParseFeatures(object? featuresObj)

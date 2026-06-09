@@ -1,5 +1,4 @@
 using realestate_ia_site.Server.Domain.Entities;
-using realestate_ia_site.Server.Application.Features.Properties.Search.Filters;
 
 namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filters
 {
@@ -13,14 +12,14 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
 
         public string GetFilterName() => nameof(TypeFilter);
 
-        public Task<IQueryable<Property>> ApplyAsync(IQueryable<Property> query, Dictionary<string, object> filters, CancellationToken cancellationToken = default)
+        public Task<PropertyFilterResult> ApplyAsync(IQueryable<Property> query, Dictionary<string, object> filters, CancellationToken cancellationToken = default)
         {
-            if (!filters.TryGetValue("type", out var value) || value == null) return Task.FromResult(query);
+            if (!filters.TryGetValue("type", out var value) || value == null) return Task.FromResult(new PropertyFilterResult(query));
             var type = value.ToString();
-            if (string.IsNullOrWhiteSpace(type)) return Task.FromResult(query);
+            if (string.IsNullOrWhiteSpace(type)) return Task.FromResult(new PropertyFilterResult(query));
             query = query.Where(p => p.Type != null && p.Type.ToLower().Contains(type.ToLower()));
             _logger.LogDebug("[SearchFilter] type={Type}", type);
-            return Task.FromResult(query);
+            return Task.FromResult(new PropertyFilterResult(query));
         }
     }
 }

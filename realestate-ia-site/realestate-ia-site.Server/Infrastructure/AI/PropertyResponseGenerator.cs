@@ -169,10 +169,8 @@ namespace realestate_ia_site.Server.Infrastructure.AI
         {
             var analysis = new FilterChangeAnalysis();
             var coreFilterKeys = new[] { "location", "city", "type", "property_type" };
-            var ignoreKeys = new[] { "_matched_features" }; // Metadados internos, não são filtros reais
-            
             // Filtros adicionados
-            foreach (var key in current.Keys.Except(ignoreKeys))
+            foreach (var key in current.Keys)
             {
                 if (!previous.ContainsKey(key))
                 {
@@ -191,7 +189,7 @@ namespace realestate_ia_site.Server.Infrastructure.AI
             }
             
             // Filtros removidos
-            foreach (var key in previous.Keys.Except(ignoreKeys))
+            foreach (var key in previous.Keys)
             {
                 if (!current.ContainsKey(key))
                 {

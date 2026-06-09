@@ -1,5 +1,4 @@
 using realestate_ia_site.Server.Domain.Entities;
-using realestate_ia_site.Server.Application.Features.Properties.Search.Filters;
 
 namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filters
 {
@@ -13,16 +12,16 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
 
         public string GetFilterName() => nameof(TagsFilter);
 
-        public Task<IQueryable<Property>> ApplyAsync(IQueryable<Property> query, Dictionary<string, object> filters, CancellationToken cancellationToken = default)
+        public Task<PropertyFilterResult> ApplyAsync(IQueryable<Property> query, Dictionary<string, object> filters, CancellationToken cancellationToken = default)
         {
-            if (!filters.TryGetValue("tags", out var tagsObj) || tagsObj == null) return Task.FromResult(query);
+            if (!filters.TryGetValue("tags", out var tagsObj) || tagsObj == null) return Task.FromResult(new PropertyFilterResult(query));
             var raw = tagsObj.ToString();
-            if (string.IsNullOrWhiteSpace(raw)) return Task.FromResult(query);
+            if (string.IsNullOrWhiteSpace(raw)) return Task.FromResult(new PropertyFilterResult(query));
             var tags = raw.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                           .Select(t => t.ToLower()).ToArray();
-            if (tags.Length == 0) return Task.FromResult(query);
-            _logger.LogDebug("[SearchFilter] tags solicitadas (não suportado no modelo) tags={Tags}", string.Join(";", tags));
-            return Task.FromResult(query);
+            if (tags.Length == 0) return Task.FromResult(new PropertyFilterResult(query));
+            _logger.LogDebug("[SearchFilter] tags solicitadas (nï¿½o suportado no modelo) tags={Tags}", string.Join(";", tags));
+            return Task.FromResult(new PropertyFilterResult(query));
         }
     }
 }

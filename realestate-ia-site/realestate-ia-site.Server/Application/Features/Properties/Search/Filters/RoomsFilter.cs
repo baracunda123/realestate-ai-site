@@ -1,5 +1,4 @@
 using realestate_ia_site.Server.Domain.Entities;
-using realestate_ia_site.Server.Application.Features.Properties.Search.Filters;
 
 namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filters
 {
@@ -9,7 +8,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
         public RoomsFilter(ILogger<RoomsFilter> logger) => _logger = logger;
         public bool CanHandle(string filterKey) => filterKey is "rooms" or "bedrooms" or "min_rooms" or "max_rooms";
         public string GetFilterName() => nameof(RoomsFilter);
-        public Task<IQueryable<Property>> ApplyAsync(IQueryable<Property> query, Dictionary<string, object> filters, CancellationToken cancellationToken = default)
+        public Task<PropertyFilterResult> ApplyAsync(IQueryable<Property> query, Dictionary<string, object> filters, CancellationToken cancellationToken = default)
         {
             // EXATO: "T2" ou "2 quartos" → rooms == 2
             if (filters.TryGetValue("rooms", out var roomsObj) && int.TryParse(roomsObj?.ToString(), out var rooms))
@@ -39,7 +38,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
                 _logger.LogDebug("[SearchFilter] bedrooms=={Bedrooms} (exato - legacy)", bedrooms);
             }
             
-            return Task.FromResult(query);
+            return Task.FromResult(new PropertyFilterResult(query));
         }
     }
 }

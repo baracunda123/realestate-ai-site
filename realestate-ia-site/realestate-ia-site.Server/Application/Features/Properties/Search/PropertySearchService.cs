@@ -51,6 +51,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search
             // Ex: max_price e min_price são ambos tratados pelo PriceFilter
             var filtroKeys = filtros.Keys.ToList();
             var processedFilters = new HashSet<string>();
+            IReadOnlyDictionary<string, List<string>>? matchedFeatures = null;
 
             foreach (var filtroKey in filtroKeys)
             {
@@ -69,7 +70,12 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search
                     continue;
                 }
                 
-                query = await applicable.ApplyAsync(query, filtros, cancellationToken);
+                var filterResult = await applicable.ApplyAsync(query, filtros, cancellationToken);
+                query = filterResult.Query;
+                if (filterResult.MatchedFeatures is { Count: > 0 })
+                {
+                    matchedFeatures = filterResult.MatchedFeatures;
+                }
                 processedFilters.Add(filterName);
                 _logger.LogDebug("[Search] Filtro aplicado filter={Filter} key={Key}", filterName, filtroKey);
             }
@@ -101,8 +107,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search
                 }).ToList();
 
                 // Aplicar features encontradas (se houver pesquisa por features)
-                if (filtros.TryGetValue("_matched_features", out var matchedFeaturesObj) && 
-                    matchedFeaturesObj is Dictionary<string, List<string>> matchedFeatures)
+                if (matchedFeatures is not null)
                 {
                     foreach (var property in result)
                     {
@@ -160,14 +165,16 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search
             {
                 foreach (var filter in _filters.Where(f => f.CanHandle(filtroKey)))
                 {
-                    query = await filter.ApplyAsync(query, filtros, cancellationToken);
+                    var filterResult = await filter.ApplyAsync(query, filtros, cancellationToken);
+                    query = filterResult.Query;
                 }
             }
 
             var topPicksFilter = _filters.FirstOrDefault(f => f.CanHandle("generate_top_picks"));
             if (topPicksFilter != null)
             {
-                query = await topPicksFilter.ApplyAsync(query, topPicksFilters, cancellationToken);
+                var filterResult = await topPicksFilter.ApplyAsync(query, topPicksFilters, cancellationToken);
+                query = filterResult.Query;
             }
 
             var properties = await query.ToListAsync(cancellationToken);

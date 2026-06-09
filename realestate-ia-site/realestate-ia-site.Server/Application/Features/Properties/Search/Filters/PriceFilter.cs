@@ -1,5 +1,4 @@
 using realestate_ia_site.Server.Domain.Entities;
-using realestate_ia_site.Server.Application.Features.Properties.Search.Filters;
 
 namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filters
 {
@@ -9,7 +8,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
         public PriceFilter(ILogger<PriceFilter> logger) => _logger = logger;
         public bool CanHandle(string filterKey) => filterKey is "max_price" or "min_price" or "price";
         public string GetFilterName() => nameof(PriceFilter);
-        public Task<IQueryable<Property>> ApplyAsync(IQueryable<Property> query, Dictionary<string, object> filters, CancellationToken cancellationToken = default)
+        public Task<PropertyFilterResult> ApplyAsync(IQueryable<Property> query, Dictionary<string, object> filters, CancellationToken cancellationToken = default)
         {
             if (filters.TryGetValue("max_price", out var maxObj) && decimal.TryParse(maxObj?.ToString(), out var max))
             {
@@ -21,7 +20,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
                 query = query.Where(p => p.Price.HasValue && p.Price.Value >= min);
                 _logger.LogDebug("[SearchFilter] min_price>={Min}", min);
             }
-            return Task.FromResult(query);
+            return Task.FromResult(new PropertyFilterResult(query));
         }
     }
 }

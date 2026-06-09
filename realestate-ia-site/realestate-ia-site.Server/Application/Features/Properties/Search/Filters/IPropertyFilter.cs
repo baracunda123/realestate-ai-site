@@ -5,7 +5,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
 public interface IPropertyFilter
 {
     bool CanHandle(string filterKey);
-    Task<IQueryable<Property>> ApplyAsync(
+    Task<PropertyFilterResult> ApplyAsync(
         IQueryable<Property> query, 
         Dictionary<string, object> filters, 
         CancellationToken cancellationToken = default);

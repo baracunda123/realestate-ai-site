@@ -1,7 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using realestate_ia_site.Server.Domain.Entities;
 using realestate_ia_site.Server.Application.Features.AI.Interfaces;
-using realestate_ia_site.Server.Application.Features.Properties.Search.Filters;
 
 namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filters
 {
@@ -13,7 +12,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
         { _locationAI = locationAI; _logger = logger; }
         public bool CanHandle(string filterKey) => filterKey == "location" || filterKey == "locations";
         public string GetFilterName() => nameof(LocationFilter);
-        public async Task<IQueryable<Property>> ApplyAsync(IQueryable<Property> query, Dictionary<string, object> filters, CancellationToken cancellationToken = default)
+        public async Task<PropertyFilterResult> ApplyAsync(IQueryable<Property> query, Dictionary<string, object> filters, CancellationToken cancellationToken = default)
         {
             // Suporte para múltiplas localizações (ranges geográficos)
             if (filters.TryGetValue("locations", out var locationsValue) && locationsValue != null)
@@ -38,7 +37,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
                     var (locationQuery, searchType) = await ApplyMultipleLocationsFilterWithAI(query, locations, locationType, cancellationToken);
                     _logger.LogDebug("[SearchFilter] locations={Locations} type={Type} mode={Mode}", 
                         string.Join(", ", locations), locationType, searchType);
-                    return locationQuery;
+                    return new PropertyFilterResult(locationQuery);
                 }
             }
 
@@ -50,11 +49,11 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
                 {
                     var (locationQuery, searchType) = await ApplyLocationFilterWithAI(query, location, cancellationToken);
                     _logger.LogDebug("[SearchFilter] location={Location} mode={Mode}", location, searchType);
-                    return locationQuery;
+                    return new PropertyFilterResult(locationQuery);
                 }
             }
 
-            return query;
+            return new PropertyFilterResult(query);
         }
         private async Task<(IQueryable<Property>, string)> ApplyLocationFilterWithAI(IQueryable<Property> query, string location, CancellationToken ct)
         {

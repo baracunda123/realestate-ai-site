@@ -1,6 +1,4 @@
 using realestate_ia_site.Server.Domain.Entities;
-using realestate_ia_site.Server.Application.Features.Properties.Search.Filters;
-using Microsoft.EntityFrameworkCore;
 
 namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filters
 {
@@ -21,16 +19,16 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
         
         public string GetFilterName() => nameof(TargetPriceFilter);
         
-        public Task<IQueryable<Property>> ApplyAsync(
+        public Task<PropertyFilterResult> ApplyAsync(
             IQueryable<Property> query, 
             Dictionary<string, object> filters, 
             CancellationToken cancellationToken = default)
         {
             if (!filters.TryGetValue("target_price", out var targetObj) || targetObj == null)
-                return Task.FromResult(query);
+                return Task.FromResult(new PropertyFilterResult(query));
 
             if (!decimal.TryParse(targetObj.ToString(), out var targetPrice))
-                return Task.FromResult(query);
+                return Task.FromResult(new PropertyFilterResult(query));
 
             _logger.LogInformation("[TargetPriceFilter] Ordenando por proximidade ao preço-alvo: {TargetPrice:C}", targetPrice);
 
@@ -44,7 +42,7 @@ namespace realestate_ia_site.Server.Application.Features.Properties.Search.Filte
 
             _logger.LogDebug("[TargetPriceFilter] Query ordenada por proximidade ao preço {Target:C}", targetPrice);
             
-            return Task.FromResult(query);
+            return Task.FromResult(new PropertyFilterResult(query));
         }
     }
 }
